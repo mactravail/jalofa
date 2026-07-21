@@ -1,0 +1,66 @@
+import {
+  CollectionCarousel,
+  type CollectionTile,
+} from "@/components/home/collection-carousel";
+
+// Collection Femme présentée « à la Hockerty » (cf. CollectionCarousel), en
+// pendant de la Collection Homme. Vitrine de la tête aux pieds : robe, boubou,
+// cérémonie, tailleur, ensemble, thiaya. La robe et le boubou femme mènent à la
+// page dédiée de la famille robe ; les autres à leur fiche modèle. Les images
+// appartiennent au vêtement visé pour que la tuile et sa page concordent.
+const TILES: CollectionTile[] = [
+  {
+    name: "Robe",
+    caption: "Du quotidien à la cérémonie",
+    src: "/models/robe.jpg",
+    href: "/modeles/demo-robe",
+    alt: "Femme en robe sur mesure",
+  },
+  {
+    name: "Boubou femme",
+    caption: "Grandes occasions",
+    src: "/models/boubou-femme.jpg",
+    href: "/modeles/demo-boubou-femme",
+    alt: "Femme en boubou brodé sur mesure",
+  },
+  {
+    name: "Cérémonie",
+    caption: "Mariages & fêtes",
+    src: "/collection%20femme/ceremonie.avif",
+    href: "/modeles/demo-ceremonie-femme",
+    alt: "Femme en tenue de cérémonie brodée",
+  },
+  {
+    name: "Tailleur pantalon",
+    caption: "Bureau & business",
+    src: "/collection%20femme/tailleur-pantalon.avif",
+    href: "/modeles/demo-tailleur-pantalon",
+    alt: "Femme en tailleur pantalon sur mesure",
+  },
+  {
+    name: "Ensemble",
+    caption: "Coordonné haut & bas",
+    src: "/models/ensemble.jpg",
+    href: "/modeles/demo-ensemble",
+    alt: "Femme en ensemble coordonné sur mesure",
+  },
+  {
+    name: "Thiaya",
+    caption: "Traditionnel",
+    src: "/collection%20femme/thiaya.avif",
+    href: "/modeles/demo-thiaya-femme",
+    alt: "Femme en thiaya traditionnel deux-pièces",
+  },
+];
+
+// Bloc « Collection Femme » — pendant de la Collection Homme dans la section
+// « Nos collections ».
+export function FemmeCollection() {
+  return (
+    <CollectionCarousel
+      title="Collection Femme"
+      subtitle="Sur mesure, de la tête aux pieds — robe, boubou, cérémonie, tailleur, ensemble et thiaya."
+      tiles={TILES}
+    />
+  );
+}
