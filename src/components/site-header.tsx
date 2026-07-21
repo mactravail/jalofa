@@ -25,7 +25,7 @@ export async function SiteHeader() {
           <Image
             src={logo}
             alt={APP_NAME}
-            priority
+            preload
             className="h-6 w-auto dark:invert"
           />
         </Link>

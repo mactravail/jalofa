@@ -15,7 +15,7 @@ export default function AuthLayout({
         <Image
           src={logo}
           alt={APP_NAME}
-          priority
+          preload
           className="h-8 w-auto dark:invert"
         />
       </Link>

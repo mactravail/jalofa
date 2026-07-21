@@ -9,6 +9,16 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "4mb" },
   },
   images: {
+    // AVIF d'abord (≈ 20-30 % plus léger que le WebP) puis repli WebP : moins
+    // d'octets sur la donnée mobile, décisif sur le marché visé. Next encode à
+    // la demande et met chaque format en cache.
+    formats: ["image/avif", "image/webp"],
+    // Qualité unique autorisée (défaut Next 16). Suffisante pour des photos de
+    // mode et cohérente avec l'absence de prop `quality` dans le code.
+    qualities: [75],
+    // Les visuels catalogue changent peu : on garde les dérivés optimisés en
+    // cache 31 jours pour éviter de les ré-encoder à chaque requête.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "images.unsplash.com" },

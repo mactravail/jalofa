@@ -48,7 +48,7 @@ export default async function TailorProfilePage({
               fill
               sizes="144px"
               className="object-cover"
-              priority
+              preload
             />
           ) : (
             <span className="text-muted-foreground flex size-full items-center justify-center">

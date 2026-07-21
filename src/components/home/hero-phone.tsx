@@ -103,7 +103,7 @@ export function HeroPhone() {
                   "object-cover transition-opacity duration-700",
                   i === step ? "opacity-100" : "opacity-0",
                 )}
-                priority={i === 0}
+                preload={i === 0}
               />
             ))}
 

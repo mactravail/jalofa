@@ -16,9 +16,14 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+// Le mono ne sert qu'aux numéros de commande / champs carte (dashboard,
+// checkout) — jamais sur la home ni les pages vitrine. On l'auto-héberge mais
+// sans preload, pour ne pas charger cette fonte sur des routes qui n'en ont
+// pas besoin ; elle est récupérée à la demande là où elle apparaît.
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {

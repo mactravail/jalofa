@@ -43,7 +43,7 @@ export default async function FabricDetailPage({
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
-              priority
+              preload
             />
           )}
         </div>

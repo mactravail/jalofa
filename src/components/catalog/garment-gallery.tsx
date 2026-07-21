@@ -108,7 +108,7 @@ export function GarmentGallery({
                 alt={`${alt} — vue ${i + 1} sur ${photos.length}`}
                 fill
                 sizes={sizes}
-                priority={priority && i === 0}
+                preload={priority && i === 0}
                 className={cn(
                   fit === "cover" ? "object-cover" : "object-contain",
                   fit === "contain" && "drop-shadow-xl",
