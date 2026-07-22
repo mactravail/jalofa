@@ -115,6 +115,15 @@ export interface Style {
 export interface GarmentModel {
   id: string;
   /**
+   * Identifiant stable et lisible, indépendant de l'`id` UUID généré en base.
+   * C'est LUI (pas l'`id`) qui relie un modèle à sa page dédiée et à sa famille
+   * (cf. `garment-routes.ts`) : les pages `/homme/grand-boubou-sur-mesure` &
+   * co. résolvent leurs modèles par slug, ce qui marche à l'identique en démo
+   * (fixtures) et en prod (Supabase). `null` = modèle sans slug (pas de page
+   * dédiée). En fixtures, dérivé de l'`id` (`demo-` retiré).
+   */
+  slug: string | null;
+  /**
    * Auteur du modèle. `null` = catalogue de la plateforme, ouvert à tous les
    * tailleurs. Renseigné = création propre à ce tailleur : le modèle reste
    * visible dans /modeles, mais le commander verrouille son auteur comme

@@ -152,6 +152,7 @@ type ModelRow = Omit<GarmentModel, "photos"> & {
 function toModel(row: ModelRow): GarmentModel {
   return {
     id: row.id,
+    slug: row.slug ?? null,
     tailor_id: row.tailor_id,
     name: row.name,
     category_slug: row.category_slug,
@@ -260,6 +261,28 @@ export async function getModelById(id: string): Promise<GarmentModel | null> {
   }
   const supabase = await createClient();
   const { data } = await supabase.from("models").select(MODEL_SELECT).eq("id", id).single();
+  if (!data || !isOrderable(data as ModelRow)) return null;
+  return toModel(data as ModelRow);
+}
+
+/**
+ * Résout un modèle par son `slug` stable plutôt que par son `id` UUID. C'est la
+ * clé des pages dédiées (grand boubou, robe…) et de leurs familles : le slug
+ * existe à l'identique en démo (fixtures) et en prod (colonne `models.slug`
+ * seedée), alors que l'`id` est un UUID aléatoire en base. `null` si aucun
+ * modèle actif ne porte ce slug — la page appelante retombe alors sur les
+ * membres de la famille qui existent, ou sur `notFound()`.
+ */
+export async function getModelBySlug(slug: string): Promise<GarmentModel | null> {
+  if (!isSupabaseConfigured()) {
+    return MODELS.find((m) => m.slug === slug) ?? null;
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("models")
+    .select(MODEL_SELECT)
+    .eq("slug", slug)
+    .maybeSingle();
   if (!data || !isOrderable(data as ModelRow)) return null;
   return toModel(data as ModelRow);
 }

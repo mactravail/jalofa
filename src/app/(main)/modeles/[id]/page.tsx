@@ -26,20 +26,24 @@ export default async function ModelDetailPage({
   searchParams: Promise<{ type?: string; fabric?: string; tailor?: string }>;
 }) {
   const { id } = await params;
-
-  // Un modèle à page dédiée est redirigé avant tout chargement, vers son type
-  // dans la famille (cf. garment-routes.ts — le grand boubou et la robe ont
-  // chacun plusieurs types partageant une seule page dédiée).
-  if (DEDICATED_HREF[id]) redirect(`${DEDICATED_HREF[id]}?type=${id}`);
-
   const { type, fabric, tailor } = await searchParams;
-  const [model, styles, fabrics, tailors] = await Promise.all([
-    getModelById(id),
+
+  // L'`id` de l'URL est un UUID en base ; c'est le `slug` du modèle chargé qui
+  // décide d'une éventuelle page dédiée. On charge donc le modèle d'abord, puis
+  // on redirige vers son type dans la famille (cf. garment-routes.ts — le grand
+  // boubou et la robe ont chacun plusieurs types partageant une seule page
+  // dédiée).
+  const model = await getModelById(id);
+  if (!model) notFound();
+  if (model.slug && DEDICATED_HREF[model.slug]) {
+    redirect(`${DEDICATED_HREF[model.slug]}?type=${model.slug}`);
+  }
+
+  const [styles, fabrics, tailors] = await Promise.all([
     getStyles(),
     getFabrics(),
     getTailors(),
   ]);
-  if (!model) notFound();
   const photos = modelPhotos(model);
 
   // Une création signée se commande chez son auteur — il n'y a personne d'autre
@@ -67,7 +71,7 @@ export default async function ModelDetailPage({
     tailor: asIsTailor,
   });
 
-  const personaliserHref = PERSONALISER_HREF[model.id];
+  const personaliserHref = model.slug ? PERSONALISER_HREF[model.slug] : undefined;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">

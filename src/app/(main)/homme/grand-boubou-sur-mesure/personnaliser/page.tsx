@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { DemoBanner } from "@/components/demo-banner";
 import { BoubouConfigurator } from "@/components/men/boubou-configurator";
-import { getFabrics, getModelById } from "@/lib/data";
+import { getFabrics, getModelBySlug } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Personnaliser votre grand boubou sur mesure",
@@ -15,12 +15,12 @@ export const metadata: Metadata = {
  * already been chosen, so nothing else is loaded — no robe, no jupe, no other
  * silhouette to drift onto mid-flow.
  */
-const BOUBOU_MODEL_ID = "demo-grand-boubou";
+const BOUBOU_SLUG = "grand-boubou";
 
 export default async function PersonnaliserGrandBoubouPage() {
   const [fabrics, model] = await Promise.all([
     getFabrics(),
-    getModelById(BOUBOU_MODEL_ID),
+    getModelBySlug(BOUBOU_SLUG),
   ]);
 
   return (

@@ -11,7 +11,9 @@ export const metadata: Metadata = {
 };
 
 // Base dress silhouettes offered as the preview canvas (women's dresses only).
-const DRESS_MODEL_IDS = ["demo-robe", "demo-boubou-femme"];
+// Par slug stable (pas l'`id` UUID de la base) pour retrouver les mêmes
+// silhouettes en démo comme en prod.
+const DRESS_MODEL_SLUGS = ["robe", "boubou-femme"];
 
 export default async function PersonnaliserRobePage() {
   const [fabrics, femmeModels] = await Promise.all([
@@ -19,7 +21,7 @@ export default async function PersonnaliserRobePage() {
     getModels({ category: "femme" }),
   ]);
 
-  const models = femmeModels.filter((m) => DRESS_MODEL_IDS.includes(m.id));
+  const models = femmeModels.filter((m) => m.slug !== null && DRESS_MODEL_SLUGS.includes(m.slug));
 
   return (
     <>

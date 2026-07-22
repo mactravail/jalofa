@@ -247,7 +247,7 @@ export const FABRICS: Fabric[] = [
   },
 ];
 
-export const MODELS: GarmentModel[] = [
+const MODELS_RAW: Omit<GarmentModel, "slug">[] = [
   {
     id: "demo-grand-boubou",
     tailor_id: null,
@@ -792,6 +792,15 @@ export const MODELS: GarmentModel[] = [
     photos: homme("c1", "c", "c2"),
   },
 ];
+
+// Le slug est dérivé de l'`id` (`demo-grand-boubou` → `grand-boubou`) pour que
+// les fixtures parlent le même langage que la base : en prod, ces mêmes slugs
+// sont posés sur les lignes seedées (cf. `supabase/seed.sql`). C'est ce qui
+// permet aux pages dédiées de résoudre un modèle par slug dans les deux modes.
+export const MODELS: GarmentModel[] = MODELS_RAW.map((m) => ({
+  ...m,
+  slug: m.id.replace(/^demo-/, ""),
+}));
 
 export const TAILORS: Tailor[] = [
   {

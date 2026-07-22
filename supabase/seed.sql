@@ -52,6 +52,15 @@ insert into public.models (name, category_slug, description, difficulty, avg_day
   ('Ensemble Enfant', 'enfant', 'Ensemble assorti pour enfant.', 'facile', 5, '/models/ensemble-enfant.jpg')
 on conflict do nothing;
 
+-- Slugs des ancres à page dédiée (grand boubou, robe & co.). C'est ce slug —
+-- pas l'`id` UUID — que le front utilise pour résoudre un modèle et rediriger
+-- /modeles/[id] vers sa famille (cf. src/lib/garment-routes.ts).
+update public.models set slug = 'grand-boubou' where name = 'Grand Boubou' and slug is null;
+update public.models set slug = 'agbada'       where name = 'Agbada'       and slug is null;
+update public.models set slug = 'baye-lahat'   where name = 'Baye Lahat'   and slug is null;
+update public.models set slug = 'robe'         where name = 'Robe'         and slug is null;
+update public.models set slug = 'boubou-femme' where name = 'Boubou Femme' and slug is null;
+
 -- Model galleries -----------------------------------------------------------
 -- Ordre d'affichage : le vêtement seul, puis porté (devant, dos), puis les
 -- détails. Photos servies depuis /public/collection homme|femme — l'espace du

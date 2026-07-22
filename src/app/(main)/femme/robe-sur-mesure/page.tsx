@@ -9,7 +9,7 @@ import { GarmentTypeSwitcher } from "@/components/catalog/garment-type-switcher"
 import { DemoBanner } from "@/components/demo-banner";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, modelPhotos } from "@/lib/constants";
-import { getFabrics, getModelById, getTailorById, getTailors } from "@/lib/data";
+import { getFabrics, getModelBySlug, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { PERSONALISER_HREF, ROBE_TYPES } from "@/lib/garment-routes";
 import type { GarmentModel, Tailor } from "@/lib/types";
@@ -40,15 +40,15 @@ export default async function RobePage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const { type } = await searchParams;
-  const selectedId = type && ROBE_TYPES.includes(type) ? type : ROBE_TYPES[0];
+  const selectedSlug = type && ROBE_TYPES.includes(type) ? type : ROBE_TYPES[0];
 
   const [fabrics, tailors, familyModelsRaw] = await Promise.all([
     getFabrics(),
     getTailors(),
-    Promise.all(ROBE_TYPES.map((id) => getModelById(id))),
+    Promise.all(ROBE_TYPES.map((slug) => getModelBySlug(slug))),
   ]);
   const models = familyModelsRaw.filter((m): m is GarmentModel => m !== null);
-  const model = models.find((m) => m.id === selectedId) ?? models[0];
+  const model = models.find((m) => m.slug === selectedSlug) ?? models[0];
   if (!model) notFound();
 
   const authorIds = [
@@ -75,13 +75,13 @@ export default async function RobePage({
   const author = model.tailor_id ? (authorById.get(model.tailor_id) ?? null) : null;
 
   const photos = modelPhotos(model);
-  const personaliserHref = PERSONALISER_HREF[model.id];
+  const personaliserHref = model.slug ? PERSONALISER_HREF[model.slug] : undefined;
   const order = new URLSearchParams({ type: "full", model: model.id });
   if (model.tailor_id) order.set("tailor", model.tailor_id);
   const orderHref = `/commande/nouvelle?${order.toString()}`;
 
   const switcherTypes = models.map((m, i) => ({
-    id: m.id,
+    id: m.slug ?? m.id,
     name: m.name,
     image: m.image_url ?? modelPhotos(m)[0] ?? null,
     fromPrice: presets[i].total,
@@ -102,7 +102,7 @@ export default async function RobePage({
         basePath="/femme/robe-sur-mesure"
         label="Choisissez le type de robe"
         types={switcherTypes}
-        activeId={model.id}
+        activeId={model.slug ?? model.id}
       />
 
       <div className="grid gap-8 md:grid-cols-2">

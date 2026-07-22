@@ -10,46 +10,52 @@
  * page. This is a pre-configurator choice only: once « Personnaliser » is
  * pressed, the model is locked in — cf. the "un configurateur = un vêtement"
  * rule.
+ *
+ * Ces tables sont clés par `slug` (l'identifiant stable et lisible d'un
+ * modèle), PAS par son `id` UUID : le slug existe à l'identique en démo et en
+ * base, alors que l'`id` est aléatoire en prod. Un membre de famille absent de
+ * la base (création tailleur seedée nulle part) ne se résout tout simplement
+ * pas en prod — la page affiche les membres qui existent, sans planter.
  */
 
-/** Model → dedicated landing page. Shared by every member of a family. */
+/** Model slug → dedicated landing page. Shared by every member of a family. */
 export const DEDICATED_HREF: Record<string, string> = {
-  "demo-grand-boubou": "/homme/grand-boubou-sur-mesure",
-  "demo-agbada": "/homme/grand-boubou-sur-mesure",
-  "demo-baye-lahat": "/homme/grand-boubou-sur-mesure",
-  "demo-fatou-boubou-ceremonie": "/homme/grand-boubou-sur-mesure",
-  "demo-ibrahima-boubou": "/homme/grand-boubou-sur-mesure",
-  "demo-robe": "/femme/robe-sur-mesure",
-  "demo-grande-robe": "/femme/robe-sur-mesure",
-  "demo-robe-soiree": "/femme/robe-sur-mesure",
-  "demo-robe-coupee": "/femme/robe-sur-mesure",
-  "demo-boubou-femme": "/femme/robe-sur-mesure",
+  "grand-boubou": "/homme/grand-boubou-sur-mesure",
+  agbada: "/homme/grand-boubou-sur-mesure",
+  "baye-lahat": "/homme/grand-boubou-sur-mesure",
+  "fatou-boubou-ceremonie": "/homme/grand-boubou-sur-mesure",
+  "ibrahima-boubou": "/homme/grand-boubou-sur-mesure",
+  robe: "/femme/robe-sur-mesure",
+  "grande-robe": "/femme/robe-sur-mesure",
+  "robe-soiree": "/femme/robe-sur-mesure",
+  "robe-coupee": "/femme/robe-sur-mesure",
+  "boubou-femme": "/femme/robe-sur-mesure",
 };
 
 /**
- * Models with a detailed step-by-step configurator (vs. the generic order
+ * Model slugs with a detailed step-by-step configurator (vs. the generic order
  * flow). Selecting « Le personnaliser » goes here instead of /commande/nouvelle.
  */
 export const PERSONALISER_HREF: Record<string, string> = {
-  "demo-grand-boubou": "/homme/grand-boubou-sur-mesure/personnaliser",
-  "demo-robe": "/femme/robe-sur-mesure/personnaliser",
-  "demo-boubou-femme": "/femme/robe-sur-mesure/personnaliser",
+  "grand-boubou": "/homme/grand-boubou-sur-mesure/personnaliser",
+  robe: "/femme/robe-sur-mesure/personnaliser",
+  "boubou-femme": "/femme/robe-sur-mesure/personnaliser",
 };
 
-/** The grand boubou family, in display order for the type switcher. */
+/** The grand boubou family, in display order for the type switcher (by slug). */
 export const GRAND_BOUBOU_TYPES = [
-  "demo-grand-boubou",
-  "demo-agbada",
-  "demo-baye-lahat",
-  "demo-fatou-boubou-ceremonie",
-  "demo-ibrahima-boubou",
+  "grand-boubou",
+  "agbada",
+  "baye-lahat",
+  "fatou-boubou-ceremonie",
+  "ibrahima-boubou",
 ];
 
-/** The robe family, in display order for the type switcher. */
+/** The robe family, in display order for the type switcher (by slug). */
 export const ROBE_TYPES = [
-  "demo-robe",
-  "demo-grande-robe",
-  "demo-robe-soiree",
-  "demo-robe-coupee",
-  "demo-boubou-femme",
+  "robe",
+  "grande-robe",
+  "robe-soiree",
+  "robe-coupee",
+  "boubou-femme",
 ];

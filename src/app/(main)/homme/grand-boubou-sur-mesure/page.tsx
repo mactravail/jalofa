@@ -17,7 +17,7 @@ import {
   type BoubouDetails,
 } from "@/lib/boubou-options";
 import { formatPrice, modelPhotos } from "@/lib/constants";
-import { getFabrics, getModelById, getTailorById, getTailors } from "@/lib/data";
+import { getFabrics, getModelBySlug, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { GRAND_BOUBOU_TYPES, PERSONALISER_HREF } from "@/lib/garment-routes";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 // CE type précis — le prendre tel quel, ou le personnaliser — jamais de
 // bascule vers une autre silhouette une fois « Personnaliser » choisi (cf. la
 // règle « un configurateur = un vêtement »).
-const BOUBOU_MODEL_ID = "demo-grand-boubou";
+const BOUBOU_SLUG = "grand-boubou";
 
 // La configuration figée du modèle de référence : les coupes par défaut de
 // l'atelier, mais avec la broderie visible sur la photo (sfifa riche sur le
@@ -62,7 +62,7 @@ function presetFor(
   const photos = modelPhotos(model);
   const fabric = fabrics.find((f) => f.id === GENERIC_AS_IS_FABRIC_ID) ?? fabrics[0] ?? null;
 
-  if (model.id === BOUBOU_MODEL_ID) {
+  if (model.slug === BOUBOU_SLUG) {
     const fabricPrice = (fabric?.price_per_meter ?? 0) * BOUBOU_FABRIC_METERS;
     const tailoringPrice = BOUBOU_BASE_PRICE + boubouOptionsSurcharge(AS_IS_DETAILS);
     const notesSpec = [
@@ -103,15 +103,15 @@ export default async function GrandBoubouPage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const { type } = await searchParams;
-  const selectedId = type && GRAND_BOUBOU_TYPES.includes(type) ? type : BOUBOU_MODEL_ID;
+  const selectedSlug = type && GRAND_BOUBOU_TYPES.includes(type) ? type : BOUBOU_SLUG;
 
   const [fabrics, tailors, familyModelsRaw] = await Promise.all([
     getFabrics(),
     getTailors(),
-    Promise.all(GRAND_BOUBOU_TYPES.map((id) => getModelById(id))),
+    Promise.all(GRAND_BOUBOU_TYPES.map((slug) => getModelBySlug(slug))),
   ]);
   const models = familyModelsRaw.filter((m): m is GarmentModel => m !== null);
-  const model = models.find((m) => m.id === selectedId) ?? models[0];
+  const model = models.find((m) => m.slug === selectedSlug) ?? models[0];
   if (!model) notFound();
 
   const authorIds = [
@@ -127,13 +127,13 @@ export default async function GrandBoubouPage({
   const author = model.tailor_id ? (authorById.get(model.tailor_id) ?? null) : null;
 
   const photos = modelPhotos(model);
-  const personaliserHref = PERSONALISER_HREF[model.id];
+  const personaliserHref = model.slug ? PERSONALISER_HREF[model.slug] : undefined;
   const order = new URLSearchParams({ type: "full", model: model.id });
   if (model.tailor_id) order.set("tailor", model.tailor_id);
   const orderHref = `/commande/nouvelle?${order.toString()}`;
 
   const switcherTypes = models.map((m, i) => ({
-    id: m.id,
+    id: m.slug ?? m.id,
     name: m.name,
     image: m.image_url ?? modelPhotos(m)[0] ?? null,
     fromPrice: presets[i].total,
@@ -154,7 +154,7 @@ export default async function GrandBoubouPage({
         basePath="/homme/grand-boubou-sur-mesure"
         label="Choisissez le type de grand boubou"
         types={switcherTypes}
-        activeId={model.id}
+        activeId={model.slug ?? model.id}
       />
 
       <div className="grid gap-8 md:grid-cols-2">
@@ -177,7 +177,7 @@ export default async function GrandBoubouPage({
             <span className="flex items-center gap-1.5">
               <Clock className="size-4" /> ~{model.avg_days} jours de confection
             </span>
-            {model.id === BOUBOU_MODEL_ID ? (
+            {model.slug === BOUBOU_SLUG ? (
               <Badge variant="outline">3 pièces</Badge>
             ) : (
               model.difficulty && (
