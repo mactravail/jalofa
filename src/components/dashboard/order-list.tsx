@@ -6,6 +6,7 @@ import { OrderDetailSheet } from "@/components/dashboard/order-detail-sheet";
 import { OrderStatusControl } from "@/components/dashboard/order-status-control";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
 import { OrderStatusBadge } from "@/components/order/order-status";
+import { clientNameOf } from "@/lib/clients";
 import { ORDER_TYPE_LABELS, formatPrice, formatReceivedAt } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
@@ -73,7 +74,7 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
           </div>
           <p className="mt-1 truncate font-medium">{title}</p>
           <p className="text-muted-foreground truncate text-sm">
-            {order.client?.full_name ?? "Client"} ·{" "}
+            {clientNameOf(order)} ·{" "}
             <span className="text-foreground/70">
               {amountLabel} {formatPrice(amountFor(role, order))}
             </span>

@@ -13,18 +13,19 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [profile, orders] = await Promise.all([
-    getCurrentProfile(),
-    getAllOrders(),
-  ]);
+  const configured = isSupabaseConfigured();
+  const profile = await getCurrentProfile();
 
-  // La garde de rôle : seuls les administrateurs entrent. En mode démo (pas de
-  // Supabase), `profile` est null et l'espace reste ouvert pour la démonstration.
-  if (isSupabaseConfigured() && profile && profile.role !== "admin") {
+  // La garde de rôle : seuls les administrateurs entrent. On la place AVANT toute
+  // lecture globale — l'espace lit désormais avec la clé de service, il ne faut
+  // donc jamais l'atteindre sans être admin. En mode démo (pas de Supabase),
+  // `profile` est null et l'espace reste ouvert pour la démonstration.
+  if (configured && profile?.role !== "admin") {
     return <AdminDenied />;
   }
 
   // Pastille « Commandes » : celles qui attendent encore d'être acceptées.
+  const orders = await getAllOrders();
   const pending = orders.filter((o) => o.status === "received").length;
 
   return (

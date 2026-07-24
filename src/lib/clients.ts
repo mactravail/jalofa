@@ -23,7 +23,13 @@ export type ClientSummary = {
   lastOrderAt: string;
 };
 
-function displayName(order: OrderListItem): string {
+/**
+ * Le nom du client sur une commande. On privilégie son profil, mais on retombe
+ * sur les coordonnées saisies à la caisse (`contact_*`, dénormalisées sur la
+ * commande) : le vendeur, lui, ne peut pas lire le profil du client via la RLS,
+ * ces colonnes sont donc sa seule source pour l'identifier.
+ */
+export function clientNameOf(order: OrderListItem): string {
   const contact = [order.contact_first_name, order.contact_last_name]
     .filter(Boolean)
     .join(" ")
@@ -43,7 +49,7 @@ export function groupClients(
   const byClient = new Map<string, ClientSummary>();
 
   for (const order of orders) {
-    const name = displayName(order);
+    const name = clientNameOf(order);
     const key = order.client_id || name.toLowerCase();
     const paid = order.payment_status === "paid";
     const share = paid ? amountFor(role, order) : 0;

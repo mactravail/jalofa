@@ -2,6 +2,7 @@ import { Check, Scissors, Store } from "lucide-react";
 
 import { OrderStatusBadge, PaymentBadge } from "@/components/admin/status-badges";
 import { Badge, badgeVariants } from "@/components/ui/badge";
+import { clientNameOf } from "@/lib/clients";
 import { ORDER_TYPE_LABELS, formatPrice } from "@/lib/constants";
 import type { OrderListItem } from "@/lib/orders-data";
 import { legStage, type LegStage } from "@/lib/pipeline";
@@ -84,9 +85,7 @@ export function OrderRow({ order }: { order: OrderListItem }) {
             </p>
             <OrderStatusBadge status={order.status} />
           </div>
-          <p className="mt-0.5 truncate font-medium">
-            {order.client?.full_name ?? "Client"}
-          </p>
+          <p className="mt-0.5 truncate font-medium">{clientNameOf(order)}</p>
           <p className="text-muted-foreground truncate text-xs">
             {garment} · {ORDER_TYPE_LABELS[order.type]} ·{" "}
             {DATE_FORMAT.format(new Date(order.created_at))}

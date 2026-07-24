@@ -13,6 +13,7 @@ import { isTerminal } from "@/lib/pipeline";
 import { FABRICS, MODELS, TAILORS } from "@/lib/fixtures";
 import type { OrderListItem } from "@/lib/orders-data";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Fabric,
@@ -22,6 +23,37 @@ import type {
   Tailor,
   Vendor,
 } from "@/lib/types";
+
+/**
+ * Le sésame de toutes les lectures d'administration : on vérifie d'abord, via la
+ * session RLS, que l'appelant est bien `admin` ; alors seulement on renvoie le
+ * client service-role qui voit toute la place. Pour tout autre visiteur (ou
+ * personne connectée), on renvoie `null` et les lectures retombent sur du vide —
+ * aucune donnée globale ne fuit, même si une page d'admin était rendue par
+ * erreur. `cache` garantit un seul contrôle par requête, partagé par les six
+ * lectures ci-dessous.
+ */
+const adminDb = cache(async () => {
+  const rls = await createClient();
+  const {
+    data: { user },
+  } = await rls.auth.getUser();
+  if (!user) return null;
+  const { data } = await rls
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (data?.role !== "admin") return null;
+  // Clé de service absente (ex. pas encore reportée sur Vercel) : plutôt que de
+  // faire planter tout l'espace, on retombe sur du vide. L'admin voit un tableau
+  // vide — le signal qu'il reste `SUPABASE_SERVICE_ROLE_KEY` à renseigner.
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+});
 
 /**
  * Vue de la place de marché réservée à l'administration. Comme le reste de
@@ -43,7 +75,8 @@ const ORDER_SELECT =
 
 export const getAllOrders = cache(async (): Promise<OrderListItem[]> => {
   if (!isSupabaseConfigured()) return DEMO_ALL_ORDERS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase
     .from("orders")
     .select(ORDER_SELECT)
@@ -53,7 +86,8 @@ export const getAllOrders = cache(async (): Promise<OrderListItem[]> => {
 
 export const getAllUsers = cache(async (): Promise<Profile[]> => {
   if (!isSupabaseConfigured()) return DEMO_USERS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase
     .from("profiles")
     .select("*")
@@ -63,7 +97,8 @@ export const getAllUsers = cache(async (): Promise<Profile[]> => {
 
 export const getAllTailors = cache(async (): Promise<Tailor[]> => {
   if (!isSupabaseConfigured()) return TAILORS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase
     .from("tailors")
     .select("*")
@@ -73,14 +108,16 @@ export const getAllTailors = cache(async (): Promise<Tailor[]> => {
 
 export const getAllVendors = cache(async (): Promise<Vendor[]> => {
   if (!isSupabaseConfigured()) return DEMO_VENDORS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase.from("vendors").select("*").order("shop_name");
   return (data as Vendor[]) ?? [];
 });
 
 export const getAllFabrics = cache(async (): Promise<Fabric[]> => {
   if (!isSupabaseConfigured()) return FABRICS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase
     .from("fabrics")
     .select("*")
@@ -94,7 +131,8 @@ type ModelRow = Omit<GarmentModel, "photos"> & {
 
 export const getAllModels = cache(async (): Promise<GarmentModel[]> => {
   if (!isSupabaseConfigured()) return MODELS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase
     .from("models")
     .select("*, model_photos(image_url, sort_order)")
@@ -110,7 +148,8 @@ export const getAllModels = cache(async (): Promise<GarmentModel[]> => {
 
 export const getAllReviews = cache(async (): Promise<ReviewRow[]> => {
   if (!isSupabaseConfigured()) return DEMO_REVIEWS;
-  const supabase = await createClient();
+  const supabase = await adminDb();
+  if (!supabase) return [];
   const { data } = await supabase
     .from("reviews")
     .select(
