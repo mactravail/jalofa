@@ -60,9 +60,13 @@ const METIERS = [
 export function RegisterForm({
   initialPlan,
   initialPeriod,
+  initialMetier,
+  redirectTo,
 }: {
   initialPlan?: string;
   initialPeriod?: string;
+  initialMetier?: string;
+  redirectTo?: string;
 }) {
   const plan = initialPlan
     ? getPlan(initialPlan as SubscriptionPlanId)
@@ -74,7 +78,10 @@ export function RegisterForm({
   const period: BillingPeriod = initialPeriod === "yearly" ? "yearly" : "monthly";
   const amountDue = plan ? periodTotal(plan, period) : 0;
 
-  const [metier, setMetier] = useState<"tailor" | "vendor">("tailor");
+  // Métier pré-sélectionné quand on arrive depuis « Je suis tailleur/vendeur ».
+  const [metier, setMetier] = useState<"tailor" | "vendor">(
+    initialMetier === "vendor" ? "vendor" : "tailor",
+  );
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [notRobot, setNotRobot] = useState(false);
   const [payMethod, setPayMethod] = useState<SubPaymentMethod | null>(null);
@@ -199,6 +206,9 @@ export function RegisterForm({
           )}
 
           <input type="hidden" name="role" value={role} />
+          {redirectTo && (
+            <input type="hidden" name="redirect" value={redirectTo} />
+          )}
           {plan && <input type="hidden" name="plan" value={plan.id} />}
           {isPaid && (
             <input type="hidden" name="billing_period" value={period} />
@@ -300,7 +310,14 @@ export function RegisterForm({
           )}
           <p className="text-muted-foreground text-center text-sm">
             Déjà inscrit ?{" "}
-            <Link href="/connexion" className="text-primary font-medium hover:underline">
+            <Link
+              href={
+                redirectTo
+                  ? `/connexion?redirect=${encodeURIComponent(redirectTo)}`
+                  : "/connexion"
+              }
+              className="text-primary font-medium hover:underline"
+            >
               Se connecter
             </Link>
           </p>

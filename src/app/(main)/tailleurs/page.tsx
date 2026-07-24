@@ -4,6 +4,7 @@ import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters
 import { DemoBanner } from "@/components/demo-banner";
 import { TailorCard } from "@/components/catalog/tailor-card";
 import { HowItWorks } from "@/components/how-it-works";
+import { ProJoinCta } from "@/components/pro-join-cta";
 import { getTailors } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -67,6 +68,8 @@ export default async function TailorsPage({
       <div className="bg-muted/40 border-t md:hidden">
         <HowItWorks className="py-12" />
       </div>
+
+      <ProJoinCta metier="tailor" />
     </>
   );
 }

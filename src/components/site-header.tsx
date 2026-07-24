@@ -58,7 +58,7 @@ export async function SiteHeader() {
               >
                 Connexion
               </Link>
-              <Link href="/abonnements" className={buttonVariants({ size: "sm" })}>
+              <Link href="/inscription" className={buttonVariants({ size: "sm" })}>
                 Créer un compte
               </Link>
             </>

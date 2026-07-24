@@ -20,7 +20,12 @@ import { cn } from "@/lib/utils";
 
 const PERIODS: BillingPeriod[] = ["monthly", "yearly"];
 
-export function SubscriptionPlans() {
+export function SubscriptionPlans({
+  metier,
+}: {
+  /** Pré-sélectionne le métier sur les plans à choix unique (arrivée « Je suis tailleur/vendeur »). */
+  metier?: "tailor" | "vendor";
+}) {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
 
   return (
@@ -29,7 +34,7 @@ export function SubscriptionPlans() {
 
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         {SUBSCRIPTION_PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} period={period} />
+          <PlanCard key={plan.id} plan={plan} period={period} metier={metier} />
         ))}
       </div>
 
@@ -89,13 +94,20 @@ function PeriodToggle({
 function PlanCard({
   plan,
   period,
+  metier,
 }: {
   plan: SubscriptionPlan;
   period: BillingPeriod;
+  metier?: "tailor" | "vendor";
 }) {
   const isFree = plan.monthlyPrice === 0;
   const monthly = displayedMonthly(plan, period);
   const total = periodTotal(plan, period);
+
+  // On ne transmet le métier qu'aux plans à choix unique (Standard) — les plans
+  // « les deux » (Gratuit, Premium) ouvrent de toute façon les deux métiers.
+  const metierParam =
+    metier && plan.scope === "single" ? `&metier=${metier}` : "";
 
   return (
     <div
@@ -163,8 +175,8 @@ function PlanCard({
       <Link
         href={
           isFree
-            ? `/inscription?plan=${plan.id}`
-            : `/inscription?plan=${plan.id}&period=${period}`
+            ? `/inscription?plan=${plan.id}${metierParam}`
+            : `/inscription?plan=${plan.id}&period=${period}${metierParam}`
         }
         className={cn(
           buttonVariants({

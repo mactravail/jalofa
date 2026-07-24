@@ -192,7 +192,7 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
             Se connecter
           </Link>
           <Link
-            href="/inscription"
+            href="/inscription?role=client&redirect=/caisse"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
               "w-full",

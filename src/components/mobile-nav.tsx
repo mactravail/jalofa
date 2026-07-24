@@ -47,7 +47,7 @@ export function MobileNav({ isAuthenticated }: { isAuthenticated: boolean }) {
                 Se connecter
               </Link>
               <Link
-                href="/abonnements"
+                href="/inscription"
                 onClick={() => setOpen(false)}
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >

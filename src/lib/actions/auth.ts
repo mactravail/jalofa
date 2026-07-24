@@ -64,6 +64,7 @@ export async function signUp(
   const email = String(formData.get("email") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const redirectTo = String(formData.get("redirect") ?? "").trim();
 
   if (!fullName || !email || !password) {
     return { error: "Nom, e-mail et mot de passe sont obligatoires." };
@@ -126,13 +127,22 @@ export async function signUp(
     return { error: error.message };
   }
 
+  // Un client qui s'inscrivait pour finaliser un achat (personnalisation,
+  // caisse…) doit revenir là où il était ; les pros vont vers leur espace.
+  const landing =
+    role === "client" && redirectTo ? redirectTo : ROLE_LANDING[role] ?? "/compte";
+
   // If email confirmation is disabled the user is signed in immediately.
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect(ROLE_LANDING[role] ?? "/compte");
+    redirect(landing);
   }
 
-  redirect(`/connexion?inscription=ok&email=${encodeURIComponent(email)}`);
+  // Confirmation par e-mail requise : on conserve la destination pour la
+  // reprendre après la connexion qui suit l'activation.
+  const params = new URLSearchParams({ inscription: "ok", email });
+  if (role === "client" && redirectTo) params.set("redirect", redirectTo);
+  redirect(`/connexion?${params.toString()}`);
 }
 
 export async function signOut() {
