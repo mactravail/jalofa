@@ -22,6 +22,7 @@ const EMPTY_VENDOR: Vendor = {
   suspension_reason: null,
   is_certified: false,
   plan: "free",
+  is_activated: true,
 };
 
 export default async function VendorProfilePage() {

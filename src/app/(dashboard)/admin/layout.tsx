@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ModerationProvider } from "@/components/admin/moderation-store";
-import { getAllOrders } from "@/lib/admin-data";
+import { getAllOrders, getAllTailors, getAllVendors } from "@/lib/admin-data";
 import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Administration" };
@@ -24,14 +24,21 @@ export default async function AdminLayout({
     return <AdminDenied />;
   }
 
-  // Pastille « Commandes » : celles qui attendent encore d'être acceptées.
-  const orders = await getAllOrders();
+  // Pastilles du menu : commandes à accepter, et pros en attente de validation.
+  const [orders, tailors, vendors] = await Promise.all([
+    getAllOrders(),
+    getAllTailors(),
+    getAllVendors(),
+  ]);
   const pending = orders.filter((o) => o.status === "received").length;
+  const pendingPros = new Set<string>();
+  for (const t of tailors) if (!t.is_activated) pendingPros.add(t.id);
+  for (const v of vendors) if (!v.is_activated) pendingPros.add(v.id);
 
   return (
     <AdminShell
       fullName={profile?.full_name ?? null}
-      badges={{ orders: pending }}
+      badges={{ orders: pending, subscriptions: pendingPros.size }}
     >
       <ModerationProvider demo={!isSupabaseConfigured()}>
         {children}

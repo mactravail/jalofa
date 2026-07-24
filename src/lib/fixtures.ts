@@ -819,6 +819,7 @@ export const TAILORS: Tailor[] = [
     suspension_reason: null,
     is_certified: true,
     plan: "premium",
+    is_activated: true,
   },
   {
     id: "demo-tailor-modou",
@@ -836,6 +837,7 @@ export const TAILORS: Tailor[] = [
     suspension_reason: null,
     is_certified: false,
     plan: "free",
+    is_activated: true,
   },
   {
     id: "demo-tailor-awa",
@@ -853,6 +855,7 @@ export const TAILORS: Tailor[] = [
     suspension_reason: null,
     is_certified: true,
     plan: "standard",
+    is_activated: true,
   },
   {
     id: "demo-tailor-ibrahima",
@@ -870,6 +873,7 @@ export const TAILORS: Tailor[] = [
     suspension_reason: null,
     is_certified: false,
     plan: "free",
+    is_activated: true,
   },
 ];
 
@@ -889,6 +893,7 @@ export const VENDORS: Vendor[] = [
     suspension_reason: null,
     is_certified: true,
     plan: "free",
+    is_activated: true,
   },
   {
     id: "demo-vendor-touba",
@@ -901,6 +906,7 @@ export const VENDORS: Vendor[] = [
     suspension_reason: null,
     is_certified: false,
     plan: "premium",
+    is_activated: true,
   },
   {
     id: "demo-vendor-khadi",
@@ -913,6 +919,7 @@ export const VENDORS: Vendor[] = [
     suspension_reason: null,
     is_certified: false,
     plan: "standard",
+    is_activated: true,
   },
 ];
 

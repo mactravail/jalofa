@@ -1,4 +1,5 @@
 import {
+  BadgeCheck,
   HandCoins,
   LayoutDashboard,
   Layers,
@@ -25,6 +26,7 @@ export type AdminNavId =
   | "overview"
   | "orders"
   | "users"
+  | "subscriptions"
   | "tailors"
   | "vendors"
   | "fabrics"
@@ -81,6 +83,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: "Prestataires",
     items: [
+      {
+        id: "subscriptions",
+        href: `${ADMIN_ROOT}/abonnements`,
+        label: "Abonnements",
+        icon: BadgeCheck,
+      },
       {
         id: "tailors",
         href: `${ADMIN_ROOT}/tailleurs`,

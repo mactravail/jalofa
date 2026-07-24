@@ -23,6 +23,24 @@ export function formatPrice(amount: number | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
+// Paiement des abonnements pro (Wave)
+//
+// Pour l'instant les abonnements se règlent par Wave, hors plateforme : le pro
+// paie ce numéro, puis l'administration confirme la réception et active son
+// espace (cf. écran d'attente `pro-pending` et `/admin/abonnements`).
+// ⚠️ À RENSEIGNER avec le vrai numéro Wave de JALOFA avant l'ouverture.
+// ---------------------------------------------------------------------------
+
+export const WAVE_PAYMENT = {
+  /** Numéro Wave qui reçoit les abonnements. */
+  number: "77 500 85 83",
+  /** Nom affiché du bénéficiaire du paiement. */
+  name: "JALOFA",
+  /** QR Wave à scanner depuis l'app (fichier dans `public/`). */
+  qr: "/wave_qr.jpeg",
+};
+
+// ---------------------------------------------------------------------------
 // Dates
 // ---------------------------------------------------------------------------
 

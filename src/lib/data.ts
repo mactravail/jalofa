@@ -307,6 +307,7 @@ export async function getTailors(filters: TailorFilters = {}): Promise<Tailor[]>
   let query = supabase
     .from("tailors")
     .select("*")
+    .eq("is_activated", true)
     .eq("is_active", true)
     .eq("is_suspended", false);
   if (filters.city) query = query.ilike("city", filters.city);
@@ -364,6 +365,7 @@ export async function getVendors(filters: VendorFilters = {}): Promise<Vendor[]>
   let query = supabase
     .from("vendors")
     .select("*")
+    .eq("is_activated", true)
     .eq("is_active", true)
     .eq("is_suspended", false);
   if (filters.city) query = query.ilike("city", filters.city);

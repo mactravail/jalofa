@@ -60,6 +60,12 @@ export interface Tailor {
   is_certified: boolean;
   /** Abonnement du pro : décide de la commission JALOFA sur ses prestations. */
   plan: SubscriptionPlanId;
+  /**
+   * Espace ouvert par l'administration après confirmation du paiement Wave (ou
+   * validation de l'inscription). `false` = compte créé mais en attente : le pro
+   * voit un écran d'attente au lieu de son tableau de bord.
+   */
+  is_activated: boolean;
 }
 
 export interface Vendor {
@@ -77,6 +83,12 @@ export interface Vendor {
   is_certified: boolean;
   /** Abonnement du pro : décide de la commission JALOFA sur ses ventes de tissu. */
   plan: SubscriptionPlanId;
+  /**
+   * Espace ouvert par l'administration après confirmation du paiement Wave (ou
+   * validation de l'inscription). `false` = compte créé mais en attente : le pro
+   * voit un écran d'attente au lieu de son tableau de bord.
+   */
+  is_activated: boolean;
 }
 
 export interface FabricCategory {

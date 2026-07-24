@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { ProRole } from "@/lib/dashboard-nav";
+import type { SubscriptionPlanId } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
@@ -40,18 +41,54 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return (data as Profile | null) ?? null;
 }
 
+/** L'état d'un métier pour le pro connecté : le plan de sa boutique et si l'administration l'a activée. */
+export type ProAccessRow = { plan: SubscriptionPlanId; is_activated: boolean };
+
 /**
- * Les espaces pro accessibles à l'utilisateur : c'est ce qui décide si le
- * sélecteur d'espace apparaît (deux métiers) ou non (un seul).
+ * L'accès pro de l'utilisateur connecté, métier par métier : sa boutique
+ * existe-t-elle (`null` sinon) et l'administration l'a-t-elle ouverte
+ * (`is_activated`) ? C'est la source unique dont dépendent les gardes des espaces
+ * (tailleur/vendeur), l'écran d'attente et le sélecteur d'espace.
  *
- * Tant que Supabase n'est pas provisionné, on ouvre les deux pour prévisualiser
- * le sélecteur en développement. Une fois la DB en place, ce sera dérivé de
- * l'abonnement (`planRoles` : Standard = le métier choisi ; Gratuit/Premium =
- * les deux) — pour l'instant on retombe sur le rôle unique du profil.
+ * Standard n'a qu'une boutique (l'autre métier est `null`) ; Gratuit/Premium en
+ * ont deux. En mode démo (Supabase non branché) on ouvre les deux, activés, pour
+ * prévisualiser les espaces.
  */
-export function proCapabilities(profile: Profile | null): ProRole[] {
-  if (!isSupabaseConfigured()) return ["tailor", "vendor"];
-  const role = profile?.role;
-  if (role === "tailor" || role === "vendor") return [role];
-  return [];
+export type ProAccess = { tailor: ProAccessRow | null; vendor: ProAccessRow | null };
+
+export async function getProAccess(): Promise<ProAccess> {
+  if (!isSupabaseConfigured()) {
+    const demo: ProAccessRow = { plan: "premium", is_activated: true };
+    return { tailor: demo, vendor: demo };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { tailor: null, vendor: null };
+
+  const [tailor, vendor] = await Promise.all([
+    supabase
+      .from("tailors")
+      .select("plan, is_activated")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("vendors")
+      .select("plan, is_activated")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+  return {
+    tailor: (tailor.data as ProAccessRow | null) ?? null,
+    vendor: (vendor.data as ProAccessRow | null) ?? null,
+  };
+}
+
+/** Les espaces activés du pro — au-delà d'un, le châssis affiche le sélecteur d'espace. */
+export function activatedCapabilities(access: ProAccess): ProRole[] {
+  const caps: ProRole[] = [];
+  if (access.tailor?.is_activated) caps.push("tailor");
+  if (access.vendor?.is_activated) caps.push("vendor");
+  return caps;
 }
