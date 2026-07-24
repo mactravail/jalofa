@@ -15,7 +15,10 @@ export default function AccountLayout({
 }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="grid gap-8 md:grid-cols-[220px_1fr]">
+      {/* `grid-cols-1` explicite : sinon la colonne implicite (`auto`) se cale
+          sur le menu défilant ci-dessous, dont les libellés sont en
+          `whitespace-nowrap` — et la page entière déborde sur mobile. */}
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[220px_1fr]">
         <aside className="min-w-0">
           <nav className="flex gap-1 overflow-x-auto md:flex-col">
             {LINKS.map((l) => (

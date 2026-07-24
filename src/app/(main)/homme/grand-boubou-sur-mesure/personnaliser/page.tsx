@@ -1,34 +1,13 @@
-import type { Metadata } from "next";
-
-import { DemoBanner } from "@/components/demo-banner";
-import { BoubouConfigurator } from "@/components/men/boubou-configurator";
-import { getFabrics, getModelBySlug } from "@/lib/data";
-
-export const metadata: Metadata = {
-  title: "Personnaliser votre grand boubou sur mesure",
-  description:
-    "Composez votre grand boubou en trois pièces : le boubou, le kaftan intérieur et le pantalon. Tissu, type de couture, broderie, col et finitions. Aperçu et prix en direct.",
-};
+import { redirect } from "next/navigation";
 
 /**
- * The one garment this page personalises. Reaching it means "Grand boubou" has
- * already been chosen, so nothing else is loaded — no robe, no jupe, no other
- * silhouette to drift onto mid-flow.
+ * Le grand boubou n'a plus de configurateur à part : il se personnalise dans
+ * le configurateur commun à tous les vêtements (/commande/nouvelle), comme la
+ * robe, le kaftan ou la chemise. On renvoie donc sur sa page dédiée, où le
+ * tissu se choisit avant d'entrer dans le configurateur (« Le personnaliser »).
+ *
+ * La route reste en place pour ne pas casser les liens déjà partagés.
  */
-const BOUBOU_SLUG = "grand-boubou";
-
-export default async function PersonnaliserGrandBoubouPage() {
-  const [fabrics, model] = await Promise.all([
-    getFabrics(),
-    getModelBySlug(BOUBOU_SLUG),
-  ]);
-
-  return (
-    <>
-      <div className="mx-auto w-full max-w-6xl px-4 pt-6">
-        <DemoBanner />
-      </div>
-      <BoubouConfigurator fabrics={fabrics} model={model} />
-    </>
-  );
+export default function PersonnaliserGrandBoubouPage() {
+  redirect("/homme/grand-boubou-sur-mesure?type=grand-boubou");
 }

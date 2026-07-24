@@ -1,6 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, Eye, Heart, Ruler, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BatteryFull,
+  ChevronRight,
+  Eye,
+  Heart,
+  Ruler,
+  Signal,
+  Sparkles,
+  Wifi,
+} from "lucide-react";
 
 import { StyleIcon, type StyleIconName } from "@/components/order/style-icons";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,7 +25,6 @@ import { cn } from "@/lib/utils";
 const FABRIC_SWATCHES = ["/fabrics/8.jpg", "/fabrics/2.jpg", "/fabrics/11.jpg", "/fabrics/5.jpg"];
 const THREAD_COLORS = ["#b45309", "#1e3a8a", "#0f766e", "#7c2d12", "#a16207", "#171717"];
 const COLLARS: StyleIconName[] = ["col-rond", "col-mao", "col-v"];
-const SLEEVES: StyleIconName[] = ["manche-longue", "manche-ample"];
 
 const FEATURES = [
   { icon: Ruler, label: "Une coupe calculée à partir de vos mesures" },
@@ -25,7 +34,7 @@ const FEATURES = [
 
 function OptionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-muted-foreground mb-1.5 text-[10px] font-semibold tracking-wide uppercase">
+    <p className="text-muted-foreground mb-1 text-[8px] font-semibold tracking-wide uppercase">
       {children}
     </p>
   );
@@ -43,7 +52,8 @@ export function FitShowcase() {
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-balance sm:text-4xl md:text-5xl">
             La technologie au service d&apos;une coupe parfaite
           </h2>
-          <p className="text-muted-foreground mt-5 max-w-md text-lg text-pretty">
+          {/* Intro trop longue sur mobile → réservée au desktop */}
+          <p className="text-muted-foreground mt-5 hidden max-w-md text-lg text-pretty md:block">
             Quand votre tenue est confectionnée avec soin, ça se ressent. Avant que nos
             tailleurs ne la réalisent à la main, notre configurateur vous laisse composer
             chaque détail — coupe, col, broderie et tissu — pendant que notre algorithme
@@ -72,36 +82,54 @@ export function FitShowcase() {
           </Link>
         </div>
 
-        {/* Right — configurator mockup inside a tablet frame */}
-        <div className="relative mx-auto w-full min-w-0 max-w-xl">
-          <div className="bg-primary/10 absolute -inset-4 -z-10 rounded-[2.5rem] blur-2xl" />
+        {/* Right — configurator mockup inside an iPhone frame.
+            Le téléphone est dimensionné par sa HAUTEUR (min(30rem, 58vh)) : la largeur
+            découle du ratio, donc l'appareil tient toujours en entier dans un écran. */}
+        <div className="flex w-full min-w-0 justify-center">
+          {/* Châssis : tranche titane + boutons latéraux */}
+          <div className="relative aspect-[9/19.5] h-[min(30rem,58vh)] max-w-full rounded-[2.25rem] bg-neutral-900 p-[3px] shadow-2xl ring-1 ring-black/10 dark:bg-neutral-800">
+            <div className="bg-primary/10 absolute -inset-5 -z-10 rounded-[3rem] blur-2xl" />
 
-          <div className="rounded-[2rem] border border-black/10 bg-neutral-900 p-2.5 shadow-2xl dark:bg-neutral-950">
-            <div className="bg-card overflow-hidden rounded-[1.35rem]">
+            <span className="absolute top-[14%] -left-[3px] h-[4%] w-[3px] rounded-l-sm bg-neutral-700" />
+            <span className="absolute top-[21%] -left-[3px] h-[7%] w-[3px] rounded-l-sm bg-neutral-700" />
+            <span className="absolute top-[30%] -left-[3px] h-[7%] w-[3px] rounded-l-sm bg-neutral-700" />
+            <span className="absolute top-[24%] -right-[3px] h-[10%] w-[3px] rounded-r-sm bg-neutral-700" />
+
+            <div className="bg-card relative flex h-full flex-col overflow-hidden rounded-[2.1rem]">
+              {/* Dynamic Island */}
+              <span className="absolute top-1.5 left-1/2 z-20 h-5 w-16 -translate-x-1/2 rounded-full bg-black" />
+
+              {/* Barre d'état iOS */}
+              <div className="flex items-center justify-between px-3.5 pt-2 pb-1 text-[8px] font-semibold">
+                <span>9:41</span>
+                <span className="flex items-center gap-0.5">
+                  <Signal className="size-2.5" />
+                  <Wifi className="size-2.5" />
+                  <BatteryFull className="size-3" />
+                </span>
+              </div>
+
               {/* Screen header */}
-              <div className="flex items-center justify-between border-b px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="bg-primary/10 text-primary flex size-6 items-center justify-center rounded-md text-xs font-bold">
-                    J
-                  </span>
-                  <span className="text-xs font-semibold tracking-tight">JALOFA</span>
-                </div>
-                <nav className="flex items-center gap-1.5 text-[10px] font-medium tracking-wide uppercase">
+              <div className="flex items-center justify-between border-b px-3 pb-1.5">
+                <span className="bg-primary/10 text-primary flex size-5 items-center justify-center rounded-md text-[10px] font-bold">
+                  J
+                </span>
+                <nav className="flex items-center gap-0.5 text-[8px] font-medium tracking-wide uppercase">
                   <span className="text-muted-foreground">Tissu</span>
-                  <ChevronRight className="text-muted-foreground/40 size-3" />
+                  <ChevronRight className="text-muted-foreground/40 size-2.5" />
                   <span className="text-muted-foreground">Style</span>
-                  <ChevronRight className="text-muted-foreground/40 size-3" />
+                  <ChevronRight className="text-muted-foreground/40 size-2.5" />
                   <span className="text-primary border-primary border-b-2 pb-0.5">Finitions</span>
                 </nav>
               </div>
 
               {/* Screen body */}
-              <div className="grid sm:grid-cols-[8.5rem_1fr]">
+              <div className="flex min-h-0 flex-1 flex-col">
                 {/* Options rail */}
-                <aside className="space-y-4 border-b p-3 sm:border-r sm:border-b-0">
+                <aside className="space-y-2.5 border-b p-3">
                   <div>
                     <OptionLabel>Tissu</OptionLabel>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1">
                       {FABRIC_SWATCHES.map((src, i) => (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -119,18 +147,18 @@ export function FitShowcase() {
 
                   <div>
                     <OptionLabel>Col</OptionLabel>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-3 gap-1">
                       {COLLARS.map((name, i) => (
                         <div
                           key={name}
                           className={cn(
-                            "flex aspect-square items-center justify-center rounded-md border",
+                            "flex aspect-4/3 items-center justify-center rounded-md border",
                             i === 1
                               ? "border-primary bg-primary/5 text-primary"
                               : "text-muted-foreground",
                           )}
                         >
-                          <StyleIcon name={name} className="h-6 w-8" />
+                          <StyleIcon name={name} className="h-5 w-7" />
                         </div>
                       ))}
                     </div>
@@ -138,56 +166,37 @@ export function FitShowcase() {
 
                   <div>
                     <OptionLabel>Fil de broderie</OptionLabel>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {THREAD_COLORS.map((color, i) => (
                         <span
                           key={color}
                           style={{ backgroundColor: color }}
                           className={cn(
-                            "size-5 rounded-full border border-black/10",
-                            i === 4 && "ring-primary ring-offset-card ring-2 ring-offset-2",
+                            "size-4 rounded-full border border-black/10",
+                            i === 4 && "ring-primary ring-offset-card ring-2 ring-offset-1",
                           )}
                         />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="hidden sm:block">
-                    <OptionLabel>Manches</OptionLabel>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {SLEEVES.map((name, i) => (
-                        <div
-                          key={name}
-                          className={cn(
-                            "flex aspect-4/3 items-center justify-center rounded-md border",
-                            i === 0
-                              ? "border-primary bg-primary/5 text-primary"
-                              : "text-muted-foreground",
-                          )}
-                        >
-                          <StyleIcon name={name} className="h-8 w-6" />
-                        </div>
                       ))}
                     </div>
                   </div>
                 </aside>
 
                 {/* Live preview */}
-                <div className="from-muted/60 to-background relative min-h-[20rem] bg-gradient-to-b sm:min-h-[24rem]">
+                <div className="from-muted/60 to-background relative min-h-[6rem] flex-1 bg-gradient-to-b">
                   <Image
                     src="/models/grand-boubou.jpg"
                     alt="Grand boubou sur mesure"
                     fill
-                    sizes="(max-width: 1024px) 60vw, 30vw"
+                    sizes="240px"
                     className="object-cover"
                   />
 
                   {/* Selected-detail chips */}
-                  <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
+                  <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
                     {["Grand boubou", "Col Mao brodé"].map((label) => (
                       <span
                         key={label}
-                        className="bg-background/85 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur"
+                        className="bg-background/85 rounded-full px-2 py-0.5 text-[9px] font-medium shadow-sm backdrop-blur"
                       >
                         {label}
                       </span>
@@ -195,24 +204,27 @@ export function FitShowcase() {
                   </div>
 
                   {/* Price card */}
-                  <div className="bg-card/95 absolute right-3 bottom-3 w-40 rounded-xl border p-3 shadow-lg backdrop-blur">
-                    <p className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
+                  <div className="bg-card/95 absolute right-2 bottom-4 w-28 rounded-lg border p-2 shadow-lg backdrop-blur">
+                    <p className="text-muted-foreground text-[8px] font-medium tracking-wide uppercase">
                       Sur mesure
                     </p>
-                    <p className="text-sm font-bold">Grand boubou</p>
-                    <p className="text-primary mt-0.5 text-lg font-bold">{formatPrice(45000)}</p>
-                    <p className="text-muted-foreground text-[10px]">Tissu · Wax premium</p>
-                    <div className="mt-2.5 flex items-center gap-1.5">
-                      <span className="bg-primary text-primary-foreground flex-1 rounded-md py-1.5 text-center text-xs font-semibold">
+                    <p className="text-[11px] font-bold">Grand boubou</p>
+                    <p className="text-primary text-sm font-bold">{formatPrice(45000)}</p>
+                    <p className="text-muted-foreground text-[8px]">Tissu · Wax premium</p>
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <span className="bg-primary text-primary-foreground flex-1 rounded-md py-1 text-center text-[9px] font-semibold">
                         Suivant
                       </span>
-                      <span className="text-muted-foreground rounded-md border p-1.5">
-                        <Heart className="size-3.5" />
+                      <span className="text-muted-foreground rounded-md border p-1">
+                        <Heart className="size-3" />
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Barre d'accueil iOS */}
+              <span className="absolute bottom-1 left-1/2 z-20 h-[3px] w-20 -translate-x-1/2 rounded-full bg-white/80" />
             </div>
           </div>
         </div>

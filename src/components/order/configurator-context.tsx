@@ -10,7 +10,6 @@ import {
   useState,
 } from "react";
 import {
-  Layers,
   ListChecks,
   PersonStanding,
   Ruler,
@@ -20,6 +19,7 @@ import {
 
 import type { CartMeasurement, NewCartItem } from "@/components/cart/cart-context";
 import { MEASUREMENT_FIELDS, type MeasurementMode, type OrderType } from "@/lib/constants";
+import { DEFAULT_METRAGE, metrageFor } from "@/lib/fabric-metrage";
 import { computePrice, type PriceBreakdown } from "@/lib/pricing";
 import { styleDetailDefaults, styleDetailSummary } from "@/lib/style-options";
 import type { StyleRef } from "@/lib/style-refs";
@@ -45,13 +45,19 @@ export type ConfiguratorData = {
 // entry route bounces you back to /modeles rather than offering the catalogue
 // here, so you can never turn a robe into a kaftan mid-flow.
 //
+// Same rule for the fabric: it is ALWAYS chosen before the configurator and
+// carried in as `?fabric=` — on the fabric's own page for `fabric_only`
+// (/tissus/[id] → « Acheter ce tissu »), and on the garment's page for `full`
+// (/modeles/[id] → « Le personnaliser »). The configurator is a purchase page:
+// it never re-offers the fabric catalogue, it only sets the metrage (quantity).
+// (`own_fabric` brings the client's own cloth, so it carries no fabric at all.)
+//
 // Delivery + payment used to live here; they now belong to the caisse, which
 // applies one delivery/payment choice to the whole basket.
 // ---------------------------------------------------------------------------
 
 export type StepKey =
   | "style"
-  | "fabric"
   | "meters"
   | "tailor"
   | "measurements"
@@ -61,16 +67,35 @@ export const BASE_PATH = "/commande/nouvelle";
 
 export const STEP_LABELS: Record<StepKey, string> = {
   style: "Style",
-  fabric: "Tissu",
   meters: "Quantité",
   tailor: "Tailleur",
   measurements: "Mesures",
   review: "Récapitulatif",
 };
 
+/** Ce qu'on demande à l'étape, en une phrase — affiché sous le titre. */
+export const STEP_HELP: Record<StepKey, string> = {
+  style: "Choisissez l'occasion, puis la coupe et les finitions.",
+  meters: "Combien de tissu faut-il couper pour votre tenue ?",
+  tailor: "L'atelier qui va coudre votre tenue.",
+  measurements: "Une taille standard suffit — les mesures détaillées affinent la coupe.",
+  review: "Vérifiez votre tenue avant de l'ajouter au panier.",
+};
+
+/**
+ * Ce qui manque quand « Continuer » reste inactif. Sans ça, sur téléphone, le
+ * bouton grisé ne dit pas ce qu'on attend du client.
+ */
+export const STEP_REQUIREMENT: Record<StepKey, string | null> = {
+  style: "Choisissez une occasion pour continuer",
+  meters: null,
+  tailor: "Choisissez un tailleur pour continuer",
+  measurements: "Renseignez au moins une mesure pour continuer",
+  review: null,
+};
+
 export const STEP_ICONS: Record<StepKey, React.ComponentType<{ className?: string }>> = {
   style: Sparkles,
-  fabric: Layers,
   meters: Ruler,
   tailor: Store,
   measurements: PersonStanding,
@@ -80,7 +105,6 @@ export const STEP_ICONS: Record<StepKey, React.ComponentType<{ className?: strin
 /** StepKey → URL slug (French, matches the folder names under {BASE_PATH}). */
 export const SLUG_BY_STEP: Record<StepKey, string> = {
   style: "style",
-  fabric: "tissu",
   meters: "quantite",
   tailor: "tailleur",
   measurements: "mesures",
@@ -92,13 +116,22 @@ export const STEP_BY_SLUG: Record<string, StepKey> = Object.fromEntries(
 ) as Record<string, StepKey>;
 
 export const STEPS_BY_TYPE: Record<OrderType, StepKey[]> = {
-  full: ["style", "fabric", "meters", "tailor", "measurements", "review"],
-  fabric_only: ["fabric", "meters", "review"],
+  full: ["style", "meters", "tailor", "measurements", "review"],
+  fabric_only: ["meters", "review"],
   own_fabric: ["style", "tailor", "measurements", "review"],
 };
 
 /** Every type but `fabric_only` configures a garment, so it needs `?model=`. */
 export const typeNeedsModel = (type: OrderType) => type !== "fabric_only";
+
+/**
+ * The fabric is never chosen inside the configurator — it must arrive as
+ * `?fabric=`. `fabric_only` picks it on the fabric's detail page; `full` picks
+ * it on the garment's page (« Le personnaliser »). Only `own_fabric` needs none,
+ * since the client supplies their own cloth.
+ */
+export const typeNeedsFabric = (type: OrderType) =>
+  type === "fabric_only" || type === "full";
 
 export const stepUrl = (step: StepKey) => `${BASE_PATH}/${SLUG_BY_STEP[step]}`;
 
@@ -118,15 +151,17 @@ export type ConfiguratorState = {
   /** Photos d'inspiration jointes par le client (max MAX_STYLE_REFS). */
   styleRefs: StyleRef[];
   fabricId: string | null;
+  /**
+   * Métrage de tissu. Posé dès l'amorçage au métrage que l'atelier taille pour
+   * ce vêtement (`metrageFor`) — un grand boubou n'a jamais tenu dans les 3 m
+   * du brouillon vierge —, puis arbitré par le client à l'étape Quantité.
+   */
   fabricMeters: number;
   tailorId: string | null;
   measurementMode: MeasurementMode;
   standardSize: string;
   manual: Record<string, string>;
   notes: string;
-  // Fabric catalogue filtering (Hockerty-style search + category chips).
-  fabricQuery: string;
-  fabricCat: string | null;
 };
 
 function defaultState(): ConfiguratorState {
@@ -137,14 +172,12 @@ function defaultState(): ConfiguratorState {
     styleDetails: styleDetailDefaults(null),
     styleRefs: [],
     fabricId: null,
-    fabricMeters: 3,
+    fabricMeters: DEFAULT_METRAGE.recommended,
     tailorId: null,
     measurementMode: "standard",
     standardSize: "M",
     manual: {},
     notes: "",
-    fabricQuery: "",
-    fabricCat: null,
   };
 }
 
@@ -164,8 +197,6 @@ export function stepCanProceed(step: StepKey, s: ConfiguratorState): boolean {
   switch (step) {
     case "style":
       return Boolean(s.styleSlug);
-    case "fabric":
-      return Boolean(s.fabricId);
     case "meters":
       return s.fabricMeters > 0;
     case "tailor":
@@ -198,7 +229,7 @@ export function buildCartItem(
 
   // Structured personalisation for display; also folded into the tailor notes
   // (there is no dedicated column yet) so it reaches the atelier.
-  const personalisation = isFabricOnly ? [] : styleDetailSummary(s.modelId, s.styleDetails);
+  const personalisation = isFabricOnly ? [] : styleDetailSummary(model, s.styleDetails);
   const personalisationText = personalisation
     .map((d) => `${d.group} : ${d.option}`)
     .join(" · ");
@@ -279,8 +310,6 @@ type ConfiguratorContextValue = {
   fabric: Fabric | null;
   tailor: Tailor | null;
   price: PriceBreakdown;
-  fabricCategories: string[];
-  filteredFabrics: Fabric[];
 };
 
 const ConfiguratorContext = createContext<ConfiguratorContextValue | null>(null);
@@ -341,18 +370,32 @@ export function ConfiguratorProvider({
   }, []);
 
   // A fresh order: reset to defaults, then apply the incoming ids/type.
-  const seed = useCallback((incoming: ConfiguratorSeed) => {
-    seededRef.current = true;
-    setState({
-      ...defaultState(),
-      type: incoming.type ?? "full",
-      modelId: incoming.modelId ?? null,
-      // The groups differ per garment, so the defaults must come from it.
-      styleDetails: styleDetailDefaults(incoming.modelId),
-      fabricId: incoming.fabricId ?? null,
-      tailorId: incoming.tailorId ?? null,
-    });
-  }, []);
+  const models = data.models;
+  const seed = useCallback(
+    (incoming: ConfiguratorSeed) => {
+      seededRef.current = true;
+      const type = incoming.type ?? "full";
+      const seededModel = models.find((m) => m.id === incoming.modelId) ?? null;
+      setState({
+        ...defaultState(),
+        type,
+        modelId: incoming.modelId ?? null,
+        // The groups differ per garment, so the defaults must come from it.
+        styleDetails: styleDetailDefaults(seededModel),
+        // Idem pour le métrage : c'est le vêtement qui le dicte, et il doit être
+        // juste dès le premier écran (le prix affiché en dépend). Un tissu
+        // acheté seul n'a pas de vêtement — il garde le métrage passe-partout,
+        // que l'étape Quantité fait ensuite choisir.
+        fabricMeters:
+          type === "fabric_only"
+            ? DEFAULT_METRAGE.recommended
+            : metrageFor(seededModel).recommended,
+        fabricId: incoming.fabricId ?? null,
+        tailorId: incoming.tailorId ?? null,
+      });
+    },
+    [models],
+  );
 
   const model = useMemo(
     () => data.models.find((m) => m.id === state.modelId) ?? null,
@@ -380,25 +423,6 @@ export function ConfiguratorProvider({
     [state.type, state.fabricMeters, fabric, tailor],
   );
 
-  const fabricCategories = useMemo(() => {
-    const slugs = new Set<string>();
-    for (const f of data.fabrics) if (f.category_slug) slugs.add(f.category_slug);
-    return [...slugs];
-  }, [data.fabrics]);
-
-  const filteredFabrics = useMemo(() => {
-    const q = state.fabricQuery.trim().toLowerCase();
-    return data.fabrics.filter((f) => {
-      if (state.fabricCat && f.category_slug !== state.fabricCat) return false;
-      if (!q) return true;
-      return (
-        f.name.toLowerCase().includes(q) ||
-        (f.color ?? "").toLowerCase().includes(q) ||
-        (f.material ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [data.fabrics, state.fabricQuery, state.fabricCat]);
-
   const value = useMemo<ConfiguratorContextValue>(
     () => ({
       data,
@@ -410,10 +434,8 @@ export function ConfiguratorProvider({
       fabric,
       tailor,
       price,
-      fabricCategories,
-      filteredFabrics,
     }),
-    [data, state, update, seed, model, fabric, tailor, price, fabricCategories, filteredFabrics],
+    [data, state, update, seed, model, fabric, tailor, price],
   );
 
   return (

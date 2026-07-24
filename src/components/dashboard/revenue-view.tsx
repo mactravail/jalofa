@@ -45,7 +45,7 @@ export async function RevenueView({ role }: { role: ProRole }) {
   return (
     <DashboardPage title="Mes revenus" subtitle={copy.subtitle}>
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-        <Card className="bg-primary text-primary-foreground border-0">
+        <Card className="border-0 bg-emerald-500 text-white">
           <CardContent className="p-5">
             <p className="flex items-center gap-2 text-sm opacity-90">
               <Wallet className="size-4" /> {copy.earned}
@@ -81,6 +81,7 @@ export async function RevenueView({ role }: { role: ProRole }) {
           series={series}
           title={copy.chart}
           subtitle="Vos ventes payées, par jour, par semaine ou par mois."
+          accent="#10b981"
         />
       </div>
 

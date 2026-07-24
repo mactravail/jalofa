@@ -15,7 +15,7 @@ export function ReviewStars({
   return (
     <span
       className={cn("inline-flex items-center gap-0.5", className)}
-      aria-label={`Note ${value} sur 5`}
+      aria-label={`Note ${value.toLocaleString("fr-FR")} sur 5`}
     >
       {Array.from({ length: 5 }, (_, i) => (
         <Star

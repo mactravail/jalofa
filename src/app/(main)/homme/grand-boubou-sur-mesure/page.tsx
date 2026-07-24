@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Ruler, Sparkles, Store, Truck, Wand2 } from "lucide-react";
+import { ArrowLeft, Clock, Ruler, Sparkles, Store, Truck } from "lucide-react";
 
 import { GarmentAsIs, type AsIsPreset } from "@/components/catalog/garment-as-is";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
+import { GarmentPersonalise } from "@/components/catalog/garment-personalise";
+import { GarmentReviews } from "@/components/catalog/garment-reviews";
 import { GarmentTypeSwitcher } from "@/components/catalog/garment-type-switcher";
 import { DemoBanner } from "@/components/demo-banner";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +21,8 @@ import {
 import { formatPrice, modelPhotos } from "@/lib/constants";
 import { getFabrics, getModelBySlug, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
-import { GRAND_BOUBOU_TYPES, PERSONALISER_HREF } from "@/lib/garment-routes";
+import { GRAND_BOUBOU_TYPES } from "@/lib/garment-routes";
+import { garmentSocialProof } from "@/lib/garment-social-proof";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -127,10 +130,10 @@ export default async function GrandBoubouPage({
   const author = model.tailor_id ? (authorById.get(model.tailor_id) ?? null) : null;
 
   const photos = modelPhotos(model);
-  const personaliserHref = model.slug ? PERSONALISER_HREF[model.slug] : undefined;
+  // Query pour le configurateur, SANS tissu : celui-ci se choisit dans
+  // la carte « Le personnaliser » (et voyage ensuite via ?fabric=).
   const order = new URLSearchParams({ type: "full", model: model.id });
   if (model.tailor_id) order.set("tailor", model.tailor_id);
-  const orderHref = `/commande/nouvelle?${order.toString()}`;
 
   const switcherTypes = models.map((m, i) => ({
     id: m.slug ?? m.id,
@@ -138,6 +141,13 @@ export default async function GrandBoubouPage({
     image: m.image_url ?? modelPhotos(m)[0] ?? null,
     fromPrice: presets[i].total,
   }));
+
+  // Les avis de CE type précis : ils suivent le switcher, comme le reste de la
+  // page. L'auteur du modèle passe en tête des ateliers cités.
+  const reviewTailors = author
+    ? [author, ...tailors.filter((t) => t.id !== author.id)]
+    : tailors;
+  const proof = garmentSocialProof(model, reviewTailors);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -157,7 +167,9 @@ export default async function GrandBoubouPage({
         activeId={model.slug ?? model.id}
       />
 
-      <div className="grid gap-8 md:grid-cols-2">
+      {/* `grid-cols-1` explicite : une colonne implicite se dimensionne sur son
+          contenu et laisse un rail défilant élargir la page (cf. /modeles/[id]). */}
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <GarmentGallery
           photos={photos}
           alt={model.name}
@@ -214,47 +226,31 @@ export default async function GrandBoubouPage({
           <div className="mt-6 space-y-4">
             {/* 1 — Le prendre tel quel : ne choisir que la taille. */}
             <div className="bg-card rounded-2xl border p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="flex items-center gap-1.5 font-semibold">
-                    <Sparkles className="text-primary size-4" /> Le prendre tel quel
-                  </h2>
-                  <p className="text-muted-foreground mt-0.5 text-sm">
-                    Le modèle présenté, ajusté à votre taille.
-                  </p>
-                </div>
-                <span className="text-primary shrink-0 text-lg font-bold">
+              {/* Titre et prix côte à côte, mais sur mobile étroit ils ne
+                  tiennent pas sur une ligne : plutôt que d'écraser le titre en
+                  colonne de trois mots, on laisse le prix passer dessous. La
+                  phrase prend toujours la largeur entière. */}
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 className="flex items-center gap-1.5 font-semibold">
+                  <Sparkles className="text-primary size-4 shrink-0" /> Le prendre tel
+                  quel
+                </h2>
+                <span className="text-primary text-base font-bold whitespace-nowrap sm:text-lg">
                   {formatPrice(preset.total)}
                 </span>
+                <p className="text-muted-foreground w-full text-sm">
+                  Le modèle présenté, ajusté à votre taille.
+                </p>
               </div>
               <div className="mt-4">
                 <GarmentAsIs preset={preset} />
               </div>
             </div>
 
-            {/* 2 — Le personnaliser : configurateur détaillé ou parcours de commande. */}
-            <Link
-              href={personaliserHref ?? orderHref}
-              className="group bg-card hover:border-primary/50 hover:bg-muted/40 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
-            >
-              <span className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-xl">
-                <Wand2 className="size-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">Le personnaliser</span>
-                <span className="text-muted-foreground block text-sm">
-                  {personaliserHref
-                    ? "Tissu, coupe, col, broderie et finitions — pièce par pièce."
-                    : "Choisissez le style, le tissu et le tailleur."}
-                </span>
-              </span>
-              <span
-                aria-hidden
-                className="text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-transform"
-              >
-                →
-              </span>
-            </Link>
+            {/* 2 — Le personnaliser. Le même configurateur que tous les autres
+                vêtements : le tissu se choisit ici, la coupe, le col, la
+                broderie et les manches à l'étape Style. */}
+            <GarmentPersonalise fabrics={fabrics} orderParams={order.toString()} />
           </div>
 
           <div className="text-muted-foreground mt-6 space-y-1.5 border-t pt-4 text-sm">
@@ -267,6 +263,16 @@ export default async function GrandBoubouPage({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Les avis, juste sous la fiche — là où on les cherche. */}
+      <div className="mt-16 border-t pt-12">
+        <GarmentReviews
+          proof={proof}
+          garmentName={model.name}
+          storageKey={model.slug ?? model.id}
+          tailors={reviewTailors}
+        />
       </div>
     </div>
   );

@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Clock, Ruler, Sparkles, Store, Truck, Wand2 } from "lucide-react";
+import { ArrowLeft, Clock, Ruler, Sparkles, Store, Truck } from "lucide-react";
 
 import { GarmentAsIs } from "@/components/catalog/garment-as-is";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
+import { GarmentPersonalise } from "@/components/catalog/garment-personalise";
+import { GarmentReviews } from "@/components/catalog/garment-reviews";
 import { DemoBanner } from "@/components/demo-banner";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, modelPhotos } from "@/lib/constants";
 import { getFabrics, getModelById, getStyles, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
-import { DEDICATED_HREF, PERSONALISER_HREF } from "@/lib/garment-routes";
+import { DEDICATED_HREF } from "@/lib/garment-routes";
+import { garmentSocialProof } from "@/lib/garment-social-proof";
 
 // Page dédiée d'un modèle : le prendre tel quel (taille seulement) ou le personnaliser.
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -51,14 +54,13 @@ export default async function ModelDetailPage({
   const author = model.tailor_id ? await getTailorById(model.tailor_id) : null;
 
   // This is where the garment gets locked in: the configurator has no model
-  // step, so it only ever starts from here. `type` / `fabric` / `tailor` come
-  // back from an order that was begun before a garment was chosen — but the
-  // author, when there is one, overrides whatever tailor was carried in.
-  const order = new URLSearchParams({ type: type ?? "full", model: model.id });
-  if (fabric) order.set("fabric", fabric);
+  // step, so it only ever starts from here. `type` / `tailor` come back from an
+  // order begun before a garment was chosen — the author, when there is one,
+  // overrides whatever tailor was carried in. The fabric is NOT put here: it is
+  // chosen in the « Le personnaliser » card below (and carried in via ?fabric=).
+  const orderParams = new URLSearchParams({ type: type ?? "full", model: model.id });
   const orderTailor = model.tailor_id ?? tailor;
-  if (orderTailor) order.set("tailor", orderTailor);
-  const orderHref = `/commande/nouvelle?${order.toString()}`;
+  if (orderTailor) orderParams.set("tailor", orderTailor);
 
   // --- « Le prendre tel quel » : le modèle présenté, on ne choisit que la taille.
   const asIsFabric = fabrics.find((f) => f.id === GENERIC_AS_IS_FABRIC_ID) ?? fabrics[0] ?? null;
@@ -71,7 +73,12 @@ export default async function ModelDetailPage({
     tailor: asIsTailor,
   });
 
-  const personaliserHref = model.slug ? PERSONALISER_HREF[model.slug] : undefined;
+  // Les avis de ce vêtement — sur la pièce comme sur l'atelier qui la coud.
+  // L'auteur du modèle passe en tête des ateliers cités.
+  const reviewTailors = author
+    ? [author, ...tailors.filter((t) => t.id !== author.id)]
+    : tailors;
+  const proof = garmentSocialProof(model, reviewTailors);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -83,7 +90,10 @@ export default async function ModelDetailPage({
         <ArrowLeft className="size-4" /> Retour aux modèles
       </Link>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      {/* `grid-cols-1` explicite : sans lui, la colonne (implicite, donc `auto`)
+          se dimensionne sur le contenu le plus large — le rail de tissus de
+          « Le personnaliser » élargissait toute la page sur mobile. */}
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <GarmentGallery
           photos={photos}
           alt={model.name}
@@ -133,48 +143,36 @@ export default async function ModelDetailPage({
           <div className="mt-6 space-y-4">
             {/* 1 — Le prendre tel quel : ne choisir que la taille. */}
             <div className="bg-card rounded-2xl border p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="flex items-center gap-1.5 font-semibold">
-                    <Sparkles className="text-primary size-4" /> Le prendre tel quel
-                  </h2>
-                  <p className="text-muted-foreground mt-0.5 text-sm">
-                    Le modèle présenté, ajusté à votre taille.
-                    {asIsFabric ? ` Présenté en ${asIsFabric.name}.` : ""}
-                  </p>
-                </div>
-                <span className="text-primary shrink-0 text-lg font-bold">
+              {/* Titre et prix côte à côte, mais sur mobile étroit ils ne
+                  tiennent pas sur une ligne : plutôt que d'écraser le titre en
+                  colonne de trois mots, on laisse le prix passer dessous. La
+                  phrase prend toujours la largeur entière. */}
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 className="flex items-center gap-1.5 font-semibold">
+                  <Sparkles className="text-primary size-4 shrink-0" /> Le prendre tel
+                  quel
+                </h2>
+                <span className="text-primary text-base font-bold whitespace-nowrap sm:text-lg">
                   {formatPrice(asIsPreset.total)}
                 </span>
+                <p className="text-muted-foreground w-full text-sm">
+                  Le modèle présenté, ajusté à votre taille.
+                  {asIsFabric ? ` Présenté en ${asIsFabric.name}.` : ""}
+                </p>
               </div>
               <div className="mt-4">
                 <GarmentAsIs preset={asIsPreset} />
               </div>
             </div>
 
-            {/* 2 — Le personnaliser : configurateur détaillé ou parcours de commande. */}
-            <Link
-              href={personaliserHref ?? orderHref}
-              className="group bg-card hover:border-primary/50 hover:bg-muted/40 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
-            >
-              <span className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-xl">
-                <Wand2 className="size-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">Le personnaliser</span>
-                <span className="text-muted-foreground block text-sm">
-                  {personaliserHref
-                    ? "Coupe, col, broderie, tissu et finitions — dans le détail."
-                    : "Choisissez le style, le tissu et le tailleur."}
-                </span>
-              </span>
-              <span
-                aria-hidden
-                className="text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5"
-              >
-                →
-              </span>
-            </Link>
+            {/* 2 — Le personnaliser. Un seul chemin pour tous les vêtements :
+                le tissu se choisit ici, puis le configurateur (Style, Quantité,
+                Tailleur, Mesures) — qui, lui, ne rechoisit plus le tissu. */}
+            <GarmentPersonalise
+              fabrics={fabrics}
+              orderParams={orderParams.toString()}
+              initialFabricId={fabric ?? null}
+            />
           </div>
 
           {styles.length > 0 && (
@@ -202,6 +200,16 @@ export default async function ModelDetailPage({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Les avis, juste sous la fiche — là où on les cherche. */}
+      <div className="mt-16 border-t pt-12">
+        <GarmentReviews
+          proof={proof}
+          garmentName={model.name}
+          storageKey={model.slug ?? model.id}
+          tailors={reviewTailors}
+        />
       </div>
     </div>
   );

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Minus, Plus, Scissors, ShoppingBag, Trash2 } from "lucide-react";
 
 import { useCart, type CartItem } from "@/components/cart/cart-context";
+import { Price } from "@/components/cart/price";
 import { buttonVariants } from "@/components/ui/button";
 import { DELIVERY_FEE, basketHasFreeDelivery } from "@/lib/pricing";
-import { formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export function PanierView() {
@@ -55,7 +55,7 @@ export function PanierView() {
         </span>
       </h1>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
         {/* Items */}
         <ul className="space-y-4">
           {items.map((item) => (
@@ -70,22 +70,33 @@ export function PanierView() {
           <div className="bg-card rounded-2xl border p-6">
             <h2 className="text-lg font-semibold">Récapitulatif</h2>
             <dl className="mt-4 space-y-2.5 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">Sous-total</dt>
-                <dd className="font-medium">{formatPrice(subtotal)}</dd>
+                <dd>
+                  <Price amount={subtotal} className="font-medium" />
+                </dd>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">Livraison</dt>
-                <dd className={freeDelivery ? "text-primary font-medium" : "text-muted-foreground"}>
-                  {freeDelivery ? "Offerte" : `dès ${formatPrice(DELIVERY_FEE)}`}
+                <dd
+                  className={cn(
+                    "whitespace-nowrap",
+                    freeDelivery ? "text-primary font-medium" : "text-muted-foreground",
+                  )}
+                >
+                  {freeDelivery ? (
+                    "Offerte"
+                  ) : (
+                    <>
+                      dès <Price amount={DELIVERY_FEE} />
+                    </>
+                  )}
                 </dd>
               </div>
             </dl>
-            <div className="mt-4 flex items-center justify-between border-t pt-4">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t pt-4">
               <span className="font-semibold">Total estimé</span>
-              <span className="text-primary text-xl font-bold">
-                {formatPrice(subtotal)}
-              </span>
+              <Price amount={subtotal} className="text-primary ml-auto text-xl font-bold" />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
               Frais de livraison calculés à la caisse.
@@ -136,8 +147,22 @@ function CartLine({
   }
 
   return (
-    <div className="bg-card flex gap-4 rounded-2xl border p-4">
-      <div className="bg-muted relative size-24 shrink-0 overflow-hidden rounded-xl">
+    <div className="bg-card rounded-2xl border p-4">
+      {/* Photo et corbeille sont *flottantes*, pas des colonnes de grille : le
+          texte les longe puis reprend toute la largeur de la carte dès qu'il
+          passe sous elles. Une vignette en colonne enfermait le titre dans un
+          couloir de ~100 px sur un petit écran — « Grand Boubou » se cassait en
+          deux et le sous-titre en trois lignes hachées. */}
+      <button
+        type="button"
+        onClick={() => onRemove(item.lineId)}
+        aria-label="Retirer du panier"
+        className="text-muted-foreground hover:text-destructive hover:bg-muted float-right -mt-1 -mr-1 ml-2 flex size-8 items-center justify-center rounded-full transition-colors"
+      >
+        <Trash2 className="size-4" />
+      </button>
+
+      <div className="bg-muted float-left mr-3 size-14 overflow-hidden rounded-xl sm:mr-4 sm:size-20">
         {item.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.image} alt={item.title} className="size-full object-cover" />
@@ -148,78 +173,82 @@ function CartLine({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate font-medium">{item.title}</p>
-            <p className="text-muted-foreground text-sm">{item.subtitle}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onRemove(item.lineId)}
-            aria-label="Retirer du panier"
-            className="text-muted-foreground hover:text-destructive hover:bg-muted -mr-1 -mt-1 flex size-8 items-center justify-center rounded-full transition-colors"
-          >
-            <Trash2 className="size-4" />
-          </button>
+      <p className="font-medium text-pretty">{item.title}</p>
+      <p className="text-muted-foreground mt-0.5 text-xs text-pretty sm:text-sm">
+        {item.subtitle}
+      </p>
+
+      {/* `clear-both` : les pastilles repartent toujours du bord gauche de la
+          carte, sous la photo — jamais coincées dans ce qui reste à côté. */}
+      {details.length > 0 && (
+        <div className="clear-both flex flex-wrap gap-1.5 pt-3">
+          {details.map((d, i) => (
+            <span
+              key={i}
+              className="bg-muted text-muted-foreground max-w-full truncate rounded-full px-2 py-0.5 text-[11px] sm:text-xs"
+            >
+              {d}
+            </span>
+          ))}
         </div>
+      )}
 
-        {details.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {details.map((d, i) => (
-              <span
-                key={i}
-                className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs"
-              >
-                {d}
-              </span>
-            ))}
-          </div>
-        )}
+      {item.personalisation.length > 0 && (
+        <p className="text-muted-foreground clear-both pt-1.5 text-xs">
+          {item.personalisation.map((p) => p.option).join(" · ")}
+        </p>
+      )}
 
-        {item.personalisation.length > 0 && (
-          <p className="text-muted-foreground mt-1.5 line-clamp-1 text-xs">
-            {item.personalisation.map((p) => p.option).join(" · ")}
+      {/* Espace garanti sous les flottants : une marge, elle, serait absorbée
+          par le « clearance » quand la photo descend plus bas que le texte. */}
+      <div aria-hidden className="clear-both h-3" />
+
+      {/* Sélecteur et prix tiennent sur une seule ligne, à toutes les largeurs.
+          Le budget est calculé sur le pire cas — « 10 000 000 FCFA » : à 320 px
+          d'écran il reste 146 px à droite du sélecteur compact (98 px), le prix
+          en 14 px en demande ~100. D'où les tailles réduites ici plutôt qu'un
+          repli à la ligne. */}
+      <div className="flex items-center justify-between gap-2 border-t pt-3">
+        <QtyStepper qty={item.qty} onChange={(q) => onQty(item.lineId, q)} />
+        <div className="text-right">
+          <p>
+            <Price
+              amount={item.unitPrice * item.qty}
+              className="text-sm font-semibold sm:text-base"
+            />
           </p>
-        )}
-
-        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-          <QtyStepper
-            qty={item.qty}
-            onChange={(q) => onQty(item.lineId, q)}
-          />
-          <div className="text-right">
-            <p className="font-semibold">{formatPrice(item.unitPrice * item.qty)}</p>
-            {item.qty > 1 && (
-              <p className="text-muted-foreground text-xs">
-                {formatPrice(item.unitPrice)} / pièce
-              </p>
-            )}
-          </div>
+          {item.qty > 1 && (
+            <p className="text-muted-foreground text-[11px]">
+              <Price amount={item.unitPrice} /> / pièce
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+/** Compact sur mobile (98 px) : c'est ce qui libère la place du prix à côté. */
 function QtyStepper({ qty, onChange }: { qty: number; onChange: (q: number) => void }) {
   return (
-    <div className="flex items-center rounded-lg border">
+    <div className="flex shrink-0 items-center rounded-lg border">
       <button
         type="button"
         onClick={() => onChange(qty - 1)}
         disabled={qty <= 1}
         aria-label="Diminuer la quantité"
-        className="hover:bg-muted flex size-9 items-center justify-center rounded-l-lg transition-colors disabled:opacity-40"
+        className="hover:bg-muted flex size-8 items-center justify-center rounded-l-lg transition-colors disabled:opacity-40 sm:size-9"
       >
         <Minus className="size-4" />
       </button>
-      <span className="w-9 text-center text-sm font-medium tabular-nums">{qty}</span>
+      <span className="w-8 text-center text-sm font-medium tabular-nums sm:w-9">
+        {qty}
+      </span>
       <button
         type="button"
         onClick={() => onChange(qty + 1)}
         aria-label="Augmenter la quantité"
-        className="hover:bg-muted flex size-9 items-center justify-center rounded-r-lg transition-colors"
+        className="hover:bg-muted flex size-8 items-center justify-center rounded-r-lg transition-colors sm:size-9"
       >
         <Plus className="size-4" />
       </button>

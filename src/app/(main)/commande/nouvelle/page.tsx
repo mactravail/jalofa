@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import {
   STEPS_BY_TYPE,
   stepUrl,
+  typeNeedsFabric,
   typeNeedsModel,
   useConfigurator,
 } from "@/components/order/configurator-context";
@@ -45,6 +46,23 @@ export default function ConfiguratorEntry() {
       if (tailorId) q.set("tailor", tailorId);
       const qs = q.toString();
       router.replace(qs ? `/modeles?${qs}` : "/modeles");
+      return;
+    }
+
+    // Le tissu se choisit toujours AVANT le configurateur (c'est une page
+    // d'achat). Sans lui, on renvoie là où il se choisit : le catalogue de tissus
+    // pour un tissu seul, la fiche du modèle (« Le personnaliser ») pour un
+    // vêtement — en conservant le type / le tailleur déjà retenus.
+    if (typeNeedsFabric(type) && !fabricId) {
+      if (type === "fabric_only") {
+        router.replace("/tissus");
+      } else {
+        const q = new URLSearchParams();
+        if (type !== "full") q.set("type", type);
+        if (tailorId) q.set("tailor", tailorId);
+        const qs = q.toString();
+        router.replace(modelId ? `/modeles/${modelId}${qs ? `?${qs}` : ""}` : "/modeles");
+      }
       return;
     }
 

@@ -4,6 +4,7 @@ import { Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { modelPhotos } from "@/lib/constants";
+import { DEDICATED_HREF } from "@/lib/garment-routes";
 import type { GarmentModel } from "@/lib/types";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -21,9 +22,18 @@ export function ModelCard({ model, context }: { model: GarmentModel; context?: s
   // Le vêtement seul en vitrine — la vue portée vient juste après, dans la
   // galerie de la fiche.
   const [cover] = modelPhotos(model);
+
+  // Un modèle qui a sa page dédiée y va directement : /modeles/[id] ne faisait
+  // que rediriger vers `?type=<slug>` (en perdant déjà le contexte), donc on
+  // économise l'aller-retour — et une route dynamique de moins à traverser.
+  const dedicated = model.slug ? DEDICATED_HREF[model.slug] : undefined;
+  const href = dedicated
+    ? `${dedicated}?type=${model.slug}`
+    : `/modeles/${model.id}${context ? `?${context}` : ""}`;
+
   return (
     <Link
-      href={`/modeles/${model.id}${context ? `?${context}` : ""}`}
+      href={href}
       className="group bg-card overflow-hidden rounded-xl border transition-shadow hover:shadow-md"
     >
       <div className="bg-muted relative aspect-4/5 overflow-hidden">

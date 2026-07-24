@@ -1,7 +1,7 @@
-// Thin-outline line-art icons for the men's three-piece grand boubou
-// configurator, in the same Hockerty aesthetic as `order/style-icons.tsx` and
-// `women/dress-icons.tsx`. Grouped by the sections shown on the
-// "Grand boubou sur mesure → Personnaliser" page, across the three pieces:
+// Thin-outline line-art icons for the men's three-piece grand boubou, in the
+// same Hockerty aesthetic as `order/style-icons.tsx`. Grouped by the sections
+// of `lib/boubou-options.ts` — the table qui chiffre le boubou « pris tel
+// quel » sur /homme/grand-boubou-sur-mesure —, across the three pieces:
 // the grand boubou itself, the kaftan worn underneath and the trousers
 // (tubay). Every stroke uses `currentColor` so the drawings follow the theme
 // and dim/brighten with selection state.

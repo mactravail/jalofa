@@ -6,7 +6,6 @@ import type { ShoeIconName } from "@/components/shoes/shoe-icons";
 // leather rows in the demo database, so the live preview is a parametric SVG
 // (`shoe-preview.tsx`) driven by these options. Labels are French (Senegalese
 // market); price deltas are in FCFA and add on top of the atelier base price.
-// See `src/lib/dress-options.ts` for the women's-dress counterpart.
 
 // ---------------------------------------------------------------------------
 // Base model (silhouette) — the first, biggest choice

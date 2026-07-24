@@ -1,5 +1,5 @@
 // Thin-outline line-art icons for the men's shoe configurator, in the same
-// Hockerty aesthetic as `order/style-icons.tsx` and `women/dress-icons.tsx`.
+// Hockerty aesthetic as `order/style-icons.tsx`.
 // Grouped by the customisation sections shown on the "Personnaliser" page:
 // modèle (base last), bout (toe), semelle (sole), doublure (lining) and
 // finition (finish). Every stroke uses `currentColor` so the drawings follow

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Clock, Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Clock, Loader2, MoreVertical, Pencil, Plus, Shirt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ModelFormDialog } from "@/components/dashboard/model-form-dialog";
@@ -55,6 +55,21 @@ export function TailorModelsPanel({
   const [formSeq, setFormSeq] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<GarmentModel | null>(null);
   const [isDeleting, startDelete] = useTransition();
+
+  // Arrivé depuis le raccourci « Ajouter un modèle » de l'accueil (`?nouveau=1`) :
+  // on ouvre le choix tout de suite, pour que le geste s'enchaîne sans clic de plus.
+  // Lecture côté client (window) plutôt que `useSearchParams` : pas de bascule de
+  // rendu statique ni de frontière Suspense à prévoir sur la page.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nouveau") === "1") {
+      autoOpened.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPickerOpen(true);
+    }
+  }, []);
 
   const categoryName = (slug: string | null) =>
     categories.find((c) => c.slug === slug)?.name ?? null;
@@ -117,19 +132,35 @@ export function TailorModelsPanel({
         <p className="text-muted-foreground text-sm">
           {models.length} modèle{models.length > 1 ? "s" : ""} au catalogue
         </p>
-        <Button size="sm" onClick={openNew} className="gap-1.5">
+        <Button
+          size="sm"
+          onClick={openNew}
+          className="gap-1.5 bg-rose-500 text-white hover:bg-rose-600"
+        >
           <Plus className="size-4" /> Ajouter un modèle
         </Button>
       </div>
 
       {models.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center">
-          <p className="text-muted-foreground text-sm">
-            Vous n&apos;avez pas encore publié de modèle. Ajoutez une de vos
-            créations : les clients qui la choisissent vous sont adressés
-            directement.
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={openNew}
+          className="flex w-full flex-col items-center rounded-2xl border-2 border-dashed border-rose-200 bg-rose-50 p-8 text-center transition-transform active:scale-[0.99] dark:border-rose-900/60 dark:bg-rose-950/30"
+        >
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-rose-500 text-white">
+            <Shirt className="size-7" />
+          </span>
+          <span className="mt-4 text-base font-semibold">
+            Ajoutez votre premier modèle
+          </span>
+          <span className="text-muted-foreground mt-1 max-w-sm text-sm">
+            Une photo, un nom, un prix — et les clients qui le choisissent vous
+            sont adressés directement.
+          </span>
+          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white">
+            <Plus className="size-4" /> Ajouter un modèle
+          </span>
+        </button>
       ) : (
         <div className="divide-y rounded-xl border">
           {models.map((model) => (

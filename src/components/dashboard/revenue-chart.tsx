@@ -61,6 +61,7 @@ export function RevenueChart({
   unit = "vente",
   defaultGranularity = "day",
   className,
+  accent = "var(--primary)",
 }: {
   series: RevenueSeries;
   title: string;
@@ -68,6 +69,8 @@ export function RevenueChart({
   unit?: string;
   defaultGranularity?: Granularity;
   className?: string;
+  /** Couleur de la courbe. Par défaut l'encre du site ; l'espace pro passe le vert de l'argent. */
+  accent?: string;
 }) {
   const [gran, setGran] = useState<Granularity>(defaultGranularity);
   const [active, setActive] = useState<number | null>(null);
@@ -188,8 +191,8 @@ export function RevenueChart({
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.24} />
-                <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                <stop offset="0%" stopColor={accent} stopOpacity={0.24} />
+                <stop offset="100%" stopColor={accent} stopOpacity={0} />
               </linearGradient>
             </defs>
 
@@ -225,7 +228,7 @@ export function RevenueChart({
                 <path
                   d={linePath}
                   fill="none"
-                  className="stroke-primary"
+                  stroke={accent}
                   strokeWidth={2}
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -256,7 +259,8 @@ export function RevenueChart({
                   x2={xOf(active as number)}
                   y1={PAD.top}
                   y2={PAD.top + innerH}
-                  className="stroke-primary/40"
+                  stroke={accent}
+                  strokeOpacity={0.4}
                   strokeWidth={1}
                   strokeDasharray="3 3"
                 />
@@ -264,7 +268,8 @@ export function RevenueChart({
                   cx={xOf(active as number)}
                   cy={yOf(activePoint.revenue)}
                   r={4.5}
-                  className="fill-primary stroke-card"
+                  fill={accent}
+                  className="stroke-card"
                   strokeWidth={2}
                 />
               </>

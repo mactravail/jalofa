@@ -30,8 +30,8 @@ export function buildGenericAsIsPreset({
   fabric: Fabric | null;
   tailor: Tailor | null;
 }): AsIsPreset {
-  const styleDefaults = styleDetailDefaults(model.id);
-  const styleSummary = styleDetailSummary(model.id, styleDefaults);
+  const styleDefaults = styleDetailDefaults(model);
+  const styleSummary = styleDetailSummary(model, styleDefaults);
 
   const fabricPrice = (fabric?.price_per_meter ?? 0) * GENERIC_AS_IS_METERS;
   const tailoringPrice = tailor?.base_price ?? 0;

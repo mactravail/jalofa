@@ -1,3 +1,4 @@
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -31,8 +32,34 @@ const nextConfig: NextConfig = {
       // step; the garment is now chosen in /modeles and can never be swapped
       // mid-flow. Old links / bookmarks land on the catalogue instead of a 404.
       { source: "/commande/nouvelle/modele", destination: "/modeles", permanent: false },
+      // Same for the fabric: it is now chosen before the configurator (on the
+      // garment or fabric page), never inside it — so the old « Tissu » step
+      // route is gone. Send stale links to the catalogue rather than a 404.
+      { source: "/commande/nouvelle/tissu", destination: "/modeles", permanent: false },
     ];
   },
 };
 
-export default nextConfig;
+/**
+ * En développement, Next relance `generateStaticParams` à CHAQUE requête sur une
+ * route dynamique de l'App Router (/modeles/[id], /tissus/[id], /tailleurs/[id]…)
+ * dans un worker `jest-worker`. Par défaut ce worker est un **processus enfant**
+ * forké à chaque navigation : s'il meurt (mémoire, disque lent, fork qui rate
+ * sous Windows), la page remonte « Jest worker encountered 2 child process
+ * exceptions, exceeding retry limit » — une erreur du serveur de dev, sans aucun
+ * rapport avec le code de la page.
+ *
+ * `workerThreads` fait tourner ce worker dans un *thread* du même processus :
+ * plus de fork par requête, donc plus de crash de processus enfant (et des
+ * navigations sensiblement plus rapides en local).
+ *
+ * Réservé au serveur de dev : en build, les workers de rendu restent des
+ * processus séparés, comme sur Vercel.
+ */
+export default function config(phase: string): NextConfig {
+  if (phase !== PHASE_DEVELOPMENT_SERVER) return nextConfig;
+  return {
+    ...nextConfig,
+    experimental: { ...nextConfig.experimental, workerThreads: true },
+  };
+}

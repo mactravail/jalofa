@@ -1,12 +1,12 @@
 "use client";
 
-import { ChevronRight, PackageOpen } from "lucide-react";
+import { ChevronRight, Clock, PackageOpen } from "lucide-react";
 
 import { OrderDetailSheet } from "@/components/dashboard/order-detail-sheet";
 import { OrderStatusControl } from "@/components/dashboard/order-status-control";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
 import { OrderStatusBadge } from "@/components/order/order-status";
-import { ORDER_TYPE_LABELS, formatPrice } from "@/lib/constants";
+import { ORDER_TYPE_LABELS, formatPrice, formatReceivedAt } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
 import { amountFor, type OrderBucket } from "@/lib/pipeline";
@@ -77,6 +77,13 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
             <span className="text-foreground/70">
               {amountLabel} {formatPrice(amountFor(role, order))}
             </span>
+          </p>
+          <p
+            className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs"
+            suppressHydrationWarning
+          >
+            <Clock className="size-3 shrink-0" />
+            Reçue {formatReceivedAt(order.created_at)}
           </p>
         </div>
 

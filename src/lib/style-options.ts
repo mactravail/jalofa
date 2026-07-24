@@ -1,4 +1,6 @@
+import type { BoubouDetailIconName } from "@/components/order/boubou-detail-icons";
 import type { StyleIconName } from "@/components/order/style-icons";
+import type { GarmentModel } from "@/lib/types";
 
 // Garment personalisation shown in the configurator "Style" step, modelled on
 // Hockerty's grouped, illustrated picker but adapted to Senegalese / African
@@ -7,14 +9,30 @@ import type { StyleIconName } from "@/components/order/style-icons";
 //
 // Each garment gets ONLY its own cuts, and only the groups that apply to it: a
 // robe is never offered a kaftan cut, and a jupe has no collar or sleeves at
-// all. That is why the catalogue is keyed by model id rather than being one
-// flat list — see STYLE_GROUPS_BY_MODEL below.
+// all. That is why the catalogue is keyed per garment rather than being one
+// flat list — see STYLE_GROUPS_BY_SLUG below.
+//
+// Clé : le `slug` du modèle — stable en démo comme en base (cf.
+// `garment-routes.ts`, `fabric-metrage.ts`), là où l'`id` est un UUID aléatoire
+// en prod. Une création de tailleur que cette table ne connaît pas est ramenée
+// par mots-clés (nom + slug) sur la pièce de référence la plus proche.
 
-export type StyleGroupOption = {
-  slug: string;
-  name: string;
-  icon: StyleIconName;
-};
+/**
+ * Une option se montre de trois façons, jamais deux à la fois :
+ *  · `icon`  — le dessin générique, composé par famille de vêtement
+ *    (`style-icons.tsx` / `garment-detail-icons.tsx`) ;
+ *  · `art`   — une planche dédiée, dessinée pour CE détail-là
+ *    (`boubou-detail-icons.tsx`), quand le vêtement se choisit finition par
+ *    finition et qu'aucune composition paramétrique ne suffit ;
+ *  · `photo` — un visuel de planche fourni par l'atelier (`/public`), qui
+ *    remplace le dessin quand il existe.
+ */
+export type StyleGroupOption =
+  | { slug: string; name: string; icon: StyleIconName; art?: never; photo?: never }
+  | { slug: string; name: string; art: BoubouDetailIconName; icon?: never; photo?: never }
+  // `photo` est un chemin absolu dans `/public` — le type le dit, ce qui permet
+  // aussi de distinguer les trois variantes par simple test de vérité.
+  | { slug: string; name: string; photo: `/${string}`; icon?: never; art?: never };
 
 export type StyleGroup = {
   slug: string;
@@ -149,26 +167,116 @@ const LONGUEUR_LONGUE: StyleGroup = {
 };
 
 // ---------------------------------------------------------------------------
-// Per-garment catalogue, keyed by model id (see `src/lib/fixtures.ts`).
+// Grand boubou — le vêtement se choisit finition par finition, comme chez un
+// tailleur (planche de cols, planche de manches…). Les groupes ci-dessous sont
+// donc bien plus fournis que les groupes génériques, et chaque option a sa
+// propre planche dessinée (`boubou-detail-icons.tsx`) : un « motif Ségou » ou
+// une « manche cape » ne se déduisent d'aucun dessin composé.
+//
+// Partagés par les pièces d'apparat de la même coupe — grand boubou, baye
+// lahat, agbada, tenue de cérémonie —, qui sont le même vêtement à la façon
+// près. Les autres vêtements gardent les groupes génériques du dessus.
 // ---------------------------------------------------------------------------
 
-export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
-  "demo-grand-boubou": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "classique", name: "Boubou classique", icon: "boubou" },
-        { slug: "trois-pieces", name: "Trois pièces", icon: "boubou-3pieces" },
-        { slug: "court", name: "Boubou court", icon: "boubou-court" },
-      ],
-    },
-    COL_HOMME,
-    BRODERIE_COMPLETE,
-    MANCHES_AMPLES,
+// Planches photographiques de l'atelier (`public/coupe/`) au lieu des dessins
+// `bb-coupe-*` : une vraie planche de tailleur vaut mieux qu'un pictogramme.
+// Le cadrage de la vignette rogne la légende incrustée en bas de chaque visuel
+// (cf. l'étape « Style »), le nom de l'option étant déjà écrit sous la case.
+const COUPE_BOUBOU: StyleGroup = {
+  slug: "coupe",
+  name: "Coupe",
+  options: [
+    { slug: "classique", name: "Classique (Mbubb)", photo: "/coupe/pl.jpg" },
+    { slug: "royal", name: "Royal, très ample", photo: "/coupe/d.jpg" },
+    { slug: "moderne", name: "Moderne ajusté", photo: "/coupe/a.jpg" },
+    { slug: "trois-pieces", name: "Trois pièces", photo: "/coupe/e.jpg" },
+    { slug: "court", name: "Court (3/4)", photo: "/coupe/b.jpg" },
   ],
+};
 
-  "demo-kaftan": [
+const COL_BOUBOU: StyleGroup = {
+  slug: "col",
+  name: "Col",
+  options: [
+    { slug: "rond", name: "Col rond brodé simple", art: "bb-col-rond" },
+    { slug: "mao", name: "Col Mao sans broderie", art: "bb-col-mao" },
+    { slug: "encolure-brodee", name: "Encolure brodée complexe", art: "bb-col-encolure-brodee" },
+    { slug: "fente", name: "Fente simple avec broderie discrète", art: "bb-col-fente" },
+    { slug: "croise-plastron", name: "Col croisé avec plastron", art: "bb-col-croise-plastron" },
+    { slug: "v", name: "Col en V avec motifs", art: "bb-col-v" },
+    { slug: "mao-brode", name: "Col Mao brodé court", art: "bb-col-mao-brode" },
+    { slug: "chemise", name: "Col chemise avec boutons dissimulés", art: "bb-col-chemise" },
+    { slug: "croise", name: "Col croisé sans plastron", art: "bb-col-croise" },
+  ],
+};
+
+const BRODERIE_BOUBOU: StyleGroup = {
+  slug: "broderie",
+  name: "Broderie",
+  options: [
+    { slug: "etoile", name: "Broderie « étoile »", art: "bb-brod-etoile" },
+    { slug: "maillee", name: "Broderie maillée", art: "bb-brod-maillee" },
+    { slug: "geometrique", name: "Géométrique large", art: "bb-brod-geometrique" },
+    { slug: "croix", name: "Broderie « croix »", art: "bb-brod-croix" },
+    { slug: "plastron-reduit", name: "Plastron réduit brodé", art: "bb-brod-plastron-reduit" },
+    { slug: "segou", name: "Motif « Ségou » complexe", art: "bb-brod-segou" },
+    { slug: "diamant", name: "« Diamant » minimaliste", art: "bb-brod-diamant" },
+    { slug: "fente-plastron", name: "Fente brodée et plastron", art: "bb-brod-fente-plastron" },
+    { slug: "doree", name: "Broderie fil d'or", art: "bb-brod-doree" },
+    { slug: "sans", name: "Sans broderie", art: "bb-brod-sans" },
+  ],
+};
+
+const POCHES_BOUBOU: StyleGroup = {
+  slug: "poches",
+  name: "Poches",
+  options: [
+    { slug: "poitrine", name: "Poche poitrine", art: "bb-poche-poitrine" },
+    { slug: "poitrine-brodee", name: "Poche poitrine brodée", art: "bb-poche-poitrine-brodee" },
+    { slug: "laterales", name: "Poches latérales", art: "bb-poche-laterales" },
+    {
+      slug: "poitrine-laterales",
+      name: "Poitrine + latérales",
+      art: "bb-poche-poitrine-laterales",
+    },
+    { slug: "sans", name: "Sans poche", art: "bb-poche-sans" },
+  ],
+};
+
+const MANCHES_BOUBOU: StyleGroup = {
+  slug: "manches",
+  name: "Manches",
+  options: [
+    { slug: "evasee", name: "Classique évasée", art: "bb-manche-evasee" },
+    { slug: "tres-large", name: "Très large", art: "bb-manche-tres-large" },
+    { slug: "cape", name: "« Cape » traditionnelle", art: "bb-manche-cape" },
+    { slug: "evasee-brodee", name: "Évasée brodée", art: "bb-manche-evasee-brodee" },
+    { slug: "evasee-motif", name: "Évasée à grand motif", art: "bb-manche-evasee-motif" },
+    { slug: "ajustee", name: "Ajustée à poignet", art: "bb-manche-ajustee" },
+    { slug: "ajustee-brodee", name: "Ajustée brodée", art: "bb-manche-ajustee-brodee" },
+    { slug: "ajustee-bord", name: "Ajustée à bord brodé", art: "bb-manche-ajustee-bord" },
+    { slug: "fente-boutons", name: "À fente et boutons", art: "bb-manche-fente-boutons" },
+    { slug: "rabat", name: "Moderne à rabat", art: "bb-manche-rabat" },
+  ],
+};
+
+/** Les cinq planches d'un grand boubou, dans l'ordre où on les choisit. */
+const BOUBOU_GROUPS: StyleGroup[] = [
+  COUPE_BOUBOU,
+  COL_BOUBOU,
+  BRODERIE_BOUBOU,
+  POCHES_BOUBOU,
+  MANCHES_BOUBOU,
+];
+
+// ---------------------------------------------------------------------------
+// Per-garment catalogue, keyed by model slug (see `src/lib/fixtures.ts`).
+// ---------------------------------------------------------------------------
+
+export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
+  "grand-boubou": BOUBOU_GROUPS,
+
+  "kaftan": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -183,7 +291,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_STANDARD,
   ],
 
-  "demo-chemise": [
+  "chemise": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -198,7 +306,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_COURTES_LONGUES,
   ],
 
-  "demo-costume": [
+  "costume": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -212,7 +320,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     BRODERIE_MINIMALE,
   ],
 
-  "demo-ensemble-bazin": [
+  "ensemble-bazin": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -227,22 +335,10 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_AMPLES,
   ],
 
-  "demo-agbada": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "classique", name: "Agbada classique", icon: "boubou" },
-        { slug: "trois-pieces", name: "Trois pièces", icon: "boubou-3pieces" },
-        { slug: "long", name: "Coupe longue", icon: "kaftan-long" },
-      ],
-    },
-    COL_HOMME,
-    BRODERIE_COMPLETE,
-    MANCHES_AMPLES,
-  ],
+  // Agbada et baye lahat sont des grands boubous : mêmes planches.
+  "agbada": BOUBOU_GROUPS,
 
-  "demo-kaftan-brode": [
+  "kaftan-brode": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -257,7 +353,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_STANDARD,
   ],
 
-  "demo-tenue-ceremonie": [
+  "tenue-ceremonie": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -272,7 +368,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_AMPLES,
   ],
 
-  "demo-costume-africain": [
+  "costume-africain": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -287,7 +383,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
   ],
 
   // Une veste-blazer a des manches, mais pas de longueur à choisir.
-  "demo-veste-africaine": [
+  "veste-africaine": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -303,7 +399,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
   ],
 
   // Un gilet n'a pas de manches — le groupe n'existe pas ici.
-  "demo-gilet": [
+  "gilet": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -317,7 +413,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
   ],
 
   // Un pantalon n'a ni col ni manches — comme la jupe.
-  "demo-pantalon": [
+  "pantalon": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -330,7 +426,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     BRODERIE_MINIMALE,
   ],
 
-  "demo-dashiki": [
+  "dashiki": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -345,23 +441,10 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_STANDARD,
   ],
 
-  "demo-baye-lahat": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "classique", name: "Boubou classique", icon: "boubou" },
-        { slug: "trois-pieces", name: "Trois pièces", icon: "boubou-3pieces" },
-        { slug: "court", name: "Boubou court", icon: "boubou-court" },
-      ],
-    },
-    COL_HOMME,
-    BRODERIE_COMPLETE,
-    MANCHES_AMPLES,
-  ],
+  "baye-lahat": BOUBOU_GROUPS,
 
   // Un thiaya est un pantalon : ni col ni manches, comme la jupe.
-  "demo-thiaya": [
+  "thiaya": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -374,7 +457,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     BRODERIE_MINIMALE,
   ],
 
-  "demo-robe": [
+  "robe": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -391,7 +474,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "demo-boubou-femme": [
+  "boubou-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -407,7 +490,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_AMPLES,
   ],
 
-  "demo-grande-robe": [
+  "grande-robe": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -424,7 +507,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
   ],
 
   // Un gilet femme n'a pas de manches — le groupe n'existe pas ici.
-  "demo-gilet-femme": [
+  "gilet-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -437,7 +520,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     BRODERIE_SOBRE,
   ],
 
-  "demo-chemise-femme": [
+  "chemise-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -452,7 +535,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
   ],
 
   // Un pantalon n'a ni col ni manches.
-  "demo-pantalon-large": [
+  "pantalon-large": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -465,7 +548,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     BRODERIE_MINIMALE,
   ],
 
-  "demo-robe-soiree": [
+  "robe-soiree": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -482,7 +565,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "demo-robe-coupee": [
+  "robe-coupee": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -498,7 +581,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "demo-tailleur-pantalon": [
+  "tailleur-pantalon": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -512,7 +595,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_COURTES_LONGUES,
   ],
 
-  "demo-veste-femme": [
+  "veste-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -526,7 +609,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_COURTES_LONGUES,
   ],
 
-  "demo-bureau-femme": [
+  "bureau-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -541,7 +624,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "demo-ceremonie-femme": [
+  "ceremonie-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -557,7 +640,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_AMPLES,
   ],
 
-  "demo-thiaya-femme": [
+  "thiaya-femme": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -573,7 +656,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "demo-ensemble": [
+  "ensemble": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -588,7 +671,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
   ],
 
   // A skirt has no collar and no sleeves — those groups simply do not exist here.
-  "demo-jupe": [
+  "jupe": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -603,7 +686,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     BRODERIE_SOBRE,
   ],
 
-  "demo-boubou-enfant": [
+  "boubou-enfant": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -616,7 +699,7 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
     MANCHES_COURTES_LONGUES,
   ],
 
-  "demo-ensemble-enfant": [
+  "ensemble-enfant": [
     {
       slug: "coupe",
       name: "Coupe",
@@ -631,23 +714,77 @@ export const STYLE_GROUPS_BY_MODEL: Record<string, StyleGroup[]> = {
 };
 
 /**
+ * Une création de tailleur absente de la table (« Boubou cérémonie de Fatou »,
+ * un modèle ajouté en base) : on la ramène sur la pièce de référence la plus
+ * proche, par mots-clés du slug et du nom. L'ordre compte — « Boubou enfant »
+ * doit tomber sur la règle enfant, pas sur celle du grand boubou.
+ *
+ * On ne devine JAMAIS au-delà de ça : un vêtement qu'aucune règle ne reconnaît
+ * garde les finitions génériques, sans « Coupe » — c'est comme ça qu'une robe
+ * finirait par proposer des kaftans.
+ */
+const BY_KEYWORD: [RegExp, string][] = [
+  // Enfant d'abord : « Boubou enfant » n'est pas un grand boubou.
+  [/ensemble.*enfant|enfant.*ensemble/, "ensemble-enfant"],
+  [/enfant|b[ée]b[ée]/, "boubou-enfant"],
+  // Puis les pièces femme, avant les règles générales : une « robe de
+  // cérémonie » reste une robe, elle ne devient pas un boubou d'homme.
+  [/robe.*soir|soir.*robe/, "robe-soiree"],
+  [/grande.?robe/, "grande-robe"],
+  [/robe/, "robe"],
+  [/jupe/, "jupe"],
+  [/boubou.*femme|femme.*boubou/, "boubou-femme"],
+  [/c[ée]r[ée]monie.*femme|femme.*c[ée]r[ée]monie/, "ceremonie-femme"],
+  // Grandes tenues homme.
+  [/agbada/, "agbada"],
+  [/boubou|baye.?lahat/, "grand-boubou"],
+  [/c[ée]r[ée]monie|mariage/, "tenue-ceremonie"],
+  [/kaftan|caftan/, "kaftan"],
+  [/dashiki/, "dashiki"],
+  [/bazin/, "ensemble-bazin"],
+  // Costumes, vestes, hauts et bas.
+  [/tailleur.?pantalon/, "tailleur-pantalon"],
+  [/costume/, "costume"],
+  [/veste|blazer/, "veste-africaine"],
+  [/gilet/, "gilet"],
+  [/chemise|tunique/, "chemise"],
+  [/pantalon|saroual|thiaya/, "pantalon"],
+  [/ensemble|bureau/, "ensemble"],
+];
+
+/**
  * A garment with no entry above (a Supabase row the catalogue does not know
  * yet) gets the generic finishings — but never a "Coupe", because guessing the
  * cuts of an unknown garment is how a robe ends up offering kaftans.
  */
 const FALLBACK_GROUPS: StyleGroup[] = [COL_HOMME, BRODERIE_COMPLETE, MANCHES_STANDARD];
 
-/** The groups offered for one garment. Empty model → generic finishings. */
-export function styleGroupsFor(modelId: string | null | undefined): StyleGroup[] {
-  if (!modelId) return FALLBACK_GROUPS;
-  return STYLE_GROUPS_BY_MODEL[modelId] ?? FALLBACK_GROUPS;
+/**
+ * La clé de catalogue d'un modèle : son slug s'il est connu, sinon la pièce de
+ * référence la plus proche. Partagée par les groupes de style et par les
+ * dessins de finitions (`garment-detail-icons.tsx`), pour qu'un même vêtement
+ * ne soit jamais rangé dans deux familles différentes.
+ */
+export function garmentStyleKey(model: GarmentModel | null | undefined): string | null {
+  if (!model) return null;
+  if (model.slug && STYLE_GROUPS_BY_SLUG[model.slug]) return model.slug;
+
+  const haystack = `${model.slug ?? ""} ${model.name}`.toLowerCase();
+  return BY_KEYWORD.find(([re]) => re.test(haystack))?.[1] ?? null;
+}
+
+/** The groups offered for one garment. Unknown garment → generic finishings. */
+export function styleGroupsFor(model: GarmentModel | null | undefined): StyleGroup[] {
+  const key = garmentStyleKey(model);
+  if (!key) return FALLBACK_GROUPS;
+  return STYLE_GROUPS_BY_SLUG[key] ?? FALLBACK_GROUPS;
 }
 
 /** First option of each group — the pre-selected default (Hockerty-style). */
 export function styleDetailDefaults(
-  modelId: string | null | undefined,
+  model: GarmentModel | null | undefined,
 ): Record<string, string> {
-  return Object.fromEntries(styleGroupsFor(modelId).map((g) => [g.slug, g.options[0].slug]));
+  return Object.fromEntries(styleGroupsFor(model).map((g) => [g.slug, g.options[0].slug]));
 }
 
 /**
@@ -656,10 +793,10 @@ export function styleDetailDefaults(
  * garment is ignored rather than mislabelled.
  */
 export function styleDetailSummary(
-  modelId: string | null | undefined,
+  model: GarmentModel | null | undefined,
   details: Record<string, string>,
 ): { group: string; option: string }[] {
-  return styleGroupsFor(modelId).flatMap((g) => {
+  return styleGroupsFor(model).flatMap((g) => {
     const opt = g.options.find((o) => o.slug === details[g.slug]);
     return opt ? [{ group: g.name, option: opt.name }] : [];
   });

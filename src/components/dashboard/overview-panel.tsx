@@ -1,116 +1,103 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ClipboardList, Package, Wallet } from "lucide-react";
+import { ArrowRight, Package, Scissors, Users, Wallet } from "lucide-react";
 
-import { OrderList } from "@/components/dashboard/order-list";
+import { NewOrdersFeed } from "@/components/dashboard/new-orders-feed";
+import { OverviewHero } from "@/components/dashboard/overview-hero";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/constants";
-import { BUCKET_LABELS, DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
+import { groupClients } from "@/lib/clients";
+import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
+import { TONE, type Tone } from "@/lib/dashboard-tone";
 import { revenueOf } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
-const COPY: Record<ProRole, { revenue: string; empty: string }> = {
-  tailor: {
-    revenue: "Revenu confection",
-    empty: "Rien ne vous attend : tout est à jour.",
-  },
-  vendor: {
-    revenue: "Revenu tissus",
-    empty: "Rien ne vous attend : tout est à jour.",
-  },
-};
+const FEED_MAX = 4;
 
 /**
- * Le corps de la vue d'ensemble : les chiffres, puis ce qui presse. Il lit le
- * même pipeline que les pages du menu, pour que les compteurs suivent les
- * commandes qu'on vient de déplacer.
+ * Le corps de la vue d'ensemble : on dit bonjour, on montre les quatre chiffres
+ * qui comptent, puis les nouvelles commandes, puis les gros raccourcis. Tout lit
+ * le même pipeline partagé, donc les compteurs suivent les commandes qu'on vient
+ * d'accepter.
  */
-export function OverviewPanel() {
-  const { role, orders } = usePipeline();
+export function OverviewPanel({
+  role,
+  firstName,
+}: {
+  role: ProRole;
+  firstName: string | null;
+}) {
+  const { orders } = usePipeline();
   const todo = useBucket("todo");
-  const copy = COPY[role];
+  const ongoing = useBucket("ongoing");
   const root = DASHBOARD_ROOT[role];
 
-  const delivered = orders.filter((o) => o.status === "delivered");
+  const clients = groupClients(role, orders).length;
   const revenue = revenueOf(
     role,
     orders.filter((o) => o.payment_status === "paid"),
   );
 
   return (
-    <>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+    <div className="space-y-8">
+      <OverviewHero firstName={firstName} />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
           icon={Package}
-          label="Commandes"
-          value={String(orders.length)}
-          href={`${root}/en-cours`}
-          tone="orange"
-        />
-        <Stat
-          icon={ClipboardList}
-          label={BUCKET_LABELS[role].todo}
+          label="Nouvelles"
           value={String(todo.length)}
           href={`${root}/a-traiter`}
-          tone="yellow"
-          accent={todo.length > 0}
+          tone="amber"
+          highlight={todo.length > 0}
         />
         <Stat
-          icon={CheckCircle2}
-          label="Livrées"
-          value={String(delivered.length)}
-          href={`${root}/terminees`}
-          tone="green"
+          icon={Scissors}
+          label="En cours"
+          value={String(ongoing.length)}
+          href={`${root}/en-cours`}
+          tone="blue"
+        />
+        <Stat
+          icon={Users}
+          label="Clients"
+          value={String(clients)}
+          href={`${root}/clients`}
+          tone="violet"
         />
         <Stat
           icon={Wallet}
-          label={copy.revenue}
+          label="Gagné"
           value={formatPrice(revenue)}
           href={`${root}/revenus`}
-          tone="blue"
+          tone="emerald"
         />
       </div>
 
-      <div className="mt-10 mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">À traiter en priorité</h2>
-        {todo.length > 3 && (
-          <Link
-            href={`${root}/a-traiter`}
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-1.5")}
-          >
-            Voir les {todo.length} <ArrowRight className="size-4" />
-          </Link>
-        )}
-      </div>
-      <OrderList bucket="todo" max={3} empty={copy.empty} />
-    </>
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">Vos nouvelles commandes</h2>
+          {todo.length > FEED_MAX && (
+            <Link
+              href={`${root}/a-traiter`}
+              className="text-primary flex items-center gap-1 text-sm font-medium hover:underline"
+            >
+              Voir les {todo.length} <ArrowRight className="size-4" />
+            </Link>
+          )}
+        </div>
+        <NewOrdersFeed max={FEED_MAX} />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-bold">Que voulez-vous faire ?</h2>
+        <QuickActions role={role} />
+      </section>
+    </div>
   );
 }
-
-type Tone = "orange" | "yellow" | "green" | "blue";
-
-/** Teintes fonctionnelles des icônes de stats (soft = fond léger, solid = badge plein). */
-const TONE: Record<Tone, { soft: string; solid: string }> = {
-  orange: {
-    soft: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    solid: "bg-orange-500 text-white",
-  },
-  yellow: {
-    soft: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-    solid: "bg-yellow-500 text-yellow-950",
-  },
-  green: {
-    soft: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    solid: "bg-emerald-500 text-white",
-  },
-  blue: {
-    soft: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    solid: "bg-blue-500 text-white",
-  },
-};
 
 function Stat({
   icon: Icon,
@@ -118,33 +105,46 @@ function Stat({
   value,
   href,
   tone,
-  accent = false,
+  highlight = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   href: string;
   tone: Tone;
-  accent?: boolean;
+  /** Met la tuile en avant (fond teinté, puce pleine) quand ça presse. */
+  highlight?: boolean;
 }) {
+  const t = TONE[tone];
   return (
-    <Link href={href} className="rounded-xl transition-opacity hover:opacity-80">
-      <Card className="h-full">
-        <CardContent className="flex flex-col items-start gap-2 p-4 sm:flex-row sm:items-center sm:gap-3">
-          <span
-            className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-lg",
-              accent ? TONE[tone].solid : TONE[tone].soft,
-            )}
-          >
-            <Icon className="size-5" />
-          </span>
-          <div className="w-full min-w-0">
-            <p className="text-muted-foreground truncate text-xs">{label}</p>
-            <p className="truncate font-semibold">{value}</p>
-          </div>
-        </CardContent>
-      </Card>
+    <Link
+      href={href}
+      className={cn(
+        "flex flex-col gap-2 rounded-2xl border p-4 transition-transform active:scale-[0.98]",
+        highlight ? cn(t.tint, t.border) : "bg-card hover:bg-muted/40",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-11 items-center justify-center rounded-2xl",
+          highlight ? t.solid : t.soft,
+        )}
+      >
+        <Icon className="size-6" />
+      </span>
+      <span className="mt-1">
+        <span className="block truncate text-xl font-bold tracking-tight sm:text-2xl">
+          {value}
+        </span>
+        <span
+          className={cn(
+            "block text-sm font-medium",
+            highlight ? "" : "text-muted-foreground",
+          )}
+        >
+          {label}
+        </span>
+      </span>
     </Link>
   );
 }

@@ -28,6 +28,9 @@ const HAIRLINE = "rgba(244,244,244,0.20)";
 
 const SERIF = "Georgia, 'Times New Roman', 'Noto Serif', serif";
 const SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+// Le logotype du film est celui du site : la fonte de <Wordmark /> (Cormorant
+// Garamond, cf. --font-wordmark). Le film ne montre jamais un autre logo.
+const WORDMARK = "var(--font-cormorant), ui-serif, Georgia, serif";
 
 const EASE = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_IO = Easing.bezier(0.4, 0, 0.2, 1);
@@ -501,10 +504,14 @@ function ActLivraison({ frame }: { frame: number }) {
         <div
           style={{
             marginTop: 22,
-            fontFamily: SERIF,
+            fontFamily: WORDMARK,
             fontSize: 132,
-            fontWeight: 600,
-            letterSpacing: 6,
+            fontWeight: 500,
+            letterSpacing: 24,
+            // L'interlettrage ajoute un blanc après le dernier A ; ce retrait le
+            // rattrape pour que le mot reste optiquement centré.
+            paddingLeft: 24,
+            textTransform: "uppercase",
             color: CREAM,
           }}
         >
@@ -582,7 +589,17 @@ function Chrome({ frame }: { frame: number }) {
           color: CREAM_DIM,
         }}
       >
-        <span style={{ color: CREAM, fontWeight: 700, letterSpacing: 5 }}>JALOFA</span>
+        <span
+          style={{
+            fontFamily: WORDMARK,
+            fontSize: 26,
+            fontWeight: 500,
+            letterSpacing: 7,
+            color: CREAM,
+          }}
+        >
+          JALOFA
+        </span>
         <span>L&apos;Atelier</span>
       </div>
       {/* Progression en 4 segments */}

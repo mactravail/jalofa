@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Layers, Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { FabricFormDialog } from "@/components/dashboard/fabric-form-dialog";
@@ -61,6 +61,20 @@ export function VendorFabricsPanel({
     setFormOpen(true);
   }
 
+  // Arrivé depuis le raccourci « Ajouter un tissu » de l'accueil (`?nouveau=1`) :
+  // on ouvre le formulaire tout de suite. Lecture côté client (window) plutôt que
+  // `useSearchParams` : pas de frontière Suspense à prévoir sur la page.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nouveau") === "1") {
+      autoOpened.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormOpen(true);
+    }
+  }, []);
+
   function openEdit(fabric: Fabric) {
     setEditing(fabric);
     setFormOpen(true);
@@ -86,17 +100,34 @@ export function VendorFabricsPanel({
         <p className="text-muted-foreground text-sm">
           {fabrics.length} tissu{fabrics.length > 1 ? "s" : ""} en boutique
         </p>
-        <Button size="sm" onClick={openNew} className="gap-1.5">
+        <Button
+          size="sm"
+          onClick={openNew}
+          className="gap-1.5 bg-fuchsia-500 text-white hover:bg-fuchsia-600"
+        >
           <Plus className="size-4" /> Ajouter un tissu
         </Button>
       </div>
 
       {fabrics.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center">
-          <p className="text-muted-foreground mx-auto max-w-md text-sm">
+        <button
+          type="button"
+          onClick={openNew}
+          className="flex w-full flex-col items-center rounded-2xl border-2 border-dashed border-fuchsia-200 bg-fuchsia-50 p-8 text-center transition-transform active:scale-[0.99] dark:border-fuchsia-900/60 dark:bg-fuchsia-950/30"
+        >
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-fuchsia-500 text-white">
+            <Layers className="size-7" />
+          </span>
+          <span className="mt-4 text-base font-semibold">
+            Ajoutez votre premier tissu
+          </span>
+          <span className="text-muted-foreground mt-1 max-w-md text-sm">
             {copy.empty}
-          </p>
-        </div>
+          </span>
+          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-semibold text-white">
+            <Plus className="size-4" /> Ajouter un tissu
+          </span>
+        </button>
       ) : (
         <div className="divide-y rounded-xl border">
           {fabrics.map((fabric) => {

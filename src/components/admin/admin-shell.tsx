@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Wordmark } from "@/components/wordmark";
 import { signOut } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/constants";
 import {
@@ -83,7 +84,14 @@ export function AdminShell({
             <Account fullName={fullName} />
           </SheetContent>
         </Sheet>
-        <span className="truncate font-semibold">
+        <Link
+          href="/"
+          aria-label="JALOFA — accueil"
+          className="flex shrink-0 items-center"
+        >
+          <Wordmark size="sm" />
+        </Link>
+        <span className="text-muted-foreground truncate border-l pl-2 text-sm font-medium">
           {current?.label ?? ADMIN_TITLE}
         </span>
       </header>
@@ -95,13 +103,20 @@ export function AdminShell({
   );
 }
 
+/** Même logotype que le reste du site ; « Admin » n'est qu'une mention à côté. */
 function Brand() {
   return (
     <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-      <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
-        <ShieldCheck className="size-4" />
+      <Link
+        href="/"
+        aria-label="JALOFA — accueil"
+        className="flex min-w-0 shrink-0 items-center"
+      >
+        <Wordmark size="sm" />
+      </Link>
+      <span className="bg-muted text-muted-foreground ml-auto flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
+        <ShieldCheck className="size-3" /> Admin
       </span>
-      <span className="truncate font-semibold tracking-tight">{ADMIN_TITLE}</span>
     </div>
   );
 }

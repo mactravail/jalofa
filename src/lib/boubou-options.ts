@@ -11,8 +11,11 @@ import type { BoubouIconName } from "@/components/men/boubou-icons";
 //
 // Everything here is a client-side constant. Labels are French (Senegalese
 // market); price deltas are in FCFA and add on top of the atelier base price
-// and the chosen fabric(s). See `src/lib/dress-options.ts` for the womenswear
-// counterpart, which uses the same shape but a flat (single-piece) group list.
+// and the chosen fabric(s).
+//
+// La personnalisation, elle, passe par le configurateur commun à tous les
+// vêtements (cf. `style-options.ts`) : ce qui reste ici, c'est le chiffrage
+// « pris tel quel » en trois pièces de /homme/grand-boubou-sur-mesure.
 
 export type BoubouOption = {
   slug: string;

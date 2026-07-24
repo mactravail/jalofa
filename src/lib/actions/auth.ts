@@ -132,7 +132,7 @@ export async function signUp(
     redirect(ROLE_LANDING[role] ?? "/compte");
   }
 
-  redirect("/connexion?inscription=ok");
+  redirect(`/connexion?inscription=ok&email=${encodeURIComponent(email)}`);
 }
 
 export async function signOut() {

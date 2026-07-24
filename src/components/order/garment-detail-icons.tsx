@@ -13,6 +13,9 @@
 
 import type { ReactNode } from "react";
 
+import { garmentStyleKey } from "@/lib/style-options";
+import type { GarmentModel } from "@/lib/types";
+
 // ---------------------------------------------------------------------------
 // Families — the torso archetype a garment's collar / sleeve is drawn on.
 // ---------------------------------------------------------------------------
@@ -24,47 +27,49 @@ export type DetailFamily =
   | "tailored" // costume, veste, gilet, tailleur : épaules structurées, revers
   | "fitted"; //  robe, ensembles femme : épaules étroites, buste cintré
 
-// Every configurable garment → its bust archetype. Bottoms (jupe, pantalon,
+// Every configurable garment → its bust archetype, keyed like the style
+// catalogue (par slug, cf. `style-options.ts`). Bottoms (jupe, pantalon,
 // thiaya) never reach these groups, so they are intentionally absent.
-const FAMILY_BY_MODEL: Record<string, DetailFamily> = {
-  "demo-grand-boubou": "flowing",
-  "demo-agbada": "flowing",
-  "demo-tenue-ceremonie": "flowing",
-  "demo-baye-lahat": "flowing",
-  "demo-boubou-femme": "flowing",
-  "demo-grande-robe": "flowing",
-  "demo-ceremonie-femme": "flowing",
+const FAMILY_BY_SLUG: Record<string, DetailFamily> = {
+  "grand-boubou": "flowing",
+  "agbada": "flowing",
+  "tenue-ceremonie": "flowing",
+  "baye-lahat": "flowing",
+  "boubou-femme": "flowing",
+  "grande-robe": "flowing",
+  "ceremonie-femme": "flowing",
 
-  "demo-kaftan": "tunic",
-  "demo-kaftan-brode": "tunic",
-  "demo-ensemble-bazin": "tunic",
-  "demo-dashiki": "tunic",
-  "demo-boubou-enfant": "tunic",
-  "demo-ensemble-enfant": "tunic",
+  "kaftan": "tunic",
+  "kaftan-brode": "tunic",
+  "ensemble-bazin": "tunic",
+  "dashiki": "tunic",
+  "boubou-enfant": "tunic",
+  "ensemble-enfant": "tunic",
 
-  "demo-chemise": "shirt",
-  "demo-chemise-femme": "shirt",
+  "chemise": "shirt",
+  "chemise-femme": "shirt",
 
-  "demo-costume": "tailored",
-  "demo-costume-africain": "tailored",
-  "demo-veste-africaine": "tailored",
-  "demo-gilet": "tailored",
-  "demo-gilet-femme": "tailored",
-  "demo-tailleur-pantalon": "tailored",
-  "demo-veste-femme": "tailored",
+  "costume": "tailored",
+  "costume-africain": "tailored",
+  "veste-africaine": "tailored",
+  "gilet": "tailored",
+  "gilet-femme": "tailored",
+  "tailleur-pantalon": "tailored",
+  "veste-femme": "tailored",
 
-  "demo-robe": "fitted",
-  "demo-robe-soiree": "fitted",
-  "demo-robe-coupee": "fitted",
-  "demo-ensemble": "fitted",
-  "demo-bureau-femme": "fitted",
-  "demo-thiaya-femme": "fitted",
+  "robe": "fitted",
+  "robe-soiree": "fitted",
+  "robe-coupee": "fitted",
+  "ensemble": "fitted",
+  "bureau-femme": "fitted",
+  "thiaya-femme": "fitted",
 };
 
 /** Bust archetype for a model — unknown garments fall back to a plain tunic. */
-export function detailFamilyFor(modelId: string | null | undefined): DetailFamily {
-  if (!modelId) return "tunic";
-  return FAMILY_BY_MODEL[modelId] ?? "tunic";
+export function detailFamilyFor(model: GarmentModel | null | undefined): DetailFamily {
+  const key = garmentStyleKey(model);
+  if (!key) return "tunic";
+  return FAMILY_BY_SLUG[key] ?? "tunic";
 }
 
 // ---------------------------------------------------------------------------

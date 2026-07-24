@@ -32,15 +32,12 @@ export const DEDICATED_HREF: Record<string, string> = {
   "boubou-femme": "/femme/robe-sur-mesure",
 };
 
-/**
- * Model slugs with a detailed step-by-step configurator (vs. the generic order
- * flow). Selecting « Le personnaliser » goes here instead of /commande/nouvelle.
- */
-export const PERSONALISER_HREF: Record<string, string> = {
-  "grand-boubou": "/homme/grand-boubou-sur-mesure/personnaliser",
-  robe: "/femme/robe-sur-mesure/personnaliser",
-  "boubou-femme": "/femme/robe-sur-mesure/personnaliser",
-};
+// Il n'y a plus de configurateur « maison » par vêtement : TOUS les habits se
+// personnalisent dans le même configurateur (/commande/nouvelle — Style,
+// Quantité, Tailleur, Mesures, Récapitulatif). Ce qui distingue un vêtement
+// d'un autre, ce sont ses groupes de style (cf. `style-options.ts`), pas une
+// page à part. Les anciennes routes `…/personnaliser` redirigent vers la page
+// dédiée du vêtement, où le tissu se choisit avant d'entrer.
 
 /** The grand boubou family, in display order for the type switcher (by slug). */
 export const GRAND_BOUBOU_TYPES = [

@@ -1,14 +1,38 @@
-import Image from "next/image";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Package, Scissors, Store, Truck } from "lucide-react";
+import { BadgeCheck, ChevronRight, Droplets, Package, Store, Sun } from "lucide-react";
 
+import { FabricBuyPanel } from "@/components/catalog/fabric-buy-panel";
+import { FabricCard } from "@/components/catalog/fabric-card";
+import { FabricReviews } from "@/components/catalog/fabric-reviews";
+import { FabricShowcase } from "@/components/catalog/fabric-showcase";
 import { DemoBanner } from "@/components/demo-banner";
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
-import { getFabricById, getVendorById } from "@/lib/data";
-import { cn } from "@/lib/utils";
+import { getFabricById, getFabrics, getVendorById } from "@/lib/data";
+import { formatMeters } from "@/lib/fabric-metrage";
+import { fabricSocialProof } from "@/lib/fabric-social-proof";
+import { AUDIENCE_LABELS, audiencesOf, fabricProfile, pricedUse } from "@/lib/fabric-usage";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const fabric = await getFabricById(id);
+  if (!fabric) return { title: "Tissu introuvable" };
+
+  const profile = fabricProfile(fabric);
+  return {
+    title: fabric.name,
+    description:
+      fabric.description ??
+      `${profile.family} — ${profile.pitch} À partir de ${formatPrice(fabric.price_per_meter)} le mètre.`,
+    openGraph: fabric.image_url ? { images: [fabric.image_url] } : undefined,
+  };
+}
 
 export default async function FabricDetailPage({
   params,
@@ -24,87 +48,210 @@ export default async function FabricDetailPage({
   const vendor = fabric.vendor_id ? await getVendorById(fabric.vendor_id) : null;
   const shop = vendor && !vendor.is_suspended ? vendor : null;
 
+  const family = await getFabrics({ category: fabric.category_slug ?? undefined });
+
+  // Coloris : le même tissu décliné, c'est-à-dire la même matière chez le
+  // catalogue. Une matière unique n'affiche pas de nuancier.
+  const variants = family.filter(
+    (f) =>
+      (f.material ?? "").toLowerCase() === (fabric.material ?? "").toLowerCase() &&
+      f.is_active,
+  );
+  const variantIds = new Set(variants.map((v) => v.id));
+  const related = family.filter((f) => !variantIds.has(f.id) && f.id !== fabric.id).slice(0, 4);
+
+  const profile = fabricProfile(fabric);
+  const uses = profile.uses.map((u) => pricedUse(u, fabric));
+  const audiences = audiencesOf(profile);
+  const proof = fabricSocialProof(fabric);
+
+  // Le plus vendu de la sélection porte sa pastille — même source de vérité que
+  // les chiffres de la fiche, donc jamais en contradiction avec eux.
+  const bestSellerId = related.reduce<{ id: string; sold: number } | null>((best, f) => {
+    const sold = fabricSocialProof(f).soldMeters;
+    return !best || sold > best.sold ? { id: f.id, sold } : best;
+  }, null)?.id;
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       <DemoBanner />
-      <Link
-        href="/tissus"
-        className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
-      >
-        <ArrowLeft className="size-4" /> Retour aux tissus
-      </Link>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl border">
-          {fabric.image_url && (
-            <Image
-              src={fabric.image_url}
-              alt={fabric.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-              preload
-            />
-          )}
+      {/* Fil d'Ariane */}
+      <nav aria-label="Fil d'Ariane" className="text-muted-foreground mb-6 flex items-center gap-1 text-sm">
+        <Link href="/tissus" className="hover:text-foreground">
+          Tissus
+        </Link>
+        <ChevronRight className="size-3.5" />
+        <Link
+          href={`/tissus?category=${fabric.category_slug ?? ""}`}
+          className="hover:text-foreground capitalize"
+        >
+          {fabric.category_slug ?? "Catalogue"}
+        </Link>
+        <ChevronRight className="size-3.5" />
+        <span className="text-foreground truncate font-medium">{fabric.name}</span>
+      </nav>
+
+      {/* Galerie + achat */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <FabricShowcase
+            image={fabric.image_url}
+            fabricName={fabric.name}
+            colorLabel={fabric.color}
+            uses={uses.map(({ use, meters }) => ({
+              label: use.label,
+              meters,
+              icon: use.icon,
+              audience: AUDIENCE_LABELS[use.audience],
+            }))}
+          />
         </div>
 
-        <div>
-          <div className="flex flex-wrap gap-2">
-            {fabric.color && <Badge variant="secondary">{fabric.color}</Badge>}
-            {fabric.material && <Badge variant="outline">{fabric.material}</Badge>}
-          </div>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight">{fabric.name}</h1>
-          <p className="text-primary mt-2 text-2xl font-semibold">
-            {formatPrice(fabric.price_per_meter)}
-            <span className="text-muted-foreground text-base font-normal"> / mètre</span>
-          </p>
-
-          {fabric.description && (
-            <p className="text-muted-foreground mt-4">{fabric.description}</p>
-          )}
-
-          {shop && (
-            <Link
-              href={`/vendeurs/${shop.id}`}
-              className="text-muted-foreground hover:text-foreground mt-4 inline-flex items-center gap-1.5 text-sm"
-            >
-              <Store className="size-4" /> Vendu par{" "}
-              <span className="text-foreground font-medium">{shop.shop_name}</span>
-            </Link>
-          )}
-
-          <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-muted/50 rounded-lg p-3">
-              <dt className="text-muted-foreground">Disponibilité</dt>
-              <dd className="font-medium">{fabric.stock_meters} mètres en stock</dd>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3">
-              <dt className="text-muted-foreground flex items-center gap-1">
-                <Truck className="size-3.5" /> Livraison
-              </dt>
-              <dd className="font-medium">À domicile disponible</dd>
-            </div>
-          </dl>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href={`/commande/nouvelle?type=fabric_only&fabric=${fabric.id}`}
-              className={cn(buttonVariants({ size: "lg" }), "h-11 flex-1 text-base")}
-            >
-              <Package className="size-4" /> Acheter ce tissu
-            </Link>
-            <Link
-              href={`/modeles?fabric=${fabric.id}`}
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "h-11 flex-1 text-base",
-              )}
-            >
-              <Scissors className="size-4" /> Créer une tenue
-            </Link>
-          </div>
-        </div>
+        <FabricBuyPanel
+          fabric={fabric}
+          variants={variants.map((v) => ({
+            id: v.id,
+            color: v.color,
+            image_url: v.image_url,
+          }))}
+          uses={uses.map(({ use, meters }) => ({ label: use.label, meters }))}
+          vendorName={shop?.shop_name ?? vendor?.shop_name ?? null}
+          vendorHref={shop ? `/vendeurs/${shop.id}` : null}
+          rating={proof.rating}
+          reviewCount={proof.reviewCount}
+          orders={proof.orders}
+        />
       </div>
+
+      {/* Note & avis — juste sous le bloc produit, là où on les cherche */}
+      <div className="mt-16 border-t pt-12">
+        <FabricReviews proof={proof} />
+      </div>
+
+      {/* À quoi sert ce tissu — la question n°1 devant un rouleau */}
+      <section className="mt-16">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-serif text-2xl tracking-tight">Pour quelles tenues ?</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {audiences.map((a) => (
+              <span
+                key={a}
+                className="bg-muted rounded-full px-2.5 py-1 text-xs font-medium"
+              >
+                {AUDIENCE_LABELS[a]}
+              </span>
+            ))}
+          </div>
+        </div>
+        <p className="text-muted-foreground mt-2 max-w-2xl leading-relaxed">{profile.pitch}</p>
+
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {uses.map(({ use, meters, fabricPrice }) => (
+            <li key={use.slug}>
+              <Link
+                href={`/modeles?fabric=${fabric.id}${
+                  use.audience === "mixte" ? "" : `&category=${use.audience}`
+                }`}
+                className="hover:border-border hover:bg-muted/40 group flex h-full items-center gap-3 rounded-xl border p-4 transition-colors"
+              >
+                <StyleIcon
+                  name={use.icon}
+                  className="text-muted-foreground group-hover:text-foreground h-14 w-10 shrink-0 transition-colors"
+                />
+                <div className="min-w-0">
+                  <p className="font-medium">{use.label}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {AUDIENCE_LABELS[use.audience]} · {formatMeters(meters)}
+                  </p>
+                  <p className="mt-1 text-sm font-medium">
+                    {formatPrice(fabricPrice)}
+                    <span className="text-muted-foreground font-normal"> de tissu</span>
+                  </p>
+                </div>
+                <ChevronRight className="text-muted-foreground ml-auto size-4 shrink-0" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <p className="text-muted-foreground mt-3 text-xs">
+          Métrages conseillés par les ateliers pour une carrure standard. La confection du
+          tailleur s&apos;ajoute au prix du tissu.
+        </p>
+      </section>
+
+      {/* La matière */}
+      <section className="mt-14">
+        <h2 className="font-serif text-2xl tracking-tight">La matière</h2>
+        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Package, term: "Famille", desc: profile.family },
+            { icon: Sun, term: "Saison", desc: profile.season },
+            { icon: Droplets, term: "Entretien", desc: profile.care },
+            {
+              icon: BadgeCheck,
+              term: "Disponibilité",
+              desc: `${formatMeters(fabric.stock_meters)} en stock${
+                fabric.color ? ` · ${fabric.color}` : ""
+              }`,
+            },
+          ].map(({ icon: Icon, term, desc }) => (
+            <div key={term} className="rounded-xl border p-4">
+              <dt className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide">
+                <Icon className="size-3.5" /> {term}
+              </dt>
+              <dd className="mt-1.5 text-sm leading-snug">{desc}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* La boutique */}
+      {shop && (
+        <section className="mt-14">
+          <h2 className="font-serif text-2xl tracking-tight">La boutique</h2>
+          <Link
+            href={`/vendeurs/${shop.id}`}
+            className="hover:bg-muted/40 mt-5 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
+          >
+            <span className="bg-muted flex size-14 shrink-0 items-center justify-center rounded-full">
+              <Store className="size-6" />
+            </span>
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 font-medium">
+                {shop.shop_name}
+                {shop.is_certified && <BadgeCheck className="text-muted-foreground size-4" />}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {shop.city ?? "Sénégal"} · {proof.orders.toLocaleString("fr-FR")} commandes
+                servies
+              </p>
+            </div>
+            <ChevronRight className="text-muted-foreground ml-auto size-5 shrink-0" />
+          </Link>
+        </section>
+      )}
+
+      {/* Tissus similaires */}
+      {related.length > 0 && (
+        <section className="mt-14">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="font-serif text-2xl tracking-tight">Dans la même famille</h2>
+            <Link href="/tissus" className="text-muted-foreground hover:text-foreground text-sm">
+              Tout voir
+            </Link>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {related.map((f) => (
+              <FabricCard
+                key={f.id}
+                fabric={f}
+                badge={f.id === bestSellerId ? "Best-seller" : undefined}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

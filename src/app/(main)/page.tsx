@@ -4,11 +4,7 @@ import {
   BadgeCheck,
   ChevronDown,
   MessageCircle,
-  Ruler,
-  Scissors,
   ShieldCheck,
-  ShoppingBag,
-  Sparkles,
   Star,
   Truck,
 } from "lucide-react";
@@ -19,68 +15,14 @@ import { FabricMarquee } from "@/components/home/fabric-marquee";
 import { FemmeCollection } from "@/components/home/femme-collection";
 import { FitShowcase } from "@/components/home/fit-showcase";
 import { HommeCollection } from "@/components/home/homme-collection";
+import { StartHere } from "@/components/home/start-here";
+import { AVATAR_TONES, TESTIMONIALS, TestimonialMarquee } from "@/components/home/testimonials";
+import { HowItWorks } from "@/components/how-it-works";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { APP_NAME, PAYMENT_METHOD_LABELS, formatPrice } from "@/lib/constants";
+import { APP_NAME, formatPrice } from "@/lib/constants";
 import { getFabrics, getTailors } from "@/lib/data";
 import { cn } from "@/lib/utils";
-
-const FLOWS = [
-  {
-    icon: Scissors,
-    title: "Vêtement complet",
-    desc: "Choisissez un modèle, un tissu et un tailleur. Nous gérons tout, de la commande à la livraison.",
-    href: "/modeles",
-    cta: "Créer ma tenue",
-  },
-  {
-    icon: ShoppingBag,
-    title: "Tissu seul",
-    desc: "Parcourez le catalogue, achetez au mètre et recevez votre tissu à la maison.",
-    href: "/tissus",
-    cta: "Acheter du tissu",
-  },
-  {
-    icon: Ruler,
-    title: "J'ai déjà mon tissu",
-    desc: "Envoyez votre propre tissu à un tailleur et faites confectionner votre modèle.",
-    href: "/modeles?type=own_fabric",
-    cta: "Trouver un tailleur",
-  },
-];
-
-const STEPS = [
-  { icon: Sparkles, title: "Choisissez", desc: "Modèle, style et tissu parmi des centaines d'options." },
-  { icon: Ruler, title: "Vos mesures", desc: "Saisie manuelle détaillée ou taille standard XS → XXXL." },
-  { icon: Scissors, title: "Confection", desc: "Un tailleur qualifié réalise votre pièce sur mesure." },
-  { icon: Truck, title: "Livraison", desc: "Suivez chaque étape et recevez votre tenue à domicile." },
-];
-
-// Témoignages mis en avant — repris des avis de démonstration (`REVIEWS` dans
-// fixtures.ts), donc cohérents avec les fiches tailleurs publiques.
-const TESTIMONIALS = [
-  {
-    quote: "Boubou impeccable, finitions soignées et livraison à l'heure. Merci !",
-    name: "Bineta Gueye",
-    context: "Grand boubou · Atelier Fatou Couture",
-  },
-  {
-    quote: "La broderie est magnifique, exactement ce que je voulais.",
-    name: "Ousmane Ba",
-    context: "Broderie fine · Awa Design & Broderie",
-  },
-  {
-    quote: "Deuxième commande, toujours aussi satisfaite. Je recommande vivement.",
-    name: "Ndeye Fall",
-    context: "Cliente fidèle · Dakar",
-  },
-];
-
-const AVATAR_TONES = [
-  "bg-primary/15 text-primary",
-  "bg-accent text-accent-foreground",
-  "bg-secondary text-secondary-foreground",
-];
 
 // Les 4 objections qui bloquent le plus l'achat de sur-mesure en ligne, avec
 // les réponses réelles du produit (reprises / adaptées de la page FAQ).
@@ -140,23 +82,38 @@ function Stars({ className }: { className?: string }) {
 }
 
 // En-tête de section éditorial : petit surtitre en capitales + titre serif.
+// `mobileKickerOnly` : sur mobile, on ne garde que le surtitre (titre et
+// description masqués) pour alléger le défilement.
 function SectionHead({
   kicker,
   title,
   desc,
   align = "center",
+  mobileKickerOnly = false,
 }: {
   kicker: string;
   title: string;
   desc?: string;
   align?: "center" | "left";
+  mobileKickerOnly?: boolean;
 }) {
   return (
-    <div className={cn("mb-10", align === "center" ? "text-center" : "text-left")}>
+    <div
+      className={cn(
+        "mb-10",
+        align === "center" ? "text-center" : "text-left",
+        mobileKickerOnly && "max-md:mb-6",
+      )}
+    >
       <span className="text-primary text-xs font-semibold tracking-[0.25em] uppercase">
         {kicker}
       </span>
-      <h2 className="mt-3 font-serif text-3xl font-medium tracking-tight text-balance sm:text-4xl">
+      <h2
+        className={cn(
+          "mt-3 font-serif text-3xl font-medium tracking-tight text-balance sm:text-4xl",
+          mobileKickerOnly && "max-md:hidden",
+        )}
+      >
         {title}
       </h2>
       {desc && (
@@ -164,6 +121,7 @@ function SectionHead({
           className={cn(
             "text-muted-foreground mt-3 text-pretty",
             align === "center" && "mx-auto max-w-2xl",
+            mobileKickerOnly && "max-md:hidden",
           )}
         >
           {desc}
@@ -214,14 +172,11 @@ export default async function HomePage() {
             </span>
 
             <h1 className="mt-5 font-serif text-4xl leading-[1.05] font-medium tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Le sur-mesure d&apos;exception,{" "}
-              <span className="text-primary italic">cousu main</span> pour vous.
+              Le sur-mesure d&apos;exception
             </h1>
 
             <p className="text-muted-foreground mt-5 max-w-md text-lg text-pretty">
-              Choisissez le modèle, le tissu et l&apos;artisan, renseignez vos mesures et
-              suivez la confection jusqu&apos;à votre porte — toute une maison de couture,
-              depuis votre téléphone.
+              Imaginer et créer : choisissez le modèle, le tissu et l&apos;artisan.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -302,36 +257,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Trois façons de commencer ──────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <SectionHead
-          kicker="Par où commencer"
-          title="Trois façons d'obtenir votre tenue"
-          desc="Que vous partiez de zéro ou de votre propre tissu, tout se fait dans l'application."
-        />
-        <div className="grid gap-6 md:grid-cols-3">
-          {FLOWS.map((flow, i) => (
-            <Link key={flow.title} href={flow.href} className="group block h-full">
-              <Card className="h-full overflow-hidden transition-all group-hover:-translate-y-1 group-hover:shadow-lg">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="flex items-center justify-between">
-                    <span className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-2xl">
-                      <flow.icon className="size-6" />
-                    </span>
-                    <span className="text-muted-foreground/30 font-serif text-4xl font-medium">
-                      0{i + 1}
-                    </span>
-                  </div>
-                  <h3 className="mt-4 text-xl font-semibold">{flow.title}</h3>
-                  <p className="text-muted-foreground mt-2 flex-1 text-sm">{flow.desc}</p>
-                  <span className="text-primary mt-4 inline-flex items-center gap-1 text-sm font-medium group-hover:underline">
-                    {flow.cta} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <StartHere />
 
       {/* ── Collections ────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
@@ -339,6 +265,7 @@ export default async function HomePage() {
           kicker="Le lookbook"
           title="Nos collections"
           desc="Des pièces cousues pour vous, jamais en série. Chaque modèle se prend tel quel ou se personnalise à vos mesures."
+          mobileKickerOnly
         />
 
         <div className="space-y-14">
@@ -375,8 +302,8 @@ export default async function HomePage() {
 
       {/* ── Témoignages ────────────────────────────────────────────────── */}
       <section className="bg-muted/40 border-y">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="mb-10 text-center">
+        <div className="py-16 md:py-20">
+          <div className="mx-auto mb-10 max-w-6xl px-4 text-center">
             <span className="text-primary text-xs font-semibold tracking-[0.25em] uppercase">
               Ils nous font confiance
             </span>
@@ -391,71 +318,14 @@ export default async function HomePage() {
               </span>
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {TESTIMONIALS.map((testimonial, i) => (
-              <figure key={testimonial.name} className="bg-card flex flex-col rounded-2xl border p-6 shadow-sm">
-                <Stars />
-                <blockquote className="mt-4 flex-1 font-serif text-lg leading-relaxed text-pretty">
-                  « {testimonial.quote} »
-                </blockquote>
-                <figcaption className="mt-5 flex items-center gap-3 border-t pt-4">
-                  <span
-                    className={cn(
-                      "flex size-9 items-center justify-center rounded-full text-xs font-semibold",
-                      AVATAR_TONES[i % AVATAR_TONES.length],
-                    )}
-                  >
-                    {testimonial.name
-                      .split(" ")
-                      .map((part) => part[0])
-                      .join("")}
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold">{testimonial.name}</span>
-                    <span className="text-muted-foreground block text-xs">
-                      {testimonial.context}
-                    </span>
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+          <TestimonialMarquee />
         </div>
       </section>
 
-      {/* ── Comment ça marche ──────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <SectionHead
-          kicker="Le déroulé"
-          title="Comment ça marche"
-          desc="De l'idée à la livraison, en quatre étapes."
-        />
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step, i) => (
-            <div key={step.title} className="relative">
-              {i < STEPS.length - 1 && (
-                <span className="border-border absolute top-6 left-14 hidden w-[calc(100%-2rem)] border-t border-dashed lg:block" />
-              )}
-              <div className="bg-card relative flex size-12 items-center justify-center rounded-2xl border shadow-sm">
-                <step.icon className="text-primary size-6" />
-              </div>
-              <div className="text-primary mt-4 text-xs font-semibold tracking-[0.2em] uppercase">
-                Étape {i + 1}
-              </div>
-              <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
-              <p className="text-muted-foreground mt-1 text-sm">{step.desc}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-8 text-center">
-          <Link
-            href="/comment-ca-marche"
-            className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
-          >
-            Voir le déroulé complet <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      </section>
+      {/* ── Comment ça marche ──────────────────────────────────────────────
+          Desktop uniquement : sur mobile le déroulé est déplacé sur la page
+          /tailleurs, pour raccourcir l'accueil. */}
+      <HowItWorks className="max-md:hidden" />
 
       {/* ── FAQ ────────────────────────────────────────────────────────── */}
       <section className="bg-muted/40 border-y">
@@ -504,28 +374,18 @@ export default async function HomePage() {
         </div>
 
         <Card className="from-primary to-primary/85 text-primary-foreground overflow-hidden border-0 bg-gradient-to-br">
-          <CardContent className="relative flex flex-col items-center gap-6 p-10 text-center md:flex-row md:justify-between md:text-left">
+          <CardContent className="relative flex flex-col gap-6 p-6 text-left sm:p-8 md:flex-row md:items-center md:justify-between md:p-10">
             <div className="bg-primary-foreground/10 pointer-events-none absolute -top-16 -right-10 size-56 rounded-full blur-2xl" />
-            <div className="relative">
-              <h2 className="font-serif text-2xl font-medium sm:text-3xl">
+            <div className="relative w-full">
+              <h2 className="font-serif text-2xl font-medium text-balance sm:text-3xl">
                 Prêt à porter du vrai sur mesure ?
               </h2>
               <p className="text-primary-foreground/80 mt-2 max-w-xl text-pretty">
                 Composez votre tenue en quelques minutes — un tailleur certifié s&apos;occupe
                 du reste, de la coupe à la livraison en {minDays} à {maxDays} jours.
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
-                {Object.values(PAYMENT_METHOD_LABELS).map((label) => (
-                  <span
-                    key={label}
-                    className="bg-primary-foreground/10 rounded-full px-3 py-1 text-xs font-medium"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
             </div>
-            <div className="relative flex shrink-0 flex-col items-center gap-2">
+            <div className="relative flex shrink-0 flex-col items-start gap-2 md:items-center">
               <Link
                 href="/modeles"
                 className={cn(

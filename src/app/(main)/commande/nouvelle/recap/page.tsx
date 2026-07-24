@@ -12,14 +12,15 @@ export default function ReviewStep() {
   const { data, state, update, model, fabric, tailor, price } = useConfigurator();
 
   const styleName = data.styles.find((s) => s.slug === state.styleSlug)?.name ?? null;
+  const isFabricOnly = state.type === "fabric_only";
 
   const personalisation =
-    state.type === "fabric_only" ? [] : styleDetailSummary(state.modelId, state.styleDetails);
+    isFabricOnly ? [] : styleDetailSummary(model, state.styleDetails);
 
-  const styleRefs = state.type === "fabric_only" ? [] : state.styleRefs;
+  const styleRefs = isFabricOnly ? [] : state.styleRefs;
 
   const measurementSummary =
-    state.type === "fabric_only"
+    isFabricOnly
       ? null
       : state.measurementMode === "standard"
         ? `Taille ${state.standardSize}`
@@ -40,7 +41,7 @@ export default function ReviewStep() {
         state.type === "own_fabric"
           ? "Tissu personnel"
           : fabric
-            ? `${fabric.name}${state.type !== "fabric_only" ? ` · ${state.fabricMeters} m` : ""}`
+            ? `${fabric.name} · ${state.fabricMeters} m`
             : null,
     },
     { label: "Tailleur", value: tailor?.shop_name ?? null },
@@ -92,18 +93,25 @@ export default function ReviewStep() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Note pour le tailleur (facultatif)</Label>
+        <Label htmlFor="notes">
+          {isFabricOnly ? "Note pour le vendeur (facultatif)" : "Note pour le tailleur (facultatif)"}
+        </Label>
         <Textarea
           id="notes"
           value={state.notes}
           onChange={(e) => update({ notes: e.target.value })}
-          placeholder="Précisions sur le style, les finitions, la date souhaitée..."
+          placeholder={
+            isFabricOnly
+              ? "Précisions sur la quantité, la découpe, la date souhaitée..."
+              : "Précisions sur le style, les finitions, la date souhaitée..."
+          }
         />
       </div>
 
       <p className="text-muted-foreground text-sm">
-        Ajoutez cette tenue au panier. La livraison et le paiement seront choisis
-        à la caisse, pour l&apos;ensemble de votre commande.
+        {isFabricOnly ? "Ajoutez ce tissu au panier." : "Ajoutez cette tenue au panier."}{" "}
+        La livraison et le paiement seront choisis à la caisse, pour l&apos;ensemble
+        de votre commande.
       </p>
     </div>
   );

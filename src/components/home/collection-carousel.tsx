@@ -55,12 +55,18 @@ export function CollectionCarousel({
   subtitle,
   tiles,
   viewAllHref = "/modeles",
+  shortTitle,
 }: {
   title: string;
   subtitle: string;
   tiles: CollectionTile[];
   viewAllHref?: string;
+  /** Libellé court affiché sur mobile à la place de « Voir la collection »
+   *  (le titre et le sous-titre y sont masqués). Par défaut : « Collection
+   *  Femme » → « Femme ». */
+  shortTitle?: string;
 }) {
+  const mobileLabel = shortTitle ?? title.replace(/^Collection\s+/i, "");
   const railRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
@@ -95,7 +101,8 @@ export function CollectionCarousel({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-        <div>
+        {/* Sur mobile, l'en-tête se réduit au seul lien (« Femme » / « Homme ») */}
+        <div className="max-md:hidden">
           <h3 className="font-serif text-xl font-medium tracking-tight">{title}</h3>
           <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
         </div>
@@ -103,7 +110,9 @@ export function CollectionCarousel({
           href={viewAllHref}
           className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
         >
-          Voir la collection <ArrowRight className="size-4" />
+          <span className="md:hidden">{mobileLabel}</span>
+          <span className="max-md:hidden">Voir la collection</span>
+          <ArrowRight className="size-4" />
         </Link>
       </div>
 
@@ -111,7 +120,7 @@ export function CollectionCarousel({
         {/* Rail défilant — bord à bord sur mobile, contenu dans la grille au-delà */}
         <div
           ref={railRef}
-          className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+          className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4.5 scroll-smooth px-4.5 pb-1 [scrollbar-width:none] sm:mx-0 sm:scroll-px-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
         >
           {tiles.map((tile) => (
             <TileCard key={tile.name} tile={tile} />

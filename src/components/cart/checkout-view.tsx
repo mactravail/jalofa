@@ -24,6 +24,7 @@ import { WaveMark, WaveQrPayment } from "@/components/cart/wave-payment";
 import { useCart } from "@/components/cart/cart-context";
 import { Field, OptionCard } from "@/components/order/configurator-ui";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Price } from "@/components/cart/price";
 import { placeOrders, type PlaceOrdersState } from "@/lib/actions/checkout";
 import {
   DELIVERY_METHOD_LABELS,
@@ -68,7 +69,7 @@ const PAYMENT_METHOD_DESCS: Partial<Record<PaymentMethod, string>> = {
   card: "Visa, Mastercard, Amex",
 };
 
-export function CheckoutView() {
+export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolean }) {
   const { items, subtotal, count, hydrated, clear } = useCart();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("home");
@@ -167,11 +168,48 @@ export function CheckoutView() {
     );
   }
 
+  // Connexion requise avant d'enregistrer la commande : on la demande ici,
+  // clairement, plutôt que de laisser l'erreur surgir après le paiement. Le
+  // panier est conservé (localStorage), la connexion ramène à la caisse.
+  if (requiresLogin) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <div className="bg-primary/10 text-primary mx-auto flex size-16 items-center justify-center rounded-full">
+          <User className="size-7" />
+        </div>
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">
+          Connectez-vous pour finaliser
+        </h1>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Votre panier est enregistré. Connectez-vous ou créez un compte pour
+          confirmer votre commande et suivre sa production.
+        </p>
+        <div className="mt-8 flex flex-col gap-3">
+          <Link
+            href="/connexion?redirect=/caisse"
+            className={cn(buttonVariants({ size: "lg" }), "w-full")}
+          >
+            Se connecter
+          </Link>
+          <Link
+            href="/inscription"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "w-full",
+            )}
+          >
+            Créer un compte
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 lg:py-12">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Caisse</h1>
 
-      <form action={formAction} className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+      <form action={formAction} className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
         <input type="hidden" name="payload" value={payload} />
 
         <div className="space-y-8">
@@ -316,44 +354,57 @@ export function CheckoutView() {
                     <p className="truncate text-sm font-medium">{it.title}</p>
                     <p className="text-muted-foreground truncate text-xs">{it.subtitle}</p>
                   </div>
-                  <span className="text-sm font-medium">
-                    {formatPrice(it.unitPrice * it.qty)}
-                  </span>
+                  <Price
+                    amount={it.unitPrice * it.qty}
+                    className="shrink-0 text-sm font-medium"
+                  />
                 </li>
               ))}
             </ul>
 
             <dl className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">
                   Sous-total ({count} article{count > 1 ? "s" : ""})
                 </dt>
-                <dd className="font-medium">{formatPrice(subtotal)}</dd>
+                <dd>
+                  <Price amount={subtotal} className="font-medium" />
+                </dd>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">
                   {DELIVERY_METHOD_LABELS[deliveryMethod]}
                 </dt>
-                <dd className="font-medium">
-                  {deliveryFee > 0
-                    ? formatPrice(deliveryFee)
-                    : deliveryMethod === "home"
-                      ? "Offerte"
-                      : "Gratuit"}
+                <dd className="font-medium whitespace-nowrap">
+                  {deliveryFee > 0 ? (
+                    <Price amount={deliveryFee} />
+                  ) : deliveryMethod === "home" ? (
+                    "Offerte"
+                  ) : (
+                    "Gratuit"
+                  )}
                 </dd>
               </div>
             </dl>
 
-            <div className="mt-4 flex items-center justify-between border-t pt-4">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t pt-4">
               <span className="font-semibold">Total</span>
-              <span className="text-primary text-xl font-bold">{formatPrice(total)}</span>
+              <Price amount={total} className="text-primary ml-auto text-xl font-bold" />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">TVA incluse</p>
 
             {result && !result.ok && (
-              <p className="bg-destructive/10 text-destructive mt-3 rounded-md px-3 py-2 text-sm">
-                {result.error}
-              </p>
+              <div className="bg-destructive/10 mt-3 rounded-md px-3 py-2">
+                <p className="text-destructive text-sm">{result.error}</p>
+                {result.error.includes("connecté") && (
+                  <Link
+                    href="/connexion?redirect=/caisse"
+                    className={cn(buttonVariants({ size: "sm" }), "mt-2 w-full")}
+                  >
+                    Se connecter
+                  </Link>
+                )}
+              </div>
             )}
 
             <Button
@@ -363,7 +414,7 @@ export function CheckoutView() {
               disabled={!canSubmit || isPending}
             >
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              Confirmer et payer · {formatPrice(total)}
+              Confirmer et payer
             </Button>
             {!canSubmit && (
               <p className="text-muted-foreground mt-2 text-center text-xs">

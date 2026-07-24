@@ -50,6 +50,41 @@ export function formatTimeAgo(iso: string): string {
   return RELATIVE_TIME.format(seconds, "second");
 }
 
+const CLOCK_FR = new Intl.DateTimeFormat("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const DAY_FR = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+});
+
+/**
+ * « Reçue aujourd'hui à 14 h 32 » — la date *et l'heure* d'arrivée d'une
+ * commande, en toutes lettres. Une nouvelle commande doit dire quand elle est
+ * tombée sans que le pro ait à calculer : « aujourd'hui » / « hier » quand
+ * c'est récent, sinon le jour et le mois, toujours suivis de l'heure.
+ *
+ * Rendu contre l'horloge locale (« aujourd'hui » dépend du fuseau du lecteur) :
+ * marquer l'élément `suppressHydrationWarning`.
+ */
+export function formatReceivedAt(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const heure = CLOCK_FR.format(date).replace(":", " h ");
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round(
+    (startOfToday.getTime() -
+      new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) /
+      86_400_000,
+  );
+
+  if (days <= 0) return `aujourd'hui à ${heure}`;
+  if (days === 1) return `hier à ${heure}`;
+  return `le ${DAY_FR.format(date)} à ${heure}`;
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------

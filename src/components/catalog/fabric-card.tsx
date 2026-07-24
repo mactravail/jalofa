@@ -4,8 +4,16 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/constants";
 import type { Fabric } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-export function FabricCard({ fabric }: { fabric: Fabric }) {
+export function FabricCard({
+  fabric,
+  badge,
+}: {
+  fabric: Fabric;
+  /** Pastille de mise en avant (« Best-seller »…), posée par la grille appelante. */
+  badge?: string;
+}) {
   return (
     <Link
       href={`/tissus/${fabric.id}`}
@@ -21,8 +29,14 @@ export function FabricCard({ fabric }: { fabric: Fabric }) {
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         )}
+        {badge && (
+          <Badge className="absolute left-2 top-2">{badge}</Badge>
+        )}
         {fabric.color && (
-          <Badge variant="secondary" className="absolute left-2 top-2">
+          <Badge
+            variant="secondary"
+            className={cn("absolute left-2", badge ? "top-9" : "top-2")}
+          >
             {fabric.color}
           </Badge>
         )}

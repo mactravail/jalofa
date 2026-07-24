@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Menu, Scissors, Store } from "lucide-react";
+import { Bell, Home, LogOut, Menu, Scissors, Store } from "lucide-react";
 
 import { useBucket } from "@/components/dashboard/pipeline-store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Wordmark } from "@/components/wordmark";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +27,7 @@ import {
   type DashboardNavGroup,
   type ProRole,
 } from "@/lib/dashboard-nav";
+import { NAV_TONE, TONE } from "@/lib/dashboard-tone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -103,9 +105,32 @@ export function DashboardShell({
             <Account role={role} fullName={fullName} />
           </SheetContent>
         </Sheet>
-        <span className="truncate font-semibold">
+        <Link
+          href="/"
+          aria-label="JALOFA — accueil"
+          className="flex shrink-0 items-center"
+        >
+          <Wordmark size="sm" />
+        </Link>
+        <span className="text-muted-foreground truncate border-l pl-2 text-sm font-medium">
           {current?.label ?? DASHBOARD_TITLE[role]}
         </span>
+        <Link
+          href={root}
+          aria-label={
+            todo > 0
+              ? `${todo} nouvelle${todo > 1 ? "s" : ""} commande${todo > 1 ? "s" : ""}`
+              : "Aucune nouvelle commande"
+          }
+          className="hover:bg-accent relative ml-auto flex size-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <Bell className="size-5" />
+          {todo > 0 && (
+            <span className="border-card absolute top-1.5 right-1.5 flex min-w-4 items-center justify-center rounded-full border-2 bg-rose-500 px-1 text-[10px] font-bold text-white">
+              {todo}
+            </span>
+          )}
+        </Link>
       </header>
 
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -115,6 +140,10 @@ export function DashboardShell({
   );
 }
 
+/**
+ * Le logotype JALOFA est le même partout — site public, configurateur, espaces
+ * pros. Le métier ne le remplace pas : il le complète, en libellé secondaire.
+ */
 function Brand({
   role,
   capabilities,
@@ -125,15 +154,20 @@ function Brand({
   return (
     <div className="flex shrink-0 flex-col gap-2.5 border-b px-4 py-3">
       <div className="flex h-10 items-center gap-2">
-        <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+        <Link
+          href="/"
+          aria-label="JALOFA — accueil"
+          className="flex min-w-0 shrink-0 items-center"
+        >
+          <Wordmark size="sm" />
+        </Link>
+        <span className="bg-muted text-muted-foreground ml-auto flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
           {role === "tailor" ? (
-            <Scissors className="size-4" />
+            <Scissors className="size-3" />
           ) : (
-            <Store className="size-4" />
+            <Store className="size-3" />
           )}
-        </span>
-        <span className="truncate font-semibold tracking-tight">
-          {DASHBOARD_TITLE[role]}
+          {DASHBOARD_TITLE_SHORT[role]}
         </span>
       </div>
       {capabilities.length > 1 && (
@@ -206,14 +240,18 @@ function Nav({
       {groups.map((group, i) => (
         <div key={group.label ?? i} className={cn(i > 0 && "mt-5")}>
           {group.label && (
-            <p className="text-muted-foreground px-3 pb-1.5 text-xs font-medium tracking-wide uppercase">
+            <p className="text-muted-foreground px-3 pb-1.5 text-xs font-semibold tracking-wide uppercase">
               {group.label}
             </p>
           )}
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {group.items.map((item) => {
               const active = isActive(item.href);
               const count = badges[item.id] ?? 0;
+              // La teinte de la fonction : la même puce de couleur dans le menu,
+              // sur la tuile et dans les listes — on reconnaît « nouvelles
+              // commandes » à son jaune sans lire le mot.
+              const tone = TONE[NAV_TONE[item.id] ?? "slate"];
               return (
                 <li key={item.id}>
                   <Link
@@ -221,23 +259,23 @@ function Nav({
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors",
                       active
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        ? "bg-muted text-foreground font-semibold"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground font-medium",
                     )}
                   >
-                    <item.icon className="size-4 shrink-0" />
+                    <span
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        active ? tone.solid : tone.soft,
+                      )}
+                    >
+                      <item.icon className="size-4" />
+                    </span>
                     <span className="truncate">{item.label}</span>
                     {count > 0 && (
-                      <span
-                        className={cn(
-                          "ml-auto flex min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
-                          active
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
+                      <span className="ml-auto flex min-w-5 shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">
                         {count}
                       </span>
                     )}

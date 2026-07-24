@@ -1,12 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 
-import logo from "@/app/logo.png";
 import { CartButton } from "@/components/cart/cart-button";
 import { MobileNav } from "@/components/mobile-nav";
 import { UserMenu } from "@/components/user-menu";
+import { Wordmark } from "@/components/wordmark";
 import { buttonVariants } from "@/components/ui/button";
-import { APP_NAME, type UserRole } from "@/lib/constants";
+import { type UserRole } from "@/lib/constants";
 import { NAV_LINKS } from "@/lib/nav";
 import { getCurrentProfile } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -21,13 +20,12 @@ export async function SiteHeader() {
           <MobileNav isAuthenticated={Boolean(profile)} />
         </div>
 
-        <Link href="/" className="flex min-w-0 shrink-0 items-center">
-          <Image
-            src={logo}
-            alt={APP_NAME}
-            preload
-            className="h-6 w-auto dark:invert"
-          />
+        <Link
+          href="/"
+          aria-label="JALOFA — accueil"
+          className="ml-[3px] flex min-w-0 shrink-0 items-center md:ml-0"
+        >
+          <Wordmark />
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 md:flex">
@@ -42,7 +40,7 @@ export async function SiteHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <CartButton />
           {profile ? (
             <UserMenu
@@ -54,7 +52,7 @@ export async function SiteHeader() {
               <Link
                 href="/connexion"
                 className={cn(
-                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  buttonVariants({ variant: "outline", size: "sm" }),
                   "hidden sm:inline-flex",
                 )}
               >

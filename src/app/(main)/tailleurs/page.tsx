@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
 import { DemoBanner } from "@/components/demo-banner";
 import { TailorCard } from "@/components/catalog/tailor-card";
+import { HowItWorks } from "@/components/how-it-works";
 import { getTailors } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -30,34 +31,42 @@ export default async function TailorsPage({
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <DemoBanner />
+    <>
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <DemoBanner />
 
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tailleurs</h1>
-          <p className="text-muted-foreground mt-1">
-            Des artisans qualifiés pour confectionner votre tenue sur mesure.
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Tailleurs</h1>
+            <p className="text-muted-foreground mt-1">
+              Des artisans qualifiés pour confectionner votre tenue sur mesure.
+            </p>
+          </div>
+          <SearchInput placeholder="Rechercher un tailleur..." />
+        </div>
+
+        <div className="mb-8">
+          <CategoryChips options={cities} paramName="city" />
+        </div>
+
+        {tailors.length === 0 ? (
+          <p className="text-muted-foreground py-16 text-center">
+            Aucun tailleur ne correspond à votre recherche.
           </p>
-        </div>
-        <SearchInput placeholder="Rechercher un tailleur..." />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {tailors.map((tailor) => (
+              <TailorCard key={tailor.id} tailor={tailor} />
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="mb-8">
-        <CategoryChips options={cities} paramName="city" />
+      {/* Déroulé de commande : mobile uniquement — retiré de l'accueil sur
+          petit écran, il est repris ici, là où l'on choisit son tailleur. */}
+      <div className="bg-muted/40 border-t md:hidden">
+        <HowItWorks className="py-12" />
       </div>
-
-      {tailors.length === 0 ? (
-        <p className="text-muted-foreground py-16 text-center">
-          Aucun tailleur ne correspond à votre recherche.
-        </p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tailors.map((tailor) => (
-            <TailorCard key={tailor.id} tailor={tailor} />
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

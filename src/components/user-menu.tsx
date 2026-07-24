@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -44,7 +45,7 @@ export function UserMenu({ fullName, role }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" className="h-9 gap-2 px-2" />}
+        render={<Button variant="ghost" className="h-9 gap-2 px-1.5 sm:px-2" />}
       >
         <Avatar className="size-7">
           <AvatarFallback className="bg-primary/10 text-primary text-xs">
@@ -56,22 +57,24 @@ export function UserMenu({ fullName, role }: Props) {
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="flex flex-col">
-          <span className="truncate text-sm">{fullName ?? "Mon compte"}</span>
-          <span className="text-muted-foreground text-xs font-normal">
-            {ROLE_LABELS[role]}
-          </span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href="/compte" />}>
-          <User className="size-4" /> Mon compte
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href="/compte/commandes" />}>
-          <Package className="size-4" /> Mes commandes
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href="/compte/adresses" />}>
-          <MapPin className="size-4" /> Mes adresses
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col">
+            <span className="truncate text-sm">{fullName ?? "Mon compte"}</span>
+            <span className="text-muted-foreground text-xs font-normal">
+              {ROLE_LABELS[role]}
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/compte" />}>
+            <User className="size-4" /> Mon compte
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/compte/commandes" />}>
+            <Package className="size-4" /> Mes commandes
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/compte/adresses" />}>
+            <MapPin className="size-4" /> Mes adresses
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
         {isPro(role) && (
           <>
             <DropdownMenuSeparator />
@@ -89,9 +92,17 @@ export function UserMenu({ fullName, role }: Props) {
           </>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => signOut()}>
-          <LogOut className="size-4" /> Se déconnecter
-        </DropdownMenuItem>
+        <form action={signOut} className="contents">
+          <DropdownMenuItem
+            variant="destructive"
+            closeOnClick={false}
+            nativeButton
+            render={<button type="submit" />}
+            className="w-full"
+          >
+            <LogOut className="size-4" /> Se déconnecter
+          </DropdownMenuItem>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   );

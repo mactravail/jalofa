@@ -5,6 +5,7 @@ import { useEffect, useReducer } from "react";
 import { ChevronRight, Heart } from "lucide-react";
 
 import { StyleIcon, type StyleIconName } from "@/components/order/style-icons";
+import { Wordmark } from "@/components/wordmark";
 import { formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -77,11 +78,8 @@ export function HeroPhone() {
 
           {/* En-tête appli */}
           <div className="flex items-center justify-between px-4 pt-8 pb-2.5">
-            <div className="flex items-center gap-1.5">
-              <span className="bg-primary/10 text-primary flex size-5 items-center justify-center rounded-md text-[10px] font-bold">
-                J
-              </span>
-              <span className="text-[11px] font-semibold tracking-tight">JALOFA</span>
+            <div className="flex items-center">
+              <Wordmark size="xs" />
             </div>
             <nav className="flex items-center gap-1 text-[8px] font-medium tracking-wide uppercase">
               <span className="text-muted-foreground">Tissu</span>

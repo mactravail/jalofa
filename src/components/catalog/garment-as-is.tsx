@@ -110,8 +110,10 @@ export function GarmentAsIs({ preset }: { preset: AsIsPreset }) {
         </div>
       </div>
 
+      {/* Libellé seul : le prix est déjà annoncé au-dessus, dans l'en-tête de la
+          carte « Le prendre tel quel ». */}
       <Button size="lg" className="h-11 w-full text-base" onClick={addToCart}>
-        <ShoppingBag className="size-4" /> Ajouter au panier · {formatPrice(preset.total)}
+        <ShoppingBag className="size-4" /> Ajouter au panier
       </Button>
     </div>
   );

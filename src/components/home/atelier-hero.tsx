@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { canPlayFilm } from "@/lib/motion-capability";
+
 // Le film « L'Atelier en mouvement » est purement décoratif : le poster ci-dessous
 // est le LCP, peint immédiatement, et sert aussi de repli permanent. Le moteur
 // Remotion (lourd) n'est chargé qu'à la demande, via un `import()` dynamique sans
@@ -12,28 +14,6 @@ const AtelierFilmPlayer = dynamic(
   () => import("@/components/home/remotion/atelier-film-player"),
   { ssr: false },
 );
-
-// On ne charge/joue le film que si l'appareil peut se le permettre sans nuire à
-// l'expérience — sinon (mobile, économiseur de données, reduced-motion, machine
-// modeste) on s'en tient au poster : zéro octet Remotion téléchargé, zéro boucle
-// 30 fps à faire tourner. Cible : les téléphones d'entrée de gamme (marché
-// sénégalais) ne paient jamais pour la décoration.
-function canPlayFilm() {
-  if (typeof window === "undefined") return false;
-  const desktopSteady = window.matchMedia(
-    "(min-width: 1024px) and (prefers-reduced-motion: no-preference)",
-  ).matches;
-  if (!desktopSteady) return false;
-
-  const nav = navigator as Navigator & {
-    connection?: { saveData?: boolean };
-    deviceMemory?: number;
-  };
-  if (nav.connection?.saveData) return false;
-  if ((nav.hardwareConcurrency ?? 8) < 4) return false;
-  if ((nav.deviceMemory ?? 8) < 4) return false;
-  return true;
-}
 
 export function AtelierHero() {
   const [playing, setPlaying] = useState(false);

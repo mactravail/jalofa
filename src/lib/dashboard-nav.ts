@@ -8,6 +8,7 @@ import {
   Shirt,
   Store,
   Truck,
+  Users,
   Wallet,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ export type DashboardNavId =
   | "shipping"
   | "done"
   | "revenue"
+  | "clients"
   | "models"
   | "fabrics"
   | "sales";
@@ -88,7 +90,14 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
     {
       label: null,
       items: [
-        { id: "overview", href: root, label: "Vue d'ensemble", icon: LayoutDashboard },
+        { id: "overview", href: root, label: "Accueil", icon: LayoutDashboard },
+        {
+          id: "clients",
+          href: `${root}/clients`,
+          label: "Mes clients",
+          icon: Users,
+        },
+        { id: "revenue", href: `${root}/revenus`, label: "Mon argent", icon: Wallet },
         // Les deux métiers ont une fiche publique qu'ils composent eux-mêmes :
         // le tailleur sur `/tailleurs/[id]`, le vendeur sur `/vendeurs/[id]`.
         {
@@ -97,7 +106,6 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           label: "Mon profil public",
           icon: Store,
         },
-        { id: "revenue", href: `${root}/revenus`, label: "Mes revenus", icon: Wallet },
       ],
     },
     {
