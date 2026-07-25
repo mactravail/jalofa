@@ -290,6 +290,28 @@ export async function getModelBySlug(slug: string): Promise<GarmentModel | null>
   return toModel(data as ModelRow);
 }
 
+/**
+ * Résout le segment de `/modeles/[param]`, qui peut être soit l'`id` UUID (les
+ * cartes du catalogue passent `model.id`), soit le `slug` stable (les tuiles de
+ * la home pointent le slug — identique en démo et en prod, cf.
+ * `garment-routes.ts`). On ne tente l'`id` que si le segment ressemble à un UUID,
+ * pour éviter une requête vouée à échouer en base (`models.id` est de type
+ * uuid). Un ancien préfixe `demo-` (liens ou marque-pages historiques) est
+ * toléré en repli. `null` = aucun modèle → la page appelle `notFound()`.
+ */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getModelByIdOrSlug(param: string): Promise<GarmentModel | null> {
+  if (UUID_RE.test(param)) {
+    const byId = await getModelById(param);
+    if (byId) return byId;
+  }
+  const bySlug = await getModelBySlug(param);
+  if (bySlug) return bySlug;
+  return param.startsWith("demo-") ? getModelBySlug(param.slice(5)) : null;
+}
+
 // --- Tailors ---------------------------------------------------------------
 
 export async function getTailors(filters: TailorFilters = {}): Promise<Tailor[]> {

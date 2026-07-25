@@ -33,6 +33,7 @@ insert into public.models (name, category_slug, description, difficulty, avg_day
   ('Kaftan', 'homme', 'Tunique longue et fluide, confortable et raffinée.', 'facile', 7, '/collection%20homme/style/kaftan.avif'),
   ('Chemise Africaine', 'homme', 'Chemise à motifs, coupe moderne ou classique.', 'facile', 5, '/collection%20homme/style/chemise.avif'),
   ('Costume', 'homme', 'Costume sur mesure, veste et pantalon.', 'difficile', 14, '/collection%20homme/style/costume%20crois%C3%A9.jpg'),
+  ('Relax', 'homme', 'Tenue décontractée : tunique fluide et pantalon confort, coupe ample facile à vivre, du week-end aux moments détente.', 'facile', 6, '/collection%20homme/e.jpg'),
   ('Ensemble Bazin', 'homme', 'Ensemble deux-pièces en bazin riche : haut brodé et pantalon assorti, l''élégance sénégalaise du quotidien aux grandes occasions.', 'moyen', 9, '/collection%20homme/style/grand%20boubou%20ghana.avif'),
   ('Agbada', 'homme', 'Grande robe d''apparat brodée, portée sur un boubou et un pantalon — la pièce maîtresse des cérémonies ouest-africaines.', 'difficile', 12, '/collection%20homme/style/agbada.jpg'),
   ('Kaftan Brodé', 'homme', 'Kaftan tunique longue rehaussée de broderies au col et au plastron, raffiné pour les fêtes et le vendredi.', 'moyen', 8, '/collection%20homme/style/kaftan%20ghana.jpg'),
@@ -48,18 +49,31 @@ insert into public.models (name, category_slug, description, difficulty, avg_day
   ('Ensemble', 'femme', 'Ensemble coordonné haut et bas.', 'moyen', 8, '/collection%20femme/robe/o.avif'),
   ('Jupe', 'femme', 'Jupe sur mesure, plusieurs longueurs et coupes.', 'facile', 5, '/collection%20femme/jupe/j.avif'),
   ('Boubou Femme', 'femme', 'Boubou féminin élégant, brodé ou uni.', 'moyen', 10, '/collection%20femme/ceremonie/k.avif'),
+  ('Tenue de Cérémonie', 'femme', 'Grande tenue de cérémonie, broderie riche et finitions soignées, pour mariages, baptêmes et grandes fêtes.', 'difficile', 12, '/collection%20femme/ceremonie/f.avif'),
+  ('Tailleur Pantalon', 'femme', 'Tailleur deux-pièces — veste ajustée et pantalon assorti — l''allure business au féminin.', 'difficile', 12, '/collection%20femme/pantalon/v.avif'),
+  ('Thiaya', 'femme', 'Thiaya — tenue traditionnelle africaine deux-pièces : haut ajusté et jupe droite taille basse, brodée, élégante du quotidien aux fêtes.', 'moyen', 9, '/collection%20femme/thiaya/thiaya%20femme.jpg'),
   ('Boubou Enfant', 'enfant', 'Boubou pour enfant, coupe confortable.', 'facile', 5, '/models/boubou-enfant.jpg'),
   ('Ensemble Enfant', 'enfant', 'Ensemble assorti pour enfant.', 'facile', 5, '/models/ensemble-enfant.jpg')
 on conflict do nothing;
 
--- Slugs des ancres à page dédiée (grand boubou, robe & co.). C'est ce slug —
--- pas l'`id` UUID — que le front utilise pour résoudre un modèle et rediriger
--- /modeles/[id] vers sa famille (cf. src/lib/garment-routes.ts).
-update public.models set slug = 'grand-boubou' where name = 'Grand Boubou' and slug is null;
-update public.models set slug = 'agbada'       where name = 'Agbada'       and slug is null;
-update public.models set slug = 'baye-lahat'   where name = 'Baye Lahat'   and slug is null;
-update public.models set slug = 'robe'         where name = 'Robe'         and slug is null;
-update public.models set slug = 'boubou-femme' where name = 'Boubou Femme' and slug is null;
+-- Slugs stables (indépendants de l'`id` UUID) : c'est par ce slug que le front
+-- résout un modèle et que les tuiles de la home pointent /modeles/[slug]. Les
+-- ancres à page dédiée (grand boubou, robe & co.) y sont redirigées via leur
+-- slug (cf. src/lib/garment-routes.ts). Scopé name + category : plusieurs
+-- vêtements partagent un nom d'un genre à l'autre (Thiaya, Tenue de Cérémonie…).
+update public.models set slug = 'grand-boubou'     where name = 'Grand Boubou'       and category_slug = 'homme' and slug is null;
+update public.models set slug = 'agbada'           where name = 'Agbada'             and category_slug = 'homme' and slug is null;
+update public.models set slug = 'baye-lahat'       where name = 'Baye Lahat'         and category_slug = 'homme' and slug is null;
+update public.models set slug = 'kaftan'           where name = 'Kaftan'             and category_slug = 'homme' and slug is null;
+update public.models set slug = 'chemise'          where name = 'Chemise Africaine'  and category_slug = 'homme' and slug is null;
+update public.models set slug = 'costume'          where name = 'Costume'            and category_slug = 'homme' and slug is null;
+update public.models set slug = 'relax'            where name = 'Relax'              and category_slug = 'homme' and slug is null;
+update public.models set slug = 'robe'             where name = 'Robe'               and category_slug = 'femme' and slug is null;
+update public.models set slug = 'boubou-femme'     where name = 'Boubou Femme'       and category_slug = 'femme' and slug is null;
+update public.models set slug = 'ensemble'         where name = 'Ensemble'           and category_slug = 'femme' and slug is null;
+update public.models set slug = 'ceremonie-femme'  where name = 'Tenue de Cérémonie' and category_slug = 'femme' and slug is null;
+update public.models set slug = 'tailleur-pantalon' where name = 'Tailleur Pantalon' and category_slug = 'femme' and slug is null;
+update public.models set slug = 'thiaya-femme'     where name = 'Thiaya'             and category_slug = 'femme' and slug is null;
 
 -- Model galleries -----------------------------------------------------------
 -- Ordre d'affichage : le vêtement seul, puis porté (devant, dos), puis les
@@ -97,6 +111,23 @@ join (values
   ('Boubou Femme', '/collection%20femme/ceremonie/k1.avif', 1),
   ('Boubou Femme', '/collection%20femme/ceremonie/k2.avif', 2)
 ) as p(model_name, image_url, sort_order) on p.model_name = m.name
+on conflict do nothing;
+
+-- Galeries des vêtements présentés dont le nom se répète d'un genre à l'autre :
+-- on joint par `slug` (déjà posé plus haut) pour ne pas viser le mauvais genre.
+insert into public.model_photos (model_id, image_url, sort_order)
+select m.id, p.image_url, p.sort_order
+from public.models m
+join (values
+  ('ceremonie-femme', '/collection%20femme/ceremonie/f.avif', 0),
+  ('ceremonie-femme', '/collection%20femme/ceremonie/f1.avif', 1),
+  ('ceremonie-femme', '/collection%20femme/ceremonie/f3.avif', 2),
+  ('tailleur-pantalon', '/collection%20femme/pantalon/v.avif', 0),
+  ('tailleur-pantalon', '/collection%20femme/pantalon/v1.avif', 1),
+  ('tailleur-pantalon', '/collection%20femme/pantalon/v2.avif', 2),
+  ('tailleur-pantalon', '/collection%20femme/pantalon/v3.avif', 3),
+  ('thiaya-femme', '/collection%20femme/thiaya/thiaya%20femme.jpg', 0)
+) as p(model_slug, image_url, sort_order) on p.model_slug = m.slug
 on conflict do nothing;
 
 -- Every model is available in every style for the MVP catalog.

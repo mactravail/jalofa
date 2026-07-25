@@ -5,8 +5,10 @@ import {
 
 // Collection Homme présentée « à la Hockerty » (cf. CollectionCarousel). L'ordre
 // demandé pour la vitrine : grand boubou, kaftan, agbada, chemise, costume,
-// relax. Le grand boubou mène à sa page dédiée, les autres à leur fiche modèle
-// (le prendre tel quel ou le personnaliser). Les images appartiennent au
+// relax. Le grand boubou et l'agbada mènent à la page dédiée de la famille
+// boubou ; les autres à leur fiche modèle (le prendre tel quel ou le
+// personnaliser). On lie par `slug` stable — jamais par l'`id` démo, qui
+// n'existe pas en base et renvoyait une 404 en prod. Les images appartiennent au
 // vêtement visé pour que la tuile et sa page concordent.
 const TILES: CollectionTile[] = [
   {
@@ -20,35 +22,35 @@ const TILES: CollectionTile[] = [
     name: "Kaftan",
     caption: "Fêtes & vendredi",
     src: "/collection%20homme/style/kaftan.avif",
-    href: "/modeles/demo-kaftan",
+    href: "/modeles/kaftan",
     alt: "Homme en kaftan sur mesure",
   },
   {
     name: "Agbada",
     caption: "Grandes occasions",
     src: "/collection%20homme/style/agbada.jpg",
-    href: "/modeles/demo-agbada",
+    href: "/homme/grand-boubou-sur-mesure?type=agbada",
     alt: "Homme en agbada brodé d'apparat",
   },
   {
     name: "Chemise",
     caption: "Bureau & quotidien",
     src: "/collection%20homme/style/chemise.avif",
-    href: "/modeles/demo-chemise",
+    href: "/modeles/chemise",
     alt: "Homme en chemise africaine sur mesure",
   },
   {
     name: "Costume",
     caption: "Soirée & business",
     src: "/collection%20homme/style/costume%20crois%C3%A9.jpg",
-    href: "/modeles/demo-costume",
+    href: "/modeles/costume",
     alt: "Homme en costume sur mesure",
   },
   {
     name: "Relax",
     caption: "Détente",
     src: "/collection%20homme/e.jpg",
-    href: "/modeles/demo-relax",
+    href: "/modeles/relax",
     alt: "Homme en tenue décontractée sur mesure",
   },
 ];

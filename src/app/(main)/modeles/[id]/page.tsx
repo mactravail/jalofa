@@ -9,7 +9,7 @@ import { GarmentReviews } from "@/components/catalog/garment-reviews";
 import { DemoBanner } from "@/components/demo-banner";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, modelPhotos } from "@/lib/constants";
-import { getFabrics, getModelById, getStyles, getTailorById, getTailors } from "@/lib/data";
+import { getFabrics, getModelByIdOrSlug, getStyles, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { DEDICATED_HREF } from "@/lib/garment-routes";
 import { garmentSocialProof } from "@/lib/garment-social-proof";
@@ -31,12 +31,13 @@ export default async function ModelDetailPage({
   const { id } = await params;
   const { type, fabric, tailor } = await searchParams;
 
-  // L'`id` de l'URL est un UUID en base ; c'est le `slug` du modèle chargé qui
-  // décide d'une éventuelle page dédiée. On charge donc le modèle d'abord, puis
-  // on redirige vers son type dans la famille (cf. garment-routes.ts — le grand
-  // boubou et la robe ont chacun plusieurs types partageant une seule page
-  // dédiée).
-  const model = await getModelById(id);
+  // Le segment d'URL peut être l'`id` UUID (cartes du catalogue) ou le `slug`
+  // stable (tuiles de la home) — cf. `getModelByIdOrSlug`. C'est le `slug` du
+  // modèle chargé qui décide d'une éventuelle page dédiée : on charge donc le
+  // modèle d'abord, puis on redirige vers son type dans la famille (cf.
+  // garment-routes.ts — le grand boubou et la robe ont chacun plusieurs types
+  // partageant une seule page dédiée).
+  const model = await getModelByIdOrSlug(id);
   if (!model) notFound();
   if (model.slug && DEDICATED_HREF[model.slug]) {
     redirect(`${DEDICATED_HREF[model.slug]}?type=${model.slug}`);
