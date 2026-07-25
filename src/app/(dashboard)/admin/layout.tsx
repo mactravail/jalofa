@@ -31,6 +31,9 @@ export default async function AdminLayout({
     getAllVendors(),
   ]);
   const pending = orders.filter((o) => o.status === "received").length;
+  // Les commandes refusées en attente : autant de clients à rappeler pour les
+  // orienter vers un autre tailleur. La pastille retombe dès qu'un client relance.
+  const rejected = orders.filter((o) => o.status === "rejected").length;
   const pendingPros = new Set<string>();
   for (const t of tailors) if (!t.is_activated) pendingPros.add(t.id);
   for (const v of vendors) if (!v.is_activated) pendingPros.add(v.id);
@@ -38,7 +41,11 @@ export default async function AdminLayout({
   return (
     <AdminShell
       fullName={profile?.full_name ?? null}
-      badges={{ orders: pending, subscriptions: pendingPros.size }}
+      badges={{
+        orders: pending,
+        rejections: rejected,
+        subscriptions: pendingPros.size,
+      }}
     >
       <ModerationProvider demo={!isSupabaseConfigured()}>
         {children}

@@ -247,7 +247,7 @@ export const FABRICS: Fabric[] = [
   },
 ];
 
-const MODELS_RAW: Omit<GarmentModel, "slug">[] = [
+const MODELS_RAW: Omit<GarmentModel, "slug" | "price">[] = [
   {
     id: "demo-grand-boubou",
     tailor_id: null,
@@ -800,6 +800,9 @@ const MODELS_RAW: Omit<GarmentModel, "slug">[] = [
 export const MODELS: GarmentModel[] = MODELS_RAW.map((m) => ({
   ...m,
   slug: m.id.replace(/^demo-/, ""),
+  // Catalogue plateforme (fixtures) : pas de tarif propre, on retombe sur le
+  // « dès… » du tailleur choisi à la caisse.
+  price: null,
 }));
 
 export const TAILORS: Tailor[] = [

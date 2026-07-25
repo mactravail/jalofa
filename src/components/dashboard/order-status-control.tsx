@@ -1,15 +1,17 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Check, Loader2, PackageCheck, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { usePipeline } from "@/components/dashboard/pipeline-store";
+import { RejectOrderDialog } from "@/components/dashboard/reject-order-dialog";
 import { Button } from "@/components/ui/button";
 import {
   ORDER_STATUS_LABELS,
   type OrderStatus,
   type OrderType,
+  type RejectionReason,
 } from "@/lib/constants";
 import { BUCKET_LABELS } from "@/lib/dashboard-nav";
 import {
@@ -36,8 +38,9 @@ export function OrderStatusControl({
   status: OrderStatus;
   type: OrderType;
 }) {
-  const { role, move } = usePipeline();
+  const { role, move, reject } = usePipeline();
   const [isPending, startTransition] = useTransition();
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   const run = (next: OrderStatus) => {
     startTransition(async () => {
@@ -57,6 +60,18 @@ export function OrderStatusControl({
     });
   };
 
+  const confirmReject = (reason: RejectionReason) => {
+    startTransition(async () => {
+      try {
+        await reject(orderId, reason);
+        setRejectOpen(false);
+        toast.success("Commande refusée — le client va être prévenu.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur lors du refus");
+      }
+    });
+  };
+
   if (isTerminal(status)) {
     return (
       <span className="text-muted-foreground text-sm font-medium">
@@ -69,28 +84,36 @@ export function OrderStatusControl({
   if (status === "received" && needsAction(role, status, type)) {
     const accepted = nextStatus(status, type);
     return (
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          onClick={() => accepted && run(accepted)}
-          disabled={isPending}
-        >
-          {isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Check className="size-4" />
-          )}
-          Accepter
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={() => run("rejected")}
-          disabled={isPending}
-        >
-          <X className="size-4" /> Refuser
-        </Button>
-      </div>
+      <>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => accepted && run(accepted)}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Check className="size-4" />
+            )}
+            Accepter
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setRejectOpen(true)}
+            disabled={isPending}
+          >
+            <X className="size-4" /> Refuser
+          </Button>
+        </div>
+        <RejectOrderDialog
+          open={rejectOpen}
+          onOpenChange={setRejectOpen}
+          onConfirm={confirmReject}
+          isPending={isPending}
+        />
+      </>
     );
   }
 

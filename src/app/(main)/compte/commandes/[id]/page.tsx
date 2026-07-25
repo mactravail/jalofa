@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { OrderStatusBadge, OrderTimeline } from "@/components/order/order-status";
+import { ReassignTailorPanel } from "@/components/order/reassign-tailor-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DELIVERY_METHOD_LABELS,
@@ -11,6 +12,7 @@ import {
   PAYMENT_STATUS_LABELS,
   formatPrice,
 } from "@/lib/constants";
+import { getTailors } from "@/lib/data";
 import { getOrderDetail } from "@/lib/orders-data";
 import { isSupabaseConfigured } from "@/lib/queries";
 
@@ -21,6 +23,13 @@ export default async function OrderTrackingPage({
 }) {
   const { id } = await params;
   const order = await getOrderDetail(id);
+
+  // Une commande refusée peut repartir chez un autre tailleur : on charge les
+  // ateliers ouverts (sauf celui qui a refusé). Seul cas où le client rechoisit.
+  const canReassign = order?.status === "rejected";
+  const otherTailors = canReassign
+    ? (await getTailors()).filter((t) => t.id !== order?.tailor_id)
+    : [];
 
   if (!order) {
     if (isSupabaseConfigured()) notFound();
@@ -55,6 +64,14 @@ export default async function OrderTrackingPage({
         </div>
         <OrderStatusBadge status={order.status} />
       </div>
+
+      {canReassign && (
+        <ReassignTailorPanel
+          orderId={order.id}
+          reason={order.rejection_reason}
+          tailors={otherTailors}
+        />
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

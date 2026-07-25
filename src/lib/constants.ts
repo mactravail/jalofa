@@ -194,6 +194,39 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Annulé",
 };
 
+// ---------------------------------------------------------------------------
+// Refus d'une commande par le tailleur
+// ---------------------------------------------------------------------------
+
+/**
+ * Pourquoi un tailleur refuse une commande. Choisi au moment du refus ; porté
+ * par la commande à côté du statut `rejected`, affiché au client (qui relance
+ * chez un autre tailleur) et à l'administration.
+ */
+export type RejectionReason =
+  | "cannot_make"
+  | "too_busy"
+  | "cannot_deliver_in_time";
+
+export const REJECTION_REASONS: RejectionReason[] = [
+  "cannot_make",
+  "too_busy",
+  "cannot_deliver_in_time",
+];
+
+export const REJECTION_REASON_LABELS: Record<RejectionReason, string> = {
+  cannot_make: "Je ne sais pas faire ce modèle",
+  too_busy: "Je suis trop chargé en ce moment",
+  cannot_deliver_in_time: "Je ne peux pas livrer dans les délais",
+};
+
+/** Formulation vue par le client / l'admin (le tailleur, lui, parle à la 1ʳᵉ personne). */
+export const REJECTION_REASON_CLIENT_LABELS: Record<RejectionReason, string> = {
+  cannot_make: "Le tailleur ne réalise pas ce modèle",
+  too_busy: "Le tailleur est trop chargé en ce moment",
+  cannot_deliver_in_time: "Le tailleur ne peut pas livrer dans les délais",
+};
+
 /** Ordered timeline shown to the client for a normal "full garment" flow. */
 export const ORDER_TIMELINE: OrderStatus[] = [
   "received",

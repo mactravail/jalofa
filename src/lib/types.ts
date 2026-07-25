@@ -5,6 +5,7 @@ import type {
   OrderType,
   PaymentMethod,
   PaymentStatus,
+  RejectionReason,
   SuspensionReason,
   UserRole,
 } from "@/lib/constants";
@@ -147,6 +148,12 @@ export interface GarmentModel {
   description: string | null;
   difficulty: "facile" | "moyen" | "difficile" | null;
   avg_days: number;
+  /**
+   * Prix de confection facturé par l'auteur pour cette création (FCFA). `null`
+   * = pas de tarif propre (catalogue plateforme, ou prix non renseigné) : on
+   * retombe alors sur le `base_price` « dès… » du tailleur choisi.
+   */
+  price: number | null;
   image_url: string | null;
   is_active: boolean;
   /**
@@ -202,6 +209,8 @@ export interface Order {
   contact_email: string | null;
   contact_phone: string | null;
   status: OrderStatus;
+  /** Motif du refus quand `status === "rejected"` ; `null` sinon. */
+  rejection_reason: RejectionReason | null;
   fabric_price: number;
   tailoring_price: number;
   delivery_fee: number;

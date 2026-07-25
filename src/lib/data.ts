@@ -159,6 +159,7 @@ function toModel(row: ModelRow): GarmentModel {
     description: row.description,
     difficulty: row.difficulty,
     avg_days: row.avg_days,
+    price: row.price ?? null,
     image_url: row.image_url,
     is_active: row.is_active,
     photos: (row.model_photos ?? [])

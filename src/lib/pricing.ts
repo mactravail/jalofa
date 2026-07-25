@@ -1,5 +1,21 @@
-import type { Fabric, Tailor } from "@/lib/types";
+import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 import type { OrderType } from "@/lib/constants";
+
+/**
+ * Le prix de confection facturé pour un modèle par un tailleur : le `price` de
+ * la création signée fait foi chez son auteur, sinon on retombe sur le
+ * `base_price` « dès… » du tailleur. Miroir client de `resolveTailoringPrice`
+ * (server) pour que l'estimation affichée colle au montant facturé.
+ */
+export function tailoringPriceFor(
+  tailor: Pick<Tailor, "id" | "base_price">,
+  model: Pick<GarmentModel, "price" | "tailor_id"> | null,
+): number {
+  if (model && model.tailor_id === tailor.id && model.price != null) {
+    return model.price;
+  }
+  return tailor.base_price;
+}
 
 /** Flat home-delivery fee, in FCFA. */
 export const DELIVERY_FEE = 2000;
@@ -32,6 +48,8 @@ export function computePrice(input: {
   fabric: Fabric | null;
   fabricMeters: number;
   tailor: Tailor | null;
+  /** Le modèle choisi, pour facturer son prix propre chez son auteur. */
+  model?: GarmentModel | null;
   deliveryMethod: "home" | "pickup";
 }): PriceBreakdown {
   const fabricPrice =
@@ -40,7 +58,9 @@ export function computePrice(input: {
       : 0;
 
   const tailoringPrice =
-    input.type !== "fabric_only" && input.tailor ? input.tailor.base_price : 0;
+    input.type !== "fabric_only" && input.tailor
+      ? tailoringPriceFor(input.tailor, input.model ?? null)
+      : 0;
 
   const deliveryFee = input.deliveryMethod === "home" ? DELIVERY_FEE : 0;
 

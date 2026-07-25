@@ -3,6 +3,32 @@ import "server-only";
 import { listDemoFabricSales } from "@/lib/notifications-demo";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Notification } from "@/lib/types";
+
+/**
+ * Les notifications de l'utilisateur connecté (refus de commande, etc.), de la
+ * plus récente. Vide tant que Supabase n'est pas branché — la démo se concentre
+ * sur l'espace pro. Les ventes de tissu ont leur propre panneau (voir
+ * `getVendorFabricSales`) et ne sont pas reprises ici.
+ */
+export async function getMyNotifications(limit = 20): Promise<Notification[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", user.id)
+    .neq("type", "fabric_sale")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data as Notification[]) ?? [];
+}
 
 /**
  * A « votre tissu a été acheté » notification, flattened for the vendor

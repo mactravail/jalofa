@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { Lock } from "lucide-react";
+import { BadgeCheck, Lock } from "lucide-react";
 
 import { useConfigurator } from "@/components/order/configurator-context";
 import { formatPrice } from "@/lib/constants";
+import { tailoringPriceFor } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 export default function TailorStep() {
@@ -63,10 +64,24 @@ export default function TailorStep() {
             />
           )}
           <div className="min-w-0 py-1">
-            <p className="truncate text-sm font-semibold">{t.shop_name}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="truncate text-sm font-semibold">{t.shop_name}</p>
+              {author?.id === t.id && (
+                <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+                  <BadgeCheck className="size-3" /> Créateur du modèle
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground text-xs">{t.city}</p>
             <p className="mt-1 text-xs">
-              dès {formatPrice(t.base_price)} · {t.avg_delivery_days} j · ★ {t.rating.toFixed(1)}
+              {(() => {
+                const price = tailoringPriceFor(t, model);
+                const label =
+                  model?.tailor_id === t.id && model?.price != null
+                    ? formatPrice(price)
+                    : `dès ${formatPrice(price)}`;
+                return `${label} · ${t.avg_delivery_days} j · ★ ${t.rating.toFixed(1)}`;
+              })()}
             </p>
           </div>
         </button>

@@ -82,6 +82,7 @@ function mk(o: DemoInput): OrderListItem {
     contact_email: `${firstName.toLowerCase()}@exemple.com`,
     contact_phone: "+221 77 000 00 00",
     status: o.status,
+    rejection_reason: o.status === "rejected" ? "too_busy" : null,
     fabric_price: fabricPrice,
     tailoring_price: tailoringPrice,
     delivery_fee: deliveryFee,

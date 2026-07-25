@@ -35,6 +35,17 @@ function avgDays(value: FormDataEntryValue | null): number {
 }
 
 /**
+ * Prix de confection de la création (FCFA). Vide = pas de tarif propre : la
+ * colonne reste `null` et la caisse retombe sur le « dès… » du tailleur.
+ */
+function price(value: FormDataEntryValue | null): number | null {
+  const s = String(value ?? "").trim();
+  if (!s) return null;
+  const n = Math.round(Number(s));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
  * Create or update a model owned by the signed-in tailor.
  *
  * `tailor_id` is always the caller: a tailor can only ever publish under their
@@ -98,6 +109,7 @@ export async function saveModel(
     description: text(formData.get("description")),
     difficulty: difficulty(formData.get("difficulty")),
     avg_days: avgDays(formData.get("avg_days")),
+    price: price(formData.get("price")),
     image_url: finalUrls[0],
     is_active: formData.get("is_active") === "on",
   };

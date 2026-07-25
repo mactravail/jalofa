@@ -341,6 +341,23 @@ export function ModelFormDialog({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="model-price">Prix de confection (FCFA)</Label>
+            <Input
+              id="model-price"
+              name="price"
+              type="number"
+              min={0}
+              step={500}
+              defaultValue={source?.price ?? ""}
+              placeholder="25000"
+            />
+            <p className="text-muted-foreground text-xs">
+              Ce que vous facturez pour ce modèle. Laissez vide pour utiliser
+              votre tarif « dès… » par défaut.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Difficulté</Label>
             <Select
               value={difficulty}

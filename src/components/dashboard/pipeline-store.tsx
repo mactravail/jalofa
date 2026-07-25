@@ -9,8 +9,8 @@ import {
   useState,
 } from "react";
 
-import { updateOrderStatus } from "@/lib/actions/orders";
-import type { OrderStatus } from "@/lib/constants";
+import { rejectOrder, updateOrderStatus } from "@/lib/actions/orders";
+import type { OrderStatus, RejectionReason } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
 import { bucketOrders, type OrderBucket } from "@/lib/pipeline";
@@ -41,6 +41,8 @@ type PipelineValue = {
   demo: boolean;
   /** Fait passer une commande à l'étape demandée. */
   move: (orderId: string, status: OrderStatus) => Promise<void>;
+  /** Refuse une commande en enregistrant le motif (le client en est notifié). */
+  reject: (orderId: string, reason: RejectionReason) => Promise<void>;
 };
 
 const PipelineContext = createContext<PipelineValue | null>(null);
@@ -98,14 +100,27 @@ export function PipelineProvider({
     [demo],
   );
 
+  const reject = useCallback(
+    async (orderId: string, reason: RejectionReason) => {
+      if (demo) {
+        // En démo, le motif ne se stocke nulle part — on marque juste la
+        // commande refusée pour la voir basculer dans « Terminé ».
+        setStatuses((prev) => ({ ...prev, [orderId]: "rejected" }));
+        return;
+      }
+      await rejectOrder(orderId, reason);
+    },
+    [demo],
+  );
+
   const merged = useMemo(() => {
     if (!demo) return orders;
     return orders.map((o) => (statuses[o.id] ? { ...o, status: statuses[o.id] } : o));
   }, [demo, orders, statuses]);
 
   const value = useMemo<PipelineValue>(
-    () => ({ role, orders: merged, demo, move }),
-    [role, merged, demo, move],
+    () => ({ role, orders: merged, demo, move, reject }),
+    [role, merged, demo, move, reject],
   );
 
   return <PipelineContext.Provider value={value}>{children}</PipelineContext.Provider>;

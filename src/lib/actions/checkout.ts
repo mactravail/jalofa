@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getFabricById } from "@/lib/data";
 import { recordDemoFabricSales, type DemoFabricSale } from "@/lib/notifications-demo";
+import { resolveTailoringPrice } from "@/lib/order-pricing";
 import { DELIVERY_FEE } from "@/lib/pricing";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -217,12 +218,11 @@ export async function placeOrders(
 
     let tailoringPrice = 0;
     if (item.tailor_id && item.type !== "fabric_only") {
-      const { data: tailor } = await supabase
-        .from("tailors")
-        .select("base_price")
-        .eq("id", item.tailor_id)
-        .single();
-      tailoringPrice = Number(tailor?.base_price ?? 0);
+      tailoringPrice = await resolveTailoringPrice(
+        supabase,
+        item.model_id,
+        item.tailor_id,
+      );
     }
 
     const qty = Math.max(1, item.qty);

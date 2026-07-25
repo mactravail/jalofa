@@ -1,5 +1,6 @@
 import {
   BadgeCheck,
+  Ban,
   HandCoins,
   LayoutDashboard,
   Layers,
@@ -25,6 +26,7 @@ export const ADMIN_TITLE = "Administration";
 export type AdminNavId =
   | "overview"
   | "orders"
+  | "rejections"
   | "users"
   | "subscriptions"
   | "tailors"
@@ -71,6 +73,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/commandes`,
         label: "Commandes",
         icon: ShoppingBag,
+      },
+      {
+        id: "rejections",
+        href: `${ADMIN_ROOT}/refus`,
+        label: "Refus",
+        icon: Ban,
       },
       {
         id: "users",

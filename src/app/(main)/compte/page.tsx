@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
 
+import { NotificationsCard } from "@/components/account/notifications-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROLE_LABELS, type UserRole } from "@/lib/constants";
 import { DASHBOARD_ROOT, DASHBOARD_TITLE, type ProRole } from "@/lib/dashboard-nav";
+import { getMyNotifications } from "@/lib/notifications-data";
 import { getCurrentProfile } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -37,10 +39,13 @@ export default async function AccountPage() {
     .toUpperCase();
 
   const pro = isPro(profile.role) ? profile.role : null;
+  const notifications = await getMyNotifications();
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
+
+      <NotificationsCard notifications={notifications} />
 
       <Card>
         <CardContent className="flex items-center gap-4 p-6">

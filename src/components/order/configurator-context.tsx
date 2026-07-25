@@ -418,9 +418,10 @@ export function ConfiguratorProvider({
         fabric,
         fabricMeters: state.fabricMeters,
         tailor,
+        model,
         deliveryMethod: "pickup",
       }),
-    [state.type, state.fabricMeters, fabric, tailor],
+    [state.type, state.fabricMeters, fabric, tailor, model],
   );
 
   const value = useMemo<ConfiguratorContextValue>(
