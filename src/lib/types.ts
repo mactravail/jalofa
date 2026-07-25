@@ -1,5 +1,8 @@
 import type {
   DeliveryMethod,
+  FeedbackCategory,
+  FeedbackStatus,
+  InspirationMakerKind,
   MeasurementMode,
   OrderStatus,
   OrderType,
@@ -261,6 +264,57 @@ export interface VendorReview {
   fabric_id: string | null;
   rating: number;
   comment: string | null;
+  created_at: string;
+}
+
+/**
+ * Une tenue partagée par un client dans la galerie « Inspiration » : cousue par
+ * un tailleur du quartier, achetée au marché ou en boutique. Les photos vivent
+ * dans {@link InspirationPhoto} ; `fabric_id` relie facultativement le tissu à
+ * une fiche du catalogue, en plus de `fabric_note` en texte libre.
+ */
+export interface InspirationPost {
+  id: string;
+  author_id: string;
+  /** Nom d'affichage de l'auteur, figé à la publication (cf. schéma). */
+  author_name: string | null;
+  caption: string | null;
+  /** Type de vêtement saisi librement (« Grand boubou », « Robe »…). */
+  garment_label: string | null;
+  /** Qui a confectionné / d'où vient la tenue. */
+  maker_kind: InspirationMakerKind;
+  /** Nom du tailleur / marché / boutique (facultatif). */
+  maker_name: string | null;
+  /** Où le tissu a été acheté, en texte libre. */
+  fabric_note: string | null;
+  /** Lien facultatif vers un tissu du catalogue JALOFA. */
+  fabric_id: string | null;
+  is_published: boolean;
+  created_at: string;
+}
+
+export interface InspirationPhoto {
+  id: string;
+  post_id: string;
+  image_url: string;
+  sort_order: number;
+}
+
+/**
+ * Un retour envoyé depuis un espace (client / tailleur / vendeur) et reçu par
+ * l'administration. L'auteur est dénormalisé (`author_name`, `author_role`) pour
+ * survivre à la suppression du compte et rester lisible côté admin sans join.
+ */
+export interface Feedback {
+  id: string;
+  author_id: string | null;
+  author_name: string | null;
+  author_role: string | null;
+  /** L'espace d'où le retour a été envoyé. */
+  space: "client" | "tailor" | "vendor";
+  category: FeedbackCategory;
+  message: string;
+  status: FeedbackStatus;
   created_at: string;
 }
 

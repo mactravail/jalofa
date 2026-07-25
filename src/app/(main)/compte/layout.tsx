@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { Heart, MapPin, Package, User } from "lucide-react";
+import { Heart, MapPin, Package, Sparkles, User } from "lucide-react";
+
+import { FeedbackButton } from "@/components/feedback/feedback-button";
 
 const LINKS = [
   { href: "/compte", label: "Profil", icon: User },
   { href: "/compte/commandes", label: "Mes commandes", icon: Package },
+  { href: "/compte/inspiration", label: "Inspiration", icon: Sparkles },
   { href: "/compte/adresses", label: "Adresses", icon: MapPin },
   { href: "/compte/favoris", label: "Favoris", icon: Heart },
 ];
@@ -31,6 +34,10 @@ export default function AccountLayout({
               </Link>
             ))}
           </nav>
+          {/* Un retour à tout moment, bien visible sous le menu du compte. */}
+          <div className="mt-4 border-t pt-4">
+            <FeedbackButton space="client" />
+          </div>
         </aside>
         <div className="min-w-0">{children}</div>
       </div>

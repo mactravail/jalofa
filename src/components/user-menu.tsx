@@ -7,6 +7,7 @@ import {
   MapPin,
   Package,
   ShieldCheck,
+  Sparkles,
   User,
 } from "lucide-react";
 
@@ -70,6 +71,9 @@ export function UserMenu({ fullName, role }: Props) {
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/compte/commandes" />}>
             <Package className="size-4" /> Mes commandes
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/compte/inspiration" />}>
+            <Sparkles className="size-4" /> Inspiration
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/compte/adresses" />}>
             <MapPin className="size-4" /> Mes adresses

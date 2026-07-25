@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import {
   DEMO_ALL_ORDERS,
+  DEMO_FEEDBACK,
   DEMO_REVIEWS,
   DEMO_USERS,
   DEMO_VENDOR_REVIEWS,
@@ -17,12 +18,17 @@ import {
 } from "@/lib/payouts";
 import { isTerminal } from "@/lib/pipeline";
 import { FABRICS, MODELS, TAILORS } from "@/lib/fixtures";
+import {
+  getPublishedInspiration,
+  type InspirationPostView,
+} from "@/lib/inspiration-data";
 import type { OrderListItem } from "@/lib/orders-data";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Fabric,
+  Feedback,
   GarmentModel,
   Profile,
   Review,
@@ -195,6 +201,47 @@ export const getAllVendorReviews = cache(async (): Promise<VendorReviewRow[]> =>
     )
     .order("created_at", { ascending: false });
   return (data as unknown as VendorReviewRow[]) ?? [];
+});
+
+// Publications « Inspiration » — vue d'administration : toutes, y compris celles
+// qu'un auteur aurait masquées, d'où la clé de service (la RLS publique ne rend
+// que les publications visibles). Le nom de l'auteur est dénormalisé sur la
+// ligne, aucun join vers `profiles` n'est donc nécessaire.
+type InspirationRow = InspirationPostView & {
+  inspiration_photos?: { image_url: string; sort_order: number }[] | null;
+};
+
+export const getAllInspiration = cache(
+  async (): Promise<InspirationPostView[]> => {
+    if (!isSupabaseConfigured()) return getPublishedInspiration();
+    const supabase = await adminDb();
+    if (!supabase) return [];
+    const { data } = await supabase
+      .from("inspiration_posts")
+      .select("*, inspiration_photos(image_url, sort_order)")
+      .order("created_at", { ascending: false });
+    return ((data as InspirationRow[]) ?? []).map((row) => ({
+      ...row,
+      photos: (row.inspiration_photos ?? [])
+        .slice()
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((p) => p.image_url),
+      fabric: null,
+    }));
+  },
+);
+
+// Retours des utilisateurs — ce que l'admin reçoit depuis les trois espaces.
+// Comme le reste, lu avec la clé de service (aucune policy admin sur la table).
+export const getAllFeedback = cache(async (): Promise<Feedback[]> => {
+  if (!isSupabaseConfigured()) return DEMO_FEEDBACK;
+  const supabase = await adminDb();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("feedback")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data as Feedback[]) ?? [];
 });
 
 /**

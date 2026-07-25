@@ -134,6 +134,80 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Inspiration — d'où vient la tenue partagée par un client
+// ---------------------------------------------------------------------------
+
+export type InspirationMakerKind =
+  | "tailleur_quartier"
+  | "marche"
+  | "boutique"
+  | "jalofa"
+  | "autre";
+
+export const INSPIRATION_MAKER_KINDS: InspirationMakerKind[] = [
+  "tailleur_quartier",
+  "marche",
+  "boutique",
+  "jalofa",
+  "autre",
+];
+
+/** Libellé au moment du choix (formulaire). */
+export const INSPIRATION_MAKER_KIND_LABELS: Record<InspirationMakerKind, string> = {
+  tailleur_quartier: "Cousue par un tailleur",
+  marche: "Achetée au marché",
+  boutique: "Achetée en boutique",
+  jalofa: "Réalisée sur JALOFA",
+  autre: "Autre",
+};
+
+/** Formulation courte pour la pastille affichée sur une publication. */
+export const INSPIRATION_MAKER_KIND_BADGES: Record<InspirationMakerKind, string> = {
+  tailleur_quartier: "Tailleur",
+  marche: "Marché",
+  boutique: "Boutique",
+  jalofa: "JALOFA",
+  autre: "Autre",
+};
+
+// ---------------------------------------------------------------------------
+// Retours des utilisateurs (« Une idée ? Un problème ? »)
+// ---------------------------------------------------------------------------
+
+/** La nature d'un retour envoyé depuis un espace (client / tailleur / vendeur). */
+export type FeedbackCategory = "amelioration" | "probleme" | "autre";
+
+export const FEEDBACK_CATEGORIES: FeedbackCategory[] = [
+  "amelioration",
+  "probleme",
+  "autre",
+];
+
+/** Libellé au moment du choix (formulaire). */
+export const FEEDBACK_CATEGORY_LABELS: Record<FeedbackCategory, string> = {
+  amelioration: "Une amélioration",
+  probleme: "Un problème",
+  autre: "Autre",
+};
+
+/** Formulation courte pour la pastille affichée côté administration. */
+export const FEEDBACK_CATEGORY_BADGES: Record<FeedbackCategory, string> = {
+  amelioration: "Amélioration",
+  probleme: "Problème",
+  autre: "Autre",
+};
+
+/** Triage de l'administration : nouveau tant qu'il n'a pas été traité. */
+export type FeedbackStatus = "new" | "resolved";
+
+/** L'espace d'où le retour a été envoyé — sert au libellé côté administration. */
+export const FEEDBACK_SPACE_LABELS: Record<"client" | "tailor" | "vendor", string> = {
+  client: "Client",
+  tailor: "Tailleur",
+  vendor: "Vendeur",
+};
+
+// ---------------------------------------------------------------------------
 // Modération des prestataires (réservée à l'administration)
 // ---------------------------------------------------------------------------
 

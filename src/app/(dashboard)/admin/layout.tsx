@@ -3,7 +3,12 @@ import type { Metadata } from "next";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ModerationProvider } from "@/components/admin/moderation-store";
-import { getAllOrders, getAllTailors, getAllVendors } from "@/lib/admin-data";
+import {
+  getAllFeedback,
+  getAllOrders,
+  getAllTailors,
+  getAllVendors,
+} from "@/lib/admin-data";
 import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Administration" };
@@ -24,12 +29,15 @@ export default async function AdminLayout({
     return <AdminDenied />;
   }
 
-  // Pastilles du menu : commandes à accepter, et pros en attente de validation.
-  const [orders, tailors, vendors] = await Promise.all([
+  // Pastilles du menu : commandes à accepter, pros en attente de validation, et
+  // retours des utilisateurs pas encore traités.
+  const [orders, tailors, vendors, feedback] = await Promise.all([
     getAllOrders(),
     getAllTailors(),
     getAllVendors(),
+    getAllFeedback(),
   ]);
+  const newFeedback = feedback.filter((f) => f.status === "new").length;
   const pending = orders.filter((o) => o.status === "received").length;
   // Les commandes refusées en attente : autant de clients à rappeler pour les
   // orienter vers un autre tailleur. La pastille retombe dès qu'un client relance.
@@ -45,6 +53,7 @@ export default async function AdminLayout({
         orders: pending,
         rejections: rejected,
         subscriptions: pendingPros.size,
+        feedback: newFeedback,
       }}
     >
       <ModerationProvider demo={!isSupabaseConfigured()}>

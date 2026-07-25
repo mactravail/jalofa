@@ -4,9 +4,11 @@ import {
   HandCoins,
   LayoutDashboard,
   Layers,
+  MessageSquare,
   ShoppingBag,
   Scissors,
   Shirt,
+  Sparkles,
   Star,
   Store,
   Users,
@@ -34,6 +36,8 @@ export type AdminNavId =
   | "fabrics"
   | "models"
   | "reviews"
+  | "inspiration"
+  | "feedback"
   | "finance"
   | "payouts";
 
@@ -86,6 +90,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: "Utilisateurs",
         icon: Users,
       },
+      {
+        id: "feedback",
+        href: `${ADMIN_ROOT}/feedback`,
+        label: "Retours",
+        icon: MessageSquare,
+      },
     ],
   },
   {
@@ -131,6 +141,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/avis`,
         label: "Avis",
         icon: Star,
+      },
+      {
+        id: "inspiration",
+        href: `${ADMIN_ROOT}/inspiration`,
+        label: "Inspiration",
+        icon: Sparkles,
       },
     ],
   },

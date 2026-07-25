@@ -9,6 +9,7 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/tissus", label: "Tissus" },
   { href: "/tailleurs", label: "Tailleurs" },
   { href: "/vendeurs", label: "Vendeurs" },
+  { href: "/inspiration", label: "Inspiration" },
 ];
 
 // The header is deliberately short, so the footer keeps the pages that would

@@ -4,7 +4,7 @@ import type { ReviewRow, VendorReviewRow } from "@/lib/admin-data";
 import type { OrderStatus, OrderType, PaymentMethod } from "@/lib/constants";
 import { TAILORS, VENDORS } from "@/lib/fixtures";
 import type { OrderListItem } from "@/lib/orders-data";
-import type { Profile, Vendor } from "@/lib/types";
+import type { Feedback, Profile, Vendor } from "@/lib/types";
 
 // Données de démonstration propres à l'administration : la place de marché vue
 // d'en haut, alors que Supabase n'est pas encore provisionné. Elles complètent
@@ -318,5 +318,45 @@ export const DEMO_VENDOR_REVIEWS: VendorReviewRow[] = [
     created_at: daysAgo(4),
     client: { full_name: "Ousmane Ba" },
     vendor: { shop_name: VENDOR_SHOP[V_KHADI] ?? null },
+  },
+];
+
+/** Retours des utilisateurs — ce que l'admin reçoit depuis les trois espaces. */
+export const DEMO_FEEDBACK: Feedback[] = [
+  {
+    id: "demo-feedback-1",
+    author_id: "demo-client-bineta",
+    author_name: "Bineta Gueye",
+    author_role: "client",
+    space: "client",
+    category: "amelioration",
+    message:
+      "Ce serait bien de pouvoir enregistrer plusieurs jeux de mesures, un pour moi et un pour mon mari.",
+    status: "new",
+    created_at: daysAgo(1),
+  },
+  {
+    id: "demo-feedback-2",
+    author_id: "demo-tailor-modou",
+    author_name: "Modou Diop",
+    author_role: "tailor",
+    space: "tailor",
+    category: "probleme",
+    message:
+      "Sur mon téléphone, la photo d'une commande met parfois du temps à s'afficher dans « À traiter ».",
+    status: "new",
+    created_at: daysAgo(2),
+  },
+  {
+    id: "demo-feedback-3",
+    author_id: "demo-vendor-hlm",
+    author_name: "Khady Sow",
+    author_role: "vendor",
+    space: "vendor",
+    category: "autre",
+    message:
+      "Est-il possible d'ajouter le paiement par Free Money pour mes ventes de tissu ?",
+    status: "resolved",
+    created_at: daysAgo(6),
   },
 ];

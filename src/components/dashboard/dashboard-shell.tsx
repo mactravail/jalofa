@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Bell, Home, LogOut, Menu, Scissors, Store } from "lucide-react";
 
 import { useBucket } from "@/components/dashboard/pipeline-store";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
@@ -300,6 +301,8 @@ function Account({ role, fullName }: { role: ProRole; fullName: string | null })
 
   return (
     <div className="shrink-0 border-t p-3">
+      {/* Bien visible, au-dessus du compte : un retour à tout moment. */}
+      <FeedbackButton space={role} className="mb-2" />
       <div className="flex items-center gap-2 px-1 py-1.5">
         <Avatar className="size-8">
           <AvatarFallback className="bg-primary/10 text-primary text-xs">

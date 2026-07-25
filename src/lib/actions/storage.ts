@@ -10,7 +10,8 @@ export type ImageBucket =
   | "model-images"
   | "tailor-images"
   | "vendor-images"
-  | "review-photos";
+  | "review-photos"
+  | "inspiration-photos";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES: Record<string, string> = {
