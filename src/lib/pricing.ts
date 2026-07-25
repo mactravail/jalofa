@@ -21,19 +21,17 @@ export function tailoringPriceFor(
 export const DELIVERY_FEE = 2000;
 
 /**
- * Un panier livré à domicile n'est offert que si CHAQUE vêtement vient d'un
- * tailleur qui prend la livraison à sa charge. Une ligne « tissu seul » n'a pas
- * de tailleur : sa présence conserve donc les frais de livraison. Utilisé côté
- * client pour l'estimation ; le montant facturé est recalculé sur les lignes
- * `tailors` faisant foi dans les server actions de commande.
+ * Un panier livré à domicile n'est offert que si CHAQUE ligne vient d'un pro qui
+ * prend la livraison à sa charge : le tailleur pour une tenue cousue, le vendeur
+ * du tissu pour une ligne « tissu seul » (le drapeau `freeDelivery` de la ligne
+ * porte donc l'offre du bon prestataire). Utilisé côté client pour l'estimation ;
+ * le montant facturé est recalculé depuis les lignes faisant foi dans les server
+ * actions de commande.
  */
 export function basketHasFreeDelivery(
   items: { type: OrderType; freeDelivery: boolean }[],
 ): boolean {
-  return (
-    items.length > 0 &&
-    items.every((it) => it.type !== "fabric_only" && it.freeDelivery)
-  );
+  return items.length > 0 && items.every((it) => it.freeDelivery);
 }
 
 export type PriceBreakdown = {

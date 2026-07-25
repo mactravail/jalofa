@@ -1,12 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Layers, MapPin, Store } from "lucide-react";
+import { ArrowLeft, Layers, MapPin, Star, Store, Truck } from "lucide-react";
 
 import { CertifiedBadge } from "@/components/admin/status-badges";
 import { DemoBanner } from "@/components/demo-banner";
 import { FabricCard } from "@/components/catalog/fabric-card";
-import { getFabricsByVendor, getVendorById } from "@/lib/data";
+import { ReviewList } from "@/components/catalog/review-list";
+import { ReviewStars } from "@/components/catalog/review-stars";
+import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
+import { getFabricsByVendor, getVendorById, getVendorReviews } from "@/lib/data";
 
 export default async function VendorProfilePage({
   params,
@@ -18,7 +21,10 @@ export default async function VendorProfilePage({
   // Une boutique suspendue par la plateforme n'a plus de fiche publique.
   if (!vendor || vendor.is_suspended) notFound();
 
-  const fabrics = await getFabricsByVendor(id);
+  const [fabrics, reviews] = await Promise.all([
+    getFabricsByVendor(id),
+    getVendorReviews(id),
+  ]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -57,6 +63,15 @@ export default async function VendorProfilePage({
               {vendor.is_certified && <CertifiedBadge />}
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
+              {vendor.rating_count > 0 && (
+                <span className="flex items-center gap-1">
+                  <Star className="size-4 fill-amber-400 text-amber-400" />
+                  <span className="text-foreground font-medium">
+                    {vendor.rating.toFixed(1)}
+                  </span>
+                  ({vendor.rating_count} avis)
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" /> {vendor.city}
               </span>
@@ -64,6 +79,11 @@ export default async function VendorProfilePage({
                 <Layers className="size-4" /> {fabrics.length} tissu
                 {fabrics.length > 1 ? "s" : ""}
               </span>
+              {vendor.free_delivery && (
+                <span className="text-primary flex items-center gap-1 font-medium">
+                  <Truck className="size-4" /> Livraison offerte
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -94,6 +114,36 @@ export default async function VendorProfilePage({
             ))}
           </div>
         )}
+      </section>
+
+      <section id="avis" className="mt-12">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold tracking-tight">
+            Avis clients
+            <span className="text-muted-foreground ml-2 text-base font-normal">
+              ({vendor.rating_count})
+            </span>
+          </h2>
+          {vendor.rating_count > 0 && (
+            <span className="flex items-center gap-1.5 text-sm">
+              <ReviewStars value={vendor.rating} />
+              <span className="font-medium">{vendor.rating.toFixed(1)}</span>
+            </span>
+          )}
+        </div>
+
+        {reviews.length === 0 ? (
+          <p className="text-muted-foreground mt-4 text-sm">
+            Aucun avis pour le moment. Soyez le premier à partager votre
+            expérience après une commande de tissu.
+          </p>
+        ) : (
+          <ReviewList reviews={reviews} />
+        )}
+
+        <div className="mt-6">
+          <VendorReviewForm vendorId={vendor.id} />
+        </div>
       </section>
     </div>
   );

@@ -2,7 +2,13 @@ import "server-only";
 
 import { cache } from "react";
 
-import { DEMO_ALL_ORDERS, DEMO_REVIEWS, DEMO_USERS, DEMO_VENDORS } from "@/lib/admin-demo";
+import {
+  DEMO_ALL_ORDERS,
+  DEMO_REVIEWS,
+  DEMO_USERS,
+  DEMO_VENDOR_REVIEWS,
+  DEMO_VENDORS,
+} from "@/lib/admin-demo";
 import {
   buildPayouts,
   proDirectory,
@@ -22,6 +28,7 @@ import type {
   Review,
   Tailor,
   Vendor,
+  VendorReview,
 } from "@/lib/types";
 
 /**
@@ -64,10 +71,28 @@ const adminDb = cache(async () => {
  * ce qui est désactivé : les requêtes ne filtrent pas sur `is_active`.
  */
 
-/** Un avis, joint à son auteur et à la boutique notée, pour l'affichage. */
+/** Un avis tailleur, joint à son auteur et à la boutique notée, pour l'affichage. */
 export type ReviewRow = Review & {
   client?: { full_name: string | null } | null;
   tailor?: { shop_name: string | null } | null;
+};
+
+/** Un avis vendeur, joint à son auteur et à la boutique notée, pour l'affichage. */
+export type VendorReviewRow = VendorReview & {
+  client?: { full_name: string | null } | null;
+  vendor?: { shop_name: string | null } | null;
+};
+
+/** Avis normalisé pour la vue d'administration, quel que soit le métier noté. */
+export type AdminReviewRow = {
+  id: string;
+  /** Métier noté — décide du libellé « Tailleur » / « Vendeur ». */
+  kind: "tailor" | "vendor";
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  clientName: string | null;
+  targetName: string | null;
 };
 
 const ORDER_SELECT =
@@ -157,6 +182,53 @@ export const getAllReviews = cache(async (): Promise<ReviewRow[]> => {
     )
     .order("created_at", { ascending: false });
   return (data as unknown as ReviewRow[]) ?? [];
+});
+
+export const getAllVendorReviews = cache(async (): Promise<VendorReviewRow[]> => {
+  if (!isSupabaseConfigured()) return DEMO_VENDOR_REVIEWS;
+  const supabase = await adminDb();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("fabric_reviews")
+    .select(
+      "*, client:profiles!fabric_reviews_client_id_fkey(full_name), vendor:vendors(shop_name)",
+    )
+    .order("created_at", { ascending: false });
+  return (data as unknown as VendorReviewRow[]) ?? [];
+});
+
+/**
+ * Tous les avis de la place — tailleurs ET vendeurs — normalisés et triés du
+ * plus récent, pour que la modération se fasse en un seul endroit.
+ */
+export const getAdminReviews = cache(async (): Promise<AdminReviewRow[]> => {
+  const [tailorReviews, vendorReviews] = await Promise.all([
+    getAllReviews(),
+    getAllVendorReviews(),
+  ]);
+  const rows: AdminReviewRow[] = [
+    ...tailorReviews.map((r) => ({
+      id: r.id,
+      kind: "tailor" as const,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      clientName: r.client?.full_name ?? null,
+      targetName: r.tailor?.shop_name ?? null,
+    })),
+    ...vendorReviews.map((r) => ({
+      id: r.id,
+      kind: "vendor" as const,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      clientName: r.client?.full_name ?? null,
+      targetName: r.vendor?.shop_name ?? null,
+    })),
+  ];
+  return rows.sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+  );
 });
 
 // --- Agrégats de la vue d'ensemble -----------------------------------------

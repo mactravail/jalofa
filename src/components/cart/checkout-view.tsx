@@ -257,7 +257,7 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
                 onClick={() => setDeliveryMethod("home")}
                 icon={MapPin}
                 title="Livraison à domicile"
-                desc={freeHomeDelivery ? "Offerte par l'atelier" : `+ ${formatPrice(DELIVERY_FEE)}`}
+                desc={freeHomeDelivery ? "Offerte" : `+ ${formatPrice(DELIVERY_FEE)}`}
               />
               <OptionCard
                 active={deliveryMethod === "pickup"}

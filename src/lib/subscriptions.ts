@@ -97,7 +97,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: "premium",
     name: "Premium",
     tagline: "Les deux métiers, zéro commission.",
-    monthlyPrice: 15000,
+    monthlyPrice: 10000,
     scope: "both",
     commission: 0,
     featured: true,

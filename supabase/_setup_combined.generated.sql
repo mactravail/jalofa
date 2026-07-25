@@ -1049,6 +1049,132 @@ create policy "vendor_images_delete_own" on storage.objects
   );
 
 
+-- ---------------------------------------------------------------------------
+-- Storage for client review photos — same shape as `fabric-images`: public
+-- read (reviews are browsable logged-out), writes namespaced by the uploader's
+-- uid. Feeds `review_photos.image_url` (up to 3 photos per review).
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'review-photos',
+  'review-photos',
+  true,
+  5242880, -- 5 Mo
+  array['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+)
+on conflict (id) do nothing;
+
+create policy "review_photos_select_all" on storage.objects
+  for select using (bucket_id = 'review-photos');
+
+create policy "review_photos_insert_own" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'review-photos'
+    and (storage.foldername(name))[1] = (select auth.uid()::text)
+  );
+
+create policy "review_photos_update_own" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'review-photos'
+    and (storage.foldername(name))[1] = (select auth.uid()::text)
+  )
+  with check (
+    bucket_id = 'review-photos'
+    and (storage.foldername(name))[1] = (select auth.uid()::text)
+  );
+
+create policy "review_photos_delete_own" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'review-photos'
+    and (storage.foldername(name))[1] = (select auth.uid()::text)
+  );
+
+
+-- ---------------------------------------------------------------------------
+-- Avis clients sur les vendeurs de tissu (pendant des avis tailleurs).
+-- ---------------------------------------------------------------------------
+alter table public.vendors
+  add column if not exists rating numeric(2, 1) not null default 0,
+  add column if not exists rating_count int not null default 0;
+
+create table if not exists public.fabric_reviews (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null unique references public.orders(id) on delete cascade,
+  client_id uuid not null references public.profiles(id) on delete cascade,
+  vendor_id uuid not null references public.vendors(id) on delete cascade,
+  fabric_id uuid references public.fabrics(id) on delete set null,
+  rating int not null check (rating between 1 and 5),
+  comment text,
+  created_at timestamptz not null default now()
+);
+create index if not exists fabric_reviews_vendor_id_idx on public.fabric_reviews(vendor_id);
+create index if not exists fabric_reviews_fabric_id_idx on public.fabric_reviews(fabric_id);
+
+create table if not exists public.fabric_review_photos (
+  id uuid primary key default gen_random_uuid(),
+  review_id uuid not null references public.fabric_reviews(id) on delete cascade,
+  image_url text not null
+);
+
+create or replace function public.refresh_vendor_rating()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target uuid := coalesce(new.vendor_id, old.vendor_id);
+begin
+  update public.vendors v
+  set rating = coalesce((select round(avg(rating)::numeric, 1) from public.fabric_reviews where vendor_id = target), 0),
+      rating_count = (select count(*) from public.fabric_reviews where vendor_id = target)
+  where v.id = target;
+  return null;
+end;
+$$;
+
+drop trigger if exists fabric_reviews_refresh_rating on public.fabric_reviews;
+create trigger fabric_reviews_refresh_rating
+  after insert or update or delete on public.fabric_reviews
+  for each row execute function public.refresh_vendor_rating();
+
+alter table public.fabric_reviews enable row level security;
+alter table public.fabric_review_photos enable row level security;
+
+create policy "fabric_reviews_select_all" on public.fabric_reviews for select using (true);
+create policy "fabric_reviews_insert_own" on public.fabric_reviews
+  for insert with check (
+    client_id = (select auth.uid())
+    and exists (select 1 from public.orders o where o.id = order_id and o.client_id = (select auth.uid()))
+  );
+
+create policy "fabric_review_photos_select_all" on public.fabric_review_photos for select using (true);
+create policy "fabric_review_photos_write_own" on public.fabric_review_photos
+  for all using (
+    exists (select 1 from public.fabric_reviews r where r.id = review_id and r.client_id = (select auth.uid()))
+  ) with check (
+    exists (select 1 from public.fabric_reviews r where r.id = review_id and r.client_id = (select auth.uid()))
+  );
+
+
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- MIGRATION: 20260727000001_vendor_free_delivery.sql
+-- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+-- ---------------------------------------------------------------------------
+-- Livraison offerte par le vendeur de tissu.
+--
+-- Pendant du champ `tailors.free_delivery` : le vendeur peut indiquer qu'il
+-- prend la livraison à sa charge. Affiché sur sa fiche publique et, à la
+-- caisse, les frais de livraison à domicile ne sont pas facturés au client
+-- pour une commande de tissu seul servie par ce vendeur.
+-- ---------------------------------------------------------------------------
+alter table public.vendors
+  add column if not exists free_delivery boolean not null default false;
+
+
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- SEED: seed.sql (donnees catalogue)
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

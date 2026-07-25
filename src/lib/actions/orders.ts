@@ -71,14 +71,25 @@ export async function createOrder(
 
   // Recompute prices from authoritative DB rows.
   let fabricPrice = 0;
+  let vendorFreeDelivery = false;
   if (draft.fabric_id && draft.type !== "own_fabric") {
     const { data: fabric } = await supabase
       .from("fabrics")
-      .select("price_per_meter")
+      .select("price_per_meter, vendor_id")
       .eq("id", draft.fabric_id)
       .single();
     const meters = draft.fabric_meters ?? 0;
     fabricPrice = Number(fabric?.price_per_meter ?? 0) * meters;
+    // Pour un tissu seul, c'est le vendeur qui livre : son offre de livraison
+    // fait foi.
+    if (draft.type === "fabric_only" && fabric?.vendor_id) {
+      const { data: vendor } = await supabase
+        .from("vendors")
+        .select("free_delivery")
+        .eq("id", fabric.vendor_id)
+        .single();
+      vendorFreeDelivery = Boolean(vendor?.free_delivery);
+    }
   }
 
   let tailoringPrice = 0;
@@ -97,10 +108,12 @@ export async function createOrder(
     tailorFreeDelivery = Boolean(tailor?.free_delivery);
   }
 
-  // Livraison offerte par le tailleur : la livraison à domicile n'est pas
-  // facturée au client.
+  // Livraison offerte par le prestataire qui livre — le vendeur pour un tissu
+  // seul, sinon le tailleur : la livraison à domicile n'est pas facturée.
+  const freeDelivery =
+    draft.type === "fabric_only" ? vendorFreeDelivery : tailorFreeDelivery;
   const deliveryFee =
-    draft.delivery_method === "home" && !tailorFreeDelivery ? DELIVERY_FEE : 0;
+    draft.delivery_method === "home" && !freeDelivery ? DELIVERY_FEE : 0;
   const total = fabricPrice + tailoringPrice + deliveryFee;
 
   // Optional measurement.

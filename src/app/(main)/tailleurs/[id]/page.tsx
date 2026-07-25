@@ -6,11 +6,12 @@ import { ArrowLeft, Clock, MapPin, Scissors, Star, Truck } from "lucide-react";
 import { CertifiedBadge } from "@/components/admin/status-badges";
 import { DemoBanner } from "@/components/demo-banner";
 import { ModelCard } from "@/components/catalog/model-card";
+import { ReviewList } from "@/components/catalog/review-list";
 import { ReviewStars } from "@/components/catalog/review-stars";
 import { TailorReviewForm } from "@/components/catalog/tailor-review-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatPrice, formatTimeAgo } from "@/lib/constants";
+import { formatPrice } from "@/lib/constants";
 import { getModelsByTailor, getTailorById, getTailorReviews } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
@@ -181,30 +182,7 @@ export default async function TailorProfilePage({
             expérience.
           </p>
         ) : (
-          <ul className="mt-4 space-y-4">
-            {reviews.map((review) => (
-              <li key={review.id} className="rounded-xl border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">
-                    {review.author_name ?? "Client"}
-                  </span>
-                  <time
-                    className="text-muted-foreground text-xs"
-                    dateTime={review.created_at}
-                    suppressHydrationWarning
-                  >
-                    {formatTimeAgo(review.created_at)}
-                  </time>
-                </div>
-                <ReviewStars value={review.rating} className="mt-1.5" />
-                {review.comment && (
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    {review.comment}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+          <ReviewList reviews={reviews} />
         )}
 
         <div className="mt-6">

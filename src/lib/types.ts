@@ -74,7 +74,15 @@ export interface Vendor {
   shop_name: string | null;
   bio: string | null;
   city: string | null;
+  /**
+   * Le vendeur prend la livraison à sa charge : mis en avant sur sa fiche
+   * publique et, à la caisse, la livraison à domicile n'est pas facturée au
+   * client pour les tissus qu'il vend.
+   */
+  free_delivery: boolean;
   cover_url: string | null;
+  rating: number;
+  rating_count: number;
   is_active: boolean;
   /** Suspendu par l'administration : bloqué et masqué du catalogue public. */
   is_suspended: boolean;
@@ -235,6 +243,22 @@ export interface Review {
   order_id: string;
   client_id: string;
   tailor_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+/**
+ * Avis d'un client sur un vendeur de tissu — pendant de {@link Review} côté
+ * boutique. Rattaché à une commande de tissu livrée ; `fabric_id` garde le
+ * tissu concerné pour l'afficher sur sa fiche.
+ */
+export interface VendorReview {
+  id: string;
+  order_id: string;
+  client_id: string;
+  vendor_id: string;
+  fabric_id: string | null;
   rating: number;
   comment: string | null;
   created_at: string;

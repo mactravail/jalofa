@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { ReviewRow } from "@/lib/admin-data";
+import type { ReviewRow, VendorReviewRow } from "@/lib/admin-data";
 import type { OrderStatus, OrderType, PaymentMethod } from "@/lib/constants";
 import { TAILORS, VENDORS } from "@/lib/fixtures";
 import type { OrderListItem } from "@/lib/orders-data";
@@ -264,5 +264,59 @@ export const DEMO_REVIEWS: ReviewRow[] = [
     created_at: daysAgo(3),
     client: { full_name: "Ndeye Fall" },
     tailor: { shop_name: "Atelier Fatou Couture" },
+  },
+];
+
+/** Avis clients sur les vendeurs de tissu, joints à l'auteur et à la boutique. */
+export const DEMO_VENDOR_REVIEWS: VendorReviewRow[] = [
+  {
+    id: "demo-vreview-1",
+    order_id: "demo-order-3001",
+    client_id: "demo-client-bineta",
+    vendor_id: V_HLM,
+    fabric_id: "demo-coton-bleu-marine",
+    rating: 5,
+    comment:
+      "Sergé conforme à la photo, métrage exact et livraison rapide à Dakar.",
+    created_at: daysAgo(12),
+    client: { full_name: "Bineta Gueye" },
+    vendor: { shop_name: VENDOR_SHOP[V_HLM] ?? null },
+  },
+  {
+    id: "demo-vreview-2",
+    order_id: "demo-order-3003",
+    client_id: "demo-client-ndeye",
+    vendor_id: V_TOUBA,
+    fabric_id: "demo-laine-vert-foret",
+    rating: 5,
+    comment:
+      "Bazin teinté main superbe, la couleur est profonde et régulière.",
+    created_at: daysAgo(8),
+    client: { full_name: "Ndeye Fall" },
+    vendor: { shop_name: VENDOR_SHOP[V_TOUBA] ?? null },
+  },
+  {
+    id: "demo-vreview-3",
+    order_id: "demo-order-3002",
+    client_id: "demo-client-pape",
+    vendor_id: V_HLM,
+    fabric_id: "demo-serge-bordeaux",
+    rating: 4,
+    comment: "Belle matière, bien dense. Prévoir la marge sur le métrage.",
+    created_at: daysAgo(5),
+    client: { full_name: "Pape Ndoye" },
+    vendor: { shop_name: VENDOR_SHOP[V_HLM] ?? null },
+  },
+  {
+    id: "demo-vreview-4",
+    order_id: "demo-order-3004",
+    client_id: "demo-client-ousmane",
+    vendor_id: V_KHADI,
+    fabric_id: "demo-lin-terracotta",
+    rating: 5,
+    comment: "Lin haut de gamme, toucher agréable et emballage soigné.",
+    created_at: daysAgo(4),
+    client: { full_name: "Ousmane Ba" },
+    vendor: { shop_name: VENDOR_SHOP[V_KHADI] ?? null },
   },
 ];

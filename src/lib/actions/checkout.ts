@@ -150,32 +150,80 @@ export async function placeOrders(
     return { ok: false, error: "Vous devez être connecté pour commander." };
   }
 
-  // Livraison offerte : gratuite si tout le panier vient de tailleurs qui la
-  // prennent à leur charge. Une ligne « tissu seul » n'a pas de tailleur, sa
-  // présence conserve donc les frais. Les lignes `tailors` font foi ici, quel
-  // que soit l'instantané côté client.
+  // Livraison offerte : gratuite seulement si CHAQUE ligne vient d'un pro qui la
+  // prend à sa charge — le tailleur pour une tenue cousue, le vendeur du tissu
+  // pour une ligne « tissu seul ». Les lignes faisant foi (base) tranchent ici,
+  // quel que soit l'instantané côté client.
   let deliveryFee = payload.delivery_method === "home" ? DELIVERY_FEE : 0;
-  if (deliveryFee > 0) {
-    const madeItems = payload.items.filter((it) => it.type !== "fabric_only");
-    const tailorIds = madeItems
-      .map((it) => it.tailor_id)
-      .filter((id): id is string => Boolean(id));
-    const allItemsHaveTailor =
-      madeItems.length === payload.items.length &&
-      tailorIds.length === madeItems.length &&
-      tailorIds.length > 0;
-    if (allItemsHaveTailor) {
-      const { data: tailorRows } = await supabase
+  if (deliveryFee > 0 && payload.items.length > 0) {
+    // Tailleurs des tenues cousues.
+    const tailorIds = [
+      ...new Set(
+        payload.items
+          .filter((it) => it.type !== "fabric_only")
+          .map((it) => it.tailor_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const tailorFree = new Map<string, boolean>();
+    if (tailorIds.length) {
+      const { data: rows } = await supabase
         .from("tailors")
         .select("id, free_delivery")
-        .in("id", [...new Set(tailorIds)]);
-      const freeById = new Map(
-        (tailorRows ?? []).map((t) => [t.id as string, Boolean(t.free_delivery)]),
-      );
-      if (madeItems.every((it) => freeById.get(it.tailor_id as string) === true)) {
-        deliveryFee = 0;
-      }
+        .in("id", tailorIds);
+      for (const t of rows ?? [])
+        tailorFree.set(t.id as string, Boolean(t.free_delivery));
     }
+
+    // Vendeurs des lignes « tissu seul », rejoints via le tissu qui porte le
+    // `vendor_id`.
+    const fabricIds = [
+      ...new Set(
+        payload.items
+          .filter((it) => it.type === "fabric_only")
+          .map((it) => it.fabric_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const vendorFreeByFabric = new Map<string, boolean>();
+    if (fabricIds.length) {
+      const { data: fabricRows } = await supabase
+        .from("fabrics")
+        .select("id, vendor_id")
+        .in("id", fabricIds);
+      const vendorIds = [
+        ...new Set(
+          (fabricRows ?? [])
+            .map((f) => f.vendor_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      const vendorFree = new Map<string, boolean>();
+      if (vendorIds.length) {
+        const { data: vendorRows } = await supabase
+          .from("vendors")
+          .select("id, free_delivery")
+          .in("id", vendorIds);
+        for (const v of vendorRows ?? [])
+          vendorFree.set(v.id as string, Boolean(v.free_delivery));
+      }
+      for (const f of fabricRows ?? [])
+        vendorFreeByFabric.set(
+          f.id as string,
+          f.vendor_id ? vendorFree.get(f.vendor_id as string) === true : false,
+        );
+    }
+
+    const allFree = payload.items.every((it) =>
+      it.type === "fabric_only"
+        ? it.fabric_id
+          ? vendorFreeByFabric.get(it.fabric_id) === true
+          : false
+        : it.tailor_id
+          ? tailorFree.get(it.tailor_id) === true
+          : false,
+    );
+    if (allFree) deliveryFee = 0;
   }
 
   // One shared address row for the whole basket.

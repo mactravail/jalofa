@@ -35,6 +35,7 @@ export function FabricBuyPanel({
   uses,
   vendorName,
   vendorHref,
+  vendorFreeDelivery,
   rating,
   reviewCount,
   orders,
@@ -45,6 +46,8 @@ export function FabricBuyPanel({
   uses: BuyPanelUse[];
   vendorName: string | null;
   vendorHref: string | null;
+  /** Le vendeur prend la livraison à sa charge : elle n'est pas facturée. */
+  vendorFreeDelivery: boolean;
   rating: number;
   reviewCount: number;
   orders: number;
@@ -77,9 +80,9 @@ export function FabricBuyPanel({
       image: fabric.image_url,
       styleName: null,
       tailorName: null,
-      // Une ligne « tissu seul » n'a pas de tailleur : elle ne bénéficie
-      // d'aucune livraison offerte (cf. basketHasFreeDelivery).
-      freeDelivery: false,
+      // Livraison offerte si le vendeur du tissu la prend à sa charge
+      // (cf. basketHasFreeDelivery).
+      freeDelivery: vendorFreeDelivery,
       personalisation: [{ group: "Métrage", option: formatMeters(meters) }],
       measurementLabel: null,
       unitFabricPrice: total,
@@ -260,9 +263,19 @@ export function FabricBuyPanel({
         <div className="flex items-start gap-2.5">
           <Truck className="mt-0.5 size-4 shrink-0" />
           <div>
-            <dt className="font-medium">Livraison à domicile — {formatPrice(DELIVERY_FEE)}</dt>
+            <dt className="font-medium">
+              {vendorFreeDelivery ? (
+                <>
+                  Livraison à domicile — <span className="text-primary">offerte</span>
+                </>
+              ) : (
+                <>Livraison à domicile — {formatPrice(DELIVERY_FEE)}</>
+              )}
+            </dt>
             <dd className="text-muted-foreground text-xs">
-              Dakar sous 48 h, régions sous 3 à 5 jours. Payable à la caisse.
+              {vendorFreeDelivery
+                ? `${vendorName ? `${vendorName} prend ` : "Le vendeur prend "}la livraison à sa charge. Dakar sous 48 h, régions sous 3 à 5 jours.`
+                : "Dakar sous 48 h, régions sous 3 à 5 jours. Payable à la caisse."}
             </dd>
           </div>
         </div>

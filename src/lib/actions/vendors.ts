@@ -71,6 +71,7 @@ export async function saveVendorProfile(
       shop_name,
       bio: text(formData.get("bio")),
       city: text(formData.get("city")),
+      free_delivery: formData.get("free_delivery") === "on",
       cover_url,
       is_active: formData.get("is_active") === "on",
     })

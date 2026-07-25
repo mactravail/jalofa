@@ -165,6 +165,23 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
       <label className="flex items-start gap-2 text-sm">
         <input
           type="checkbox"
+          name="free_delivery"
+          defaultChecked={vendor.free_delivery}
+          className="accent-primary mt-0.5 size-4 rounded"
+        />
+        <span>
+          J&apos;offre la livraison à mes clients
+          <span className="text-muted-foreground block text-xs">
+            Affiché sur votre fiche publique. À la caisse, la livraison à
+            domicile n&apos;est pas facturée au client pour les tissus que vous
+            vendez.
+          </span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
           name="is_active"
           defaultChecked={vendor.is_active}
           className="accent-primary mt-0.5 size-4 rounded"

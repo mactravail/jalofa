@@ -7,10 +7,11 @@ import { FabricBuyPanel } from "@/components/catalog/fabric-buy-panel";
 import { FabricCard } from "@/components/catalog/fabric-card";
 import { FabricReviews } from "@/components/catalog/fabric-reviews";
 import { FabricShowcase } from "@/components/catalog/fabric-showcase";
+import { ReviewList } from "@/components/catalog/review-list";
 import { DemoBanner } from "@/components/demo-banner";
 import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
-import { getFabricById, getFabrics, getVendorById } from "@/lib/data";
+import { getFabricById, getFabricReviews, getFabrics, getVendorById } from "@/lib/data";
 import { formatMeters } from "@/lib/fabric-metrage";
 import { fabricSocialProof } from "@/lib/fabric-social-proof";
 import { AUDIENCE_LABELS, audiencesOf, fabricProfile, pricedUse } from "@/lib/fabric-usage";
@@ -49,6 +50,11 @@ export default async function FabricDetailPage({
   const shop = vendor && !vendor.is_suspended ? vendor : null;
 
   const family = await getFabrics({ category: fabric.category_slug ?? undefined });
+
+  // Avis vérifiés portant sur CE tissu (clients qui l'ont réellement acheté et
+  // reçu). Distincts de la preuve sociale synthétique ci-dessous, ils ne
+  // s'affichent que s'il en existe.
+  const fabricReviews = await getFabricReviews(id);
 
   // Coloris : le même tissu décliné, c'est-à-dire la même matière chez le
   // catalogue. Une matière unique n'affiche pas de nuancier.
@@ -118,6 +124,7 @@ export default async function FabricDetailPage({
           uses={uses.map(({ use, meters }) => ({ label: use.label, meters }))}
           vendorName={shop?.shop_name ?? vendor?.shop_name ?? null}
           vendorHref={shop ? `/vendeurs/${shop.id}` : null}
+          vendorFreeDelivery={vendor?.free_delivery ?? false}
           rating={proof.rating}
           reviewCount={proof.reviewCount}
           orders={proof.orders}
@@ -128,6 +135,22 @@ export default async function FabricDetailPage({
       <div className="mt-16 border-t pt-12">
         <FabricReviews proof={proof} />
       </div>
+
+      {/* Avis vérifiés de clients ayant acheté ce tissu (s'il y en a) */}
+      {fabricReviews.length > 0 && (
+        <section id="avis-verifies" className="mt-12">
+          <h2 className="font-serif text-2xl tracking-tight">
+            Avis vérifiés
+            <span className="text-muted-foreground ml-2 text-base font-normal">
+              ({fabricReviews.length})
+            </span>
+          </h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            De clients ayant acheté et reçu ce tissu.
+          </p>
+          <ReviewList reviews={fabricReviews} />
+        </section>
+      )}
 
       {/* À quoi sert ce tissu — la question n°1 devant un rouleau */}
       <section className="mt-16">

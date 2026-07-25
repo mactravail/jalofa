@@ -9,6 +9,7 @@ import {
   STYLES,
   TAILORS,
   VENDORS,
+  VENDOR_REVIEWS,
 } from "@/lib/fixtures";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,7 @@ import type {
   Style,
   Tailor,
   Vendor,
+  VendorReview,
 } from "@/lib/types";
 
 export type FabricFilters = {
@@ -406,24 +408,97 @@ export async function getCurrentVendor(): Promise<Vendor | null> {
 
 // --- Reviews ---------------------------------------------------------------
 
-/** Un avis destiné à l'affichage : la ligne `reviews` + le nom de son auteur. */
-export type TailorReview = Review & { author_name: string | null };
+/**
+ * Un avis destiné à l'affichage : la ligne `reviews`, le nom de son auteur et
+ * ses éventuelles photos (jusqu'à 3, jointes par le client).
+ */
+export type TailorReview = Review & {
+  author_name: string | null;
+  photos: string[];
+};
 
-type ReviewRow = Review & { client?: { full_name: string | null } | null };
+type ReviewRow = Review & {
+  client?: { full_name: string | null } | null;
+  review_photos?: { image_url: string }[] | null;
+};
 
 /** Avis publics d'un tailleur, du plus récent au plus ancien. */
 export async function getTailorReviews(tailorId: string): Promise<TailorReview[]> {
   if (!isSupabaseConfigured()) {
-    return REVIEWS.filter((r) => r.tailor_id === tailorId);
+    return REVIEWS.filter((r) => r.tailor_id === tailorId).map((r) => ({
+      ...r,
+      photos: [],
+    }));
   }
   const supabase = await createClient();
   const { data } = await supabase
     .from("reviews")
-    .select("*, client:profiles!reviews_client_id_fkey(full_name)")
+    .select(
+      "*, client:profiles!reviews_client_id_fkey(full_name), review_photos(image_url)",
+    )
     .eq("tailor_id", tailorId)
     .order("created_at", { ascending: false });
   return ((data as ReviewRow[]) ?? []).map((r) => ({
     ...r,
     author_name: r.client?.full_name ?? null,
+    photos: (r.review_photos ?? []).map((p) => p.image_url),
   }));
+}
+
+/**
+ * Un avis vendeur destiné à l'affichage : la ligne `fabric_reviews`, le nom de
+ * l'auteur et ses éventuelles photos (jusqu'à 3, jointes par le client).
+ */
+export type VendorReviewView = VendorReview & {
+  author_name: string | null;
+  photos: string[];
+};
+
+type VendorReviewRow = VendorReview & {
+  client?: { full_name: string | null } | null;
+  fabric_review_photos?: { image_url: string }[] | null;
+};
+
+function mapVendorReview(r: VendorReviewRow): VendorReviewView {
+  return {
+    ...r,
+    author_name: r.client?.full_name ?? null,
+    photos: (r.fabric_review_photos ?? []).map((p) => p.image_url),
+  };
+}
+
+/** Avis publics d'un vendeur de tissu, du plus récent au plus ancien. */
+export async function getVendorReviews(
+  vendorId: string,
+): Promise<VendorReviewView[]> {
+  if (!isSupabaseConfigured()) {
+    return VENDOR_REVIEWS.filter((r) => r.vendor_id === vendorId);
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("fabric_reviews")
+    .select(
+      "*, client:profiles!fabric_reviews_client_id_fkey(full_name), fabric_review_photos(image_url)",
+    )
+    .eq("vendor_id", vendorId)
+    .order("created_at", { ascending: false });
+  return ((data as VendorReviewRow[]) ?? []).map(mapVendorReview);
+}
+
+/** Avis vérifiés portant sur un tissu précis (via la commande notée). */
+export async function getFabricReviews(
+  fabricId: string,
+): Promise<VendorReviewView[]> {
+  if (!isSupabaseConfigured()) {
+    return VENDOR_REVIEWS.filter((r) => r.fabric_id === fabricId);
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("fabric_reviews")
+    .select(
+      "*, client:profiles!fabric_reviews_client_id_fkey(full_name), fabric_review_photos(image_url)",
+    )
+    .eq("fabric_id", fabricId)
+    .order("created_at", { ascending: false });
+  return ((data as VendorReviewRow[]) ?? []).map(mapVendorReview);
 }

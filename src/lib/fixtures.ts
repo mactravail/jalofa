@@ -7,6 +7,7 @@ import type {
   Style,
   Tailor,
   Vendor,
+  VendorReview,
 } from "@/lib/types";
 
 // Local demo data — mirrors supabase/seed.sql. Used as a fallback so the whole
@@ -899,7 +900,10 @@ export const VENDORS: Vendor[] = [
     shop_name: "Tissus Marché HLM",
     bio: "Bazin riche, wax et getzner au cœur du plus grand marché de Dakar.",
     city: "Dakar",
+    free_delivery: true,
     cover_url: img("marchehlm"),
+    rating: 4.8,
+    rating_count: 37,
     is_active: true,
     is_suspended: false,
     suspension_reason: null,
@@ -912,7 +916,10 @@ export const VENDORS: Vendor[] = [
     shop_name: "Bazin & Wax Touba",
     bio: "Grossiste en bazin teinté main, spécialiste des grandes cérémonies.",
     city: "Touba",
+    free_delivery: false,
     cover_url: img("bazintouba"),
+    rating: 4.6,
+    rating_count: 21,
     is_active: true,
     is_suspended: false,
     suspension_reason: null,
@@ -925,7 +932,10 @@ export const VENDORS: Vendor[] = [
     shop_name: "Khadi Textiles",
     bio: "Lin, coton et soie importés, sélection haut de gamme pour le sur-mesure.",
     city: "Dakar",
+    free_delivery: true,
     cover_url: img("khaditextiles"),
+    rating: 4.9,
+    rating_count: 14,
     is_active: true,
     is_suspended: false,
     suspension_reason: null,
@@ -994,5 +1004,67 @@ export const REVIEWS: (Review & { author_name: string | null })[] = [
       "Kaftan correct mais le tissu fourni n'a pas été très bien repassé.",
     created_at: daysAgo(6),
     author_name: "Fatou Ndiaye",
+  },
+];
+
+// Avis clients de démonstration sur les VENDEURS de tissu (pendant de REVIEWS
+// côté boutique). `photos` reprend des visuels de tissu du dossier public pour
+// illustrer un avis avec pièces jointes. `fabric_id` relie l'avis au tissu acheté
+// pour l'afficher sur sa fiche.
+export const VENDOR_REVIEWS: (VendorReview & {
+  author_name: string | null;
+  photos: string[];
+})[] = [
+  {
+    id: "demo-vreview-hlm-1",
+    order_id: "demo-order-3001",
+    client_id: "demo-client-bineta",
+    vendor_id: "demo-vendor-hlm",
+    fabric_id: "demo-coton-bleu-marine",
+    rating: 5,
+    comment:
+      "Sergé conforme à la photo, métrage exact et livraison rapide à Dakar. Mon tailleur a adoré la coupe.",
+    created_at: daysAgo(12),
+    author_name: "Bineta Gueye",
+    photos: [fabricImg(3), fabricImg(9)],
+  },
+  {
+    id: "demo-vreview-hlm-2",
+    order_id: "demo-order-3002",
+    client_id: "demo-client-pape",
+    vendor_id: "demo-vendor-hlm",
+    fabric_id: "demo-serge-bordeaux",
+    rating: 4,
+    comment:
+      "Belle matière, bien dense. Prévoir la marge, j'étais juste sur mon métrage.",
+    created_at: daysAgo(5),
+    author_name: "Pape Ndoye",
+    photos: [],
+  },
+  {
+    id: "demo-vreview-touba-1",
+    order_id: "demo-order-3003",
+    client_id: "demo-client-ndeye",
+    vendor_id: "demo-vendor-touba",
+    fabric_id: "demo-laine-vert-foret",
+    rating: 5,
+    comment:
+      "Bazin teinté main superbe, la couleur est profonde et régulière. Rendu impeccable pour la cérémonie.",
+    created_at: daysAgo(8),
+    author_name: "Ndeye Fall",
+    photos: [fabricImg(1)],
+  },
+  {
+    id: "demo-vreview-khadi-1",
+    order_id: "demo-order-3004",
+    client_id: "demo-client-ousmane",
+    vendor_id: "demo-vendor-khadi",
+    fabric_id: "demo-lin-terracotta",
+    rating: 5,
+    comment:
+      "Lin haut de gamme, toucher agréable et emballage soigné. Je recommande cette boutique.",
+    created_at: daysAgo(4),
+    author_name: "Ousmane Ba",
+    photos: [fabricImg(11), fabricImg(13)],
   },
 ];
