@@ -11,6 +11,9 @@ const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
   month: "short",
   year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Africa/Dakar",
 });
 
 type Variant = NonNullable<Parameters<typeof badgeVariants>[0]>["variant"];

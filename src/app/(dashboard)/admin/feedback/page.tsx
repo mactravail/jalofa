@@ -18,6 +18,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Africa/Dakar",
 });
 
 /** La teinte de la pastille par catégorie — le rouge signale un problème. */
