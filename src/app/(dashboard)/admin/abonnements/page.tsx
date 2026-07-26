@@ -3,7 +3,11 @@ import {
   SubscriptionRow,
   type ProAccount,
 } from "@/components/admin/subscription-row";
-import { getAllTailors, getAllVendors } from "@/lib/admin-data";
+import {
+  getAllTailors,
+  getAllVendors,
+  getContactDirectory,
+} from "@/lib/admin-data";
 import type { ProRole } from "@/lib/dashboard-nav";
 import { isSupabaseConfigured } from "@/lib/queries";
 
@@ -15,20 +19,26 @@ import { isSupabaseConfigured } from "@/lib/queries";
  * bloc.
  */
 export default async function AdminSubscriptionsPage() {
-  const [tailors, vendors] = await Promise.all([
+  const [tailors, vendors, directory] = await Promise.all([
     getAllTailors(),
     getAllVendors(),
+    getContactDirectory(),
   ]);
 
   // Fusion des deux boutiques par compte (l'id d'une boutique = l'id du profil).
+  // On joint chaque compte à son profil (`directory`) pour afficher qui contacter.
   const accounts = new Map<string, ProAccount>();
   for (const t of tailors) {
+    const owner = directory.get(t.id);
     accounts.set(t.id, {
       id: t.id,
       name: t.shop_name ?? "Prestataire",
       plan: t.plan,
       metiers: ["tailor"],
       is_activated: t.is_activated,
+      owner_name: owner?.full_name ?? null,
+      email: owner?.email ?? null,
+      phone: owner?.phone ?? null,
     });
   }
   for (const v of vendors) {
@@ -37,12 +47,16 @@ export default async function AdminSubscriptionsPage() {
       existing.metiers.push("vendor" as ProRole);
       existing.is_activated = existing.is_activated || v.is_activated;
     } else {
+      const owner = directory.get(v.id);
       accounts.set(v.id, {
         id: v.id,
         name: v.shop_name ?? "Prestataire",
         plan: v.plan,
         metiers: ["vendor"],
         is_activated: v.is_activated,
+        owner_name: owner?.full_name ?? null,
+        email: owner?.email ?? null,
+        phone: owner?.phone ?? null,
       });
     }
   }

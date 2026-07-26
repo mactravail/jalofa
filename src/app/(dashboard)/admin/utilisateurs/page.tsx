@@ -1,9 +1,9 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AdminPage } from "@/components/admin/admin-page";
+import { ContactInfo } from "@/components/admin/contact-info";
 import { RoleBadge } from "@/components/admin/status-badges";
-import { getAllUsers } from "@/lib/admin-data";
+import { getAllUsersWithContact, type ProfileWithContact } from "@/lib/admin-data";
 import type { UserRole } from "@/lib/constants";
-import type { Profile } from "@/lib/types";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -14,7 +14,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
 const ROLE_ORDER: UserRole[] = ["admin", "tailor", "vendor", "client"];
 
 export default async function AdminUsersPage() {
-  const users = await getAllUsers();
+  const users = await getAllUsersWithContact();
 
   // Les comptes à privilèges d'abord, puis les clients ; du plus récent ensuite.
   const sorted = [...users].sort((a, b) => {
@@ -43,7 +43,7 @@ export default async function AdminUsersPage() {
   );
 }
 
-function UserRow({ user }: { user: Profile }) {
+function UserRow({ user }: { user: ProfileWithContact }) {
   const initials = (user.full_name ?? "?")
     .split(" ")
     .map((p) => p[0])
@@ -52,8 +52,8 @@ function UserRow({ user }: { user: Profile }) {
     .toUpperCase();
 
   return (
-    <div className="flex items-center gap-3 p-4">
-      <Avatar className="size-9">
+    <div className="flex items-start gap-3 p-4">
+      <Avatar className="size-9 shrink-0">
         <AvatarFallback className="bg-primary/10 text-primary text-xs">
           {initials}
         </AvatarFallback>
@@ -61,11 +61,17 @@ function UserRow({ user }: { user: Profile }) {
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">
           {user.full_name ?? "Compte sans nom"}
+          {user.city && (
+            <span className="text-muted-foreground font-normal">
+              {" "}· {user.city}
+            </span>
+          )}
         </p>
-        <p className="text-muted-foreground truncate text-xs">
-          {user.city ?? "—"}
-          {user.phone && ` · ${user.phone}`}
-        </p>
+        <ContactInfo
+          email={user.email}
+          phone={user.phone}
+          className="mt-1"
+        />
       </div>
       <div className="shrink-0 text-right">
         <RoleBadge role={user.role} />

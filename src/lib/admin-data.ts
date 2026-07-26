@@ -126,6 +126,68 @@ export const getAllUsers = cache(async (): Promise<Profile[]> => {
   return (data as Profile[]) ?? [];
 });
 
+/** En démo, un e-mail lisible dérivé du nom (« bineta.gueye@exemple.sn »). */
+function demoEmail(name: string | null): string {
+  const base = (name ?? "compte")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "") // enlève les accents (Aïssatou → aissatou)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+  return `${base || "compte"}@exemple.sn`;
+}
+
+/**
+ * id du compte → e-mail. L'e-mail vit dans `auth.users` (hors table `profiles`),
+ * on le lit donc à part avec la clé de service. En démo, on en fabrique un
+ * lisible depuis le nom pour que l'aperçu montre bien « e-mail + téléphone ».
+ */
+export const getUserEmails = cache(async (): Promise<Map<string, string>> => {
+  const emails = new Map<string, string>();
+  if (!isSupabaseConfigured()) {
+    for (const u of DEMO_USERS) emails.set(u.id, demoEmail(u.full_name));
+    return emails;
+  }
+  const supabase = await adminDb();
+  if (!supabase) return emails;
+  // `listUsers` pagine (50 comptes/page par défaut) : on ratisse page par page
+  // jusqu'à épuisement pour n'oublier personne.
+  const perPage = 200;
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+    if (error || !data) break;
+    for (const u of data.users) if (u.email) emails.set(u.id, u.email);
+    if (data.users.length < perPage) break;
+  }
+  return emails;
+});
+
+/** Un profil enrichi de son e-mail — de quoi savoir qui contacter. */
+export type ProfileWithContact = Profile & { email: string | null };
+
+/** Tous les comptes, chacun joint à son e-mail (`auth.users`). */
+export const getAllUsersWithContact = cache(
+  async (): Promise<ProfileWithContact[]> => {
+    const [users, emails] = await Promise.all([getAllUsers(), getUserEmails()]);
+    return users.map((u) => ({ ...u, email: emails.get(u.id) ?? null }));
+  },
+);
+
+/**
+ * Annuaire des comptes par id — nom, e-mail, téléphone — pour retrouver, à
+ * partir d'un id (auteur d'un retour, propriétaire d'une boutique), la personne
+ * exacte à contacter.
+ */
+export const getContactDirectory = cache(
+  async (): Promise<Map<string, ProfileWithContact>> => {
+    const users = await getAllUsersWithContact();
+    return new Map(users.map((u) => [u.id, u]));
+  },
+);
+
 export const getAllTailors = cache(async (): Promise<Tailor[]> => {
   if (!isSupabaseConfigured()) return TAILORS;
   const supabase = await adminDb();

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, Loader2, Lock, Scissors, Store } from "lucide-react";
 import { toast } from "sonner";
 
+import { ContactInfo } from "@/components/admin/contact-info";
 import { PlanBadge } from "@/components/admin/status-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,12 @@ export type ProAccount = {
   /** Les métiers pour lesquels une boutique existe (un pour Standard, deux pour Premium/Gratuit). */
   metiers: ProRole[];
   is_activated: boolean;
+  /** Le nom du propriétaire du compte — pour savoir qui contacter. */
+  owner_name?: string | null;
+  /** E-mail du compte (lu depuis `auth.users`). */
+  email?: string | null;
+  /** Téléphone renseigné à l'inscription. */
+  phone?: string | null;
 };
 
 const METIER_LABEL: Record<ProRole, string> = {
@@ -107,6 +114,20 @@ export function SubscriptionRow({
             <span>Sans abonnement (commission sur les ventes)</span>
           )}
         </p>
+
+        {/* Qui contacter : propriétaire du compte + coordonnées. */}
+        {(account.owner_name || account.email || account.phone) && (
+          <div className="mt-2">
+            {account.owner_name && (
+              <p className="text-sm">{account.owner_name}</p>
+            )}
+            <ContactInfo
+              email={account.email}
+              phone={account.phone}
+              className="mt-0.5"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

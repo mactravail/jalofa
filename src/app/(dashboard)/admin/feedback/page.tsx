@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 
 import { AdminPage } from "@/components/admin/admin-page";
+import { ContactInfo } from "@/components/admin/contact-info";
 import { FeedbackAdminActions } from "@/components/feedback/feedback-admin-actions";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,7 +9,7 @@ import {
   FEEDBACK_SPACE_LABELS,
   type FeedbackCategory,
 } from "@/lib/constants";
-import { getAllFeedback } from "@/lib/admin-data";
+import { getAllFeedback, getContactDirectory } from "@/lib/admin-data";
 import { cn } from "@/lib/utils";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
@@ -30,7 +31,10 @@ const CATEGORY_TONE: Record<FeedbackCategory, string> = {
 };
 
 export default async function AdminFeedbackPage() {
-  const feedback = await getAllFeedback();
+  const [feedback, directory] = await Promise.all([
+    getAllFeedback(),
+    getContactDirectory(),
+  ]);
   const newCount = feedback.filter((f) => f.status === "new").length;
 
   return (
@@ -54,6 +58,9 @@ export default async function AdminFeedbackPage() {
           <div className="divide-y rounded-xl border">
             {feedback.map((f) => {
               const resolved = f.status === "resolved";
+              const author = f.author_id
+                ? directory.get(f.author_id)
+                : undefined;
               return (
                 <div
                   key={f.id}
@@ -85,9 +92,16 @@ export default async function AdminFeedbackPage() {
 
                     <p className="mt-2 text-sm whitespace-pre-wrap">{f.message}</p>
 
-                    <p className="text-muted-foreground mt-1.5 text-xs">
-                      {f.author_name ?? "Utilisateur"}
-                    </p>
+                    <div className="mt-2 border-t pt-2">
+                      <p className="text-sm font-medium">
+                        {author?.full_name ?? f.author_name ?? "Utilisateur"}
+                      </p>
+                      <ContactInfo
+                        email={author?.email}
+                        phone={author?.phone}
+                        className="mt-0.5"
+                      />
+                    </div>
                   </div>
 
                   <FeedbackAdminActions id={f.id} status={f.status} />

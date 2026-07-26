@@ -16,7 +16,7 @@ const ROLE_LANDING: Record<string, string> = {
   client: "/compte",
   tailor: "/tailleur/espace",
   vendor: "/vendeur/espace",
-  admin: "/compte",
+  admin: "/admin",
 };
 
 export async function signIn(
