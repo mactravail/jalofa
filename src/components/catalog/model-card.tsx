@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { modelPhotos } from "@/lib/constants";
+import { formatPrice, modelPhotos } from "@/lib/constants";
 import { DEDICATED_HREF } from "@/lib/garment-routes";
 import type { GarmentModel } from "@/lib/types";
 
@@ -49,6 +49,11 @@ export function ModelCard({ model, context }: { model: GarmentModel; context?: s
       </div>
       <div className="p-3">
         <h3 className="line-clamp-1 font-medium">{model.name}</h3>
+        {model.price != null && (
+          <p className="text-primary mt-1 text-sm font-semibold">
+            À partir de {formatPrice(model.price)}
+          </p>
+        )}
         <div className="text-muted-foreground mt-1.5 flex items-center gap-2 text-xs">
           <Clock className="size-3.5" />~{model.avg_days} jours
           {model.difficulty && (

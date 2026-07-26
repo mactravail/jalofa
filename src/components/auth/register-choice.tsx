@@ -15,19 +15,18 @@ type Choice = {
 
 /**
  * Premier écran de « Créer un compte » : on demande d'abord **qui** s'inscrit.
- * Un client qui veut seulement commander ne doit jamais tomber sur les tarifs
- * pros — il part directement vers le formulaire client. Les tailleurs et
- * vendeurs, eux, passent par les offres (c'est là que se décide leur métier et
- * leur abonnement).
+ * Chacun part directement vers son formulaire — client, tailleur ou vendeur.
+ * L'inscription est **gratuite pour tout le monde** : les pros ouvrent leur
+ * compte et vendent sans abonnement, sans commission ni frais. Plus de passage
+ * par une page de tarifs.
  */
 export function RegisterChoice({ redirect }: { redirect?: string }) {
-  const clientHref = redirect
-    ? `/inscription?role=client&redirect=${encodeURIComponent(redirect)}`
-    : "/inscription?role=client";
+  const withRedirect = (href: string) =>
+    redirect ? `${href}&redirect=${encodeURIComponent(redirect)}` : href;
 
   const choices: Choice[] = [
     {
-      href: clientHref,
+      href: withRedirect("/inscription?role=client"),
       icon: Shirt,
       title: "Je suis client",
       desc: "Commander des tenues sur mesure et suivre leur confection.",
@@ -35,18 +34,18 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
       featured: true,
     },
     {
-      href: "/abonnements?metier=tailor",
+      href: withRedirect("/inscription?role=tailor"),
       icon: Scissors,
       title: "Je suis tailleur",
       desc: "Confectionner des tenues et recevoir des commandes.",
-      cta: "Voir les offres tailleur",
+      cta: "Créer mon compte tailleur — gratuit",
     },
     {
-      href: "/abonnements?metier=vendor",
+      href: withRedirect("/inscription?role=vendor"),
       icon: Store,
       title: "Je suis vendeur de tissu",
       desc: "Vendre vos tissus à toute la communauté JALOFA.",
-      cta: "Voir les offres vendeur",
+      cta: "Créer mon compte vendeur — gratuit",
     },
   ];
 

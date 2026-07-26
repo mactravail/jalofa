@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import { rejectOrder, updateOrderStatus } from "@/lib/actions/orders";
+import { quoteOrder, rejectOrder, updateOrderStatus } from "@/lib/actions/orders";
 import type { OrderStatus, RejectionReason } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
@@ -22,27 +22,30 @@ import { bucketOrders, type OrderBucket } from "@/lib/pipeline";
 // menu, les trois piles et la vue d'ensemble lisent toutes la même liste, sinon
 // chaque page aurait sa propre idée de l'avancement.
 //
-// Mode démo (Supabase pas encore branché) : avancer une commande n'a pas de
-// base où écrire. Le nouveau statut est gardé dans le navigateur, ce qui permet
-// de parcourir le pipeline de bout en bout — d'« À traiter » à « Livré » — en
-// attendant le provisioning. Une fois la base branchée, ces statuts locaux ne
-// sont plus lus : `move` passe par la server action.
+// Mode démo (Supabase pas encore branché) : agir sur une commande n'a pas de
+// base où écrire. Le changement est gardé dans le navigateur sous forme de
+// patch (statut avancé, motif de refus, prix d'un devis…), ce qui permet de
+// parcourir le pipeline de bout en bout — d'« À traiter » à « Livré » — en
+// attendant le provisioning. Une fois la base branchée, ces patchs locaux ne
+// sont plus lus : chaque geste passe par sa server action.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "nataal.demo.pipeline.v1";
+const STORAGE_KEY = "nataal.demo.pipeline.v2";
 
-/** Statuts déplacés en mode démo, par id de commande. */
-type DemoStatuses = Record<string, OrderStatus>;
+/** Champs de commande modifiés en mode démo, par id de commande. */
+type DemoPatches = Record<string, Partial<OrderListItem>>;
 
 type PipelineValue = {
   role: ProRole;
-  /** Les commandes du métier, statuts de démo appliqués le cas échéant. */
+  /** Les commandes du métier, patchs de démo appliqués le cas échéant. */
   orders: OrderListItem[];
   demo: boolean;
   /** Fait passer une commande à l'étape demandée. */
   move: (orderId: string, status: OrderStatus) => Promise<void>;
   /** Refuse une commande en enregistrant le motif (le client en est notifié). */
   reject: (orderId: string, reason: RejectionReason) => Promise<void>;
+  /** Chiffre une demande de devis : fixe le prix de confection. */
+  quote: (orderId: string, price: number) => Promise<void>;
 };
 
 const PipelineContext = createContext<PipelineValue | null>(null);
@@ -58,7 +61,7 @@ export function PipelineProvider({
   demo: boolean;
   children: React.ReactNode;
 }) {
-  const [statuses, setStatuses] = useState<DemoStatuses>({});
+  const [patches, setPatches] = useState<DemoPatches>({});
   const [hydrated, setHydrated] = useState(false);
 
   // Lecture unique après le montage : le premier rendu client part des statuts
@@ -71,7 +74,7 @@ export function PipelineProvider({
       const parsed: unknown = raw ? JSON.parse(raw) : null;
       if (parsed && typeof parsed === "object") {
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setStatuses(parsed as DemoStatuses);
+        setPatches(parsed as DemoPatches);
       }
     } catch {
       // Stockage illisible ou corrompu — on repart des statuts d'origine.
@@ -79,48 +82,66 @@ export function PipelineProvider({
     setHydrated(true);
   }, [demo]);
 
-  // Persistance à chaque déplacement, une fois la lecture initiale faite.
+  // Persistance à chaque changement, une fois la lecture initiale faite.
   useEffect(() => {
     if (!demo || !hydrated) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(statuses));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(patches));
     } catch {
-      // Stockage plein ou désactivé — les déplacements tiennent la session.
+      // Stockage plein ou désactivé — les changements tiennent la session.
     }
-  }, [demo, hydrated, statuses]);
+  }, [demo, hydrated, patches]);
+
+  const patch = useCallback((orderId: string, fields: Partial<OrderListItem>) => {
+    setPatches((prev) => ({ ...prev, [orderId]: { ...prev[orderId], ...fields } }));
+  }, []);
 
   const move = useCallback(
     async (orderId: string, status: OrderStatus) => {
       if (demo) {
-        setStatuses((prev) => ({ ...prev, [orderId]: status }));
+        patch(orderId, { status });
         return;
       }
       await updateOrderStatus(orderId, status);
     },
-    [demo],
+    [demo, patch],
   );
 
   const reject = useCallback(
     async (orderId: string, reason: RejectionReason) => {
       if (demo) {
-        // En démo, le motif ne se stocke nulle part — on marque juste la
+        // En démo, le motif ne se stocke nulle part durablement — on marque la
         // commande refusée pour la voir basculer dans « Terminé ».
-        setStatuses((prev) => ({ ...prev, [orderId]: "rejected" }));
+        patch(orderId, { status: "rejected", rejection_reason: reason });
         return;
       }
       await rejectOrder(orderId, reason);
     },
-    [demo],
+    [demo, patch],
+  );
+
+  const quote = useCallback(
+    async (orderId: string, price: number) => {
+      if (demo) {
+        // Devis chiffré en démo : le prix apparaît, la commande reste reçue et
+        // impayée (elle attend l'accord du client).
+        patch(orderId, { tailoring_price: price, total_amount: price });
+        return;
+      }
+      const res = await quoteOrder(orderId, price);
+      if (!res.ok) throw new Error(res.error);
+    },
+    [demo, patch],
   );
 
   const merged = useMemo(() => {
     if (!demo) return orders;
-    return orders.map((o) => (statuses[o.id] ? { ...o, status: statuses[o.id] } : o));
-  }, [demo, orders, statuses]);
+    return orders.map((o) => (patches[o.id] ? { ...o, ...patches[o.id] } : o));
+  }, [demo, orders, patches]);
 
   const value = useMemo<PipelineValue>(
-    () => ({ role, orders: merged, demo, move, reject }),
-    [role, merged, demo, move, reject],
+    () => ({ role, orders: merged, demo, move, reject, quote }),
+    [role, merged, demo, move, reject, quote],
   );
 
   return <PipelineContext.Provider value={value}>{children}</PipelineContext.Provider>;

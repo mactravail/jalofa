@@ -110,6 +110,7 @@ function mkAdminOrder(o: AdminOrderSeed): OrderListItem {
     contact_phone: "+221 77 000 00 00",
     status: o.status,
     rejection_reason: o.status === "rejected" ? "too_busy" : null,
+    is_quote: false,
     fabric_price: fabricPrice,
     tailoring_price: tailoringPrice,
     delivery_fee: DELIVERY_FEE,

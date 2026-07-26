@@ -184,6 +184,267 @@ export async function createOrder(
   return { ok: true, orderId: order.id as string };
 }
 
+// ---------------------------------------------------------------------------
+// Devis à la personnalisation
+//
+// Nouveau modèle de prix JALOFA : chaque modèle affiche un prix « à partir de ».
+// Pris tel quel (taille seulement), le client paie ce prix. Mais dès qu'il
+// PERSONNALISE la tenue (style, finitions, tissu, mesures), le prix final dépend
+// de la demande : il envoie donc une DEMANDE DE DEVIS depuis le configurateur.
+// Elle tombe dans « À traiter » du tailleur, sans prix ni paiement (`is_quote`),
+// il la chiffre (`quoteOrder`), puis le client accepte et paie (`acceptQuote`).
+//
+// Réutilise toute la mécanique de devis existante — seul le point d'entrée
+// change : une tenue configurée plutôt qu'une simple taille.
+// ---------------------------------------------------------------------------
+
+export type GarmentQuoteState =
+  | { ok: true; orderId: string | null; demo: boolean }
+  | { ok: false; error: string };
+
+export type GarmentQuoteInput = {
+  type: OrderType;
+  modelId: string | null;
+  styleSlug: string | null;
+  fabricId: string | null;
+  fabricMeters: number | null;
+  tailorId: string | null;
+  measurement: {
+    mode: "manual" | "standard";
+    standard_size: string | null;
+    values: Record<string, number | null>;
+  } | null;
+  city: string | null;
+  notes: string | null;
+};
+
+export async function requestGarmentQuote(
+  input: GarmentQuoteInput,
+): Promise<GarmentQuoteState> {
+  // Mode démo (base non branchée) : le configurateur reste jouable de bout en
+  // bout — on simule l'envoi sans écrire, comme le fait déjà la caisse.
+  if (!isSupabaseConfigured()) {
+    return { ok: true, orderId: null, demo: true };
+  }
+
+  if (!input.tailorId) {
+    return { ok: false, error: "Choisissez un tailleur pour votre devis." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Connectez-vous pour demander un devis." };
+  }
+
+  // Le tailleur doit être une boutique ouverte (active, validée, non suspendue) —
+  // même garde que le catalogue public. Plus aucune condition d'abonnement : le
+  // devis à la personnalisation est ouvert à tous les tailleurs.
+  const { data: tailor } = await supabase
+    .from("tailors")
+    .select("id, is_active, is_activated, is_suspended")
+    .eq("id", input.tailorId)
+    .single();
+  if (
+    !tailor ||
+    !tailor.is_active ||
+    !tailor.is_activated ||
+    tailor.is_suspended
+  ) {
+    return { ok: false, error: "Ce tailleur n'est pas disponible." };
+  }
+
+  // Prix du tissu, recalculé depuis la base (le tailleur chiffrera la confection).
+  let fabricPrice = 0;
+  if (input.fabricId && input.type !== "own_fabric") {
+    const { data: fabric } = await supabase
+      .from("fabrics")
+      .select("price_per_meter")
+      .eq("id", input.fabricId)
+      .single();
+    fabricPrice = Number(fabric?.price_per_meter ?? 0) * (input.fabricMeters ?? 0);
+  }
+
+  // Coordonnées reprises du profil (le devis n'a pas d'écran de caisse).
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", user.id)
+    .single();
+  const fullName = (profile as { full_name: string | null } | null)?.full_name ?? "";
+  const [firstName, ...rest] = fullName.split(" ");
+  const phone = (profile as { phone: string | null } | null)?.phone ?? null;
+
+  let measurementId: string | null = null;
+  if (input.measurement) {
+    const m = input.measurement;
+    const { data: measurement, error: mErr } = await supabase
+      .from("measurements")
+      .insert({
+        user_id: user.id,
+        mode: m.mode,
+        standard_size: m.mode === "standard" ? m.standard_size : null,
+        ...m.values,
+      })
+      .select("id")
+      .single();
+    if (mErr) return { ok: false, error: mErr.message };
+    measurementId = measurement.id as string;
+  }
+
+  const { data: order, error } = await supabase
+    .from("orders")
+    .insert({
+      client_id: user.id,
+      tailor_id: input.tailorId,
+      type: input.type,
+      model_id: input.modelId,
+      style_slug: input.styleSlug,
+      fabric_id: input.type !== "own_fabric" ? input.fabricId : null,
+      fabric_meters: input.type !== "own_fabric" ? input.fabricMeters : null,
+      measurement_id: measurementId,
+      delivery_method: "home",
+      delivery_city: input.city?.trim() || null,
+      contact_first_name: firstName || null,
+      contact_last_name: rest.join(" ") || null,
+      contact_email: user.email ?? null,
+      contact_phone: phone,
+      is_quote: true,
+      fabric_price: fabricPrice,
+      tailoring_price: 0,
+      delivery_fee: 0,
+      total_amount: fabricPrice,
+      payment_status: "pending",
+      notes: input.notes?.trim() || null,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/compte/commandes");
+  revalidatePath("/tailleur/espace", "layout");
+  return { ok: true, orderId: order.id as string, demo: false };
+}
+
+export type QuoteOrderState = { ok: true } | { ok: false; error: string };
+
+/**
+ * Le tailleur chiffre une demande de devis : il fixe le prix de confection. La
+ * commande reste « reçue » et impayée — la balle passe au client, qui accepte
+ * et paie (`acceptQuote`). Autorisé au seul tailleur assigné, sur un devis pas
+ * encore chiffré.
+ */
+export async function quoteOrder(
+  orderId: string,
+  price: number,
+): Promise<QuoteOrderState> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Base de données non connectée." };
+
+  const amount = Math.round(Number(price));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Indiquez un prix valide." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Vous devez être connecté." };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("tailor_id, status, is_quote, payment_status, fabric_price, delivery_fee")
+    .eq("id", orderId)
+    .single();
+  const o = order as
+    | {
+        tailor_id: string | null;
+        status: OrderStatus;
+        is_quote: boolean;
+        payment_status: string;
+        fabric_price: number;
+        delivery_fee: number;
+      }
+    | null;
+  if (!o) return { ok: false, error: "Commande introuvable." };
+  if (o.tailor_id !== user.id) return { ok: false, error: "Cette commande n'est pas la vôtre." };
+  if (!o.is_quote || o.status !== "received" || o.payment_status !== "pending") {
+    return { ok: false, error: "Ce devis ne peut plus être chiffré." };
+  }
+
+  const total = amount + Number(o.fabric_price ?? 0) + Number(o.delivery_fee ?? 0);
+  const { error } = await supabase
+    .from("orders")
+    .update({ tailoring_price: amount, total_amount: total })
+    .eq("id", orderId)
+    .eq("tailor_id", user.id)
+    .eq("status", "received")
+    .eq("payment_status", "pending");
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath(`/compte/commandes/${orderId}`);
+  return { ok: true };
+}
+
+export type AcceptQuoteState = { ok: true } | { ok: false; error: string };
+
+/**
+ * Le client accepte le prix proposé et paie : le devis devient une commande
+ * ferme (`accepted`, payée), qui entre dans le pipeline normal. Autorisé au
+ * seul client propriétaire, sur un devis déjà chiffré et encore impayé.
+ */
+export async function acceptQuote(
+  orderId: string,
+  paymentMethod: PaymentMethod,
+): Promise<AcceptQuoteState> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Base de données non connectée." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Vous devez être connecté." };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("client_id, is_quote, payment_status, tailoring_price")
+    .eq("id", orderId)
+    .single();
+  const o = order as
+    | {
+        client_id: string;
+        is_quote: boolean;
+        payment_status: string;
+        tailoring_price: number;
+      }
+    | null;
+  if (!o) return { ok: false, error: "Commande introuvable." };
+  if (o.client_id !== user.id) return { ok: false, error: "Cette commande n'est pas la vôtre." };
+  if (!o.is_quote || o.payment_status !== "pending" || Number(o.tailoring_price ?? 0) <= 0) {
+    return { ok: false, error: "Ce devis n'est pas prêt à être payé." };
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      payment_status: "paid",
+      payment_method: paymentMethod,
+      status: "accepted" as OrderStatus,
+    })
+    .eq("id", orderId)
+    .eq("client_id", user.id)
+    .eq("payment_status", "pending");
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/compte/commandes/${orderId}`);
+  revalidatePath("/compte/commandes");
+  revalidatePath("/tailleur/espace", "layout");
+  return { ok: true };
+}
+
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   const supabase = await createClient();
   const { error } = await supabase

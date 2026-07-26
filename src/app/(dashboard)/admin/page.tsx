@@ -49,7 +49,7 @@ export default async function AdminOverviewPage() {
           icon={Wallet}
           label="Revenus plateforme"
           value={formatPrice(stats.platform.total)}
-          hint="Commissions + abonnements + livraison"
+          hint="Frais de livraison collectés"
         />
         <StatCard
           icon={ShoppingBag}

@@ -328,6 +328,26 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   card: "Carte bancaire",
 };
 
+// ---------------------------------------------------------------------------
+// Moyen de paiement du pro (comment il est réglé de ses ventes)
+//
+// JALOFA est gratuit : le pro encaisse 100% de ses ventes, versées sur le moyen
+// de paiement qu'il renseigne dans son espace (page « Paiement »). Distinct de
+// `PaymentMethod`, qui est ce que le CLIENT utilise pour payer sa commande.
+// ---------------------------------------------------------------------------
+
+export type PayoutMethod = "orange_money" | "wave" | "free_money" | "bank";
+
+export const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
+  orange_money: "Orange Money",
+  wave: "Wave",
+  free_money: "Free Money",
+  bank: "Virement bancaire",
+};
+
+/** Un compte mobile money (numéro) ou un virement bancaire (RIB/IBAN). */
+export const PAYOUT_IS_MOBILE = (m: PayoutMethod): boolean => m !== "bank";
+
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {

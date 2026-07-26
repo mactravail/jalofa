@@ -3,19 +3,23 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   ChevronRight,
   Check,
   Clock,
+  Loader2,
+  MessageSquareQuote,
   Scissors,
   ShoppingBag,
   X,
 } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-context";
+import { requestGarmentQuote } from "@/lib/actions/orders";
+import { styleDetailSummary } from "@/lib/style-options";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
@@ -49,12 +53,85 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   const isLast = step === "review";
   const canProceed = stepCanProceed(step, state);
 
+  // Un tissu au mètre s'achète directement (prix ferme) ; une tenue configurée
+  // part, elle, en DEMANDE DE DEVIS — son prix final dépend de la personnalisation.
+  const isFabricOnly = state.type === "fabric_only";
+  const [isPending, startTransition] = useTransition();
+
   const styleName = cfg.data.styles.find((s) => s.slug === state.styleSlug)?.name ?? null;
 
   const addToCart = () => {
     addItem(buildCartItem(state, { model, fabric, tailor, styleName, price }));
     toast.success("Ajouté au panier");
     router.push("/panier");
+  };
+
+  // Envoie la tenue configurée en demande de devis. La personnalisation choisie
+  // est repliée dans la note transmise au tailleur (il n'y a pas de colonne
+  // dédiée), comme le fait `buildCartItem` pour le panier.
+  const requestDevis = () => {
+    const personalisation = styleDetailSummary(model, state.styleDetails);
+    const personalisationText = personalisation
+      .map((d) => `${d.group} : ${d.option}`)
+      .join(" · ");
+    const notes =
+      [
+        personalisationText ? `Personnalisation — ${personalisationText}` : null,
+        state.notes.trim() || null,
+      ]
+        .filter(Boolean)
+        .join("\n\n") || null;
+
+    startTransition(async () => {
+      const res = await requestGarmentQuote({
+        type: state.type,
+        modelId: state.modelId,
+        styleSlug: state.styleSlug,
+        fabricId: state.fabricId,
+        fabricMeters: state.fabricMeters,
+        tailorId: state.tailorId,
+        measurement: {
+          mode: state.measurementMode,
+          standard_size:
+            state.measurementMode === "standard" ? state.standardSize : null,
+          values:
+            state.measurementMode === "manual"
+              ? Object.fromEntries(
+                  Object.entries(state.manual).map(([k, v]) => [
+                    k,
+                    v ? Number(v) : null,
+                  ]),
+                )
+              : {},
+        },
+        city: null,
+        notes,
+      });
+
+      if (res.ok) {
+        // Devis parti : on vide le brouillon (clé de `configurator-context`).
+        try {
+          sessionStorage.removeItem("nataal:configurator-draft");
+        } catch {
+          // Stockage indisponible — sans effet.
+        }
+        toast.success("Demande de devis envoyée", {
+          description: res.demo
+            ? "Démo — le tailleur vous répondrait avec un prix."
+            : `${tailor?.shop_name ?? "Le tailleur"} vous répondra avec un prix.`,
+        });
+        router.push(
+          res.orderId ? `/compte/commandes/${res.orderId}` : "/compte/commandes",
+        );
+        return;
+      }
+      // Pas connecté : on revient au configurateur après login (brouillon gardé).
+      if (/connect/i.test(res.error)) {
+        router.push(`/connexion?redirect=${encodeURIComponent(pathname)}`);
+        return;
+      }
+      toast.error(res.error);
+    });
   };
 
   const goNext = () => {
@@ -101,10 +178,22 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     .filter(Boolean)
     .join(" · ");
 
-  // Reusable CTA (Continue / Add to cart) used by both the desktop card and the
-  // mobile bottom bar.
+  // Reusable CTA used by both the desktop card and the mobile bottom bar.
+  // Dernière étape : un tissu s'ajoute au panier (achat direct), une tenue part
+  // en demande de devis. Avant : « Continuer ».
   const cta = (idSuffix: string, className?: string) =>
-    isLast ? (
+    !isLast ? (
+      <Button
+        type="button"
+        size="lg"
+        className={cn("w-full", className)}
+        onClick={goNext}
+        disabled={!canProceed}
+        data-cta={idSuffix}
+      >
+        Continuer <ChevronRight className="size-4" />
+      </Button>
+    ) : isFabricOnly ? (
       <Button
         type="button"
         size="lg"
@@ -119,11 +208,16 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         type="button"
         size="lg"
         className={cn("w-full", className)}
-        onClick={goNext}
-        disabled={!canProceed}
+        onClick={requestDevis}
+        disabled={isPending}
         data-cta={idSuffix}
       >
-        Continuer <ChevronRight className="size-4" />
+        {isPending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <MessageSquareQuote className="size-4" />
+        )}
+        Demander un devis
       </Button>
     );
 
@@ -321,10 +415,19 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
             </h1>
             <p className="text-muted-foreground text-sm">{panelSubtitle}</p>
 
-            <div className="mt-4 flex items-end gap-2">
+            {!isFabricOnly && (
+              <p className="text-muted-foreground mt-4 text-xs font-medium">
+                À partir de
+              </p>
+            )}
+            <div className={cn("flex items-end gap-2", isFabricOnly && "mt-4")}>
               <span className="text-primary text-3xl font-bold">{formatPrice(price.total)}</span>
             </div>
-            <p className="text-muted-foreground text-xs">TVA incluse · hors livraison</p>
+            <p className="text-muted-foreground text-xs">
+              {isFabricOnly
+                ? "TVA incluse · hors livraison"
+                : "Prix indicatif — le tailleur confirme par devis"}
+            </p>
 
             <div className="mt-5">{cta("desktop")}</div>
             {requirement && (

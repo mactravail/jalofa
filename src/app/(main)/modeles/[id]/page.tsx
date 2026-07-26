@@ -140,7 +140,10 @@ export default async function ModelDetailPage({
             <p className="text-muted-foreground mt-4">{model.description}</p>
           )}
 
-          {/* Deux chemins pour ce vêtement précis. */}
+          {/* Deux chemins pour ce vêtement précis. Le prix affiché est un prix
+              « à partir de » : pris tel quel (taille seulement), le client paie
+              ce prix ; personnalisé, il part en demande de devis (prix final
+              fixé par le tailleur). */}
           <div className="mt-6 space-y-4">
             {/* 1 — Le prendre tel quel : ne choisir que la taille. */}
             <div className="bg-card rounded-2xl border p-5">
@@ -168,7 +171,8 @@ export default async function ModelDetailPage({
 
             {/* 2 — Le personnaliser. Un seul chemin pour tous les vêtements :
                 le tissu se choisit ici, puis le configurateur (Style, Quantité,
-                Tailleur, Mesures) — qui, lui, ne rechoisit plus le tissu. */}
+                Tailleur, Mesures) — qui, lui, ne rechoisit plus le tissu — et se
+                termine par une demande de devis. */}
             <GarmentPersonalise
               fabrics={fabrics}
               orderParams={orderParams.toString()}

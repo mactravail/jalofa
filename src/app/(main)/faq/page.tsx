@@ -80,11 +80,15 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Comment devenir tailleur ou vendeur de tissus ?",
-        a: "Créez un compte pro et choisissez un abonnement. Vous accédez alors à votre espace pour publier votre catalogue et gérer vos commandes.",
+        a: "Créez votre compte pro, c'est gratuit et immédiat. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes.",
       },
       {
-        q: "Quels sont les abonnements pros ?",
-        a: "Gratuit (avec une commission prélevée sur chaque vente), Standard (un métier, sans commission) et Premium (les deux métiers, sans commission). Les détails figurent sur la page Abonnements.",
+        q: "Combien ça coûte de vendre sur JALOFA ?",
+        a: "Rien. Pas d'abonnement, pas de commission, pas de frais : vous gardez 100% de vos ventes. Vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
+      },
+      {
+        q: "Comment est fixé le prix d'une tenue ?",
+        a: "Chaque modèle affiche un prix « à partir de ». Si le client le prend tel quel, il paie ce prix. S'il personnalise la tenue, vous recevez sa demande et lui envoyez un devis avec le vrai prix ; il accepte, puis paie.",
       },
     ],
   },

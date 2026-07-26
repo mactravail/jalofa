@@ -50,6 +50,8 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
 
   // Each pro sees the revenue line relevant to them.
   const amountLabel = role === "vendor" ? "Tissu" : "Confection";
+  // Un devis pas encore accepté n'a pas de prix ferme à afficher.
+  const quotePending = order.is_quote && order.payment_status === "pending";
 
   return (
     <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center">
@@ -76,7 +78,11 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
           <p className="text-muted-foreground truncate text-sm">
             {clientNameOf(order)} ·{" "}
             <span className="text-foreground/70">
-              {amountLabel} {formatPrice(amountFor(role, order))}
+              {quotePending
+                ? order.tailoring_price > 0
+                  ? `Devis · ${formatPrice(order.tailoring_price)}`
+                  : "Devis · à chiffrer"
+                : `${amountLabel} ${formatPrice(amountFor(role, order))}`}
             </span>
           </p>
           <p
@@ -95,6 +101,9 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
         orderId={order.id}
         status={order.status}
         type={order.type}
+        isQuote={order.is_quote}
+        tailoringPrice={order.tailoring_price}
+        paymentStatus={order.payment_status}
       />
     </div>
   );

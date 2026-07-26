@@ -8,6 +8,7 @@ import type {
   OrderType,
   PaymentMethod,
   PaymentStatus,
+  PayoutMethod,
   RejectionReason,
   SuspensionReason,
   UserRole,
@@ -65,11 +66,43 @@ export interface Tailor {
   /** Abonnement du pro : décide de la commission JALOFA sur ses prestations. */
   plan: SubscriptionPlanId;
   /**
+   * « Prix sur demande » : le tailleur masque ses prix publics (fiche + ses
+   * créations) et traite ses devis en privé. Réservé aux forfaits payants —
+   * un compte Gratuit doit afficher ses prix, et l'enregistrement du profil
+   * force ce champ à `false` hors abonnement (cf. `planCanQuote`).
+   */
+  quote_only: boolean;
+  /**
    * Espace ouvert par l'administration après confirmation du paiement Wave (ou
    * validation de l'inscription). `false` = compte créé mais en attente : le pro
    * voit un écran d'attente au lieu de son tableau de bord.
    */
   is_activated: boolean;
+
+  // --- Comment le pro est réglé de ses ventes (page « Paiement » de l'espace).
+  //     JALOFA est gratuit : il encaisse 100%, versés sur ce moyen. Colonnes
+  //     ajoutées par migration — optionnelles ici pour ne pas alourdir fixtures
+  //     et objets de repli ; à lire défensivement (`?? null`).
+  payout_method?: PayoutMethod | null;
+  /** Numéro Mobile Money, ou RIB/IBAN pour un virement bancaire. */
+  payout_number?: string | null;
+  /** Nom du titulaire du compte qui reçoit les paiements. */
+  payout_name?: string | null;
+
+  // --- Signaux du score de confiance (cf. `@/lib/trust-score`), dénormalisés
+  //     sur la fiche pour un affichage public bon marché (compatible RLS).
+  /** Badge « Membre Fondateur » : accordé aux tout premiers pros. */
+  is_founding_member?: boolean;
+  /** Nombre de photos de réalisations vérifiées par l'administration. */
+  verified_photos?: number;
+  /** Commandes menées jusqu'à la livraison (compteur tenu par trigger). */
+  completed_orders?: number;
+  /** Commandes acceptées (engagées au-delà de « reçue »). */
+  accepted_orders?: number;
+  /** Commandes refusées — sert au taux d'acceptation. */
+  rejected_orders?: number;
+  /** Commandes livrées dans le délai annoncé (proxy « respect des délais »). */
+  on_time_orders?: number;
 }
 
 export interface Vendor {
@@ -101,6 +134,31 @@ export interface Vendor {
    * voit un écran d'attente au lieu de son tableau de bord.
    */
   is_activated: boolean;
+
+  // --- Comment le pro est réglé de ses ventes (page « Paiement » de l'espace).
+  //     JALOFA est gratuit : il encaisse 100%, versés sur ce moyen. Colonnes
+  //     ajoutées par migration — optionnelles ici pour ne pas alourdir fixtures
+  //     et objets de repli ; à lire défensivement (`?? null`).
+  payout_method?: PayoutMethod | null;
+  /** Numéro Mobile Money, ou RIB/IBAN pour un virement bancaire. */
+  payout_number?: string | null;
+  /** Nom du titulaire du compte qui reçoit les paiements. */
+  payout_name?: string | null;
+
+  // --- Signaux du score de confiance (cf. `@/lib/trust-score`), dénormalisés
+  //     sur la fiche pour un affichage public bon marché (compatible RLS).
+  /** Badge « Membre Fondateur » : accordé aux tout premiers pros. */
+  is_founding_member?: boolean;
+  /** Nombre de photos de réalisations vérifiées par l'administration. */
+  verified_photos?: number;
+  /** Commandes menées jusqu'à la livraison (compteur tenu par trigger). */
+  completed_orders?: number;
+  /** Commandes acceptées (engagées au-delà de « reçue »). */
+  accepted_orders?: number;
+  /** Commandes refusées — sert au taux d'acceptation. */
+  rejected_orders?: number;
+  /** Commandes livrées dans le délai annoncé (proxy « respect des délais »). */
+  on_time_orders?: number;
 }
 
 export interface FabricCategory {
@@ -222,6 +280,13 @@ export interface Order {
   status: OrderStatus;
   /** Motif du refus quand `status === "rejected"` ; `null` sinon. */
   rejection_reason: RejectionReason | null;
+  /**
+   * Née d'une demande de devis chez un tailleur « Prix sur demande » : reçue
+   * sans prix ni paiement. Le tailleur la chiffre (`tailoring_price` passe de 0
+   * à son prix) dans « À traiter », puis le client accepte et paie. `false`
+   * pour toute commande achetée au prix affiché.
+   */
+  is_quote: boolean;
   fabric_price: number;
   tailoring_price: number;
   delivery_fee: number;

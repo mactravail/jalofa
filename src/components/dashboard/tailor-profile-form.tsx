@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ImagePlus, Loader2, Scissors, X } from "lucide-react";
+import { ImagePlus, Loader2, Scissors, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { saveTailorProfile } from "@/lib/actions/tailors";
@@ -206,6 +206,21 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
           </span>
         </span>
       </label>
+
+      {/* « À partir de » — le prix de confection saisi ci-dessus est un prix de
+          départ. Le client qui prend une création telle quelle le paie ; s'il la
+          personnalise, il reçoit un devis (prix final fixé depuis « À traiter »).
+          Plus de réglage « prix sur demande » : le devis à la personnalisation
+          est désormais le fonctionnement par défaut, pour tous les tailleurs. */}
+      <div className="bg-muted/40 flex items-start gap-3 rounded-lg border border-dashed p-3 text-sm">
+        <Tag className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+        <p className="text-muted-foreground text-xs">
+          <span className="text-foreground font-medium">Prix « à partir de ».</span>{" "}
+          Le prix de confection ci-dessus est un tarif de départ. Personnalisée,
+          la tenue passe par un devis : vous en fixez le prix final depuis
+          « À traiter ».
+        </p>
+      </div>
 
       <label className="flex items-start gap-2 text-sm">
         <input

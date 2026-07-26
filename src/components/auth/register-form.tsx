@@ -60,11 +60,13 @@ const METIERS = [
 export function RegisterForm({
   initialPlan,
   initialPeriod,
+  initialRole,
   initialMetier,
   redirectTo,
 }: {
   initialPlan?: string;
   initialPeriod?: string;
+  initialRole?: string;
   initialMetier?: string;
   redirectTo?: string;
 }) {
@@ -72,6 +74,14 @@ export function RegisterForm({
     ? getPlan(initialPlan as SubscriptionPlanId)
     : undefined;
   const isPaid = plan ? plan.monthlyPrice > 0 : false;
+
+  // Inscription pro GRATUITE (sans forfait) : le métier vient directement du
+  // choix « Je suis tailleur / vendeur ». Aucun abonnement, aucun paiement.
+  const freeProRole =
+    !plan && (initialRole === "tailor" || initialRole === "vendor")
+      ? initialRole
+      : null;
+  const proLabel = freeProRole === "vendor" ? "vendeur de tissus" : "tailleur";
 
   // Périodicité choisie sur /abonnements : le paiement annuel encaisse toute
   // l'année d'un coup (remise incluse), le mensuel une seule mensualité.
@@ -93,7 +103,11 @@ export function RegisterForm({
   );
 
   // Le rôle transmis au serveur (qui le revalide de toute façon).
-  const role = !plan ? "client" : plan.scope === "both" ? "tailor" : metier;
+  const role = plan
+    ? plan.scope === "both"
+      ? "tailor"
+      : metier
+    : (freeProRole ?? "client");
 
   // Paiement réglé : Wave (QR scanné) ou virement confirmé. Les plans gratuits
   // n'ont rien à payer.
@@ -105,7 +119,7 @@ export function RegisterForm({
 
   const submitLabel = isPaid
     ? `Payer ${formatPrice(amountDue)} et créer mon compte`
-    : plan
+    : plan || freeProRole
       ? "Créer mon compte pro"
       : "Créer mon compte";
 
@@ -113,12 +127,18 @@ export function RegisterForm({
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">
-          {plan ? `Abonnement ${plan.name}` : "Créer un compte"}
+          {plan
+            ? `Abonnement ${plan.name}`
+            : freeProRole
+              ? `Compte ${proLabel}`
+              : "Créer un compte"}
         </CardTitle>
         <CardDescription>
           {plan
             ? "Créez votre compte pro pour activer votre abonnement."
-            : "Rejoignez JALOFA en quelques secondes."}
+            : freeProRole
+              ? "Ouvrez votre boutique gratuitement — sans abonnement, sans commission."
+              : "Rejoignez JALOFA en quelques secondes."}
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
@@ -191,17 +211,31 @@ export function RegisterForm({
             </div>
           )}
 
-          {!plan && (
+          {freeProRole && (
+            <div className="border-primary/30 bg-primary/5 space-y-1.5 rounded-lg border p-3">
+              <p className="text-sm font-medium">
+                {freeProRole === "vendor"
+                  ? "Votre boutique de tissus, gratuite"
+                  : "Votre atelier, gratuit"}
+              </p>
+              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <Check className="text-primary size-3.5 shrink-0" /> Aucun
+                abonnement, aucune commission, aucun frais
+              </p>
+              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <Check className="text-primary size-3.5 shrink-0" /> Vous encaissez
+                100% de vos ventes
+              </p>
+              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                <Check className="text-primary size-3.5 shrink-0" /> Boutique en
+                ligne, commandes et messagerie illimitées
+              </p>
+            </div>
+          )}
+
+          {!plan && !freeProRole && (
             <p className="text-muted-foreground rounded-lg border p-3 text-xs">
-              Vous créez un compte client, gratuit. Vous êtes tailleur ou vendeur
-              de tissus ?{" "}
-              <Link
-                href="/abonnements"
-                className="text-primary font-medium hover:underline"
-              >
-                Découvrez nos abonnements pros
-              </Link>
-              .
+              Vous créez un compte client, gratuit.
             </p>
           )}
 

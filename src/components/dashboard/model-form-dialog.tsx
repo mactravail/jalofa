@@ -341,7 +341,7 @@ export function ModelFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="model-price">Prix de confection (FCFA)</Label>
+            <Label htmlFor="model-price">Prix « à partir de » (FCFA)</Label>
             <Input
               id="model-price"
               name="price"
@@ -352,8 +352,9 @@ export function ModelFormDialog({
               placeholder="25000"
             />
             <p className="text-muted-foreground text-xs">
-              Ce que vous facturez pour ce modèle. Laissez vide pour utiliser
-              votre tarif « dès… » par défaut.
+              Le prix de départ affiché aux clients. Pris tel quel, ils le paient ;
+              personnalisé, vous fixez le prix final par devis. Laissez vide pour
+              utiliser votre tarif « à partir de » par défaut.
             </p>
           </div>
 

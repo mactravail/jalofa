@@ -3,11 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Layers, MapPin, Star, Store, Truck } from "lucide-react";
 
-import { CertifiedBadge } from "@/components/admin/status-badges";
+import {
+  CertifiedBadge,
+  FoundingMemberBadge,
+} from "@/components/admin/status-badges";
 import { DemoBanner } from "@/components/demo-banner";
 import { FabricCard } from "@/components/catalog/fabric-card";
 import { ReviewList } from "@/components/catalog/review-list";
 import { ReviewStars } from "@/components/catalog/review-stars";
+import { TrustScorePanel } from "@/components/catalog/trust-score";
 import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
 import { getFabricsByVendor, getVendorById, getVendorReviews } from "@/lib/data";
 
@@ -61,6 +65,7 @@ export default async function VendorProfilePage({
                 {vendor.shop_name}
               </h1>
               {vendor.is_certified && <CertifiedBadge />}
+              {vendor.is_founding_member && <FoundingMemberBadge />}
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
               {vendor.rating_count > 0 && (
@@ -94,6 +99,11 @@ export default async function VendorProfilePage({
           {vendor.bio}
         </p>
       )}
+
+      {/* Score de confiance — la confiance en un coup d'œil, avant de commander. */}
+      <div className="mt-6">
+        <TrustScorePanel pro={vendor} />
+      </div>
 
       <section className="mt-12">
         <h2 className="text-xl font-bold tracking-tight">

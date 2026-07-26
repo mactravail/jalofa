@@ -1,4 +1,4 @@
-import { BadgeCheck } from "lucide-react";
+import { Award, BadgeCheck } from "lucide-react";
 
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import {
@@ -96,6 +96,25 @@ export function CertifiedBadge({ className }: { className?: string }) {
     >
       <BadgeCheck className="fill-blue-600 text-white dark:fill-blue-400 dark:text-blue-950" />
       Certifié
+    </Badge>
+  );
+}
+
+/**
+ * Pastille « Membre Fondateur » — distinction des tout premiers pros qui ont
+ * fait confiance à JALOFA. Ton doré (récompense), à côté de « Certifié ».
+ */
+export function FoundingMemberBadge({ className }: { className?: string }) {
+  return (
+    <Badge
+      variant="secondary"
+      className={cn(
+        "gap-1 bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+        className,
+      )}
+    >
+      <Award className="size-3.5" />
+      Membre Fondateur
     </Badge>
   );
 }

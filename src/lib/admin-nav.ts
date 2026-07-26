@@ -1,7 +1,5 @@
 import {
-  BadgeCheck,
   Ban,
-  HandCoins,
   LayoutDashboard,
   Layers,
   MessageSquare,
@@ -12,7 +10,6 @@ import {
   Star,
   Store,
   Users,
-  Wallet,
 } from "lucide-react";
 
 /**
@@ -99,14 +96,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    // JALOFA est gratuit pour les pros : plus d'abonnements ni de reversements
+    // à administrer. Les pages `/admin/abonnements`, `/admin/finances` et
+    // `/admin/reversements` restent en place (non liées) pour un retour éventuel
+    // des forfaits — voir aussi `src/lib/subscriptions.ts`.
     label: "Prestataires",
     items: [
-      {
-        id: "subscriptions",
-        href: `${ADMIN_ROOT}/abonnements`,
-        label: "Abonnements",
-        icon: BadgeCheck,
-      },
       {
         id: "tailors",
         href: `${ADMIN_ROOT}/tailleurs`,
@@ -147,23 +142,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/inspiration`,
         label: "Inspiration",
         icon: Sparkles,
-      },
-    ],
-  },
-  {
-    label: "Finances",
-    items: [
-      {
-        id: "finance",
-        href: `${ADMIN_ROOT}/finances`,
-        label: "Revenus",
-        icon: Wallet,
-      },
-      {
-        id: "payouts",
-        href: `${ADMIN_ROOT}/reversements`,
-        label: "Reversements",
-        icon: HandCoins,
       },
     ],
   },

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, MapPin, Store } from "lucide-react";
 
+import { TrustScoreBadge } from "@/components/catalog/trust-score";
 import { Badge } from "@/components/ui/badge";
 import type { Vendor } from "@/lib/types";
 
@@ -42,6 +43,7 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
             {vendor.bio}
           </p>
         )}
+        <TrustScoreBadge pro={vendor} className="mt-3" />
       </div>
     </Link>
   );

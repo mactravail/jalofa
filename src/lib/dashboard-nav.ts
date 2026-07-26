@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   ClipboardList,
+  CreditCard,
   Layers,
   LayoutDashboard,
   Receipt,
@@ -31,6 +32,7 @@ export type DashboardNavId =
   | "shipping"
   | "done"
   | "revenue"
+  | "payout"
   | "clients"
   | "models"
   | "fabrics"
@@ -98,6 +100,14 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           icon: Users,
         },
         { id: "revenue", href: `${root}/revenus`, label: "Mon argent", icon: Wallet },
+        // Comment le pro est réglé de ses ventes. JALOFA est gratuit : il encaisse
+        // 100%, versés sur ce moyen — d'où une page à part, à remplir en priorité.
+        {
+          id: "payout",
+          href: `${root}/paiement`,
+          label: "Paiement",
+          icon: CreditCard,
+        },
         // Les deux métiers ont une fiche publique qu'ils composent eux-mêmes :
         // le tailleur sur `/tailleurs/[id]`, le vendeur sur `/vendeurs/[id]`.
         {

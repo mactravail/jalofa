@@ -22,11 +22,16 @@ export type BillingPeriod = "monthly" | "yearly";
 export const YEARLY_DISCOUNT = 0.2;
 
 /**
- * Commission prélevée par la plateforme sur le plan **Gratuit**, par métier :
- * 5% sur chaque vente de tissu et 5% sur chaque prestation de couture. Un pro qui
- * exerce les deux métiers cumule donc 10%. Les plans payants sont à 0%.
+ * Commission prélevée par la plateforme sur le plan **Gratuit**.
+ *
+ * ⚠️ JALOFA est aujourd'hui **entièrement gratuit** pour les pros : aucun
+ * abonnement, aucune commission, aucun frais. Ce taux est donc à **0**. La
+ * mécanique des forfaits (commission par métier, reversements) reste en place,
+ * non branchée à l'UI, pour un retour éventuel des abonnements — il suffira de
+ * remonter ce taux et de ré-exposer les pages `/abonnements`, `/admin/finances`
+ * et `/admin/reversements`.
  */
-export const FREE_COMMISSION_RATE = 0.05;
+export const FREE_COMMISSION_RATE = 0;
 
 export const BILLING_PERIOD_LABELS: Record<BillingPeriod, string> = {
   monthly: "Mensuel",
@@ -60,15 +65,15 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: "free",
     name: "Gratuit",
-    tagline: "Lancez-vous sans frais, ne payez que sur vos ventes.",
+    tagline: "Lancez-vous sans frais et gardez 100% de vos ventes.",
     monthlyPrice: 0,
     scope: "both",
     commission: FREE_COMMISSION_RATE,
-    featured: false,
-    badge: "Sans abonnement",
+    featured: true,
+    badge: "Sans frais",
     features: [
       "Tailleur, vendeur de tissus, ou les deux",
-      "5% de commission par vente de tissu, 5% par prestation de couture",
+      "0% de commission — vous gardez 100% de vos ventes",
       "Boutique en ligne et fiche publique",
       "Commandes, messagerie et suivi de commande illimités",
       "Encaissement Orange Money, Wave, Free Money & carte",
@@ -87,6 +92,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       "Un métier au choix : tailleur ou vendeur de tissus",
       "0% de commission — vous gardez 100% de vos ventes",
+      "Prix sur demande : masquez vos tarifs, donnez vos devis en privé",
       "Boutique en ligne et fiche publique",
       "Commandes, messagerie et suivi de commande illimités",
       "Encaissement Orange Money, Wave, Free Money & carte",
@@ -105,6 +111,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       "Les deux métiers en même temps : tailleur et vendeur",
       "0% de commission sur toutes vos ventes",
+      "Prix sur demande : masquez vos tarifs, donnez vos devis en privé",
       "Une seule boutique pour vos tissus et vos créations",
       "Mise en avant dans le catalogue et la recherche",
       "Statistiques avancées",
@@ -115,6 +122,16 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 
 export function getPlan(id: SubscriptionPlanId): SubscriptionPlan | undefined {
   return SUBSCRIPTION_PLANS.find((plan) => plan.id === id);
+}
+
+/**
+ * Le tailleur peut-il masquer ses prix et traiter ses devis en privé ?
+ * Réservé aux forfaits payants — un compte Gratuit doit afficher ses prix
+ * (cf. `Tailor.quote_only`). C'est la règle unique qui gate le réglage côté
+ * espace pro comme sa prise en compte à l'enregistrement du profil.
+ */
+export function planCanQuote(plan: SubscriptionPlanId): boolean {
+  return planMonthlyPrice(plan) > 0;
 }
 
 /**

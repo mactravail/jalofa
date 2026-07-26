@@ -49,12 +49,12 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/abonnements?metier=tailor" className="hover:text-white">
+              <Link href="/inscription?role=tailor" className="hover:text-white">
                 Devenir tailleur
               </Link>
             </li>
             <li>
-              <Link href="/abonnements?metier=vendor" className="hover:text-white">
+              <Link href="/inscription?role=vendor" className="hover:text-white">
                 Vendre des tissus
               </Link>
             </li>

@@ -27,6 +27,7 @@ const EMPTY_TAILOR: Tailor = {
   suspension_reason: null,
   is_certified: false,
   plan: "free",
+  quote_only: false,
   is_activated: true,
 };
 

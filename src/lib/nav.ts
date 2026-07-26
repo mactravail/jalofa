@@ -14,11 +14,14 @@ export const NAV_LINKS: NavLink[] = [
 
 // The header is deliberately short, so the footer keeps the pages that would
 // otherwise have no entry point.
+//
+// Les « Abonnements pros » ne figurent plus ici : JALOFA est gratuit pour les
+// tailleurs et les vendeurs (aucun abonnement, aucune commission). La page
+// `/abonnements` reste en place, non liée, pour un retour éventuel des forfaits.
 export const FOOTER_LINKS: NavLink[] = [
   ...NAV_LINKS,
   { href: "/modeles", label: "Tous les modèles" },
   { href: "/comment-ca-marche", label: "Comment ça marche" },
-  { href: "/abonnements", label: "Abonnements pros" },
 ];
 
 // Aide + pages légales, regroupées dans la barre basse du footer.

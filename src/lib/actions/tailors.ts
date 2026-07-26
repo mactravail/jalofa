@@ -55,13 +55,14 @@ export async function saveTailorProfile(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Vous devez être connecté." };
 
-  // Photo actuelle, pour nettoyer l'objet de stockage remplacé ou retiré.
+  // Photo actuelle, pour nettoyer l'objet de stockage remplacé.
   const { data: prev } = await supabase
     .from("tailors")
     .select("cover_url")
     .eq("id", user.id)
     .single();
-  const previousUrl = (prev as { cover_url: string | null } | null)?.cover_url ?? null;
+  const previous = prev as { cover_url: string | null } | null;
+  const previousUrl = previous?.cover_url ?? null;
 
   // Résout la photo de profil : fichier neuf → téléversé ; chaîne → conservée ;
   // rien → retirée.

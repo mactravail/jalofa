@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { OrderStatusBadge, OrderTimeline } from "@/components/order/order-status";
+import { QuotePayPanel } from "@/components/order/quote-pay-panel";
 import { ReassignTailorPanel } from "@/components/order/reassign-tailor-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -71,6 +72,11 @@ export default async function OrderTrackingPage({
           reason={order.rejection_reason}
           tailors={otherTailors}
         />
+      )}
+
+      {/* Devis en privé : en attente du prix, ou prêt à accepter et payer. */}
+      {order.is_quote && order.payment_status === "pending" && (
+        <QuotePayPanel orderId={order.id} tailoringPrice={order.tailoring_price} />
       )}
 
       <div className="grid gap-6 md:grid-cols-2">

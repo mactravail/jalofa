@@ -7,10 +7,14 @@ export const metadata: Metadata = { title: "Créer un compte" };
 
 /**
  * « Créer un compte » commence par un choix de profil (client / tailleur /
- * vendeur) — on ne jette plus les clients sur les tarifs pros. On n'affiche le
- * formulaire que lorsque le profil est connu : `role=client` (choix explicite)
- * ou `plan=…` (arrivée depuis les offres pros).
+ * vendeur). On n'affiche le formulaire que lorsque le profil est connu :
+ * `role=client|tailor|vendor` (choix explicite). L'inscription est gratuite pour
+ * tous — les pros n'ont plus d'abonnement à choisir. Le paramètre `plan=…` reste
+ * accepté (page `/abonnements` conservée mais non liée) pour un retour éventuel
+ * des forfaits.
  */
+const KNOWN_ROLES = new Set(["client", "tailor", "vendor"]);
+
 export default async function RegisterPage({
   searchParams,
 }: {
@@ -24,7 +28,7 @@ export default async function RegisterPage({
 }) {
   const { plan, period, role, metier, redirect } = await searchParams;
 
-  if (!plan && role !== "client") {
+  if (!plan && !(role && KNOWN_ROLES.has(role))) {
     return <RegisterChoice redirect={redirect} />;
   }
 
@@ -32,6 +36,7 @@ export default async function RegisterPage({
     <RegisterForm
       initialPlan={plan}
       initialPeriod={period}
+      initialRole={role}
       initialMetier={metier}
       redirectTo={redirect}
     />

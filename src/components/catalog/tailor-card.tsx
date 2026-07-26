@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Clock, MapPin, Scissors, Star, Truck } from "lucide-react";
 
+import { TrustScoreBadge } from "@/components/catalog/trust-score";
 import { formatPrice } from "@/lib/constants";
 import type { Tailor } from "@/lib/types";
 
@@ -45,6 +46,8 @@ export function TailorCard({ tailor }: { tailor: Tailor }) {
           ({tailor.rating_count} avis)
         </span>
       </p>
+
+      <TrustScoreBadge pro={tailor} className="mt-3" />
 
       <div className="text-muted-foreground mt-4 flex items-center gap-4 border-t pt-4 text-sm">
         <span>

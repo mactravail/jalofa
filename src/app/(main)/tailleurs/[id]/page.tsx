@@ -3,12 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, MapPin, Scissors, Star, Truck } from "lucide-react";
 
-import { CertifiedBadge } from "@/components/admin/status-badges";
+import {
+  CertifiedBadge,
+  FoundingMemberBadge,
+} from "@/components/admin/status-badges";
 import { DemoBanner } from "@/components/demo-banner";
 import { ModelCard } from "@/components/catalog/model-card";
 import { ReviewList } from "@/components/catalog/review-list";
 import { ReviewStars } from "@/components/catalog/review-stars";
 import { TailorReviewForm } from "@/components/catalog/tailor-review-form";
+import { TrustScorePanel } from "@/components/catalog/trust-score";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/constants";
@@ -65,6 +69,7 @@ export default async function TailorProfilePage({
                 {tailor.shop_name}
               </h1>
               {tailor.is_certified && <CertifiedBadge />}
+              {tailor.is_founding_member && <FoundingMemberBadge />}
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
               <span className="flex items-center gap-1">
@@ -99,6 +104,11 @@ export default async function TailorProfilePage({
         </p>
       )}
 
+      {/* Score de confiance — la confiance en un coup d'œil, avant de commander. */}
+      <div className="mt-6">
+        <TrustScorePanel pro={tailor} />
+      </div>
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
@@ -106,8 +116,12 @@ export default async function TailorProfilePage({
               <Scissors className="size-5" />
             </span>
             <div>
-              <p className="text-muted-foreground text-xs">Prix de confection dès</p>
-              <p className="font-semibold">{formatPrice(tailor.base_price)}</p>
+              <p className="text-muted-foreground text-xs">Prix de confection</p>
+              {/* Prix « à partir de » : tarif de départ. Une tenue personnalisée
+                  est chiffrée par devis. */}
+              <p className="font-semibold">
+                À partir de {formatPrice(tailor.base_price)}
+              </p>
             </div>
           </CardContent>
         </Card>

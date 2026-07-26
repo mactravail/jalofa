@@ -51,6 +51,8 @@ type DemoInput = {
   measurement?: OrderMeasurement;
   notes?: string;
   paid?: boolean;
+  /** Née d'une demande de devis : reçue sans prix ni livraison chiffrés. */
+  quote?: boolean;
   daysAgo: number;
 };
 
@@ -59,7 +61,8 @@ const DAY = 86_400_000;
 function mk(o: DemoInput): OrderListItem {
   const fabricPrice = o.fabric_price ?? 0;
   const tailoringPrice = o.tailoring_price ?? 0;
-  const deliveryFee = 2000;
+  // Un devis pas encore chiffré n'a pas non plus de frais de livraison arrêtés.
+  const deliveryFee = o.quote ? 0 : 2000;
   const created = new Date(Date.now() - o.daysAgo * DAY).toISOString();
   const [firstName, ...lastName] = o.client.split(" ");
   return {
@@ -83,6 +86,7 @@ function mk(o: DemoInput): OrderListItem {
     contact_phone: "+221 77 000 00 00",
     status: o.status,
     rejection_reason: o.status === "rejected" ? "too_busy" : null,
+    is_quote: o.quote ?? false,
     fabric_price: fabricPrice,
     tailoring_price: tailoringPrice,
     delivery_fee: deliveryFee,
@@ -102,6 +106,20 @@ function mk(o: DemoInput): OrderListItem {
 }
 
 const TAILOR_INPUTS: DemoInput[] = [
+  {
+    // Demande de devis : reçue sans prix, à chiffrer avant que le client paie.
+    n: 1045,
+    client: "Sophie Mendy",
+    city: "Dakar",
+    type: "own_fabric",
+    status: "received",
+    model: "Grand Boubou",
+    quote: true,
+    paid: false,
+    measurement: standard("M"),
+    notes: "Bazin brodé pour un mariage. Quel serait votre prix ?",
+    daysAgo: 0,
+  },
   {
     n: 1042,
     client: "Aïssatou Diallo",

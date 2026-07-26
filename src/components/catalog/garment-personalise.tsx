@@ -152,6 +152,9 @@ export function GarmentPersonalise({
       >
         Personnaliser <span aria-hidden>→</span>
       </Link>
+      <p className="text-muted-foreground mt-2 text-center text-xs">
+        Vous recevrez un devis avec le prix final — gratuit et sans engagement.
+      </p>
     </div>
   );
 }

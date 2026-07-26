@@ -78,19 +78,24 @@ export async function signUp(
     return { error: "Vous devez accepter les conditions générales pour continuer." };
   }
 
-  // C'est l'abonnement qui décide du métier — jamais le formulaire seul. Pas de
-  // plan = compte client ; Gratuit/Premium ouvrent les deux (on atterrit côté
-  // tailleur, le vendeur se débloque via le sélecteur d'espace) ; Standard fige
-  // le métier choisi.
+  // JALOFA est gratuit pour tous les pros : le métier vient directement du
+  // formulaire (« Je suis tailleur / vendeur »). Le plan par défaut est Gratuit
+  // (le trigger `handle_new_user` le pose), et ouvre les deux boutiques —
+  // l'autre métier se débloque via le sélecteur d'espace.
+  //
+  // Le chemin `plan=…` reste supporté (page `/abonnements` conservée mais non
+  // liée) pour un éventuel retour des forfaits.
   const planId = String(formData.get("plan") ?? "");
   const plan = planId ? getPlan(planId as SubscriptionPlanId) : undefined;
   let role = String(formData.get("role") ?? "client");
-  if (!plan) {
-    role = "client";
-  } else if (plan.scope === "both") {
-    role = "tailor";
+  if (plan) {
+    if (plan.scope === "both") {
+      role = "tailor";
+    } else if (role !== "tailor" && role !== "vendor") {
+      return { error: "Choisissez votre métier : tailleur ou vendeur." };
+    }
   } else if (role !== "tailor" && role !== "vendor") {
-    return { error: "Choisissez votre métier : tailleur ou vendeur." };
+    role = "client";
   }
 
   // Les plans payants (Standard, Premium) exigent le règlement de la première

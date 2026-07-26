@@ -136,6 +136,13 @@ export function OrderDetailSheet({
           )}
 
           <Section title="Paiement">
+            {order.is_quote && order.payment_status === "pending" && (
+              <p className="text-muted-foreground text-sm">
+                {order.tailoring_price > 0
+                  ? "Devis envoyé — en attente de l'accord et du paiement du client."
+                  : "Demande de devis — chiffrez-la depuis « À traiter » pour envoyer votre prix au client."}
+              </p>
+            )}
             {order.fabric_price > 0 && (
               <Row label="Tissu" value={formatPrice(order.fabric_price)} />
             )}

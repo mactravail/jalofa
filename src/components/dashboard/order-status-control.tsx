@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Loader2, PackageCheck, Truck, X } from "lucide-react";
+import { Check, Loader2, PackageCheck, Tag, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { usePipeline } from "@/components/dashboard/pipeline-store";
+import { QuoteOrderDialog } from "@/components/dashboard/quote-order-dialog";
 import { RejectOrderDialog } from "@/components/dashboard/reject-order-dialog";
 import { Button } from "@/components/ui/button";
 import {
   ORDER_STATUS_LABELS,
+  formatPrice,
   type OrderStatus,
   type OrderType,
+  type PaymentStatus,
   type RejectionReason,
 } from "@/lib/constants";
 import { BUCKET_LABELS } from "@/lib/dashboard-nav";
@@ -33,14 +36,23 @@ export function OrderStatusControl({
   orderId,
   status,
   type,
+  isQuote = false,
+  tailoringPrice = 0,
+  paymentStatus,
 }: {
   orderId: string;
   status: OrderStatus;
   type: OrderType;
+  /** Née d'une demande de devis (tailleur « Prix sur demande »). */
+  isQuote?: boolean;
+  /** Prix de confection déjà fixé — 0 tant qu'un devis n'est pas chiffré. */
+  tailoringPrice?: number;
+  paymentStatus?: PaymentStatus;
 }) {
-  const { role, move, reject } = usePipeline();
+  const { role, move, reject, quote } = usePipeline();
   const [isPending, startTransition] = useTransition();
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
 
   const run = (next: OrderStatus) => {
     startTransition(async () => {
@@ -71,6 +83,73 @@ export function OrderStatusControl({
       }
     });
   };
+
+  const confirmQuote = (price: number) => {
+    startTransition(async () => {
+      try {
+        await quote(orderId, price);
+        setQuoteOpen(false);
+        toast.success(
+          `Devis envoyé : ${formatPrice(price)} — en attente du client.`,
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
+      }
+    });
+  };
+
+  // --- Devis en privé : chiffrer avant que le client paie -------------------
+  // Une demande de devis arrive « reçue » et impayée : le tailleur ne l'accepte
+  // pas à l'aveugle, il la CHIFFRE. Une fois le prix envoyé, la balle est dans
+  // le camp du client (accepter & payer) — la commande reste ici en attendant.
+  if (
+    role === "tailor" &&
+    isQuote &&
+    status === "received" &&
+    paymentStatus === "pending"
+  ) {
+    if (tailoringPrice > 0) {
+      return (
+        <span className="text-muted-foreground text-sm">
+          Devis envoyé · en attente du client
+        </span>
+      );
+    }
+    return (
+      <>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => setQuoteOpen(true)} disabled={isPending}>
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Tag className="size-4" />
+            )}
+            Chiffrer le devis
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setRejectOpen(true)}
+            disabled={isPending}
+          >
+            <X className="size-4" /> Refuser
+          </Button>
+        </div>
+        <QuoteOrderDialog
+          open={quoteOpen}
+          onOpenChange={setQuoteOpen}
+          onConfirm={confirmQuote}
+          isPending={isPending}
+        />
+        <RejectOrderDialog
+          open={rejectOpen}
+          onOpenChange={setRejectOpen}
+          onConfirm={confirmReject}
+          isPending={isPending}
+        />
+      </>
+    );
+  }
 
   if (isTerminal(status)) {
     return (

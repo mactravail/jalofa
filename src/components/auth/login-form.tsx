@@ -92,7 +92,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
               </Link>
               <div className="grid grid-cols-2 gap-2">
                 <Link
-                  href="/abonnements?metier=tailor"
+                  href="/inscription?role=tailor"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
                     "gap-1.5",
@@ -101,7 +101,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
                   <Scissors className="size-4 shrink-0" /> Tailleur
                 </Link>
                 <Link
-                  href="/abonnements?metier=vendor"
+                  href="/inscription?role=vendor"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
                     "gap-1.5",

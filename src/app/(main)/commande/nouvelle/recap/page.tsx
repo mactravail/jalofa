@@ -58,12 +58,21 @@ export default function ReviewStep() {
           </div>
         ))}
         <div className="bg-muted/40 flex items-center justify-between gap-4 px-4 py-3">
-          <dt className="text-sm font-semibold">Sous-total</dt>
+          <dt className="text-sm font-semibold">
+            {isFabricOnly ? "Sous-total" : "À partir de"}
+          </dt>
           <dd className="text-primary text-right text-base font-bold">
             {formatPrice(price.total)}
           </dd>
         </div>
       </dl>
+
+      {!isFabricOnly && (
+        <p className="text-muted-foreground -mt-3 text-xs">
+          Prix indicatif : en personnalisant, vous demandez un devis. Le tailleur
+          vous répondra avec le prix final.
+        </p>
+      )}
 
       {styleRefs.length > 0 && (
         <section className="space-y-2">
@@ -109,9 +118,18 @@ export default function ReviewStep() {
       </div>
 
       <p className="text-muted-foreground text-sm">
-        {isFabricOnly ? "Ajoutez ce tissu au panier." : "Ajoutez cette tenue au panier."}{" "}
-        La livraison et le paiement seront choisis à la caisse, pour l&apos;ensemble
-        de votre commande.
+        {isFabricOnly ? (
+          <>
+            Ajoutez ce tissu au panier. La livraison et le paiement seront choisis
+            à la caisse, pour l&apos;ensemble de votre commande.
+          </>
+        ) : (
+          <>
+            Envoyez votre demande de devis : gratuit et sans engagement. Le
+            tailleur vous répondra avec le prix final, puis vous accepterez et
+            paierez.
+          </>
+        )}
       </p>
     </div>
   );
