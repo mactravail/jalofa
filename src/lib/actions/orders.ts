@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { resolveTailoringPrice } from "@/lib/order-pricing";
+import { isTerminal, timelineFor } from "@/lib/pipeline";
 import { DELIVERY_FEE } from "@/lib/pricing";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -445,12 +446,77 @@ export async function acceptQuote(
   return { ok: true };
 }
 
-export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+/**
+ * La commande telle qu'elle fait foi pour décider d'un avancement, avec le
+ * contrôle « c'est bien un prestataire de cette commande » déjà fait.
+ *
+ * Ces actions sont des points d'entrée HTTP : le bouton n'existe que dans
+ * l'espace pro, mais l'appel, lui, est à la portée de n'importe qui. La policy
+ * `orders_update_party` laisse passer les TROIS parties (client compris) sur
+ * n'importe quelle colonne — sans ce contrôle, un client pouvait déclarer sa
+ * propre commande « livrée » et gonfler d'autant le score de confiance du
+ * tailleur (`completed_orders`, `on_time_orders`).
+ */
+async function proOrder(orderId: string) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Vous devez être connecté.");
+
+  const { data } = await supabase
+    .from("orders")
+    .select("tailor_id, vendor_id, status, type")
+    .eq("id", orderId)
+    .single();
+  const order = data as {
+    tailor_id: string | null;
+    vendor_id: string | null;
+    status: OrderStatus;
+    type: OrderType;
+  } | null;
+  if (!order) throw new Error("Commande introuvable.");
+
+  const isTailor = order.tailor_id === user.id;
+  const isVendor = order.vendor_id === user.id;
+  if (!isTailor && !isVendor) {
+    throw new Error("Cette commande ne vous est pas confiée.");
+  }
+  if (isTerminal(order.status)) {
+    throw new Error("Cette commande est clôturée.");
+  }
+
+  return { supabase, user, order, isTailor };
+}
+
+/**
+ * Le prestataire fait avancer la commande.
+ *
+ * L'avancement ne va que vers l'avant, le long du pipeline du type de commande
+ * (cf. `timelineFor`). On ne se limite pas à l'étape immédiatement suivante :
+ * l'espace pro propose volontairement des raccourcis (« J'ai reçu le tissu »,
+ * « Marquer prêt & livré ») qui sautent plusieurs étapes. En revanche on ne
+ * revient jamais en arrière — sans quoi un pro pourrait rejouer indéfiniment le
+ * passage à « livrée » et recompter la commande dans ses statistiques.
+ */
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+  const { supabase, order } = await proOrder(orderId);
+
+  const timeline = timelineFor(order.type);
+  const from = timeline.indexOf(order.status);
+  const to = timeline.indexOf(status);
+  if (to < 0) {
+    throw new Error("Cette étape n'existe pas pour ce type de commande.");
+  }
+  if (to <= from) {
+    throw new Error("Une commande ne peut pas revenir en arrière.");
+  }
+
   const { error } = await supabase
     .from("orders")
     .update({ status })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("status", order.status);
   if (error) throw new Error(error.message);
   revalidatePath(`/tailleur/espace`, "layout");
   revalidatePath(`/vendeur/espace`, "layout");
@@ -465,11 +531,19 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
  * refus sur sa page dédiée.
  */
 export async function rejectOrder(orderId: string, reason: RejectionReason) {
-  const supabase = await createClient();
+  const { supabase, order } = await proOrder(orderId);
+
+  // On ne refuse qu'une commande qu'on n'a pas encore prise en main : une fois le
+  // travail engagé, le geste est l'annulation, pas le refus.
+  if (order.status !== "received" && order.status !== "accepted") {
+    throw new Error("Cette commande est déjà engagée et ne peut plus être refusée.");
+  }
+
   const { error } = await supabase
     .from("orders")
     .update({ status: "rejected" as OrderStatus, rejection_reason: reason })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("status", order.status);
   if (error) throw new Error(error.message);
   revalidatePath(`/tailleur/espace`, "layout");
   revalidatePath(`/vendeur/espace`, "layout");

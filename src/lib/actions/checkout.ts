@@ -55,6 +55,36 @@ export type PlaceOrdersState =
   | { ok: false; error: string }
   | null;
 
+/**
+ * Bornes du panier. Le contenu arrive en JSON depuis le navigateur : c'est une
+ * donnée d'entrée comme une autre, et rien n'oblige à ce qu'elle vienne de notre
+ * page « Panier ».
+ *
+ * - `MAX_ITEMS` / `MAX_QTY` : sans plafond, une seule requête pouvait demander la
+ *   création de dizaines de milliers de commandes (une ligne `orders` et une
+ *   ligne `measurements` par vêtement) et saturer la base.
+ * - `MAX_METERS` : le métrage multiplie le prix du tissu. Une valeur négative
+ *   rendait le prix négatif — donc un total réduit, voire nul, sur le reste du
+ *   panier. Le métrage est désormais toujours un nombre fini, positif et plafonné.
+ */
+const MAX_ITEMS = 20;
+const MAX_QTY = 10;
+const MAX_METERS = 100;
+
+/** Quantité demandée pour une ligne, ramenée dans les bornes. */
+function safeQty(value: unknown): number {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(n, MAX_QTY);
+}
+
+/** Métrage de tissu, ramené dans les bornes (jamais négatif). */
+function safeMeters(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(n, MAX_METERS);
+}
+
 function demoOrderNumber(index: number): string {
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
   const seq = String(index + 1).padStart(2, "0");
@@ -72,9 +102,23 @@ export async function placeOrders(
     return { ok: false, error: "Données de commande invalides." };
   }
 
-  if (!payload.items?.length) {
+  if (!Array.isArray(payload.items) || payload.items.length === 0) {
     return { ok: false, error: "Votre panier est vide." };
   }
+  if (payload.items.length > MAX_ITEMS) {
+    return {
+      ok: false,
+      error: `Votre panier dépasse ${MAX_ITEMS} lignes. Passez plusieurs commandes.`,
+    };
+  }
+
+  // Métrage et quantité refaits ici, une fois pour toutes : le reste de l'action
+  // (prix du tissu, boucle de création) travaille sur des valeurs déjà bornées.
+  payload.items = payload.items.map((item) => ({
+    ...item,
+    fabric_meters: safeMeters(item.fabric_meters),
+    qty: safeQty(item.qty),
+  }));
   if (!payload.payment_method) {
     return { ok: false, error: "Choisissez un moyen de paiement." };
   }

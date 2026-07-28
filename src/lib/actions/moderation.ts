@@ -26,6 +26,34 @@ const TABLE: Record<ProKind, "tailors" | "vendors"> = {
 
 const NOT_CONNECTED =
   "La base de données n'est pas encore connectée. La modération sera possible une fois Supabase configuré.";
+const FORBIDDEN = "Action réservée à l'administration.";
+
+/**
+ * Garde « administrateur », à faire précéder toute modération.
+ *
+ * Ces deux actions sont des points d'entrée HTTP à part entière : le fait que
+ * seul l'espace admin les affiche n'empêche personne de les appeler. Sans ce
+ * contrôle, elles s'exécutaient avec la session de l'appelant, et la policy
+ * `*_update_own` suffisait alors à un pro pour se certifier lui-même ou lever sa
+ * propre suspension sur SA ligne — le `id` étant un simple argument.
+ *
+ * Le trigger `*_guard_privileged` (migration 20260802000001) refuse désormais
+ * ces écritures côté base ; on garde malgré tout le contrôle ici, pour que le
+ * refus soit explicite et lisible plutôt qu'une erreur SQL remontée à l'écran.
+ */
+async function requireAdmin(): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  return (data as { role?: string } | null)?.role === "admin";
+}
 
 /** Rafraîchit l'espace admin et le catalogue public après une modération. */
 function revalidatePro(kind: ProKind, id: string) {
@@ -52,6 +80,7 @@ export async function setProSuspension(
   if (suspended && !reason) {
     return { ok: false, error: "Un motif de suspension est requis." };
   }
+  if (!(await requireAdmin())) return { ok: false, error: FORBIDDEN };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -74,6 +103,7 @@ export async function setProCertification(
   certified: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+  if (!(await requireAdmin())) return { ok: false, error: FORBIDDEN };
 
   const supabase = await createClient();
   const { error } = await supabase

@@ -341,6 +341,14 @@ export function ConfiguratorProvider({
         const raw = sessionStorage.getItem(DRAFT_KEY);
         const parsed: unknown = raw ? JSON.parse(raw) : null;
         if (parsed && typeof parsed === "object") {
+          // `setState` synchrone dans un effet, et c'est voulu : la restauration
+          // doit avoir lieu APRÈS les effets des enfants, seul moment où l'on
+          // sait si la route d'entrée a semé un modèle (`seededRef`) qui doit
+          // primer sur le brouillon. Un initialiseur paresseux de `useState`
+          // lirait sessionStorage pendant le rendu — donc avant tout effet
+          // enfant, ce qui rendrait le veto impossible — et provoquerait en
+          // prime une divergence d'hydratation (pas de sessionStorage au SSR).
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setState({ ...defaultState(), ...(parsed as Partial<ConfiguratorState>) });
         }
       } catch {

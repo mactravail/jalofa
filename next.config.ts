@@ -26,6 +26,47 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
+  /**
+   * En-têtes de sécurité, appliqués à toute réponse.
+   *
+   * Sans eux, l'espace d'administration et les tableaux de bord pros peuvent
+   * être chargés dans une iframe invisible posée sur un site tiers : la victime
+   * croit cliquer sur ce site et actionne en réalité nos boutons, avec sa propre
+   * session (détournement de clic). `frame-ancestors` est la protection qui fait
+   * foi ; `X-Frame-Options` la double pour les navigateurs anciens.
+   *
+   * Volontairement PAS de `script-src` ici : une CSP sur les scripts demande des
+   * nonces par requête, faute de quoi elle casse l'hydratation de Next. C'est un
+   * chantier à part, à mener avec le middleware.
+   */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Cadrage interdit — cf. commentaire ci-dessus.
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
+          // Un fichier téléversé servi en `text/plain` ne doit jamais être
+          // réinterprété comme du HTML/JS par le navigateur.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Ne pas fuiter le chemin complet (ex. /compte/commandes/<uuid>) vers
+          // les sites tiers ; l'origine seule suffit aux référents.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Aucune de ces API n'est utilisée : on les refuse par défaut.
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+          },
+          // HTTPS obligatoire et mémorisé (jalofa.com sert déjà en TLS).
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       // The configurator used to open the whole model catalogue as its first

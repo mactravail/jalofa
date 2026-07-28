@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { passwordIssue } from "@/lib/password";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { safeRedirect } from "@/lib/safe-redirect";
 import { getPlan, type SubscriptionPlanId } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,7 +44,10 @@ export async function signIn(
     return { error: "E-mail ou mot de passe incorrect." };
   }
 
-  let destination = redirectTo;
+  // `redirect` vient de l'URL, donc de n'importe qui : on n'en garde qu'un
+  // chemin interne (cf. `safeRedirect`). Une valeur externe est ignorée, et
+  // l'utilisateur atterrit sur l'espace de son rôle.
+  let destination = safeRedirect(redirectTo, "");
   if (!destination) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -69,8 +74,12 @@ export async function signUp(
   if (!fullName || !email || !password) {
     return { error: "Nom, e-mail et mot de passe sont obligatoires." };
   }
-  if (password.length < 6) {
-    return { error: "Le mot de passe doit contenir au moins 6 caractères." };
+  // Exigences de robustesse (majuscule, minuscule, chiffre, caractère spécial,
+  // 8 caractères mini). Vérifiées ici quoi qu'il arrive : le formulaire donne le
+  // même retour en direct, mais c'est ce contrôle qui fait foi.
+  const weak = passwordIssue(password);
+  if (weak) {
+    return { error: weak };
   }
 
   // Case « J'accepte les conditions » cochée côté client — revalidée ici.
@@ -129,13 +138,23 @@ export async function signUp(
   });
 
   if (error) {
+    // Supabase applique sa propre politique de mot de passe et répond en
+    // anglais. Notre contrôle est au moins aussi strict, donc ce cas ne devrait
+    // pas se produire — filet de sécurité si les deux réglages divergent.
+    if (error.code === "weak_password") {
+      return {
+        error:
+          "Mot de passe trop faible : 8 caractères minimum, avec une majuscule, une minuscule, un chiffre et un caractère spécial.",
+      };
+    }
     return { error: error.message };
   }
 
   // Un client qui s'inscrivait pour finaliser un achat (personnalisation,
   // caisse…) doit revenir là où il était ; les pros vont vers leur espace.
+  const fallbackLanding = ROLE_LANDING[role] ?? "/compte";
   const landing =
-    role === "client" && redirectTo ? redirectTo : ROLE_LANDING[role] ?? "/compte";
+    role === "client" ? safeRedirect(redirectTo, fallbackLanding) : fallbackLanding;
 
   // If email confirmation is disabled the user is signed in immediately.
   if (data.session) {
@@ -146,7 +165,8 @@ export async function signUp(
   // Confirmation par e-mail requise : on conserve la destination pour la
   // reprendre après la connexion qui suit l'activation.
   const params = new URLSearchParams({ inscription: "ok", email });
-  if (role === "client" && redirectTo) params.set("redirect", redirectTo);
+  const kept = role === "client" ? safeRedirect(redirectTo, "") : "";
+  if (kept) params.set("redirect", kept);
   redirect(`/connexion?${params.toString()}`);
 }
 
