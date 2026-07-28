@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, UserCog } from "lucide-react";
 
 import { NotificationsCard } from "@/components/account/notifications-card";
 import { buttonVariants } from "@/components/ui/button";
@@ -48,17 +48,26 @@ export default async function AccountPage() {
       <NotificationsCard notifications={notifications} />
 
       <Card>
-        <CardContent className="flex items-center gap-4 p-6">
+        <CardContent className="flex flex-wrap items-center gap-4 p-6">
           <span className="bg-primary/10 text-primary flex size-16 items-center justify-center rounded-full text-xl font-semibold">
             {initials}
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="text-lg font-semibold">{profile.full_name ?? "—"}</p>
             <p className="text-muted-foreground text-sm">{ROLE_LABELS[profile.role as UserRole]}</p>
             {profile.phone && (
               <p className="text-muted-foreground text-sm">{profile.phone}</p>
             )}
           </div>
+          <Link
+            href="/compte/parametres"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "ml-auto gap-2",
+            )}
+          >
+            <UserCog className="size-4" /> Modifier mon compte
+          </Link>
         </CardContent>
       </Card>
 

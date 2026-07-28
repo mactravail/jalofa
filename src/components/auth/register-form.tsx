@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Loader2, Scissors, ShoppingBag } from "lucide-react";
 
 import { signUp, type AuthState } from "@/lib/actions/auth";
+import { PasswordField } from "@/components/auth/password-field";
 import { NotARobot, TermsCheckbox } from "@/components/auth/signup-verification";
 import {
   SubscriptionPayment,
@@ -22,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPrice } from "@/lib/constants";
+import { checkPassword } from "@/lib/password";
 import {
   getPlan,
   periodTotal,
@@ -92,6 +94,7 @@ export function RegisterForm({
   const [metier, setMetier] = useState<"tailor" | "vendor">(
     initialMetier === "vendor" ? "vendor" : "tailor",
   );
+  const [password, setPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [notRobot, setNotRobot] = useState(false);
   const [payMethod, setPayMethod] = useState<SubPaymentMethod | null>(null);
@@ -115,7 +118,9 @@ export function RegisterForm({
     !isPaid ||
     payMethod === "wave" ||
     (payMethod === "bank" && bankConfirmed);
-  const canSubmit = acceptedTerms && notRobot && paymentDone;
+  // Mot de passe conforme à la politique (le serveur revérifie de toute façon).
+  const passwordOk = checkPassword(password).valid;
+  const canSubmit = passwordOk && acceptedTerms && notRobot && paymentDone;
 
   const submitLabel = isPaid
     ? `Payer ${formatPrice(amountDue)} et créer mon compte`
@@ -281,17 +286,7 @@ export function RegisterForm({
               placeholder="+221 ..."
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={6}
-              required
-            />
-          </div>
+          <PasswordField value={password} onChange={setPassword} />
 
           {/* Paiement — uniquement pour les plans payants (Standard, Premium). */}
           {isPaid && plan && (
@@ -333,13 +328,15 @@ export function RegisterForm({
           </Button>
           {!canSubmit && (
             <p className="text-muted-foreground text-center text-xs">
-              {!acceptedTerms
-                ? "Acceptez les conditions générales pour continuer."
-                : !notRobot
-                  ? "Confirmez que vous n'êtes pas un robot."
-                  : !payMethod
-                    ? "Choisissez un moyen de paiement."
-                    : "Confirmez votre virement bancaire."}
+              {!passwordOk
+                ? "Choisissez un mot de passe qui remplit toutes les exigences."
+                : !acceptedTerms
+                  ? "Acceptez les conditions générales pour continuer."
+                    : !notRobot
+                      ? "Confirmez que vous n'êtes pas un robot."
+                      : !payMethod
+                        ? "Choisissez un moyen de paiement."
+                        : "Confirmez votre virement bancaire."}
             </p>
           )}
           <p className="text-muted-foreground text-center text-sm">

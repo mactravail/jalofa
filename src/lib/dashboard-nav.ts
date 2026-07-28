@@ -9,6 +9,7 @@ import {
   Shirt,
   Store,
   Truck,
+  UserCog,
   Users,
   Wallet,
 } from "lucide-react";
@@ -27,6 +28,7 @@ export type ProRole = "tailor" | "vendor";
 export type DashboardNavId =
   | "overview"
   | "profile"
+  | "account"
   | "todo"
   | "ongoing"
   | "shipping"
@@ -115,6 +117,15 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           href: `${root}/profil`,
           label: "Mon profil public",
           icon: Store,
+        },
+        // La vitrine (ci-dessus) et le compte (ci-dessous) sont deux choses
+        // distinctes : l'une est vue par les clients, l'autre contient le nom,
+        // le téléphone et le mot de passe.
+        {
+          id: "account",
+          href: `${root}/compte`,
+          label: "Mon compte",
+          icon: UserCog,
         },
       ],
     },

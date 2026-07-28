@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Heart, MapPin, Package, Sparkles, User } from "lucide-react";
+import { Heart, MapPin, Package, Sparkles, User, UserCog } from "lucide-react";
 
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 
@@ -9,6 +9,8 @@ const LINKS = [
   { href: "/compte/inspiration", label: "Inspiration", icon: Sparkles },
   { href: "/compte/adresses", label: "Adresses", icon: MapPin },
   { href: "/compte/favoris", label: "Favoris", icon: Heart },
+  // Nom, téléphone et mot de passe — la même page que dans les espaces pros.
+  { href: "/compte/parametres", label: "Mon compte", icon: UserCog },
 ];
 
 export default function AccountLayout({

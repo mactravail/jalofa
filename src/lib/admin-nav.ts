@@ -9,6 +9,7 @@ import {
   Sparkles,
   Star,
   Store,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ export const ADMIN_TITLE = "Administration";
 
 export type AdminNavId =
   | "overview"
+  | "account"
   | "orders"
   | "rejections"
   | "users"
@@ -63,6 +65,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: ADMIN_ROOT,
         label: "Vue d'ensemble",
         icon: LayoutDashboard,
+      },
+      // Le compte de l'administrateur lui-même : son nom et son mot de passe.
+      {
+        id: "account",
+        href: `${ADMIN_ROOT}/compte`,
+        label: "Mon compte",
+        icon: UserCog,
       },
     ],
   },
