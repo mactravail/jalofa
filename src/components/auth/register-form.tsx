@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Scissors, Shirt } from "lucide-react";
 
 import { signUp, type AuthState } from "@/lib/actions/auth";
 import { PasswordField } from "@/components/auth/password-field";
@@ -106,6 +106,24 @@ export function RegisterForm({
   return (
     <Card>
       <CardHeader>
+        <span
+          className={cn(
+            "mb-1 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+            isPro
+              ? "bg-neutral-950 text-white"
+              : "bg-neutral-100 text-neutral-900 ring-1 ring-neutral-200",
+          )}
+        >
+          {isPro ? (
+            <>
+              <Scissors className="size-3.5" /> Tailleur + vendeur de tissu
+            </>
+          ) : (
+            <>
+              <Shirt className="size-3.5" /> Client · gratuit
+            </>
+          )}
+        </span>
         <CardTitle className="text-2xl">
           {isPro ? "Compte pro" : "Compte client"}
         </CardTitle>
