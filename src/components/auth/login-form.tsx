@@ -66,6 +66,14 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
               autoComplete="current-password"
               required
             />
+            <div className="text-right">
+              <Link
+                href="/mot-de-passe-oublie"
+                className="text-muted-foreground hover:text-foreground text-sm underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
           </div>
         </CardContent>
         <CardFooter className="mt-6 flex flex-col gap-5">

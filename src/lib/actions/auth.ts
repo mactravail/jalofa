@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { passwordIssue } from "@/lib/password";
@@ -175,4 +176,100 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+/* ------------------------------------------------------------------------- */
+/* Mot de passe oublié                                                        */
+/* ------------------------------------------------------------------------- */
+
+export type ResetRequestState = { sent: true } | { error: string } | null;
+
+/** Origine publique du site (https://jalofa.com en prod, localhost en dev). */
+async function siteOrigin(): Promise<string> {
+  const h = await headers();
+  const origin = h.get("origin");
+  if (origin) return origin;
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "jalofa.com";
+  const proto =
+    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
+ * Envoie le lien de réinitialisation. La réponse est la même que le compte
+ * existe ou non : sinon le formulaire servirait à deviner qui est inscrit.
+ */
+export async function requestPasswordReset(
+  _prev: ResetRequestState,
+  formData: FormData,
+): Promise<ResetRequestState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { error: "Saisissez l'adresse e-mail de votre compte." };
+  }
+  if (!isSupabaseConfigured()) return { error: DB_NOT_READY };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await siteOrigin()}/auth/confirm?next=/mot-de-passe/nouveau`,
+  });
+
+  // Seule la limite d'envoi est signalée : elle ne révèle rien sur le compte.
+  if (error && (error.status === 429 || error.code === "over_email_send_rate_limit")) {
+    return { error: "Trop de demandes. Patientez quelques minutes puis réessayez." };
+  }
+  return { sent: true };
+}
+
+/**
+ * Pose le nouveau mot de passe. La session vient du lien reçu par e-mail
+ * (`/auth/confirm`) : sans elle, le lien a expiré ou a déjà servi.
+ */
+export async function setNewPassword(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  if (!isSupabaseConfigured()) return { error: DB_NOT_READY };
+
+  const next = String(formData.get("new_password") ?? "");
+  const confirm = String(formData.get("confirm_password") ?? "");
+  if (next !== confirm) {
+    return { error: "Les deux mots de passe ne sont pas identiques." };
+  }
+  const weak = passwordIssue(next);
+  if (weak) return { error: weak };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || user.is_anonymous) {
+    return {
+      error:
+        "Le lien a expiré. Demandez un nouveau lien depuis « Mot de passe oublié ».",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) {
+    if (error.code === "weak_password") {
+      return {
+        error:
+          "Mot de passe trop faible : 8 caractères minimum, avec une majuscule, une minuscule, un chiffre et un caractère spécial.",
+      };
+    }
+    if (error.code === "same_password") {
+      return { error: "Choisissez un mot de passe différent de l'ancien." };
+    }
+    return { error: error.message };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  revalidatePath("/", "layout");
+  redirect(ROLE_LANDING[(profile?.role as string) ?? "client"] ?? "/compte");
 }
