@@ -347,7 +347,7 @@ export function ModelFormDialog({
               name="price"
               type="number"
               min={0}
-              step={500}
+              step={1}
               defaultValue={source?.price ?? ""}
               placeholder="25000"
             />

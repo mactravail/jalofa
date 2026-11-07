@@ -60,7 +60,7 @@ export function QuoteOrderDialog({
             id="quote_price"
             type="number"
             min={0}
-            step={500}
+            step={1}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="Ex. 25000"

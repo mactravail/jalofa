@@ -197,7 +197,7 @@ export function FabricFormDialog({
                 name="price_per_meter"
                 type="number"
                 min={0}
-                step={100}
+                step={1}
                 required
                 defaultValue={fabric?.price_per_meter ?? ""}
                 placeholder="0"

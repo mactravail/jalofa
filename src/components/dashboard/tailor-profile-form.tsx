@@ -170,7 +170,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
             name="base_price"
             type="number"
             min={0}
-            step={500}
+            step={1}
             defaultValue={tailor.base_price}
             placeholder="15000"
           />
