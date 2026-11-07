@@ -8,7 +8,6 @@ import {
   Truck,
 } from "lucide-react";
 
-import { TailorCard } from "@/components/catalog/tailor-card";
 import { AtelierHero } from "@/components/home/atelier-hero";
 import { FabricMarquee } from "@/components/home/fabric-marquee";
 import { FemmeCollection } from "@/components/home/femme-collection";
@@ -132,7 +131,6 @@ export default async function HomePage() {
     .filter((d): d is number => typeof d === "number");
   const minDays = days.length ? Math.min(...days) : 6;
   const maxDays = days.length ? Math.max(...days) : 12;
-  const featuredTailors = [...tailors].sort((a, b) => b.rating - a.rating).slice(0, 4);
   const marqueeFabrics = fabrics.slice(0, 12);
 
   return (
@@ -255,28 +253,6 @@ export default async function HomePage() {
 
       {/* ── Configurateur ──────────────────────────────────────────────── */}
       <FitShowcase />
-
-      {/* ── Tailleurs (autorité) ───────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <SectionHead
-          kicker="Nos artisans partenaires"
-          title="Des tailleurs notés et certifiés, choisis par vous"
-          desc="Chaque avis provient d'une commande réelle. Notes, tarifs et délais sont publics : vous confiez votre tissu en toute connaissance de cause."
-        />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredTailors.map((tailor) => (
-            <TailorCard key={tailor.id} tailor={tailor} />
-          ))}
-        </div>
-        <div className="mt-8 text-center">
-          <Link
-            href="/tailleurs"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-lg px-6")}
-          >
-            Voir tous les tailleurs <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      </section>
 
       {/* ── Comment ça marche ──────────────────────────────────────────────
           Desktop uniquement : sur mobile le déroulé est déplacé sur la page
