@@ -82,6 +82,16 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         .filter(Boolean)
         .join("\n\n") || null;
 
+    const mode = cfg.data.contactMode;
+    if (mode && !(state.contactName.trim() && state.contactPhone.trim())) {
+      toast.error("Indiquez votre nom et votre téléphone.");
+      return;
+    }
+    if (mode === "account" && !(state.contactEmail.trim() && state.contactPassword)) {
+      toast.error("Indiquez votre e-mail et choisissez un mot de passe.");
+      return;
+    }
+
     startTransition(async () => {
       const res = await requestGarmentQuote({
         type: state.type,
@@ -106,6 +116,15 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         },
         city: null,
         notes,
+        contact: mode
+          ? {
+              name: state.contactName,
+              phone: state.contactPhone,
+              ...(mode === "account"
+                ? { email: state.contactEmail, password: state.contactPassword }
+                : {}),
+            }
+          : null,
       });
 
       if (res.ok) {
@@ -120,14 +139,11 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
             ? "Démo — le tailleur vous répondrait avec un prix."
             : `${tailor?.shop_name ?? "Le tailleur"} vous répondra avec un prix.`,
         });
+        // Le compte vient peut-être d'être créé : on ouvre directement sa page.
         router.push(
           res.orderId ? `/compte/commandes/${res.orderId}` : "/compte/commandes",
         );
-        return;
-      }
-      // Pas connecté : on revient au configurateur après login (brouillon gardé).
-      if (/connect/i.test(res.error)) {
-        router.push(`/connexion?redirect=${encodeURIComponent(pathname)}`);
+        router.refresh();
         return;
       }
       toast.error(res.error);

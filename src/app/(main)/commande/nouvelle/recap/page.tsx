@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 
+import { PasswordField } from "@/components/auth/password-field";
 import { useConfigurator } from "@/components/order/configurator-context";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MEASUREMENT_FIELDS, formatPrice } from "@/lib/constants";
@@ -98,6 +100,63 @@ export default function ReviewStep() {
           <p className="text-muted-foreground text-xs">
             Ces photos seront transmises au tailleur avec votre commande.
           </p>
+        </section>
+      )}
+
+      {/* Le tailleur doit pouvoir répondre au devis. Sans compte, le client
+          choisit aussi un mot de passe : son compte est créé avec la demande. */}
+      {!isFabricOnly && data.contactMode && (
+        <section className="space-y-3 rounded-xl border p-4">
+          <div>
+            <h3 className="text-sm font-semibold">Vos coordonnées</h3>
+            <p className="text-muted-foreground text-xs">
+              {data.contactMode === "account"
+                ? "Le tailleur vous contacte pour le prix. Choisissez un mot de passe pour suivre votre demande."
+                : "Le tailleur vous contacte pour le prix."}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contact-name">Nom complet</Label>
+            <Input
+              id="contact-name"
+              autoComplete="name"
+              value={state.contactName}
+              onChange={(e) => update({ contactName: e.target.value })}
+              placeholder="Aminata Diop"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contact-phone">Téléphone (WhatsApp)</Label>
+            <Input
+              id="contact-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={state.contactPhone}
+              onChange={(e) => update({ contactPhone: e.target.value })}
+              placeholder="77 123 45 67"
+            />
+          </div>
+          {data.contactMode === "account" && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="contact-email">E-mail</Label>
+                <Input
+                  id="contact-email"
+                  type="email"
+                  autoComplete="email"
+                  value={state.contactEmail}
+                  onChange={(e) => update({ contactEmail: e.target.value })}
+                  placeholder="vous@exemple.com"
+                />
+              </div>
+              <PasswordField
+                value={state.contactPassword}
+                onChange={(v) => update({ contactPassword: v })}
+                label="Mot de passe (pour suivre votre commande)"
+              />
+            </>
+          )}
         </section>
       )}
 

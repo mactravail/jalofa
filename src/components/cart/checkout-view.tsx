@@ -2,6 +2,11 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { PasswordField } from "@/components/auth/password-field";
+import { checkPassword } from "@/lib/password";
 import {
   CheckCircle2,
   CreditCard,
@@ -69,11 +74,27 @@ const PAYMENT_METHOD_DESCS: Partial<Record<PaymentMethod, string>> = {
   card: "Visa, Mastercard, Amex",
 };
 
-export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolean }) {
+export type CheckoutAccount = typeof EMPTY_CONTACT;
+
+// Pas d'inscription séparée : un nouveau client choisit son mot de passe ici,
+// avec ses coordonnées de livraison. `placeOrders` crée son compte avec la
+// commande, puis on ouvre directement sa page « Mes commandes ».
+export function CheckoutView({
+  account = null,
+  accountsEnabled = false,
+}: {
+  /** Client déjà connecté : coordonnées pré-remplies, pas de mot de passe. */
+  account?: CheckoutAccount | null;
+  /** Base branchée : un nouveau client doit choisir un mot de passe. */
+  accountsEnabled?: boolean;
+}) {
+  const router = useRouter();
   const { items, subtotal, count, hydrated, clear } = useCart();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("home");
-  const [contact, setContact] = useState(EMPTY_CONTACT);
+  const [contact, setContact] = useState(account ?? EMPTY_CONTACT);
+  const needsPassword = accountsEnabled && !account;
+  const [password, setPassword] = useState("");
   const [address, setAddress] = useState(EMPTY_ADDRESS);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   // Card details stay client-side: the gateway is stubbed for the MVP and a PAN
@@ -85,10 +106,22 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
     null,
   );
 
-  // Empty the basket once the order is placed.
+  // Commande enregistrée : on vide le panier et on ouvre directement la page
+  // du client (son compte vient peut-être d'être créé). En démo, pas de
+  // compte : on reste sur la confirmation.
   useEffect(() => {
-    if (result?.ok) clear();
-  }, [result, clear]);
+    if (!result?.ok) return;
+    clear();
+    if (!result.demo) {
+      toast.success("Commande confirmée", {
+        description: needsPassword
+          ? "Votre compte est prêt. La prochaine fois, connectez-vous avec votre e-mail et ce mot de passe."
+          : "Suivez sa confection ici.",
+      });
+      router.replace("/compte/commandes");
+      router.refresh();
+    }
+  }, [result, clear, router, needsPassword]);
 
   // Livraison offerte quand tous les articles viennent de tailleurs qui la
   // prennent à leur charge (cf. `basketHasFreeDelivery`).
@@ -135,8 +168,13 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
     deliveryMethod === "pickup" || Boolean(address.address_line.trim());
   const paymentComplete =
     paymentMethod === "card" ? isCardComplete(card) : Boolean(paymentMethod);
+  const passwordComplete = !needsPassword || checkPassword(password).valid;
   const canSubmit =
-    paymentComplete && contactComplete && cityComplete && addressComplete;
+    paymentComplete &&
+    contactComplete &&
+    passwordComplete &&
+    cityComplete &&
+    addressComplete;
 
   // --- Confirmation --------------------------------------------------------
   if (result?.ok) {
@@ -164,43 +202,6 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
         <Link href="/modeles" className={cn(buttonVariants({}), "mt-6")}>
           Voir les modèles
         </Link>
-      </div>
-    );
-  }
-
-  // Connexion requise avant d'enregistrer la commande : on la demande ici,
-  // clairement, plutôt que de laisser l'erreur surgir après le paiement. Le
-  // panier est conservé (localStorage), la connexion ramène à la caisse.
-  if (requiresLogin) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <div className="bg-primary/10 text-primary mx-auto flex size-16 items-center justify-center rounded-full">
-          <User className="size-7" />
-        </div>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">
-          Connectez-vous pour finaliser
-        </h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Votre panier est enregistré. Connectez-vous ou créez un compte pour
-          confirmer votre commande et suivre sa production.
-        </p>
-        <div className="mt-8 flex flex-col gap-3">
-          <Link
-            href="/connexion?redirect=/caisse"
-            className={cn(buttonVariants({ size: "lg" }), "w-full")}
-          >
-            Se connecter
-          </Link>
-          <Link
-            href="/inscription?role=client&redirect=/caisse"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "w-full",
-            )}
-          >
-            Créer un compte
-          </Link>
-        </div>
       </div>
     );
   }
@@ -246,6 +247,27 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
                 onChange={(v) => setContact((c) => ({ ...c, phone: v }))}
               />
             </div>
+
+            {/* Nouveau client : son compte naît avec la commande. Il pourra
+                suivre ses commandes et se reconnecter avec cet e-mail. */}
+            {needsPassword && (
+              <div className="bg-muted/40 mt-4 rounded-xl border p-4">
+                <p className="mb-3 text-sm font-medium">
+                  Créez votre mot de passe pour suivre votre commande
+                </p>
+                <PasswordField value={password} onChange={setPassword} />
+                <p className="text-muted-foreground mt-2 text-xs">
+                  Déjà client ? Entrez votre mot de passe habituel, ou{" "}
+                  <Link
+                    href="/connexion?redirect=/caisse"
+                    className="text-foreground underline underline-offset-2"
+                  >
+                    connectez-vous
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
           </section>
 
           {/* Delivery */}
@@ -396,14 +418,6 @@ export function CheckoutView({ requiresLogin = false }: { requiresLogin?: boolea
             {result && !result.ok && (
               <div className="bg-destructive/10 mt-3 rounded-md px-3 py-2">
                 <p className="text-destructive text-sm">{result.error}</p>
-                {result.error.includes("connecté") && (
-                  <Link
-                    href="/connexion?redirect=/caisse"
-                    className={cn(buttonVariants({ size: "sm" }), "mt-2 w-full")}
-                  >
-                    Se connecter
-                  </Link>
-                )}
               </div>
             )}
 

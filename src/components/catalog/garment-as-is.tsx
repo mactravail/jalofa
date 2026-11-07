@@ -1,20 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ruler, ShoppingBag } from "lucide-react";
+import { Ruler } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCart } from "@/components/cart/cart-context";
-import { Button } from "@/components/ui/button";
 import { STANDARD_SIZES, formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 // « Prendre le vêtement tel quel » : le client accepte le modèle tel qu'il est
 // présenté — même tissu, mêmes finitions — et ne choisit QUE sa taille. Tout le
-// reste (tissu, finitions, prix, tailleur) est figé par la page qui monte ce
-// composant, si bien qu'il n'y a ici qu'un sélecteur de taille et l'ajout au
-// panier. Le parcours « personnalisé » vit ailleurs (configurateur ou commande).
+// reste (tissu, finitions, prix, tailleur) est figé par la page, via ce preset.
+// Le bloc d'achat (`GarmentBuyBox`) assemble le sélecteur et l'unique bouton.
 export type AsIsPreset = {
   type: "full" | "own_fabric";
   modelId: string;
@@ -41,12 +38,12 @@ export type AsIsPreset = {
   note?: string;
 };
 
-export function GarmentAsIs({ preset }: { preset: AsIsPreset }) {
+/** Ajoute au panier la version « telle quelle » dans la taille choisie. */
+export function useAddAsIs(preset: AsIsPreset) {
   const router = useRouter();
   const { addItem } = useCart();
-  const [size, setSize] = useState<string | null>(null);
 
-  const addToCart = () => {
+  return (size: string | null) => {
     if (!size) {
       toast.error("Choisissez d'abord votre taille");
       return;
@@ -79,42 +76,45 @@ export function GarmentAsIs({ preset }: { preset: AsIsPreset }) {
     });
     router.push("/panier");
   };
+}
 
+/** Sélecteur de taille (contrôlé) — le seul choix de la version « telle quelle ». */
+export function SizePicker({
+  value,
+  onChange,
+  note,
+}: {
+  value: string | null;
+  onChange: (size: string) => void;
+  note?: string;
+}) {
   return (
-    <div className="space-y-4">
-      <div>
-        <div className="flex items-center gap-1.5 text-sm font-medium">
-          <Ruler className="text-primary size-4" /> Choisissez votre taille
-        </div>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          {preset.note ??
-            "Même tissu et mêmes finitions que le modèle présenté — le tailleur l'ajuste à votre taille."}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {STANDARD_SIZES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSize(s)}
-              aria-pressed={size === s}
-              className={cn(
-                "size-12 rounded-lg border text-sm font-semibold transition-colors",
-                size === s
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:bg-muted",
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+    <div>
+      <div className="flex items-center gap-1.5 text-sm font-medium">
+        <Ruler className="text-primary size-4" /> Choisissez votre taille
       </div>
-
-      {/* Libellé seul : le prix est déjà annoncé au-dessus, dans l'en-tête de la
-          carte « Le prendre tel quel ». */}
-      <Button size="lg" className="h-11 w-full text-base" onClick={addToCart}>
-        <ShoppingBag className="size-4" /> Ajouter au panier
-      </Button>
+      <p className="text-muted-foreground mt-0.5 text-xs">
+        {note ??
+          "Même tissu et mêmes finitions que le modèle présenté — le tailleur l'ajuste à votre taille."}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {STANDARD_SIZES.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s)}
+            aria-pressed={value === s}
+            className={cn(
+              "size-12 rounded-lg border text-sm font-semibold transition-colors",
+              value === s
+                ? "border-primary bg-primary text-primary-foreground"
+                : "hover:bg-muted",
+            )}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

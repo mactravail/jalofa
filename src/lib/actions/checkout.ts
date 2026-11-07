@@ -7,6 +7,7 @@ import { recordDemoFabricSales, type DemoFabricSale } from "@/lib/notifications-
 import { resolveTailoringPrice } from "@/lib/order-pricing";
 import { DELIVERY_FEE } from "@/lib/pricing";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { ensureClientAccount } from "@/lib/supabase/guest";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderType, PaymentMethod } from "@/lib/constants";
 
@@ -186,13 +187,19 @@ export async function placeOrders(
     return { ok: true, demo: true, orderNumbers };
   }
 
+  // Pas d'inscription séparée : sans session, le compte client est créé ici,
+  // avec les coordonnées de la commande et le mot de passe choisi à la caisse.
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Vous devez être connecté pour commander." };
+  const account = await ensureClientAccount(supabase, {
+    email: contact.email,
+    password: String(formData.get("password") ?? ""),
+    fullName: `${contact.first_name} ${contact.last_name}`,
+    phone: contact.phone,
+  });
+  if (!account.ok) {
+    return { ok: false, error: account.error };
   }
+  const { user } = account;
 
   // Livraison offerte : gratuite seulement si CHAQUE ligne vient d'un pro qui la
   // prend à sa charge — le tailleur pour une tenue cousue, le vendeur du tissu
@@ -377,7 +384,7 @@ export async function placeOrders(
     }
   }
 
-  revalidatePath("/compte/commandes");
-  revalidatePath("/vendeur/espace", "layout");
+  // Le compte vient peut-être de naître : l'en-tête (« Mon compte ») change.
+  revalidatePath("/", "layout");
   return { ok: true, demo: false, orderNumbers };
 }

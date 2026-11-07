@@ -45,8 +45,9 @@ export async function updateSession(request: NextRequest) {
 
   // Routes that require an authenticated user.
   const protectedPrefixes = [
+    // `/commande` n'y est plus : personnaliser ne demande pas de s'inscrire
+    // avant (le compte client est créé avec le devis, cf. `ensureClientAccount`).
     "/compte",
-    "/commande",
     "/tailleur/espace",
     "/vendeur/espace",
     "/admin",
@@ -60,8 +61,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Prevent logged-in users from seeing the auth screens.
-  if (user && (pathname === "/connexion" || pathname === "/inscription")) {
+  // Prevent logged-in users from seeing the auth screens. Un invité (session
+  // anonyme) doit, lui, pouvoir se connecter ou créer un vrai compte.
+  if (
+    user &&
+    !user.is_anonymous &&
+    (pathname === "/connexion" || pathname === "/inscription")
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/compte";
     return NextResponse.redirect(url);

@@ -2,13 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Clock, Ruler, Sparkles, Store, Truck } from "lucide-react";
 
-import { GarmentAsIs } from "@/components/catalog/garment-as-is";
+import { GarmentBuyBox } from "@/components/catalog/garment-buy-box";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
-import { GarmentPersonalise } from "@/components/catalog/garment-personalise";
 import { GarmentReviews } from "@/components/catalog/garment-reviews";
 import { DemoBanner } from "@/components/demo-banner";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, modelPhotos } from "@/lib/constants";
+import { modelPhotos } from "@/lib/constants";
 import { getFabrics, getModelByIdOrSlug, getStyles, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { DEDICATED_HREF } from "@/lib/garment-routes";
@@ -140,40 +139,13 @@ export default async function ModelDetailPage({
             <p className="text-muted-foreground mt-4">{model.description}</p>
           )}
 
-          {/* Deux chemins pour ce vêtement précis. Le prix affiché est un prix
-              « à partir de » : pris tel quel (taille seulement), le client paie
-              ce prix ; personnalisé, il part en demande de devis (prix final
-              fixé par le tailleur). */}
-          <div className="mt-6 space-y-4">
-            {/* 1 — Le prendre tel quel : ne choisir que la taille. */}
-            <div className="bg-card rounded-2xl border p-5">
-              {/* Titre et prix côte à côte, mais sur mobile étroit ils ne
-                  tiennent pas sur une ligne : plutôt que d'écraser le titre en
-                  colonne de trois mots, on laisse le prix passer dessous. La
-                  phrase prend toujours la largeur entière. */}
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h2 className="flex items-center gap-1.5 font-semibold">
-                  <Sparkles className="text-primary size-4 shrink-0" /> Le prendre tel
-                  quel
-                </h2>
-                <span className="text-primary text-base font-bold whitespace-nowrap sm:text-lg">
-                  {formatPrice(asIsPreset.total)}
-                </span>
-                <p className="text-muted-foreground w-full text-sm">
-                  Le modèle présenté, ajusté à votre taille.
-                  {asIsFabric ? ` Présenté en ${asIsFabric.name}.` : ""}
-                </p>
-              </div>
-              <div className="mt-4">
-                <GarmentAsIs preset={asIsPreset} />
-              </div>
-            </div>
-
-            {/* 2 — Le personnaliser. Un seul chemin pour tous les vêtements :
-                le tissu se choisit ici, puis le configurateur (Style, Quantité,
-                Tailleur, Mesures) — qui, lui, ne rechoisit plus le tissu — et se
-                termine par une demande de devis. */}
-            <GarmentPersonalise
+          {/* Un seul bloc d'achat, un seul bouton : « Tel quel » (taille
+              seulement, prix ferme) ou « Sur mesure » (tissu, puis le
+              configurateur et une demande de devis). */}
+          <div className="mt-6">
+            <GarmentBuyBox
+              preset={asIsPreset}
+              presentedIn={asIsFabric?.name ?? null}
               fabrics={fabrics}
               orderParams={orderParams.toString()}
               initialFabricId={fabric ?? null}

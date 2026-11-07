@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Ruler, Sparkles, Store, Truck } from "lucide-react";
+import { ArrowLeft, Clock, Ruler, Store, Truck } from "lucide-react";
 
-import { GarmentAsIs } from "@/components/catalog/garment-as-is";
+import { GarmentBuyBox } from "@/components/catalog/garment-buy-box";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
-import { GarmentPersonalise } from "@/components/catalog/garment-personalise";
 import { GarmentReviews } from "@/components/catalog/garment-reviews";
 import { GarmentTypeSwitcher } from "@/components/catalog/garment-type-switcher";
 import { DemoBanner } from "@/components/demo-banner";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, modelPhotos } from "@/lib/constants";
+import { modelPhotos } from "@/lib/constants";
 import { getFabrics, getModelBySlug, getTailorById, getTailors } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { ROBE_TYPES } from "@/lib/garment-routes";
@@ -167,35 +166,16 @@ export default async function RobePage({
           )}
 
           {/* Deux chemins pour ce type précis. */}
-          <div className="mt-6 space-y-4">
-            {/* 1 — Le prendre tel quel : ne choisir que la taille. */}
-            <div className="bg-card rounded-2xl border p-5">
-              {/* Titre et prix côte à côte, mais sur mobile étroit ils ne
-                  tiennent pas sur une ligne : plutôt que d'écraser le titre en
-                  colonne de trois mots, on laisse le prix passer dessous. La
-                  phrase prend toujours la largeur entière. */}
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h2 className="flex items-center gap-1.5 font-semibold">
-                  <Sparkles className="text-primary size-4 shrink-0" /> Le prendre tel
-                  quel
-                </h2>
-                <span className="text-primary text-base font-bold whitespace-nowrap sm:text-lg">
-                  {formatPrice(preset.total)}
-                </span>
-                <p className="text-muted-foreground w-full text-sm">
-                  Le modèle présenté, ajusté à votre taille.
-                  {asIsFabric ? ` Présenté en ${asIsFabric.name}.` : ""}
-                </p>
-              </div>
-              <div className="mt-4">
-                <GarmentAsIs preset={preset} />
-              </div>
-            </div>
-
-            {/* 2 — Le personnaliser. Le même configurateur que tous les autres
-                vêtements : le tissu se choisit ici, la silhouette, la longueur,
-                l'encolure et les manches à l'étape Style. */}
-            <GarmentPersonalise fabrics={fabrics} orderParams={order.toString()} />
+          <div className="mt-6">
+            {/* Un seul bloc d'achat : tel quel, ou sur mesure via le même
+                configurateur que tous les autres vêtements. */}
+            <GarmentBuyBox
+              key={model.id}
+              preset={preset}
+              presentedIn={asIsFabric?.name ?? null}
+              fabrics={fabrics}
+              orderParams={order.toString()}
+            />
           </div>
 
           <div className="text-muted-foreground mt-6 space-y-1.5 border-t pt-4 text-sm">

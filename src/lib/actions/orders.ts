@@ -6,6 +6,7 @@ import { resolveTailoringPrice } from "@/lib/order-pricing";
 import { isTerminal, timelineFor } from "@/lib/pipeline";
 import { DELIVERY_FEE } from "@/lib/pricing";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { ensureClientAccount } from "@/lib/supabase/guest";
 import { createClient } from "@/lib/supabase/server";
 import type {
   OrderStatus,
@@ -217,6 +218,9 @@ export type GarmentQuoteInput = {
   } | null;
   city: string | null;
   notes: string | null;
+  /** Coordonnées saisies au récap — prioritaires sur le profil. Sans compte,
+   *  `email` + `password` créent le compte client avec le devis. */
+  contact?: { name: string; phone: string; email?: string; password?: string } | null;
 };
 
 export async function requestGarmentQuote(
@@ -232,13 +236,27 @@ export async function requestGarmentQuote(
     return { ok: false, error: "Choisissez un tailleur pour votre devis." };
   }
 
+  const contactName = input.contact?.name?.trim() ?? "";
+  const contactPhone = input.contact?.phone?.trim() ?? "";
+
+  // Pas d'inscription séparée : sans session, le compte client est créé ici,
+  // avec les coordonnées et le mot de passe saisis au récap.
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Connectez-vous pour demander un devis." };
+  const account = await ensureClientAccount(
+    supabase,
+    input.contact
+      ? {
+          email: input.contact.email ?? "",
+          password: input.contact.password ?? "",
+          fullName: contactName,
+          phone: contactPhone,
+        }
+      : null,
+  );
+  if (!account.ok) {
+    return { ok: false, error: account.error };
   }
+  const { user } = account;
 
   // Le tailleur doit être une boutique ouverte (active, validée, non suspendue) —
   // même garde que le catalogue public. Plus aucune condition d'abonnement : le
@@ -274,9 +292,11 @@ export async function requestGarmentQuote(
     .select("full_name, phone")
     .eq("id", user.id)
     .single();
-  const fullName = (profile as { full_name: string | null } | null)?.full_name ?? "";
+  const fullName =
+    contactName || ((profile as { full_name: string | null } | null)?.full_name ?? "");
   const [firstName, ...rest] = fullName.split(" ");
-  const phone = (profile as { phone: string | null } | null)?.phone ?? null;
+  const phone =
+    contactPhone || ((profile as { phone: string | null } | null)?.phone ?? null);
 
   let measurementId: string | null = null;
   if (input.measurement) {

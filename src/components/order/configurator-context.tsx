@@ -34,6 +34,12 @@ export type ConfiguratorData = {
   fabrics: Fabric[];
   tailors: Tailor[];
   styles: Style[];
+  /** Coordonnées demandées au récap :
+   *  - `account` : pas de compte → nom, téléphone, e-mail et mot de passe (le
+   *    compte client est créé avec le devis) ;
+   *  - `contact` : compte sans nom / téléphone → ces deux champs ;
+   *  - absent : rien à demander. */
+  contactMode?: "account" | "contact" | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -162,6 +168,12 @@ export type ConfiguratorState = {
   standardSize: string;
   manual: Record<string, string>;
   notes: string;
+  /** Coordonnées saisies au récap (cf. `ConfiguratorData.contactMode`). */
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  /** Jamais écrit dans le brouillon (sessionStorage) — cf. la persistance. */
+  contactPassword: string;
 };
 
 function defaultState(): ConfiguratorState {
@@ -178,6 +190,10 @@ function defaultState(): ConfiguratorState {
     standardSize: "M",
     manual: {},
     notes: "",
+    contactName: "",
+    contactPhone: "",
+    contactEmail: "",
+    contactPassword: "",
   };
 }
 
@@ -365,7 +381,11 @@ export function ConfiguratorProvider({
     if (!restored) return;
     const id = setTimeout(() => {
       try {
-        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+        // Le mot de passe ne quitte jamais la mémoire de la page.
+        sessionStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({ ...state, contactPassword: "" }),
+        );
       } catch {
         // Private mode / quota — the draft just stays in memory.
       }
