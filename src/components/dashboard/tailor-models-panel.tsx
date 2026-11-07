@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 import { ModelFormDialog } from "@/components/dashboard/model-form-dialog";
 import { ModelSuggestionPicker } from "@/components/dashboard/model-suggestion-picker";
+import { NEW_MODEL_EVENT } from "@/components/tailor-bottom-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,6 +101,17 @@ export function TailorModelsPanel({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPickerOpen(true);
     }
+  }, []);
+
+  // Le « + » de la barre du bas, pressé alors qu'on est déjà sur cette page.
+  useEffect(() => {
+    const onNew = () => {
+      setEditing(null);
+      setSuggestion(null);
+      setPickerOpen(true);
+    };
+    window.addEventListener(NEW_MODEL_EVENT, onNew);
+    return () => window.removeEventListener(NEW_MODEL_EVENT, onNew);
   }, []);
 
   const categoryName = (slug: string | null) =>

@@ -124,6 +124,7 @@ export const TONE: Record<Tone, ToneClasses> = {
 /** La teinte de chaque entrée du menu — la même sur la tuile et dans les listes. */
 export const NAV_TONE: Record<string, Tone> = {
   overview: "slate",
+  notifications: "amber",
   profile: "sky",
   revenue: "emerald",
   clients: "violet",

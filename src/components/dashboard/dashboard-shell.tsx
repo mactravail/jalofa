@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Bell, Home, LogOut, Menu, Scissors, Store } from "lucide-react";
 
 import { useBucket } from "@/components/dashboard/pipeline-store";
+import { TailorBottomNav } from "@/components/tailor-bottom-nav";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,8 @@ export function DashboardShell({
   // La pastille se lit dans le pipeline, comme la page « À traiter » : les deux
   // ne peuvent pas se contredire après un déplacement.
   const todo = useBucket("todo").length;
-  const allBadges: DashboardBadges = { ...badges, todo };
+  const allBadges: DashboardBadges = { ...badges, todo, notifications: todo };
+  const tailor = role === "tailor";
 
   const root = DASHBOARD_ROOT[role];
   const isActive = (href: string) =>
@@ -93,7 +95,9 @@ export function DashboardShell({
           </SheetTrigger>
           <SheetContent side="left" className="w-72 gap-0 p-0">
             <SheetHeader className="p-0">
-              <SheetTitle className="sr-only">{DASHBOARD_TITLE[role]}</SheetTitle>
+              <SheetTitle className="sr-only">
+                {DASHBOARD_TITLE[role]}
+              </SheetTitle>
               <Brand role={role} capabilities={capabilities} />
             </SheetHeader>
             <Nav
@@ -116,27 +120,38 @@ export function DashboardShell({
         <span className="text-muted-foreground truncate border-l pl-2 text-sm font-medium">
           {current?.label ?? DASHBOARD_TITLE[role]}
         </span>
-        <Link
-          href={root}
-          aria-label={
-            todo > 0
-              ? `${todo} nouvelle${todo > 1 ? "s" : ""} commande${todo > 1 ? "s" : ""}`
-              : "Aucune nouvelle commande"
-          }
-          className="hover:bg-accent relative ml-auto flex size-10 shrink-0 items-center justify-center rounded-full"
-        >
-          <Bell className="size-5" />
-          {todo > 0 && (
-            <span className="border-card absolute top-1.5 right-1.5 flex min-w-4 items-center justify-center rounded-full border-2 bg-rose-500 px-1 text-[10px] font-bold text-white">
-              {todo}
-            </span>
-          )}
-        </Link>
+        {/* Le tailleur a sa cloche dans la barre du bas. */}
+        {!tailor && (
+          <Link
+            href={root}
+            aria-label={
+              todo > 0
+                ? `${todo} nouvelle${todo > 1 ? "s" : ""} commande${todo > 1 ? "s" : ""}`
+                : "Aucune nouvelle commande"
+            }
+            className="hover:bg-accent relative ml-auto flex size-10 shrink-0 items-center justify-center rounded-full"
+          >
+            <Bell className="size-5" />
+            {todo > 0 && (
+              <span className="border-card absolute top-1.5 right-1.5 flex min-w-4 items-center justify-center rounded-full border-2 bg-rose-500 px-1 text-[10px] font-bold text-white">
+                {todo}
+              </span>
+            )}
+          </Link>
+        )}
       </header>
 
-      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main
+        className={cn(
+          "min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8",
+          // Cale pour la barre fixe du bas (mobile).
+          tailor && "pb-[calc(var(--spacing-bottom-nav)+1.5rem)] lg:pb-8",
+        )}
+      >
         {children}
       </main>
+
+      {tailor && <TailorBottomNav todo={todo} className="lg:hidden" />}
     </div>
   );
 }
@@ -291,7 +306,13 @@ function Nav({
   );
 }
 
-function Account({ role, fullName }: { role: ProRole; fullName: string | null }) {
+function Account({
+  role,
+  fullName,
+}: {
+  role: ProRole;
+  fullName: string | null;
+}) {
   const initials = (fullName ?? "?")
     .split(" ")
     .map((p) => p[0])
@@ -310,7 +331,9 @@ function Account({ role, fullName }: { role: ProRole; fullName: string | null })
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{fullName ?? "Mon compte"}</p>
+          <p className="truncate text-sm font-medium">
+            {fullName ?? "Mon compte"}
+          </p>
           <p className="text-muted-foreground truncate text-xs">
             {ROLE_LABELS[role]}
           </p>

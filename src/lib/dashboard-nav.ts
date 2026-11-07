@@ -1,4 +1,5 @@
 import {
+  Bell,
   CheckCircle2,
   ClipboardList,
   CreditCard,
@@ -27,6 +28,7 @@ export type ProRole = "tailor" | "vendor";
 
 export type DashboardNavId =
   | "overview"
+  | "notifications"
   | "profile"
   | "account"
   | "todo"
@@ -95,13 +97,30 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
       label: null,
       items: [
         { id: "overview", href: root, label: "Accueil", icon: LayoutDashboard },
+        // Le tailleur a une page « Notifications » (le bouton cloche de sa barre
+        // du bas) : nouvelles commandes + messages de la plateforme.
+        ...(role === "tailor"
+          ? [
+              {
+                id: "notifications" as const,
+                href: `${root}/notifications`,
+                label: "Notifications",
+                icon: Bell,
+              },
+            ]
+          : []),
         {
           id: "clients",
           href: `${root}/clients`,
           label: "Mes clients",
           icon: Users,
         },
-        { id: "revenue", href: `${root}/revenus`, label: "Mon argent", icon: Wallet },
+        {
+          id: "revenue",
+          href: `${root}/revenus`,
+          label: "Mon argent",
+          icon: Wallet,
+        },
         // Comment le pro est réglé de ses ventes. JALOFA est gratuit : il encaisse
         // 100%, versés sur ce moyen — d'où une page à part, à remplir en priorité.
         {

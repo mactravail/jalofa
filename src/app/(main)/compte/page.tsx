@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, UserCog } from "lucide-react";
+import { ChevronRight, LayoutDashboard, UserCog } from "lucide-react";
 
 import { NotificationsCard } from "@/components/account/notifications-card";
 import { buttonVariants } from "@/components/ui/button";
@@ -45,6 +45,22 @@ export default async function AccountPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
 
+      {/* Pour un pro, c'est LE bouton de la page : gros, en tête, impossible à rater. */}
+      {pro && (
+        <Link
+          href={DASHBOARD_ROOT[pro]}
+          className={cn(
+            buttonVariants({ size: "lg" }),
+            "h-16 w-full justify-between gap-3 rounded-2xl px-5 text-lg font-semibold",
+          )}
+        >
+          <span className="flex items-center gap-3">
+            <LayoutDashboard className="size-6" /> {DASHBOARD_TITLE[pro]}
+          </span>
+          <ChevronRight className="size-6" />
+        </Link>
+      )}
+
       <NotificationsCard notifications={notifications} />
 
       <Card>
@@ -70,15 +86,6 @@ export default async function AccountPage() {
           </Link>
         </CardContent>
       </Card>
-
-      {pro && (
-        <Link
-          href={DASHBOARD_ROOT[pro]}
-          className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
-        >
-          <LayoutDashboard className="size-4" /> {DASHBOARD_TITLE[pro]}
-        </Link>
-      )}
     </div>
   );
 }

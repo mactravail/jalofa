@@ -2,8 +2,6 @@
 
 import { usePathname } from "next/navigation";
 
-import { BottomNav } from "@/components/bottom-nav";
-
 // Wraps the shared site chrome (header + footer + bottom nav mobile) but hides
 // it on the immersive configurator route, so "Créer une tenue" fills the whole
 // viewport with no header/footer — the person/preview stays the sole focus
@@ -11,10 +9,13 @@ import { BottomNav } from "@/components/bottom-nav";
 export function MainChrome({
   header,
   footer,
+  bottomNav,
   children,
 }: {
   header: React.ReactNode;
   footer: React.ReactNode;
+  /** Rendu côté serveur : la barre dépend du rôle de la personne connectée. */
+  bottomNav: React.ReactNode;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -29,7 +30,7 @@ export function MainChrome({
       {footer}
       {/* La barre est fixe : ce cale évite qu'elle recouvre le bas du footer. */}
       <div aria-hidden className="h-bottom-nav md:hidden" />
-      <BottomNav />
+      {bottomNav}
     </>
   );
 }

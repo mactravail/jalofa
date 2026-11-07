@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { SubscriptionPlanId } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
@@ -24,7 +26,8 @@ export async function getSessionUser() {
   return user;
 }
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+/** `cache` : l'en-tête, la barre du bas et la page le lisent dans le même rendu. */
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const {
@@ -39,7 +42,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .single();
 
   return (data as Profile | null) ?? null;
-}
+});
 
 /** L'état d'un métier pour le pro connecté : le plan de sa boutique et si l'administration l'a activée. */
 export type ProAccessRow = { plan: SubscriptionPlanId; is_activated: boolean };
