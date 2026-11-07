@@ -189,6 +189,29 @@ export async function saveModel(
   return { ok: true };
 }
 
+/** Publish a draft model to the catalogue, or put a published one back in draft. */
+export async function setModelPublished(id: string, published: boolean): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Vous devez être connecté.");
+
+  const { data, error } = await supabase
+    .from("models")
+    .update({ is_active: published })
+    .eq("id", id)
+    .eq("tailor_id", user.id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error("Modèle introuvable.");
+
+  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/modeles");
+}
+
 /** Delete a model owned by the signed-in tailor. */
 export async function deleteModel(id: string): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);

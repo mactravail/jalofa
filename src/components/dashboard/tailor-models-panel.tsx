@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Clock, Loader2, MoreVertical, Pencil, Plus, Shirt, Trash2 } from "lucide-react";
+import {
+  Clock,
+  EyeOff,
+  Loader2,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Send,
+  Shirt,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ModelFormDialog } from "@/components/dashboard/model-form-dialog";
@@ -22,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deleteModel } from "@/lib/actions/models";
+import { deleteModel, setModelPublished } from "@/lib/actions/models";
 import type { GarmentModel, ModelCategory } from "@/lib/types";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -55,6 +65,27 @@ export function TailorModelsPanel({
   const [formSeq, setFormSeq] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<GarmentModel | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [, startPublish] = useTransition();
+
+  function togglePublished(model: GarmentModel) {
+    const next = !model.is_active;
+    setPublishingId(model.id);
+    startPublish(async () => {
+      try {
+        await setModelPublished(model.id, next);
+        toast.success(
+          next
+            ? "Modèle publié dans le catalogue."
+            : "Modèle retiré du catalogue (brouillon).",
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur, réessayez.");
+      } finally {
+        setPublishingId(null);
+      }
+    });
+  }
 
   // Arrivé depuis le raccourci « Ajouter un modèle » de l'accueil (`?nouveau=1`) :
   // on ouvre le choix tout de suite, pour que le geste s'enchaîne sans clic de plus.
@@ -196,6 +227,22 @@ export function TailorModelsPanel({
                 <Clock className="size-4" /> ~{model.avg_days} j
               </div>
 
+              {!model.is_active && (
+                <Button
+                  size="sm"
+                  onClick={() => togglePublished(model)}
+                  disabled={publishingId === model.id}
+                  className="shrink-0 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  {publishingId === model.id ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                  Publier
+                </Button>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -207,6 +254,20 @@ export function TailorModelsPanel({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => openEdit(model)}>
                     <Pencil className="size-4" /> Modifier
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => togglePublished(model)}
+                    disabled={publishingId === model.id}
+                  >
+                    {model.is_active ? (
+                      <>
+                        <EyeOff className="size-4" /> Retirer du catalogue
+                      </>
+                    ) : (
+                      <>
+                        <Send className="size-4" /> Publier
+                      </>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     variant="destructive"
