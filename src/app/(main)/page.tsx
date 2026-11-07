@@ -1,309 +1,257 @@
+import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BadgeCheck,
-  MessageCircle,
-  ShieldCheck,
-  Star,
-  Truck,
-} from "lucide-react";
 
-import { AtelierHero } from "@/components/home/atelier-hero";
-import { FabricMarquee } from "@/components/home/fabric-marquee";
-import { FemmeCollection } from "@/components/home/femme-collection";
-import { FitShowcase } from "@/components/home/fit-showcase";
-import { HommeCollection } from "@/components/home/homme-collection";
-import { StartHere } from "@/components/home/start-here";
-import { AVATAR_TONES, TESTIMONIALS } from "@/components/home/testimonials";
-import { HowItWorks } from "@/components/how-it-works";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { formatPrice } from "@/lib/constants";
-import { getFabrics, getTailors } from "@/lib/data";
+import { Price } from "@/components/cart/price";
+import {
+  ENFANT,
+  FEMME,
+  HOMME,
+  type CollectionTile,
+} from "@/components/home/collection-marquee";
+import { getFabrics } from "@/lib/data";
+import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// Piliers de réassurance affichés juste avant l'appel à l'action final :
-// uniquement des engagements que le produit tient réellement (pipeline de
-// commande, chat, paiement, livraison).
-const GUARANTEES = [
-  {
-    icon: ShieldCheck,
-    title: "Paiement sécurisé",
-    desc: "Orange Money, Wave, Free Money ou carte — sans stockage de vos données bancaires.",
-  },
-  {
-    icon: BadgeCheck,
-    title: "Contrôle qualité",
-    desc: "Chaque pièce est inspectée avant expédition, c'est une étape officielle de la commande.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Chat direct",
-    desc: "Échangez avec votre tailleur à chaque étape, du choix du tissu à la livraison.",
-  },
-  {
-    icon: Truck,
-    title: "Livraison suivie",
-    desc: "À domicile ou en retrait boutique, avec un suivi en temps réel étape par étape.",
-  },
-];
+// Accueil « éditorial » inspiré de la mise en page Dolly Noire : une suite de
+// grandes bannières pleine largeur (sur-titre, titre, « Découvrir »), chacune
+// suivie de sa grille de pièces et d'un lien « Tout voir ». Peu de texte, tout
+// passe par l'image.
 
-function Stars({ className }: { className?: string }) {
+/** Lien texte souligné, en capitales — le « Scopri » de la référence. */
+function DiscoverLink({
+  href,
+  children = "Découvrir",
+  light,
+}: {
+  href: string;
+  children?: React.ReactNode;
+  light?: boolean;
+}) {
   return (
-    <span className={cn("flex items-center gap-0.5", className)}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className="size-3.5 fill-amber-400 text-amber-400" />
-      ))}
-    </span>
+    <Link
+      href={href}
+      className={cn(
+        "inline-block border-b pb-1 text-xs font-semibold tracking-[0.25em] uppercase transition-opacity hover:opacity-70",
+        light ? "border-white text-white" : "border-foreground text-foreground",
+      )}
+    >
+      {children}
+    </Link>
   );
 }
 
-// En-tête de section éditorial : petit surtitre en capitales + titre serif.
-// `mobileKickerOnly` : sur mobile, on ne garde que le surtitre (titre et
-// description masqués) pour alléger le défilement.
-function SectionHead({
-  kicker,
+/**
+ * Bannière pleine largeur. Une image : plein cadre. Deux images : côte à côte
+ * sur ordinateur, seule la première sur mobile (comme les visuels desktop /
+ * mobile séparés de la référence).
+ */
+function Banner({
+  images,
+  eyebrow,
   title,
-  desc,
-  align = "center",
-  mobileKickerOnly = false,
+  href,
+  cta = "Découvrir",
+  tall,
+  preload,
 }: {
-  kicker: string;
+  images: { src: string; alt: string }[];
+  eyebrow: string;
   title: string;
-  desc?: string;
-  align?: "center" | "left";
-  mobileKickerOnly?: boolean;
+  href: string;
+  cta?: string;
+  tall?: boolean;
+  preload?: boolean;
 }) {
   return (
-    <div
+    <section
       className={cn(
-        "mb-10",
-        align === "center" ? "text-center" : "text-left",
-        mobileKickerOnly && "max-md:mb-6",
+        "relative w-full overflow-hidden bg-neutral-900",
+        tall ? "h-[82svh] max-h-[56rem] min-h-[28rem]" : "aspect-4/5 md:aspect-16/7",
       )}
     >
-      <span className="text-primary text-xs font-semibold tracking-[0.25em] uppercase">
-        {kicker}
-      </span>
-      <h2
-        className={cn(
-          "mt-3 font-serif text-3xl font-medium tracking-tight text-balance sm:text-4xl",
-          mobileKickerOnly && "max-md:hidden",
+      <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0 flex">
+        {images.map((img, i) => (
+          <div
+            key={img.src}
+            className={cn("relative h-full flex-1", i > 0 && "max-md:hidden")}
+          >
+            <Image
+              src={img.src}
+              alt={img.alt}
+              fill
+              preload={preload && i === 0}
+              sizes={images.length > 1 ? "(min-width: 768px) 50vw, 100vw" : "100vw"}
+              className="object-cover"
+            />
+          </div>
+        ))}
+      </Link>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center px-4 pb-12 text-center text-white md:pb-16">
+        <p className="text-xs font-medium tracking-[0.3em] uppercase text-white/85">{eyebrow}</p>
+        <h2 className="mt-3 font-serif text-4xl leading-none font-medium tracking-tight text-balance sm:text-5xl md:text-7xl">
+          {title}
+        </h2>
+        <div className="pointer-events-auto mt-6">
+          <DiscoverLink href={href} light>
+            {cta}
+          </DiscoverLink>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Carte produit sobre : image 4/5, nom puis précision, sans cadre. */
+function GarmentCard({ tile }: { tile: CollectionTile }) {
+  return (
+    <Link href={tile.href} className="group block">
+      <div className="bg-muted relative aspect-4/5 overflow-hidden">
+        <Image
+          src={tile.src}
+          alt={tile.alt}
+          fill
+          sizes="(min-width: 1024px) 25vw, 50vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+        />
+      </div>
+      <h3 className="mt-3 text-sm font-medium">{tile.name}</h3>
+      <p className="text-muted-foreground text-xs">Sur mesure</p>
+    </Link>
+  );
+}
+
+function FabricCard({ fabric }: { fabric: Fabric }) {
+  return (
+    <Link href={`/tissus/${fabric.id}`} className="group block">
+      <div className="bg-muted relative aspect-4/5 overflow-hidden">
+        {fabric.image_url && (
+          <Image
+            src={fabric.image_url}
+            alt={fabric.name}
+            fill
+            sizes="(min-width: 1024px) 25vw, 50vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          />
         )}
-      >
-        {title}
-      </h2>
-      {desc && (
-        <p
-          className={cn(
-            "text-muted-foreground mt-3 text-pretty",
-            align === "center" && "mx-auto max-w-2xl",
-            mobileKickerOnly && "max-md:hidden",
-          )}
-        >
-          {desc}
+      </div>
+      <h3 className="mt-3 truncate text-sm font-medium">{fabric.name}</h3>
+      <p className="text-muted-foreground text-xs">
+        <Price amount={fabric.price_per_meter} /> / m
+      </p>
+    </Link>
+  );
+}
+
+/** Grille sous une bannière, puis le lien « Tout voir ». */
+function Grid({
+  label,
+  href,
+  cols = 4,
+  children,
+}: {
+  label?: string;
+  href: string;
+  /** 3 pour 6 pièces (deux rangées pleines), 4 pour 8. */
+  cols?: 3 | 4;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-10 md:py-14">
+      {label && (
+        <p className="text-muted-foreground mb-6 text-center text-xs font-semibold tracking-[0.3em] uppercase">
+          {label}
         </p>
       )}
-    </div>
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-x-3 gap-y-8 md:gap-x-5",
+          cols === 3 ? "mx-auto max-w-5xl md:grid-cols-3" : "lg:grid-cols-4",
+        )}
+      >
+        {children}
+      </div>
+      <div className="mt-10 text-center">
+        <DiscoverLink href={href}>Tout voir</DiscoverLink>
+      </div>
+    </section>
   );
 }
 
 export default async function HomePage() {
-  const [tailors, fabrics] = await Promise.all([getTailors(), getFabrics()]);
-
-  // Preuve sociale calculée sur les données réelles (fixtures aujourd'hui,
-  // Supabase demain) : note moyenne pondérée, volume d'avis, fourchettes de
-  // prix et de délais. Valeurs de repli si le catalogue est vide.
-  const reviewCount = tailors.reduce((sum, t) => sum + t.rating_count, 0);
-  const avgRating = reviewCount
-    ? tailors.reduce((sum, t) => sum + t.rating * t.rating_count, 0) / reviewCount
-    : 4.8;
-  const ratingLabel = avgRating.toLocaleString("fr-FR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  const prices = tailors
-    .map((t) => t.base_price)
-    .filter((p): p is number => typeof p === "number");
-  const minPrice = prices.length ? Math.min(...prices) : 10000;
-  const days = tailors
-    .map((t) => t.avg_delivery_days)
-    .filter((d): d is number => typeof d === "number");
-  const minDays = days.length ? Math.min(...days) : 6;
-  const maxDays = days.length ? Math.max(...days) : 12;
-  const marqueeFabrics = fabrics.slice(0, 12);
+  const fabrics = (await getFabrics()).slice(0, 8);
 
   return (
     <div>
-      {/* ── Hero cinématographique ─────────────────────────────────────── */}
-      <section className="relative overflow-hidden">
-        <div className="from-primary/12 via-background to-background pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b" />
-        <div className="from-accent/40 pointer-events-none absolute -top-24 -right-24 -z-10 size-[32rem] rounded-full bg-gradient-to-br to-transparent blur-3xl" />
+      <Banner
+        tall
+        preload
+        images={[{ src: "/look/1.png", alt: "Créatrice dessinant une tenue sur mesure" }]}
+        eyebrow="Sur mesure · Sénégal"
+        title="Créer ma tenue"
+        href="/modeles"
+      />
 
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
-          <div>
-            <span className="border-primary/30 bg-background/60 text-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur">
-              <span className="size-1.5 rounded-full bg-primary" />
-              Maison de couture digitale · 100 % tailleurs africains
-            </span>
+      <Banner
+        images={[
+          { src: HOMME[0].src, alt: HOMME[0].alt },
+          { src: HOMME[2].src, alt: HOMME[2].alt },
+        ]}
+        eyebrow="Collection"
+        title="Homme"
+        href="/modeles?category=homme"
+      />
+      <Grid label="Grand boubou, kaftan, costume" href="/modeles?category=homme" cols={3}>
+        {HOMME.slice(0, 8).map((tile) => (
+          <GarmentCard key={tile.name} tile={tile} />
+        ))}
+      </Grid>
 
-            <h1 className="mt-5 font-serif text-4xl leading-[1.05] font-medium tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Le sur-mesure d&apos;exception
-            </h1>
+      <Banner
+        images={[
+          { src: FEMME[0].src, alt: FEMME[0].alt },
+          { src: FEMME[1].src, alt: FEMME[1].alt },
+        ]}
+        eyebrow="Collection"
+        title="Femme"
+        href="/modeles?category=femme"
+      />
+      <Grid label="Robe, boubou, cérémonie" href="/modeles?category=femme" cols={3}>
+        {FEMME.slice(0, 8).map((tile) => (
+          <GarmentCard key={tile.name} tile={tile} />
+        ))}
+      </Grid>
 
-            <p className="text-muted-foreground mt-5 max-w-md text-lg text-pretty">
-              Imaginer et créer : choisissez le modèle, le tissu et l&apos;artisan.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/modeles"
-                className={cn(buttonVariants({ size: "lg" }), "h-12 rounded-lg px-6 text-base")}
-              >
-                Créer ma tenue <ArrowRight className="size-4" />
-              </Link>
-              <Link
-                href="/tissus"
-                className={cn(
-                  buttonVariants({ size: "lg", variant: "outline" }),
-                  "h-12 rounded-lg px-6 text-base",
-                )}
-              >
-                Parcourir les tissus
-              </Link>
-            </div>
-
-            {/* Preuve sociale + repères */}
-            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-              <div className="flex items-center gap-3">
-                <span className="flex -space-x-2">
-                  {TESTIMONIALS.map((t, i) => (
-                    <span
-                      key={t.name}
-                      className={cn(
-                        "ring-background flex size-8 items-center justify-center rounded-full text-[11px] font-semibold ring-2",
-                        AVATAR_TONES[i % AVATAR_TONES.length],
-                      )}
-                    >
-                      {t.name
-                        .split(" ")
-                        .map((part) => part[0])
-                        .join("")}
-                    </span>
-                  ))}
-                </span>
-                <span className="flex items-center gap-1.5 text-sm">
-                  <Stars />
-                  <span className="font-semibold">{ratingLabel}/5</span>
-                  <span className="text-muted-foreground">
-                    · {reviewCount.toLocaleString("fr-FR")} avis
-                  </span>
-                </span>
-              </div>
-              <span className="text-muted-foreground border-border hidden text-sm sm:inline-flex sm:border-l sm:pl-5">
-                Sur mesure dès{" "}
-                <span className="text-foreground ml-1 font-semibold">{formatPrice(minPrice)}</span>
-              </span>
-            </div>
-          </div>
-
-          <AtelierHero />
-        </div>
-      </section>
-
-      {/* ── Bandeau tissus ─────────────────────────────────────────────── */}
-      <section className="border-y bg-muted/30 py-10">
-        <div className="mx-auto mb-6 flex max-w-6xl flex-wrap items-end justify-between gap-2 px-4">
-          <div>
-            <span className="text-primary text-xs font-semibold tracking-[0.25em] uppercase">
-              Des étoffes d&apos;exception
-            </span>
-            <h2 className="mt-2 font-serif text-2xl font-medium tracking-tight">
-              Wax, bazin, laine &amp; broderie
-            </h2>
-          </div>
-          <Link
+      {fabrics.length > 0 && (
+        <>
+          <Banner
+            images={[{ src: "/look/choisir_tissu.png", alt: "Choix d'un tissu brodé" }]}
+            eyebrow="Wax, bazin, broderie"
+            title="Tissus"
             href="/tissus"
-            className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
-          >
-            Tout le catalogue <ArrowRight className="size-4" />
-          </Link>
-        </div>
-        <FabricMarquee fabrics={marqueeFabrics} />
-      </section>
+          />
+          <Grid label="Choisissez votre étoffe" href="/tissus">
+            {fabrics.map((fabric) => (
+              <FabricCard key={fabric.id} fabric={fabric} />
+            ))}
+          </Grid>
+        </>
+      )}
 
-      {/* ── Trois façons de commencer ──────────────────────────────────── */}
-      <StartHere />
+      <Banner
+        images={ENFANT.map((t) => ({ src: t.src, alt: t.alt }))}
+        eyebrow="Collection"
+        title="Enfant"
+        href="/modeles?category=enfant"
+      />
 
-      {/* ── Collections ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <SectionHead
-          kicker="Le lookbook"
-          title="Nos collections"
-          desc="Des pièces cousues pour vous, jamais en série. Chaque modèle se prend tel quel ou se personnalise à vos mesures."
-          mobileKickerOnly
-        />
-
-        <div className="space-y-14">
-          {/* Collections Femme & Homme — carrousels « à la Hockerty » */}
-          <FemmeCollection />
-          <HommeCollection />
-        </div>
-      </section>
-
-      {/* ── Configurateur ──────────────────────────────────────────────── */}
-      <FitShowcase />
-
-      {/* ── Comment ça marche ──────────────────────────────────────────────
-          Desktop uniquement : sur mobile le déroulé est déplacé sur la page
-          /tailleurs, pour raccourcir l'accueil. */}
-      <HowItWorks className="max-md:hidden" />
-
-      {/* ── Garanties + CTA final ──────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <div className="mb-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {GUARANTEES.map((item) => (
-            <div key={item.title} className="flex gap-3">
-              <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                <item.icon className="size-5" />
-              </span>
-              <div>
-                <h3 className="text-sm font-semibold">{item.title}</h3>
-                <p className="text-muted-foreground mt-1 text-sm">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <Card className="from-primary to-primary/85 text-primary-foreground overflow-hidden border-0 bg-gradient-to-br">
-          <CardContent className="relative flex flex-col gap-6 p-6 text-left sm:p-8 md:flex-row md:items-center md:justify-between md:p-10">
-            <div className="bg-primary-foreground/10 pointer-events-none absolute -top-16 -right-10 size-56 rounded-full blur-2xl" />
-            <div className="relative w-full">
-              <h2 className="font-serif text-2xl font-medium text-balance sm:text-3xl">
-                Prêt à porter du vrai sur mesure ?
-              </h2>
-              <p className="text-primary-foreground/80 mt-2 max-w-xl text-pretty">
-                Composez votre tenue en quelques minutes — un tailleur certifié s&apos;occupe
-                du reste, de la coupe à la livraison en {minDays} à {maxDays} jours.
-              </p>
-            </div>
-            <div className="relative flex shrink-0 flex-col items-start gap-2 md:items-center">
-              <Link
-                href="/modeles"
-                className={cn(
-                  buttonVariants({ size: "lg", variant: "secondary" }),
-                  "h-12 rounded-lg px-6 text-base",
-                )}
-              >
-                Créer ma tenue <ArrowRight className="size-4" />
-              </Link>
-              <span className="text-primary-foreground/70 text-xs">
-                Sur mesure dès {formatPrice(minPrice)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+      <Banner
+        images={[{ src: "/look/2.png", alt: "Tailleur présentant le catalogue de tissus" }]}
+        eyebrow="Nos artisans"
+        title="Tailleurs"
+        href="/tailleurs"
+        cta="Trouver mon tailleur"
+      />
     </div>
   );
 }
