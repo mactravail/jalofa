@@ -1,3 +1,4 @@
+import { Children } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -111,7 +112,7 @@ function GarmentCard({ tile }: { tile: CollectionTile }) {
           src={tile.src}
           alt={tile.alt}
           fill
-          sizes="(min-width: 1024px) 25vw, 50vw"
+          sizes="18rem"
           className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
         />
       </div>
@@ -130,7 +131,7 @@ function FabricCard({ fabric }: { fabric: Fabric }) {
             src={fabric.image_url}
             alt={fabric.name}
             fill
-            sizes="(min-width: 1024px) 25vw, 50vw"
+            sizes="18rem"
             className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
           />
         )}
@@ -143,33 +144,43 @@ function FabricCard({ fabric }: { fabric: Fabric }) {
   );
 }
 
-/** Grille sous une bannière, puis le lien « Tout voir ». */
+/**
+ * Rangée défilante sous une bannière, puis le lien « Tout voir ». Une seule
+ * ligne : deux pistes identiques translatées en boucle (`animate-marquee`,
+ * globals.css), pause au survol, figée si `prefers-reduced-motion`. Sans JS.
+ */
 function Grid({
   label,
   href,
-  cols = 4,
   children,
 }: {
   label?: string;
   href: string;
-  /** 3 pour 6 pièces (deux rangées pleines), 4 pour 8. */
-  cols?: 3 | 4;
   children: React.ReactNode;
 }) {
+  const items = Children.toArray(children);
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 md:py-14">
+    <section className="py-10 md:py-14">
       {label && (
-        <p className="text-muted-foreground mb-6 text-center text-xs font-semibold tracking-[0.3em] uppercase">
+        <p className="text-muted-foreground mb-6 px-4 text-center text-xs font-semibold tracking-[0.3em] uppercase">
           {label}
         </p>
       )}
-      <div
-        className={cn(
-          "grid grid-cols-2 gap-x-3 gap-y-8 md:gap-x-5",
-          cols === 3 ? "mx-auto max-w-5xl md:grid-cols-3" : "lg:grid-cols-4",
-        )}
-      >
-        {children}
+      <div className="group flex overflow-hidden [--marquee:45s]">
+        {[0, 1].map((track) => (
+          <div
+            key={track}
+            aria-hidden={track === 1}
+            inert={track === 1}
+            className="animate-marquee flex shrink-0 gap-3 pr-3 group-hover:[animation-play-state:paused] md:gap-5 md:pr-5"
+          >
+            {items.map((item, i) => (
+              <div key={i} className="w-48 shrink-0 sm:w-60 lg:w-72">
+                {item}
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
       <div className="mt-10 text-center">
         <DiscoverLink href={href}>Tout voir</DiscoverLink>
@@ -201,7 +212,7 @@ export default async function HomePage() {
         title="Homme"
         href="/modeles?category=homme"
       />
-      <Grid label="Grand boubou, kaftan, costume" href="/modeles?category=homme" cols={3}>
+      <Grid label="Grand boubou, kaftan, costume" href="/modeles?category=homme">
         {HOMME.slice(0, 8).map((tile) => (
           <GarmentCard key={tile.name} tile={tile} />
         ))}
@@ -216,7 +227,7 @@ export default async function HomePage() {
         title="Femme"
         href="/modeles?category=femme"
       />
-      <Grid label="Robe, boubou, cérémonie" href="/modeles?category=femme" cols={3}>
+      <Grid label="Robe, boubou, cérémonie" href="/modeles?category=femme">
         {FEMME.slice(0, 8).map((tile) => (
           <GarmentCard key={tile.name} tile={tile} />
         ))}
