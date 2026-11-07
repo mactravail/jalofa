@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { Price } from "@/components/cart/price";
 import {
-  ENFANT,
   FEMME,
   HOMME,
   type CollectionTile,
@@ -248,13 +247,6 @@ export default async function HomePage() {
           </Grid>
         </>
       )}
-
-      <Banner
-        images={ENFANT.map((t) => ({ src: t.src, alt: t.alt }))}
-        eyebrow="Collection"
-        title="Enfant"
-        href="/modeles?category=enfant"
-      />
 
       <Banner
         images={[{ src: "/look/2.png", alt: "Tailleur présentant le catalogue de tissus" }]}
