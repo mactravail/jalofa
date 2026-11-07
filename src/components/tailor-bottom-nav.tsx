@@ -123,11 +123,9 @@ export function TailorBottomNav({
             }}
             className="relative flex h-12 w-16 items-center justify-center transition-transform active:scale-95"
           >
-            {/* Deux reflets décalés de couleur sous le bouton : il ne ressemble
-                à aucun autre onglet. */}
-            <span aria-hidden className="absolute inset-0 -translate-x-1 rounded-2xl bg-cyan-400" />
-            <span aria-hidden className="absolute inset-0 translate-x-1 rounded-2xl bg-rose-500" />
-            <span className="bg-foreground text-background relative flex size-full items-center justify-center rounded-2xl shadow-lg">
+            {/* Dégradé orange, du clair au foncé : il ne ressemble à aucun
+                autre onglet. */}
+            <span className="relative flex size-full items-center justify-center rounded-2xl bg-gradient-to-r from-orange-300 via-orange-500 to-orange-700 text-white shadow-lg shadow-orange-500/30">
               <Plus className="size-7" strokeWidth={3} aria-hidden />
             </span>
           </Link>

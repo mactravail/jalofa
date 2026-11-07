@@ -18,6 +18,25 @@ const DIFFICULTIES = ["facile", "moyen", "difficile"] as const;
 /** Postgres `foreign_key_violation`. */
 const FOREIGN_KEY_VIOLATION = "23503";
 
+/**
+ * Publier une création, c'est vouloir être vu : on ouvre la boutique du
+ * tailleur (`tailors.is_active`, fermée par défaut à l'inscription). Sinon le
+ * catalogue, qui ne sert que les boutiques ouvertes, cache la création sans
+ * prévenir. Best-effort : un échec ne bloque pas la publication.
+ */
+async function openShop(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<void> {
+  await supabase
+    .from("tailors")
+    .update({ is_active: true })
+    .eq("id", userId)
+    .eq("is_active", false);
+  revalidatePath("/tailleurs");
+  revalidatePath(`/tailleurs/${userId}`);
+}
+
 function text(value: FormDataEntryValue | null): string | null {
   const s = String(value ?? "").trim();
   return s.length > 0 ? s : null;
@@ -184,6 +203,8 @@ export async function saveModel(
     }
   }
 
+  if (payload.is_active) await openShop(supabase, user.id);
+
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
   return { ok: true };
@@ -206,6 +227,7 @@ export async function setModelPublished(id: string, published: boolean): Promise
     .eq("tailor_id", user.id)
     .select("id");
   if (error) throw new Error(error.message);
+  if (published && data && data.length > 0) await openShop(supabase, user.id);
   if (!data || data.length === 0) throw new Error("Modèle introuvable.");
 
   revalidatePath("/tailleur/espace", "layout");
