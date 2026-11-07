@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { Loader2, Scissors, Shirt, Store } from "lucide-react";
+import { Loader2, Scissors, Shirt } from "lucide-react";
 
 import { signIn, type AuthState } from "@/lib/actions/auth";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -98,26 +98,16 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
               >
                 <Shirt className="size-4 shrink-0" /> Je suis client
               </Link>
-              <div className="grid grid-cols-2 gap-2">
-                <Link
-                  href="/inscription?role=tailor"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "gap-1.5",
-                  )}
-                >
-                  <Scissors className="size-4 shrink-0" /> Tailleur
-                </Link>
-                <Link
-                  href="/inscription?role=vendor"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "gap-1.5",
-                  )}
-                >
-                  <Store className="size-4 shrink-0" /> Vendeur
-                </Link>
-              </div>
+              <Link
+                href="/inscription?role=pro"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "justify-start gap-2",
+                )}
+              >
+                <Scissors className="size-4 shrink-0" /> Je suis pro (tailleur
+                ou vendeur de tissu)
+              </Link>
             </div>
           </div>
         </CardFooter>

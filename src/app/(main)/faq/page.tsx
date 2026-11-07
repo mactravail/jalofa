@@ -80,11 +80,11 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Comment devenir tailleur ou vendeur de tissus ?",
-        a: "Créez votre compte pro, c'est gratuit et immédiat. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes.",
+        a: "Créez un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes.",
       },
       {
         q: "Combien ça coûte de vendre sur JALOFA ?",
-        a: "Rien. Pas d'abonnement, pas de commission, pas de frais : vous gardez 100% de vos ventes. Vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
+        a: "Deux offres au choix. Gratuit : aucun abonnement, 5% de commission sur chaque vente. Pro : 10 000 FCFA par mois payés en mobile money (via PayDunya), 0% de commission — vous gardez 100% de vos ventes. Dans les deux cas, vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
       },
       {
         q: "Comment est fixé le prix d'une tenue ?",

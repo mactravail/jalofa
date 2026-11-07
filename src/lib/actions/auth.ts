@@ -7,7 +7,8 @@ import { redirect } from "next/navigation";
 import { passwordIssue } from "@/lib/password";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { safeRedirect } from "@/lib/safe-redirect";
-import { getPlan, type SubscriptionPlanId } from "@/lib/subscriptions";
+import { OFFER_PAGE, startProCheckout } from "@/lib/pro-subscription";
+import { PAID_PLAN_ID } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error: string } | null;
@@ -88,38 +89,15 @@ export async function signUp(
     return { error: "Vous devez accepter les conditions générales pour continuer." };
   }
 
-  // JALOFA est gratuit pour tous les pros : le métier vient directement du
-  // formulaire (« Je suis tailleur / vendeur »). Le plan par défaut est Gratuit
-  // (le trigger `handle_new_user` le pose), et ouvre les deux boutiques —
-  // l'autre métier se débloque via le sélecteur d'espace.
-  //
-  // Le chemin `plan=…` reste supporté (page `/abonnements` conservée mais non
-  // liée) pour un éventuel retour des forfaits.
-  const planId = String(formData.get("plan") ?? "");
-  const plan = planId ? getPlan(planId as SubscriptionPlanId) : undefined;
-  let role = String(formData.get("role") ?? "client");
-  if (plan) {
-    if (plan.scope === "both") {
-      role = "tailor";
-    } else if (role !== "tailor" && role !== "vendor") {
-      return { error: "Choisissez votre métier : tailleur ou vendeur." };
-    }
-  } else if (role !== "tailor" && role !== "vendor") {
-    role = "client";
-  }
-
-  // Les plans payants (Standard, Premium) exigent le règlement de la première
-  // mensualité : Wave ou virement bancaire. La passerelle est simulée pour le
-  // MVP — on se contente d'exiger et de mémoriser le moyen choisi.
-  const paymentMethod = String(formData.get("payment_method") ?? "");
-  if (plan && plan.monthlyPrice > 0 && !paymentMethod) {
-    return { error: "Choisissez un moyen de paiement pour votre abonnement." };
-  }
-
-  // Périodicité facturée (annuel = toute l'année réglée d'un coup, remise
-  // incluse ; mensuel par défaut). Mémorisée pour le renouvellement.
-  const rawPeriod = String(formData.get("billing_period") ?? "");
-  const billingPeriod = rawPeriod === "yearly" ? "yearly" : "monthly";
+  // Deux comptes : Client ou Pro. Un compte Pro ouvre les DEUX métiers (atelier
+  // + boutique de tissus — cf. `handle_new_user`) ; il est enregistré en base
+  // avec le rôle `tailor`, l'espace vendeur s'ouvre via le sélecteur d'espace.
+  // Tout pro naît sur l'offre Gratuit ; l'offre Pro (payante) ne s'active
+  // qu'après le paiement PayDunya confirmé (cf. `settleProPayment`).
+  const rawRole = String(formData.get("role") ?? "client");
+  const isPro = rawRole === "pro" || rawRole === "tailor" || rawRole === "vendor";
+  const role = isPro ? "tailor" : "client";
+  const wantsPaidOffer = isPro && String(formData.get("offer") ?? "") === PAID_PLAN_ID;
 
   if (!isSupabaseConfigured()) return { error: DB_NOT_READY };
 
@@ -128,13 +106,7 @@ export async function signUp(
     email,
     password,
     options: {
-      data: {
-        full_name: fullName,
-        phone,
-        role,
-        ...(plan ? { plan: plan.id, billing_period: billingPeriod } : {}),
-        ...(paymentMethod ? { subscription_payment_method: paymentMethod } : {}),
-      },
+      data: { full_name: fullName, phone, role },
     },
   });
 
@@ -160,6 +132,23 @@ export async function signUp(
   // If email confirmation is disabled the user is signed in immediately.
   if (data.session) {
     revalidatePath("/", "layout");
+    // Offre Pro choisie : on part directement payer sur PayDunya. Si la
+    // passerelle échoue, le compte existe déjà (offre Gratuit) et la page
+    // « Mon offre » permet de réessayer.
+    if (wantsPaidOffer && data.user) {
+      let checkoutUrl: string | null = null;
+      try {
+        checkoutUrl = await startProCheckout({
+          id: data.user.id,
+          name: fullName,
+          email,
+          phone,
+        });
+      } catch (err) {
+        console.error("[paydunya checkout]", err);
+      }
+      redirect(checkoutUrl ?? `${OFFER_PAGE}?erreur=1`);
+    }
     redirect(landing);
   }
 

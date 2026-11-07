@@ -2,42 +2,46 @@ import type { Metadata } from "next";
 
 import { RegisterChoice } from "@/components/auth/register-choice";
 import { RegisterForm } from "@/components/auth/register-form";
+import type { ProOfferId } from "@/lib/subscriptions";
 
 export const metadata: Metadata = { title: "Créer un compte" };
 
 /**
- * « Créer un compte » commence par un choix de profil (client / tailleur /
- * vendeur). On n'affiche le formulaire que lorsque le profil est connu :
- * `role=client|tailor|vendor` (choix explicite). L'inscription est gratuite pour
- * tous — les pros n'ont plus d'abonnement à choisir. Le paramètre `plan=…` reste
- * accepté (page `/abonnements` conservée mais non liée) pour un retour éventuel
- * des forfaits.
+ * « Créer un compte » : deux comptes seulement — **client** (gratuit) ou
+ * **pro** (tailleur + vendeur de tissu, deux offres). Sans `role`, on affiche le
+ * choix. Les anciens liens `role=tailor|vendor` et `plan=…` mènent au compte pro.
  */
-const KNOWN_ROLES = new Set(["client", "tailor", "vendor"]);
+const PRO_ROLES = new Set(["pro", "tailor", "vendor"]);
 
 export default async function RegisterPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    plan?: string;
-    period?: string;
     role?: string;
-    metier?: string;
+    plan?: string;
+    offre?: string;
     redirect?: string;
   }>;
 }) {
-  const { plan, period, role, metier, redirect } = await searchParams;
+  const { role, plan, offre, redirect } = await searchParams;
 
-  if (!plan && !(role && KNOWN_ROLES.has(role))) {
+  const isPro = (role && PRO_ROLES.has(role)) || Boolean(plan);
+  if (!isPro && role !== "client") {
     return <RegisterChoice redirect={redirect} />;
   }
 
+  const wanted = offre ?? plan;
+  const initialOffer: ProOfferId | undefined =
+    wanted === "pro" || wanted === "premium" || wanted === "standard"
+      ? "premium"
+      : wanted === "free" || wanted === "gratuit"
+        ? "free"
+        : undefined;
+
   return (
     <RegisterForm
-      initialPlan={plan}
-      initialPeriod={period}
-      initialRole={role}
-      initialMetier={metier}
+      kind={isPro ? "pro" : "client"}
+      initialOffer={initialOffer}
       redirectTo={redirect}
     />
   );

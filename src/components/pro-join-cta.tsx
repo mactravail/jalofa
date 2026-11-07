@@ -32,7 +32,7 @@ export function ProJoinCta({
           </p>
         </div>
         <Link
-          href={`/inscription?role=${metier}`}
+          href="/inscription?role=pro"
           className={cn(
             buttonVariants({ size: "lg" }),
             "shrink-0 gap-1.5",

@@ -1,0 +1,42 @@
+"use server";
+
+import { redirect } from "next/navigation";
+
+import { OFFER_PAGE, startProCheckout } from "@/lib/pro-subscription";
+import { createClient } from "@/lib/supabase/server";
+
+/**
+ * « Passer à l'offre Pro » depuis l'espace pro : ouvre une facture PayDunya et
+ * envoie le pro sur la page de paiement mobile money.
+ */
+export async function payProSubscription(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/connexion?redirect=${encodeURIComponent(OFFER_PAGE)}`);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name, phone")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "tailor" && profile?.role !== "vendor") {
+    redirect("/compte");
+  }
+
+  let url: string | null = null;
+  try {
+    url = await startProCheckout({
+      id: user.id,
+      name: (profile.full_name as string | null) ?? null,
+      email: user.email,
+      phone: (profile.phone as string | null) ?? null,
+    });
+  } catch (err) {
+    console.error("[paydunya checkout]", err);
+    redirect(`${OFFER_PAGE}?erreur=1`);
+  }
+  if (!url) redirect(`${OFFER_PAGE}?erreur=indisponible`);
+  redirect(url);
+}

@@ -2,15 +2,12 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, Scissors, ShoppingBag } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 import { signUp, type AuthState } from "@/lib/actions/auth";
 import { PasswordField } from "@/components/auth/password-field";
 import { NotARobot, TermsCheckbox } from "@/components/auth/signup-verification";
-import {
-  SubscriptionPayment,
-  type SubPaymentMethod,
-} from "@/components/auth/subscription-payment";
+import { Price } from "@/components/cart/price";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,128 +19,100 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatPrice } from "@/lib/constants";
 import { checkPassword } from "@/lib/password";
 import {
+  FREE_COMMISSION_RATE,
   getPlan,
-  periodTotal,
-  type BillingPeriod,
-  type SubscriptionPlanId,
+  PAID_PLAN_ID,
+  type ProOfferId,
 } from "@/lib/subscriptions";
 import { cn } from "@/lib/utils";
 
-/** Les deux métiers proposés au plan Standard (un seul au choix). */
-const METIERS = [
+const PAID_PLAN = getPlan(PAID_PLAN_ID)!;
+const COMMISSION_PCT = Math.round(FREE_COMMISSION_RATE * 100);
+
+/** Les deux offres d'un compte pro — tailleur ET vendeur de tissu dans les deux cas. */
+const OFFERS: {
+  id: ProOfferId;
+  name: string;
+  price: number;
+  priceNote: string;
+  points: string[];
+}[] = [
   {
-    value: "tailor",
-    label: "Tailleur",
-    desc: "Confectionner des tenues",
-    icon: Scissors,
+    id: "free",
+    name: "Gratuit",
+    price: 0,
+    priceNote: "par mois",
+    points: [
+      `${COMMISSION_PCT}% de commission par vente`,
+      "Tailleur + vendeur de tissu",
+      "Boutique, commandes, messagerie",
+    ],
   },
   {
-    value: "vendor",
-    label: "Vendeur",
-    desc: "Vendre du tissu",
-    icon: ShoppingBag,
+    id: "premium",
+    name: PAID_PLAN.name,
+    price: PAID_PLAN.monthlyPrice,
+    priceNote: "par mois",
+    points: [
+      "0% de commission : vous gardez 100%",
+      "Tailleur + vendeur de tissu",
+      "Mise en avant dans le catalogue",
+    ],
   },
-] as const;
+];
 
 /**
- * L'inscription suit l'abonnement choisi sur `/abonnements`. Sans plan, on crée
- * un compte client. Le plan **Standard** demande de choisir un métier (tailleur
- * ou vendeur) ; **Gratuit** et **Premium** ouvrent les deux — aucun choix à
- * faire (le Gratuit prélève une commission par vente).
+ * Formulaire d'inscription. Deux comptes :
+ *  - **client** : gratuit, rien à choisir ;
+ *  - **pro** : un seul compte pour vendre du tissu et publier comme tailleur,
+ *    avec deux offres. L'offre **Pro** se paie en mobile money via PayDunya
+ *    juste après la création du compte.
  *
  * Toute inscription exige l'acceptation des conditions et la case « Je ne suis
- * pas un robot ». Les plans **payants** (Standard, Premium) ajoutent une étape de
- * paiement — Wave ou virement bancaire — avant la création du compte ; le plan
- * **Gratuit** n'a rien à régler.
+ * pas un robot ».
  */
 export function RegisterForm({
-  initialPlan,
-  initialPeriod,
-  initialRole,
-  initialMetier,
+  kind,
+  initialOffer,
   redirectTo,
 }: {
-  initialPlan?: string;
-  initialPeriod?: string;
-  initialRole?: string;
-  initialMetier?: string;
+  kind: "client" | "pro";
+  initialOffer?: ProOfferId;
   redirectTo?: string;
 }) {
-  const plan = initialPlan
-    ? getPlan(initialPlan as SubscriptionPlanId)
-    : undefined;
-  const isPaid = plan ? plan.monthlyPrice > 0 : false;
-
-  // Inscription pro GRATUITE (sans forfait) : le métier vient directement du
-  // choix « Je suis tailleur / vendeur ». Aucun abonnement, aucun paiement.
-  const freeProRole =
-    !plan && (initialRole === "tailor" || initialRole === "vendor")
-      ? initialRole
-      : null;
-  const proLabel = freeProRole === "vendor" ? "vendeur de tissus" : "tailleur";
-
-  // Périodicité choisie sur /abonnements : le paiement annuel encaisse toute
-  // l'année d'un coup (remise incluse), le mensuel une seule mensualité.
-  const period: BillingPeriod = initialPeriod === "yearly" ? "yearly" : "monthly";
-  const amountDue = plan ? periodTotal(plan, period) : 0;
-
-  // Métier pré-sélectionné quand on arrive depuis « Je suis tailleur/vendeur ».
-  const [metier, setMetier] = useState<"tailor" | "vendor">(
-    initialMetier === "vendor" ? "vendor" : "tailor",
-  );
+  const isPro = kind === "pro";
+  const [offer, setOffer] = useState<ProOfferId>(initialOffer ?? "free");
   const [password, setPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [notRobot, setNotRobot] = useState(false);
-  const [payMethod, setPayMethod] = useState<SubPaymentMethod | null>(null);
-  const [bankConfirmed, setBankConfirmed] = useState(false);
 
   const [state, formAction, isPending] = useActionState<AuthState, FormData>(
     signUp,
     null,
   );
 
-  // Le rôle transmis au serveur (qui le revalide de toute façon).
-  const role = plan
-    ? plan.scope === "both"
-      ? "tailor"
-      : metier
-    : (freeProRole ?? "client");
-
-  // Paiement réglé : Wave (QR scanné) ou virement confirmé. Les plans gratuits
-  // n'ont rien à payer.
-  const paymentDone =
-    !isPaid ||
-    payMethod === "wave" ||
-    (payMethod === "bank" && bankConfirmed);
-  // Mot de passe conforme à la politique (le serveur revérifie de toute façon).
   const passwordOk = checkPassword(password).valid;
-  const canSubmit = passwordOk && acceptedTerms && notRobot && paymentDone;
+  const canSubmit = passwordOk && acceptedTerms && notRobot;
+  const paid = isPro && offer === PAID_PLAN_ID;
 
-  const submitLabel = isPaid
-    ? `Payer ${formatPrice(amountDue)} et créer mon compte`
-    : plan || freeProRole
-      ? "Créer mon compte pro"
-      : "Créer mon compte";
+  const submitLabel = !isPro
+    ? "Créer mon compte"
+    : paid
+      ? "Créer mon compte et payer"
+      : "Créer mon compte pro";
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">
-          {plan
-            ? `Abonnement ${plan.name}`
-            : freeProRole
-              ? `Compte ${proLabel}`
-              : "Créer un compte"}
+          {isPro ? "Compte pro" : "Compte client"}
         </CardTitle>
         <CardDescription>
-          {plan
-            ? "Créez votre compte pro pour activer votre abonnement."
-            : freeProRole
-              ? "Ouvrez votre boutique gratuitement — sans abonnement, sans commission."
-              : "Rejoignez JALOFA en quelques secondes."}
+          {isPro
+            ? "Tailleur et vendeur de tissu dans le même compte. Choisissez votre offre."
+            : "Gratuit. Rejoignez JALOFA en quelques secondes."}
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
@@ -154,115 +123,85 @@ export function RegisterForm({
             </p>
           )}
 
-          {plan?.scope === "single" && (
+          {isPro && (
             <div className="space-y-2">
-              <Label>Votre métier</Label>
+              <Label>Votre offre</Label>
               <div className="grid grid-cols-2 gap-2">
-                {METIERS.map((m) => (
-                  <button
-                    type="button"
-                    key={m.value}
-                    onClick={() => setMetier(m.value)}
-                    className={cn(
-                      "flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-colors",
-                      metier === m.value
-                        ? "border-primary bg-primary/5 ring-primary/30 ring-1"
-                        : "hover:bg-muted",
-                    )}
-                  >
-                    <m.icon
+                {OFFERS.map((o) => {
+                  const selected = offer === o.id;
+                  return (
+                    <button
+                      type="button"
+                      key={o.id}
+                      onClick={() => setOffer(o.id)}
+                      aria-pressed={selected}
                       className={cn(
-                        "size-5",
-                        metier === m.value
-                          ? "text-primary"
-                          : "text-muted-foreground",
+                        "flex min-w-0 flex-col gap-2 rounded-lg border p-3 text-left transition-colors",
+                        selected
+                          ? "border-primary bg-primary/5 ring-primary/30 ring-1"
+                          : "hover:bg-muted",
                       )}
-                    />
-                    <span className="text-sm font-medium">{m.label}</span>
-                    <span className="text-muted-foreground text-[11px] leading-tight">
-                      {m.desc}
-                    </span>
-                  </button>
-                ))}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="font-heading font-semibold">{o.name}</span>
+                        <span
+                          className={cn(
+                            "flex size-5 shrink-0 items-center justify-center rounded-full border",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-muted-foreground/40",
+                          )}
+                        >
+                          {selected && <Check className="size-3" />}
+                        </span>
+                      </span>
+                      <span>
+                        <Price amount={o.price} className="text-lg font-bold" />
+                        <span className="text-muted-foreground block text-[11px]">
+                          {o.priceNote}
+                        </span>
+                      </span>
+                      <span className="space-y-1">
+                        {o.points.map((p) => (
+                          <span
+                            key={p}
+                            className="text-muted-foreground flex items-start gap-1 text-[11px] leading-tight"
+                          >
+                            <Check className="text-primary mt-px size-3 shrink-0" />
+                            {p}
+                          </span>
+                        ))}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-muted-foreground text-xs">
-                Le plan Standard couvre un seul métier. Besoin des deux ?{" "}
-                <Link href="/abonnements" className="text-primary hover:underline">
-                  Passez au Premium
-                </Link>
-                .
-              </p>
-            </div>
-          )}
-
-          {plan?.scope === "both" && (
-            <div className="border-primary/30 bg-primary/5 space-y-1.5 rounded-lg border p-3">
-              <p className="text-sm font-medium">Les deux métiers inclus</p>
-              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <Check className="text-primary size-3.5 shrink-0" /> Tailleur —
-                confectionner des tenues
-              </p>
-              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <Check className="text-primary size-3.5 shrink-0" /> Vendeur —
-                vendre du tissu
-              </p>
-              {plan.commission > 0 && (
-                <p className="text-muted-foreground border-primary/20 mt-1 border-t pt-1.5 text-xs">
-                  Sans abonnement : commission de{" "}
-                  {Math.round(plan.commission * 100)}% par vente de tissu et{" "}
-                  {Math.round(plan.commission * 100)}% par prestation de couture.
+              {paid && (
+                <p className="text-muted-foreground text-xs">
+                  Après la création du compte, vous payez{" "}
+                  <Price amount={PAID_PLAN.monthlyPrice} className="font-medium" />{" "}
+                  avec Orange Money, Wave, Free Money ou carte (paiement sécurisé
+                  PayDunya).
                 </p>
               )}
             </div>
           )}
 
-          {freeProRole && (
-            <div className="border-primary/30 bg-primary/5 space-y-1.5 rounded-lg border p-3">
-              <p className="text-sm font-medium">
-                {freeProRole === "vendor"
-                  ? "Votre boutique de tissus, gratuite"
-                  : "Votre atelier, gratuit"}
-              </p>
-              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <Check className="text-primary size-3.5 shrink-0" /> Aucun
-                abonnement, aucune commission, aucun frais
-              </p>
-              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <Check className="text-primary size-3.5 shrink-0" /> Vous encaissez
-                100% de vos ventes
-              </p>
-              <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <Check className="text-primary size-3.5 shrink-0" /> Boutique en
-                ligne, commandes et messagerie illimitées
-              </p>
-            </div>
-          )}
-
-          {!plan && !freeProRole && (
-            <p className="text-muted-foreground rounded-lg border p-3 text-xs">
-              Vous créez un compte client, gratuit.
-            </p>
-          )}
-
-          <input type="hidden" name="role" value={role} />
-          {redirectTo && (
+          <input type="hidden" name="role" value={isPro ? "pro" : "client"} />
+          {isPro && <input type="hidden" name="offer" value={offer} />}
+          {redirectTo && !isPro && (
             <input type="hidden" name="redirect" value={redirectTo} />
-          )}
-          {plan && <input type="hidden" name="plan" value={plan.id} />}
-          {isPaid && (
-            <input type="hidden" name="billing_period" value={period} />
           )}
           <input
             type="hidden"
             name="accept_terms"
             value={acceptedTerms ? "true" : "false"}
           />
-          {isPaid && payMethod && (
-            <input type="hidden" name="payment_method" value={payMethod} />
-          )}
 
           <div className="space-y-2">
-            <Label htmlFor="full_name">Nom complet</Label>
+            <Label htmlFor="full_name">
+              {isPro ? "Nom ou nom de l'atelier" : "Nom complet"}
+            </Label>
             <Input id="full_name" name="full_name" autoComplete="name" required />
           </div>
           <div className="space-y-2">
@@ -288,21 +227,6 @@ export function RegisterForm({
           </div>
           <PasswordField value={password} onChange={setPassword} />
 
-          {/* Paiement — uniquement pour les plans payants (Standard, Premium). */}
-          {isPaid && plan && (
-            <div className="border-t pt-5">
-              <SubscriptionPayment
-                plan={plan}
-                period={period}
-                method={payMethod}
-                onMethodChange={setPayMethod}
-                bankConfirmed={bankConfirmed}
-                onBankConfirmedChange={setBankConfirmed}
-              />
-            </div>
-          )}
-
-          {/* Conditions + anti-robot — obligatoires pour toute inscription. */}
           <div className="space-y-3 border-t pt-5">
             <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms}>
               J&apos;accepte les{" "}
@@ -332,14 +256,22 @@ export function RegisterForm({
                 ? "Choisissez un mot de passe qui remplit toutes les exigences."
                 : !acceptedTerms
                   ? "Acceptez les conditions générales pour continuer."
-                    : !notRobot
-                      ? "Confirmez que vous n'êtes pas un robot."
-                      : !payMethod
-                        ? "Choisissez un moyen de paiement."
-                        : "Confirmez votre virement bancaire."}
+                  : "Confirmez que vous n'êtes pas un robot."}
             </p>
           )}
           <p className="text-muted-foreground text-center text-sm">
+            {isPro ? (
+              <>
+                Vous voulez juste commander ?{" "}
+                <Link
+                  href="/inscription?role=client"
+                  className="text-primary font-medium hover:underline"
+                >
+                  Compte client
+                </Link>
+                {" · "}
+              </>
+            ) : null}
             Déjà inscrit ?{" "}
             <Link
               href={

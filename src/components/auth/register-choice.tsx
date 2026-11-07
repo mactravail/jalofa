@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Scissors, Shirt, Store } from "lucide-react";
+import { ArrowRight, Scissors, Shirt } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -14,11 +14,11 @@ type Choice = {
 };
 
 /**
- * Premier écran de « Créer un compte » : on demande d'abord **qui** s'inscrit.
- * Chacun part directement vers son formulaire — client, tailleur ou vendeur.
- * L'inscription est **gratuite pour tout le monde** : les pros ouvrent leur
- * compte et vendent sans abonnement, sans commission ni frais. Plus de passage
- * par une page de tarifs.
+ * Premier écran de « Créer un compte » : deux comptes seulement.
+ *  - **Client** (gratuit) : commander des tenues.
+ *  - **Pro** : un seul compte pour vendre du tissu ET publier comme tailleur,
+ *    avec deux offres (Gratuit avec commission, ou Pro payant sans commission)
+ *    choisies à l'étape suivante.
  */
 export function RegisterChoice({ redirect }: { redirect?: string }) {
   const withRedirect = (href: string) =>
@@ -28,24 +28,17 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
     {
       href: withRedirect("/inscription?role=client"),
       icon: Shirt,
-      title: "Je suis client",
+      title: "Compte client",
       desc: "Commander des tenues sur mesure et suivre leur confection.",
       cta: "Créer mon compte client — gratuit",
       featured: true,
     },
     {
-      href: withRedirect("/inscription?role=tailor"),
+      href: "/inscription?role=pro",
       icon: Scissors,
-      title: "Je suis tailleur",
-      desc: "Confectionner des tenues et recevoir des commandes.",
-      cta: "Créer mon compte tailleur — gratuit",
-    },
-    {
-      href: withRedirect("/inscription?role=vendor"),
-      icon: Store,
-      title: "Je suis vendeur de tissu",
-      desc: "Vendre vos tissus à toute la communauté JALOFA.",
-      cta: "Créer mon compte vendeur — gratuit",
+      title: "Compte pro",
+      desc: "Tailleur et vendeur de tissu : publiez vos créations et vendez vos tissus avec un seul compte.",
+      cta: "Voir les 2 offres pro",
     },
   ];
 
@@ -54,7 +47,7 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
       <div className="space-y-1.5">
         <h1 className="text-2xl font-bold tracking-tight">Rejoindre JALOFA</h1>
         <p className="text-muted-foreground text-sm">
-          Dites-nous qui vous êtes pour continuer.
+          Quel compte voulez-vous créer ?
         </p>
       </div>
 

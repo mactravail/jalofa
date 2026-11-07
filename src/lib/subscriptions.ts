@@ -22,16 +22,11 @@ export type BillingPeriod = "monthly" | "yearly";
 export const YEARLY_DISCOUNT = 0.2;
 
 /**
- * Commission prélevée par la plateforme sur le plan **Gratuit**.
- *
- * ⚠️ JALOFA est aujourd'hui **entièrement gratuit** pour les pros : aucun
- * abonnement, aucune commission, aucun frais. Ce taux est donc à **0**. La
- * mécanique des forfaits (commission par métier, reversements) reste en place,
- * non branchée à l'UI, pour un retour éventuel des abonnements — il suffira de
- * remonter ce taux et de ré-exposer les pages `/abonnements`, `/admin/finances`
- * et `/admin/reversements`.
+ * Commission prélevée par la plateforme sur l'offre **Gratuit** (par vente de
+ * tissu et par prestation de couture). L'offre **Pro** (payante) n'en prélève
+ * aucune.
  */
-export const FREE_COMMISSION_RATE = 0;
+export const FREE_COMMISSION_RATE = 0.05;
 
 export const BILLING_PERIOD_LABELS: Record<BillingPeriod, string> = {
   monthly: "Mensuel",
@@ -65,15 +60,15 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: "free",
     name: "Gratuit",
-    tagline: "Lancez-vous sans frais et gardez 100% de vos ventes.",
+    tagline: "Aucun abonnement : une petite commission sur chaque vente.",
     monthlyPrice: 0,
     scope: "both",
     commission: FREE_COMMISSION_RATE,
-    featured: true,
-    badge: "Sans frais",
+    featured: false,
+    badge: "Sans abonnement",
     features: [
-      "Tailleur, vendeur de tissus, ou les deux",
-      "0% de commission — vous gardez 100% de vos ventes",
+      "Tailleur et vendeur de tissus dans le même compte",
+      "0 FCFA par mois — 5% de commission par vente",
       "Boutique en ligne et fiche publique",
       "Commandes, messagerie et suivi de commande illimités",
       "Encaissement Orange Money, Wave, Free Money & carte",
@@ -101,16 +96,16 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
   {
     id: "premium",
-    name: "Premium",
-    tagline: "Les deux métiers, zéro commission.",
+    name: "Pro",
+    tagline: "Un abonnement, zéro commission : vous gardez 100%.",
     monthlyPrice: 10000,
     scope: "both",
     commission: 0,
     featured: true,
     badge: "Populaire",
     features: [
-      "Les deux métiers en même temps : tailleur et vendeur",
-      "0% de commission sur toutes vos ventes",
+      "Tailleur et vendeur de tissus dans le même compte",
+      "0% de commission — vous gardez 100% de vos ventes",
       "Prix sur demande : masquez vos tarifs, donnez vos devis en privé",
       "Une seule boutique pour vos tissus et vos créations",
       "Mise en avant dans le catalogue et la recherche",
@@ -119,6 +114,31 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     ],
   },
 ];
+
+/**
+ * Les deux offres proposées à l'inscription d'un pro : **Gratuit** (commission)
+ * et **Pro** (abonnement mensuel payé via PayDunya). Les deux ouvrent les deux
+ * métiers — tailleur et vendeur de tissus. Le plan `standard` n'est plus proposé
+ * (conservé pour les comptes existants).
+ */
+export const PRO_OFFER_IDS = ["free", "premium"] as const;
+export type ProOfferId = (typeof PRO_OFFER_IDS)[number];
+
+/** L'abonnement payant (offre « Pro »), facturé `monthlyPrice` par mois. */
+export const PAID_PLAN_ID: SubscriptionPlanId = "premium";
+
+/**
+ * Le plan qui s'applique réellement : un abonnement payant dont la période est
+ * échue retombe sur l'offre Gratuit.
+ */
+export function effectivePlan(
+  plan: SubscriptionPlanId | null | undefined,
+  expiresAt: string | null | undefined,
+): SubscriptionPlanId {
+  if (!plan || plan === "free") return "free";
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) return "free";
+  return plan;
+}
 
 export function getPlan(id: SubscriptionPlanId): SubscriptionPlan | undefined {
   return SUBSCRIPTION_PLANS.find((plan) => plan.id === id);

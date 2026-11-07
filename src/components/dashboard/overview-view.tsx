@@ -47,7 +47,7 @@ export async function OverviewView({ role }: { role: ProRole }) {
               <p className="font-semibold">Ajoutez votre moyen de paiement</p>
               <p className="text-muted-foreground text-sm">
                 Indiquez où vous voulez être payé pour recevoir l&apos;argent de
-                vos ventes. C&apos;est gratuit et sans commission.
+                vos ventes.
               </p>
             </div>
           </div>

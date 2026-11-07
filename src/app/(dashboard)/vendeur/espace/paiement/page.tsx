@@ -12,7 +12,7 @@ export default async function VendorPayoutPage() {
   return (
     <DashboardPage
       title="Paiement"
-      subtitle="Comment vous êtes réglé de vos ventes. JALOFA est gratuit : aucune commission, vous encaissez 100% — versés sur ce compte."
+      subtitle="Comment vous êtes réglé de vos ventes. Où JALOFA vous verse l'argent de vos ventes."
     >
       <div className="max-w-xl">
         <PayoutMethodForm
