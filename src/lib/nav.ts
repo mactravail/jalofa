@@ -22,11 +22,12 @@ export const FOOTER_LINKS: NavLink[] = [
   ...NAV_LINKS,
   { href: "/modeles", label: "Tous les modèles" },
   { href: "/comment-ca-marche", label: "Comment ça marche" },
+  // La FAQ n'est plus affichée sur l'accueil : on y accède depuis le footer.
+  { href: "/faq", label: "Questions fréquentes (FAQ)" },
 ];
 
-// Aide + pages légales, regroupées dans la barre basse du footer.
+// Pages légales, regroupées dans la barre basse du footer.
 export const FOOTER_LEGAL_LINKS: NavLink[] = [
-  { href: "/faq", label: "FAQ" },
   { href: "/conditions", label: "Conditions générales" },
   { href: "/confidentialite", label: "Confidentialité" },
   { href: "/mentions-legales", label: "Mentions légales" },

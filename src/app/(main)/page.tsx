@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  ChevronDown,
   MessageCircle,
   ShieldCheck,
   Star,
@@ -16,34 +15,13 @@ import { FemmeCollection } from "@/components/home/femme-collection";
 import { FitShowcase } from "@/components/home/fit-showcase";
 import { HommeCollection } from "@/components/home/homme-collection";
 import { StartHere } from "@/components/home/start-here";
-import { AVATAR_TONES, TESTIMONIALS, TestimonialMarquee } from "@/components/home/testimonials";
+import { AVATAR_TONES, TESTIMONIALS } from "@/components/home/testimonials";
 import { HowItWorks } from "@/components/how-it-works";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { APP_NAME, formatPrice } from "@/lib/constants";
+import { formatPrice } from "@/lib/constants";
 import { getFabrics, getTailors } from "@/lib/data";
 import { cn } from "@/lib/utils";
-
-// Les 4 objections qui bloquent le plus l'achat de sur-mesure en ligne, avec
-// les réponses réelles du produit (reprises / adaptées de la page FAQ).
-const HOME_FAQ = [
-  {
-    q: "Et si mes mesures ne sont pas exactes ?",
-    a: "La saisie est guidée champ par champ (en centimètres), ou vous choisissez une taille standard XS → XXXL. En cas de doute, votre tailleur vous contacte via le chat avant de couper le tissu, et vos mesures sont enregistrées pour les prochaines commandes.",
-  },
-  {
-    q: "Puis-je utiliser mon propre tissu ?",
-    a: "Oui. Au moment de choisir le tissu, sélectionnez « J'ai déjà mon tissu » : vous convenez alors avec le tailleur de la remise du tissu.",
-  },
-  {
-    q: "Comment je paie, et est-ce sécurisé ?",
-    a: "Orange Money, Wave, Free Money ou carte bancaire. Les paiements sont traités par nos prestataires sécurisés et vos coordonnées bancaires complètes ne sont jamais stockées par la plateforme.",
-  },
-  {
-    q: "Combien de temps pour recevoir ma tenue ?",
-    a: "Entre 6 et 12 jours selon le tailleur — le délai est affiché sur chaque profil avant de commander. Vous suivez ensuite chaque étape en temps réel : couture, contrôle qualité, expédition, livraison.",
-  },
-];
 
 // Piliers de réassurance affichés juste avant l'appel à l'action final :
 // uniquement des engagements que le produit tient réellement (pipeline de
@@ -300,62 +278,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Témoignages ────────────────────────────────────────────────── */}
-      <section className="bg-muted/40 border-y">
-        <div className="py-16 md:py-20">
-          <div className="mx-auto mb-10 max-w-6xl px-4 text-center">
-            <span className="text-primary text-xs font-semibold tracking-[0.25em] uppercase">
-              Ils nous font confiance
-            </span>
-            <h2 className="mt-3 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-              Ils portent déjà du {APP_NAME}
-            </h2>
-            <p className="mt-3 flex items-center justify-center gap-2 text-sm">
-              <Stars />
-              <span className="font-semibold">{ratingLabel}/5</span>
-              <span className="text-muted-foreground">
-                sur {reviewCount.toLocaleString("fr-FR")} avis clients
-              </span>
-            </p>
-          </div>
-          <TestimonialMarquee />
-        </div>
-      </section>
-
       {/* ── Comment ça marche ──────────────────────────────────────────────
           Desktop uniquement : sur mobile le déroulé est déplacé sur la page
           /tailleurs, pour raccourcir l'accueil. */}
       <HowItWorks className="max-md:hidden" />
-
-      {/* ── FAQ ────────────────────────────────────────────────────────── */}
-      <section className="bg-muted/40 border-y">
-        <div className="mx-auto max-w-3xl px-4 py-16 md:py-20">
-          <SectionHead
-            kicker="Avant de commander"
-            title="Vos questions, nos réponses"
-            desc="Ce que nos clients demandent avant leur première commande."
-          />
-          <div className="bg-card divide-y rounded-2xl border shadow-sm">
-            {HOME_FAQ.map((item) => (
-              <details key={item.q} className="group">
-                <summary className="hover:bg-muted/50 flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                  {item.q}
-                  <ChevronDown className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180" />
-                </summary>
-                <p className="text-muted-foreground px-5 pb-4 text-sm leading-relaxed">
-                  {item.a}
-                </p>
-              </details>
-            ))}
-          </div>
-          <p className="text-muted-foreground mt-6 text-center text-sm">
-            D&apos;autres questions ?{" "}
-            <Link href="/faq" className="text-primary font-medium hover:underline">
-              Consultez la FAQ complète
-            </Link>
-          </p>
-        </div>
-      </section>
 
       {/* ── Garanties + CTA final ──────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
