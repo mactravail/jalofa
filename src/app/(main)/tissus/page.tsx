@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
+import { CollectionHero } from "@/components/catalog/collection-hero";
 import { DemoBanner } from "@/components/demo-banner";
 import { FabricCard } from "@/components/catalog/fabric-card";
 import { getFabricCategories, getFabrics } from "@/lib/data";
@@ -21,17 +22,32 @@ export default async function FabricsPage({
     getFabricCategories(),
   ]);
 
+  // Une recherche ou une couleur précise : on va droit aux résultats, sans le hero.
+  const showHero = !q && !color;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <>
+      {showHero && (
+        <CollectionHero
+          number="03"
+          eyebrow="Choisissez votre étoffe"
+          title="Tissus"
+          image={{ src: "/look/karola.jpg", alt: "Rouleaux de tissus jaunes, orange et rouges" }}
+          target="collection"
+        />
+      )}
+    <div id="collection" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-8">
       <DemoBanner />
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tissus</h1>
-          <p className="text-muted-foreground mt-1">
-            Achetez au mètre et faites-vous livrer, ou utilisez-les pour votre tenue.
-          </p>
-        </div>
+        {!showHero && (
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Tissus</h1>
+            <p className="text-muted-foreground mt-1">
+              Achetez au mètre et faites-vous livrer, ou utilisez-les pour votre tenue.
+            </p>
+          </div>
+        )}
         <SearchInput placeholder="Rechercher un tissu..." />
       </div>
 
@@ -51,5 +67,6 @@ export default async function FabricsPage({
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -121,12 +121,12 @@ export function TailorBottomNav({
                 window.dispatchEvent(new Event(NEW_MODEL_EVENT));
               }
             }}
-            className="relative flex h-12 w-16 items-center justify-center transition-transform active:scale-95"
+            className="relative flex h-10 w-12 items-center justify-center transition-transform active:scale-95"
           >
             {/* Dégradé orange, du clair au foncé : il ne ressemble à aucun
                 autre onglet. */}
-            <span className="relative flex size-full items-center justify-center rounded-2xl bg-gradient-to-r from-orange-300 via-orange-500 to-orange-700 text-white shadow-lg shadow-orange-500/30">
-              <Plus className="size-7" strokeWidth={3} aria-hidden />
+            <span className="relative flex h-8 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-orange-300 via-orange-500 to-orange-700 text-white">
+              <Plus className="size-5" strokeWidth={2.5} aria-hidden />
             </span>
           </Link>
         </div>

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { InspirationPost } from "@/lib/types";
 
 /**
@@ -118,9 +118,7 @@ export async function getInspirationPost(
 export async function getMyInspiration(): Promise<InspirationPostView[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
   const { data } = await supabase
     .from("inspiration_posts")

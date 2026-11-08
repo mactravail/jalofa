@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import type { Database } from "@/lib/database.types";
 
@@ -32,3 +33,31 @@ export async function createClient() {
     },
   );
 }
+
+/** Ce que les lectures savent de la personne connectée, tiré de son jeton. */
+export type AuthUser = {
+  id: string;
+  email: string | null;
+  is_anonymous: boolean;
+};
+
+/**
+ * La personne connectée, pour AFFICHER des données. Le jeton est vérifié sur
+ * place (clés ES256) : pas d'appel réseau, et `cache` n'exécute la vérification
+ * qu'une fois par rendu, même si l'en-tête, la barre du bas et la page la demandent.
+ *
+ * Pour une écriture, un paiement ou une garde d'administration, garder
+ * `supabase.auth.getUser()` : lui seul voit un compte supprimé ou banni avant
+ * l'expiration de son jeton.
+ */
+export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  return {
+    id: claims.sub,
+    email: typeof claims.email === "string" ? claims.email : null,
+    is_anonymous: claims.is_anonymous === true,
+  };
+});

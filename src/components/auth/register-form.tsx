@@ -2,21 +2,21 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, Loader2, Scissors, Shirt } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Loader2,
+  Scissors,
+  Shirt,
+  Store,
+} from "lucide-react";
 
 import { signUp, type AuthState } from "@/lib/actions/auth";
+import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
 import { PasswordField } from "@/components/auth/password-field";
 import { NotARobot, TermsCheckbox } from "@/components/auth/signup-verification";
 import { Price } from "@/components/cart/price";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { checkPassword } from "@/lib/password";
@@ -30,6 +30,9 @@ import { cn } from "@/lib/utils";
 
 const PAID_PLAN = getPlan(PAID_PLAN_ID)!;
 const COMMISSION_PCT = Math.round(FREE_COMMISSION_RATE * 100);
+
+/** Champs hauts et texte à 16 px : confortables au doigt, sans zoom auto sur iOS. */
+const FIELD_CLASS = "h-12 rounded-xl px-4 md:text-base";
 
 /** Les deux offres d'un compte pro — tailleur ET vendeur de tissu dans les deux cas. */
 const OFFERS: {
@@ -46,7 +49,6 @@ const OFFERS: {
     priceNote: "par mois",
     points: [
       `${COMMISSION_PCT}% de commission par vente`,
-      "Tailleur + vendeur de tissu",
       "Boutique, commandes, messagerie",
     ],
   },
@@ -57,18 +59,18 @@ const OFFERS: {
     priceNote: "par mois",
     points: [
       "0% de commission : vous gardez 100%",
-      "Tailleur + vendeur de tissu",
       "Mise en avant dans le catalogue",
     ],
   },
 ];
 
 /**
- * Formulaire d'inscription. Deux comptes :
- *  - **client** : gratuit, rien à choisir ;
- *  - **pro** : un seul compte pour vendre du tissu et publier comme tailleur,
- *    avec deux offres. L'offre **Pro** se paie en mobile money via PayDunya
- *    juste après la création du compte.
+ * Formulaire d'inscription, dans le style de l'écran de choix (mètre ruban,
+ * surpiqûre, grand picto) et dans la couleur de la carte choisie. Deux comptes :
+ *  - **client** : carte blanche, gratuit, rien à choisir ;
+ *  - **pro** : carte noire, un seul compte pour vendre du tissu et publier comme
+ *    tailleur, avec deux offres. L'offre **Pro** se paie en mobile money via
+ *    PayDunya juste après la création du compte.
  *
  * Toute inscription exige l'acceptation des conditions et la case « Je ne suis
  * pas un robot ».
@@ -103,48 +105,66 @@ export function RegisterForm({
       ? "Créer mon compte et payer"
       : "Créer mon compte pro";
 
+  const Icon = isPro ? Scissors : Shirt;
+
   return (
-    <Card>
-      <CardHeader>
-        <span
-          className={cn(
-            "mb-1 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-            isPro
-              ? "bg-neutral-950 text-white"
-              : "bg-neutral-100 text-neutral-900 ring-1 ring-neutral-200",
-          )}
-        >
-          {isPro ? (
-            <>
-              <Scissors className="size-3.5" /> Tailleur + vendeur de tissu
-            </>
-          ) : (
-            <>
-              <Shirt className="size-3.5" /> Client · gratuit
-            </>
-          )}
-        </span>
-        <CardTitle className="text-2xl">
+    <div className="space-y-7">
+      <header className="motion-safe:animate-in motion-safe:fade-in space-y-4 text-center motion-safe:duration-500">
+        <p className="text-muted-foreground text-xs font-medium tracking-[0.25em] uppercase">
+          Créer un compte
+        </p>
+        <h1 className="text-4xl font-bold tracking-tight">
           {isPro ? "Compte pro" : "Compte client"}
-        </CardTitle>
-        <CardDescription>
-          {isPro
-            ? "Tailleur et vendeur de tissu dans le même compte. Choisissez votre offre."
-            : "Gratuit. Rejoignez JALOFA en quelques secondes."}
-        </CardDescription>
-      </CardHeader>
-      <form action={formAction}>
-        <CardContent className="space-y-5">
+        </h1>
+        <TapeMeasure />
+      </header>
+
+      <div
+        className={cn(
+          "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 relative rounded-3xl p-7 motion-safe:delay-100 motion-safe:duration-500 motion-safe:fill-mode-both",
+          isPro
+            ? "bg-gradient-to-b from-neutral-900 to-neutral-950 text-white ring-1 ring-white/20"
+            : "surface-light text-foreground bg-white",
+        )}
+      >
+        <Stitching
+          className={isPro ? "border-white/25" : "border-neutral-950/25"}
+        />
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-2">
+            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+              {isPro ? "Professionnel" : "Gratuit"}
+            </p>
+            <p className="text-muted-foreground text-base">
+              {isPro
+                ? "Je couds et je vends du tissu."
+                : "Je commande des tenues sur mesure."}
+            </p>
+          </div>
+          <Icon aria-hidden strokeWidth={0.6} className="size-20 shrink-0" />
+        </div>
+
+        <form action={formAction} className="relative mt-6 space-y-5">
           {state?.error && (
-            <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
+            <p className="bg-destructive/10 text-destructive rounded-xl px-4 py-3 text-sm">
               {state.error}
             </p>
           )}
 
           {isPro && (
-            <div className="space-y-2">
-              <Label>Votre offre</Label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+                  <Scissors aria-hidden className="size-4" /> Tailleur
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+                  <Store aria-hidden className="size-4" /> Vendeur de tissu
+                </span>
+              </div>
+
+              <Label className="pt-2">Votre offre</Label>
+              <div className="grid gap-2">
                 {OFFERS.map((o) => {
                   const selected = offer === o.id;
                   return (
@@ -154,38 +174,46 @@ export function RegisterForm({
                       onClick={() => setOffer(o.id)}
                       aria-pressed={selected}
                       className={cn(
-                        "flex min-w-0 flex-col gap-2 rounded-lg border p-3 text-left transition-colors",
+                        "focus-visible:ring-ring/50 w-full rounded-2xl border p-4 text-left transition-colors outline-none focus-visible:ring-3",
                         selected
-                          ? "border-primary bg-primary/5 ring-primary/30 ring-1"
-                          : "hover:bg-muted",
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-white/20 hover:border-white/50",
                       )}
                     >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-heading font-semibold">{o.name}</span>
+                      <span className="flex items-center gap-3">
                         <span
                           className={cn(
-                            "flex size-5 shrink-0 items-center justify-center rounded-full border",
+                            "flex size-6 shrink-0 items-center justify-center rounded-full border",
                             selected
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-muted-foreground/40",
+                              ? "border-primary-foreground bg-primary-foreground text-primary"
+                              : "border-white/40",
                           )}
                         >
-                          {selected && <Check className="size-3" />}
+                          {selected && <Check aria-hidden className="size-4" />}
+                        </span>
+                        <span className="min-w-0 flex-1 text-lg font-bold">
+                          {o.name}
+                        </span>
+                        <span className="shrink-0 text-right">
+                          <Price
+                            amount={o.price}
+                            className="text-lg font-bold"
+                          />
+                          <span className="block text-xs opacity-70">
+                            {o.priceNote}
+                          </span>
                         </span>
                       </span>
-                      <span>
-                        <Price amount={o.price} className="text-lg font-bold" />
-                        <span className="text-muted-foreground block text-[11px]">
-                          {o.priceNote}
-                        </span>
-                      </span>
-                      <span className="space-y-1">
+                      <span className="mt-3 block space-y-1">
                         {o.points.map((p) => (
                           <span
                             key={p}
-                            className="text-muted-foreground flex items-start gap-1 text-[11px] leading-tight"
+                            className="flex items-start gap-1.5 text-sm opacity-80"
                           >
-                            <Check className="text-primary mt-px size-3 shrink-0" />
+                            <Check
+                              aria-hidden
+                              className="mt-0.5 size-4 shrink-0"
+                            />
                             {p}
                           </span>
                         ))}
@@ -195,9 +223,12 @@ export function RegisterForm({
                 })}
               </div>
               {paid && (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-sm">
                   Après la création du compte, vous payez{" "}
-                  <Price amount={PAID_PLAN.monthlyPrice} className="font-medium" />{" "}
+                  <Price
+                    amount={PAID_PLAN.monthlyPrice}
+                    className="text-foreground font-medium"
+                  />{" "}
                   avec Orange Money, Wave, Free Money ou carte (paiement sécurisé
                   PayDunya).
                 </p>
@@ -220,7 +251,13 @@ export function RegisterForm({
             <Label htmlFor="full_name">
               {isPro ? "Nom ou nom de l'atelier" : "Nom complet"}
             </Label>
-            <Input id="full_name" name="full_name" autoComplete="name" required />
+            <Input
+              id="full_name"
+              name="full_name"
+              autoComplete="name"
+              required
+              className={FIELD_CLASS}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
@@ -231,6 +268,7 @@ export function RegisterForm({
               autoComplete="email"
               placeholder="vous@exemple.com"
               required
+              className={FIELD_CLASS}
             />
           </div>
           <div className="space-y-2">
@@ -241,16 +279,21 @@ export function RegisterForm({
               type="tel"
               autoComplete="tel"
               placeholder="+221 ..."
+              className={FIELD_CLASS}
             />
           </div>
-          <PasswordField value={password} onChange={setPassword} />
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            inputClassName={FIELD_CLASS}
+          />
 
-          <div className="space-y-3 border-t pt-5">
+          <div className="space-y-3 border-t border-dashed pt-5">
             <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms}>
               J&apos;accepte les{" "}
               <Link
                 href="/conditions"
-                className="text-primary font-medium hover:underline"
+                className="text-foreground font-medium underline underline-offset-4"
               >
                 conditions générales d&apos;utilisation
               </Link>{" "}
@@ -258,18 +301,17 @@ export function RegisterForm({
             </TermsCheckbox>
             <NotARobot checked={notRobot} onChange={setNotRobot} />
           </div>
-        </CardContent>
-        <CardFooter className="mt-6 flex flex-col gap-4">
+
           <Button
             type="submit"
-            className="w-full"
+            className="h-14 w-full rounded-xl text-base font-semibold"
             disabled={!canSubmit || isPending}
           >
-            {isPending && <Loader2 className="size-4 animate-spin" />}
+            {isPending && <Loader2 className="size-5 animate-spin" />}
             {submitLabel}
           </Button>
           {!canSubmit && (
-            <p className="text-muted-foreground text-center text-xs">
+            <p className="text-muted-foreground text-center text-sm">
               {!passwordOk
                 ? "Choisissez un mot de passe qui remplit toutes les exigences."
                 : !acceptedTerms
@@ -277,33 +319,35 @@ export function RegisterForm({
                   : "Confirmez que vous n'êtes pas un robot."}
             </p>
           )}
-          <p className="text-muted-foreground text-center text-sm">
-            {isPro ? (
-              <>
-                Vous voulez juste commander ?{" "}
-                <Link
-                  href="/inscription?role=client"
-                  className="text-primary font-medium hover:underline"
-                >
-                  Compte client
-                </Link>
-                {" · "}
-              </>
-            ) : null}
-            Déjà inscrit ?{" "}
-            <Link
-              href={
-                redirectTo
-                  ? `/connexion?redirect=${encodeURIComponent(redirectTo)}`
-                  : "/connexion"
-              }
-              className="text-primary font-medium hover:underline"
-            >
-              Se connecter
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
+        </form>
+      </div>
+
+      <div className="text-muted-foreground flex flex-col items-center text-sm">
+        <Link
+          href={
+            redirectTo
+              ? `/inscription?redirect=${encodeURIComponent(redirectTo)}`
+              : "/inscription"
+          }
+          className="text-foreground inline-flex min-h-11 items-center gap-1.5 font-semibold underline-offset-4 hover:underline"
+        >
+          <ArrowLeft aria-hidden className="size-4" />
+          Changer de compte
+        </Link>
+        <p>
+          Déjà inscrit ?{" "}
+          <Link
+            href={
+              redirectTo
+                ? `/connexion?redirect=${encodeURIComponent(redirectTo)}`
+                : "/connexion"
+            }
+            className="text-foreground inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline"
+          >
+            Se connecter
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }

@@ -80,12 +80,12 @@ export const DASHBOARD_TITLE_SHORT: Record<ProRole, string> = {
  */
 export const BUCKET_LABELS: Record<ProRole, Record<OrderBucket, string>> = {
   tailor: {
-    todo: "À traiter",
-    ongoing: "Travail en cours",
-    done: "Travail terminé",
+    todo: "Nouvelles commandes",
+    ongoing: "En cours",
+    done: "Terminées",
   },
   vendor: {
-    todo: "À traiter",
+    todo: "Nouvelles commandes",
     ongoing: "En cours",
     done: "Livrées",
   },
@@ -94,13 +94,15 @@ export const BUCKET_LABELS: Record<ProRole, Record<OrderBucket, string>> = {
 export function dashboardNav(role: ProRole): DashboardNavGroup[] {
   const root = DASHBOARD_ROOT[role];
 
+  // L'ordre du menu suit la journée d'un pro : ses commandes d'abord, puis ce
+  // qu'il vend, son argent, et enfin son compte.
   return [
     {
       label: null,
       items: [
         { id: "overview", href: root, label: "Accueil", icon: LayoutDashboard },
-        // Le tailleur a une page « Notifications » (le bouton cloche de sa barre
-        // du bas) : nouvelles commandes + messages de la plateforme.
+        // Le bouton cloche de la barre du bas du tailleur : nouvelles commandes
+        // + messages de la plateforme.
         ...(role === "tailor"
           ? [
               {
@@ -111,51 +113,6 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
               },
             ]
           : []),
-        {
-          id: "clients",
-          href: `${root}/clients`,
-          label: "Mes clients",
-          icon: Users,
-        },
-        {
-          id: "revenue",
-          href: `${root}/revenus`,
-          label: "Mon argent",
-          icon: Wallet,
-        },
-        // Comment le pro est réglé de ses ventes — une page à part, à remplir en
-        // priorité.
-        {
-          id: "payout",
-          href: `${root}/paiement`,
-          label: "Paiement",
-          icon: CreditCard,
-        },
-        // L'offre du compte pro (Gratuit avec commission, ou Pro payant via
-        // PayDunya) — aussi la page de retour après paiement.
-        {
-          id: "offer",
-          href: `${root}/offre`,
-          label: "Mon offre",
-          icon: Crown,
-        },
-        // Les deux métiers ont une fiche publique qu'ils composent eux-mêmes :
-        // le tailleur sur `/tailleurs/[id]`, le vendeur sur `/vendeurs/[id]`.
-        {
-          id: "profile",
-          href: `${root}/profil`,
-          label: "Mon profil public",
-          icon: Store,
-        },
-        // La vitrine (ci-dessus) et le compte (ci-dessous) sont deux choses
-        // distinctes : l'une est vue par les clients, l'autre contient le nom,
-        // le téléphone et le mot de passe.
-        {
-          id: "account",
-          href: `${root}/compte`,
-          label: "Mon compte",
-          icon: UserCog,
-        },
       ],
     },
     {
@@ -164,7 +121,7 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
         {
           id: "todo",
           href: `${root}/a-traiter`,
-          label: BUCKET_LABELS[role].todo,
+          label: "Nouvelles",
           icon: ClipboardList,
         },
         {
@@ -178,7 +135,7 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           // expédier ensemble les colis d'une même destination.
           id: "shipping",
           href: `${root}/livraisons`,
-          label: "Livraisons",
+          label: "À livrer",
           icon: Truck,
         },
         {
@@ -191,16 +148,15 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
     },
     {
       // Le tailleur vend ses créations, le vendeur ses tissus : un métier ne
-      // déborde jamais sur l'autre. C'est l'abonnement qui décide (Standard =
-      // un seul, Gratuit/Premium = les deux, atteints via le sélecteur d'espace).
+      // déborde jamais sur l'autre.
       label: "Ma boutique",
-      items:
-        role === "tailor"
+      items: [
+        ...(role === "tailor"
           ? [
               {
                 id: "models" as const,
                 href: `${root}/creations`,
-                label: "Mes créations",
+                label: "Mes modèles",
                 icon: Shirt,
               },
             ]
@@ -217,7 +173,60 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 label: "Ventes de tissus",
                 icon: Receipt,
               },
-            ],
+            ]),
+        // La fiche publique que le pro compose lui-même : `/tailleurs/[id]` ou
+        // `/vendeurs/[id]`.
+        {
+          id: "profile",
+          href: `${root}/profil`,
+          label: "Ma page publique",
+          icon: Store,
+        },
+        {
+          id: "clients",
+          href: `${root}/clients`,
+          label: "Mes clients",
+          icon: Users,
+        },
+      ],
+    },
+    {
+      label: "Mon argent",
+      items: [
+        {
+          id: "revenue",
+          href: `${root}/revenus`,
+          label: "Ce que j'ai gagné",
+          icon: Wallet,
+        },
+        {
+          id: "payout",
+          href: `${root}/paiement`,
+          label: "Recevoir mon argent",
+          icon: CreditCard,
+        },
+        // L'offre du compte pro (Gratuit avec commission, ou Pro payant via
+        // PayDunya) — aussi la page de retour après paiement.
+        {
+          id: "offer",
+          href: `${root}/offre`,
+          label: "Mon offre",
+          icon: Crown,
+        },
+      ],
+    },
+    {
+      label: "Mon compte",
+      items: [
+        // Le nom, le téléphone et le mot de passe — à ne pas confondre avec la
+        // page publique, vue par les clients.
+        {
+          id: "account",
+          href: `${root}/compte`,
+          label: "Mes informations",
+          icon: UserCog,
+        },
+      ],
     },
   ];
 }

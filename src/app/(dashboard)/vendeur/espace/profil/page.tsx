@@ -7,7 +7,7 @@ import { VendorProfileForm } from "@/components/dashboard/vendor-profile-form";
 import { getCurrentVendor } from "@/lib/data";
 import type { Vendor } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Mon profil public" };
+export const metadata: Metadata = { title: "Ma page publique" };
 
 // Boutique vide de repli : le formulaire a toujours une ligne à éditer, même
 // avant que le vendeur n'ait rien renseigné.
@@ -33,8 +33,8 @@ export default async function VendorProfilePage() {
 
   return (
     <DashboardPage
-      title="Mon profil public"
-      subtitle="La fiche que les clients voient : photo, présentation, ville et vos tissus. Soignez-la, c'est votre vitrine."
+      title="Ma page publique"
+      subtitle="La page que les clients voient avant d'acheter."
     >
       {vendor.id && (
         <Link

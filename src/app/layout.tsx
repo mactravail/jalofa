@@ -3,12 +3,7 @@ import { Cormorant_Garamond, Geist, Geist_Mono } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  APP_NAME,
-  APP_TAGLINE,
-  THEME_COLOR_DARK,
-  THEME_COLOR_LIGHT,
-} from "@/lib/constants";
+import { APP_NAME, APP_TAGLINE, THEME_COLOR } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +42,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: APP_NAME,
-    statusBarStyle: "default",
+    statusBarStyle: "black",
   },
   formatDetection: { telephone: false },
 };
@@ -58,10 +53,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
-    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR_DARK },
-  ],
+  themeColor: THEME_COLOR,
 };
 
 export default function RootLayout({
@@ -73,15 +65,11 @@ export default function RootLayout({
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
+        {/* Site tout en noir, quel que soit le réglage du téléphone. */}
+        <ThemeProvider attribute="class" forcedTheme="dark" disableTransitionOnChange>
           {children}
           <Toaster position="top-center" />
         </ThemeProvider>

@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
+import { CollectionHero } from "@/components/catalog/collection-hero";
+import { COLLECTION_HEADING } from "@/components/catalog/collection-sections";
 import { DemoBanner } from "@/components/demo-banner";
 import { TailorCard } from "@/components/catalog/tailor-card";
-import { HowItWorks } from "@/components/how-it-works";
-import { ProJoinCta } from "@/components/pro-join-cta";
+import {
+  JoinTailors,
+  MoneyProtection,
+  WhyJalofa,
+} from "@/components/catalog/tailleurs-sections";
 import { getTailors } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -31,45 +37,73 @@ export default async function TailorsPage({
     return true;
   });
 
+  // Une recherche : on va droit aux résultats, sans le hero.
+  const showHero = !q;
+  const Heading = showHero ? "h2" : "h1";
+
   return (
     <>
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      {showHero && (
+        <CollectionHero
+          number="04"
+          eyebrow="Choisissez votre artisan"
+          title="Tailleurs"
+          titleClassName="text-[16vw] md:text-[11vw]"
+          image={{
+            src: "/avis/wandi.jpg",
+            alt: "Mains d'un tailleur guidant un tissu sous l'aiguille d'une machine à coudre",
+            // Sur téléphone, le cadrage garde l'aiguille et la main droite.
+            position: "object-[62%_center] md:object-center",
+            // La machine est très claire : sans ça, le titre blanc s'y perd.
+            className: "brightness-[0.72]",
+          }}
+          target="tailleurs"
+          secondaryLink={{ href: "#rejoindre", label: "Je suis tailleur" }}
+        />
+      )}
+
+      <section
+        id="tailleurs"
+        className="mx-auto max-w-7xl scroll-mt-16 px-4 pt-14 md:px-8 md:pt-24"
+      >
         <DemoBanner />
 
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-10">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tailleurs</h1>
-            <p className="text-muted-foreground mt-1">
-              Des artisans qualifiés pour confectionner votre tenue sur mesure.
+            <Heading className={COLLECTION_HEADING}>Trouvez votre tailleur</Heading>
+            <p className="mt-3 max-w-xl text-lg">
+              Des artisans qui cousent votre habit à vos mesures.
             </p>
           </div>
           <SearchInput placeholder="Rechercher un tailleur..." />
         </div>
 
-        <div className="mb-8">
+        <div className="mt-6 md:mt-8">
           <CategoryChips options={cities} paramName="city" />
         </div>
 
         {tailors.length === 0 ? (
-          <p className="text-muted-foreground py-16 text-center">
-            Aucun tailleur ne correspond à votre recherche.
-          </p>
+          <div className="mt-8 rounded-xl border border-white/15 p-6 text-center md:p-10">
+            <p className="text-lg">Aucun tailleur ne correspond à votre recherche.</p>
+            <Link
+              href="/tailleurs"
+              className="mt-3 inline-block underline underline-offset-4 hover:opacity-70"
+            >
+              Voir tous les tailleurs
+            </Link>
+          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-x-4 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {tailors.map((tailor) => (
               <TailorCard key={tailor.id} tailor={tailor} />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Déroulé de commande : mobile uniquement — retiré de l'accueil sur
-          petit écran, il est repris ici, là où l'on choisit son tailleur. */}
-      <div className="bg-muted/40 border-t md:hidden">
-        <HowItWorks className="py-12" />
-      </div>
-
-      <ProJoinCta metier="tailor" />
+      <WhyJalofa />
+      <MoneyProtection />
+      <JoinTailors />
     </>
   );
 }

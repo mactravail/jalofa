@@ -2,15 +2,13 @@ import { MapPin } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Address } from "@/lib/types";
 
 async function getMyAddresses(): Promise<Address[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
   const { data } = await supabase
     .from("addresses")

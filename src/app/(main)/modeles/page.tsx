@@ -2,24 +2,49 @@ import type { Metadata } from "next";
 
 import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
 import { DemoBanner } from "@/components/demo-banner";
+import { FemmeCollection } from "@/components/catalog/femme-collection";
+import { HommeCollection } from "@/components/catalog/homme-collection";
 import { ModelCard } from "@/components/catalog/model-card";
-import { getModelCategories, getModels } from "@/lib/data";
+import { getLatestReviews, getModelCategories, getModels } from "@/lib/data";
 
-export const metadata: Metadata = {
-  title: "Modèles",
-  description: "Des centaines de modèles : boubou, kaftan, robe, ensemble et plus.",
+type ModelsSearchParams = {
+  category?: string;
+  q?: string;
+  type?: string;
+  fabric?: string;
+  tailor?: string;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<ModelsSearchParams>;
+}): Promise<Metadata> {
+  const { category } = await searchParams;
+  if (category === "homme") {
+    return {
+      title: "Homme — tenues sur mesure",
+      description:
+        "Grand boubou, kaftan, costume : un habit coupé pour votre corps, pour la cérémonie, le vendredi ou le bureau.",
+    };
+  }
+  if (category === "femme") {
+    return {
+      title: "Femme — tenues sur mesure",
+      description:
+        "La robe que vous n'avez vue qu'en rêve, cousue pour vous par un tailleur, à vos mesures.",
+    };
+  }
+  return {
+    title: "Modèles",
+    description: "Des centaines de modèles : boubou, kaftan, robe, ensemble et plus.",
+  };
+}
 
 export default async function ModelsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    category?: string;
-    q?: string;
-    type?: string;
-    fabric?: string;
-    tailor?: string;
-  }>;
+  searchParams: Promise<ModelsSearchParams>;
 }) {
   const { category, q, type, fabric, tailor } = await searchParams;
   const [models, categories] = await Promise.all([
@@ -39,6 +64,34 @@ export default async function ModelsPage({
   if (fabric) context.set("fabric", fabric);
   if (tailor) context.set("tailor", tailor);
   const contextQuery = context.toString();
+
+  // Les collections Homme et Femme ont leur propre vitrine. Une recherche (`q`)
+  // reste sur la grille simple, seule à savoir afficher des résultats filtrés.
+  if (category === "homme" && !q) {
+    return (
+      <>
+        <DemoBanner />
+        <HommeCollection
+          models={models}
+          context={contextQuery}
+          reviews={await getLatestReviews()}
+        />
+      </>
+    );
+  }
+
+  if (category === "femme" && !q) {
+    return (
+      <>
+        <DemoBanner />
+        <FemmeCollection
+          models={models}
+          context={contextQuery}
+          reviews={await getLatestReviews()}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

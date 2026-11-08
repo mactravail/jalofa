@@ -139,8 +139,8 @@ export function OrderDetailSheet({
             {order.is_quote && order.payment_status === "pending" && (
               <p className="text-muted-foreground text-sm">
                 {order.tailoring_price > 0
-                  ? "Devis envoyé — en attente de l'accord et du paiement du client."
-                  : "Demande de devis — chiffrez-la depuis « À traiter » pour envoyer votre prix au client."}
+                  ? "Prix envoyé. Le client doit accepter et payer."
+                  : "Le client attend votre prix. Donnez-le depuis « Nouvelles commandes »."}
               </p>
             )}
             {order.fabric_price > 0 && (

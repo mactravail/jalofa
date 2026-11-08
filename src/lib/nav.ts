@@ -21,7 +21,6 @@ export const NAV_LINKS: NavLink[] = [
 export const FOOTER_LINKS: NavLink[] = [
   ...NAV_LINKS,
   { href: "/modeles", label: "Tous les modèles" },
-  { href: "/comment-ca-marche", label: "Comment ça marche" },
   // La FAQ n'est plus affichée sur l'accueil : on y accède depuis le footer.
   { href: "/faq", label: "Questions fréquentes (FAQ)" },
 ];

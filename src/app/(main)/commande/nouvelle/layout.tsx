@@ -4,7 +4,7 @@ import { ConfiguratorProvider } from "@/components/order/configurator-context";
 import { ConfiguratorShell } from "@/components/order/configurator-shell";
 import { getFabrics, getModels, getStyles, getTailors } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Créer une tenue" };
 
@@ -18,9 +18,7 @@ export const metadata: Metadata = { title: "Créer une tenue" };
 async function contactMode(): Promise<"account" | "contact" | null> {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user || user.is_anonymous) return "account";
   const { data: profile } = await supabase
     .from("profiles")

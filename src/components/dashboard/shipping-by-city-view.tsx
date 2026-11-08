@@ -27,7 +27,7 @@ export function ShippingByCityView({ role }: { role: ProRole }) {
   const copy = COPY[role];
 
   return (
-    <DashboardPage title="Livraisons" subtitle={copy.subtitle}>
+    <DashboardPage title="À livrer" subtitle={copy.subtitle}>
       <ShippingByCityList empty={copy.empty} />
     </DashboardPage>
   );

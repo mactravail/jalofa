@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/server";
 
 /**
  * Les réglages du compte connecté — identité et mot de passe. Un seul écran,
@@ -33,10 +33,7 @@ export async function AccountSettings() {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   return (
     <div className="space-y-6">

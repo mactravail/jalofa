@@ -8,6 +8,7 @@ import {
   HOMME,
   type CollectionTile,
 } from "@/components/home/collection-marquee";
+import { HeroVideo } from "@/components/home/hero-video";
 import { getFabrics } from "@/lib/data";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,59 @@ function DiscoverLink({
   );
 }
 
+/** Texte des bannières : en bas à gauche, sur-titre, très grand titre, lien. */
+function BannerCaption({
+  eyebrow,
+  title,
+  href,
+  cta,
+  as: Heading = "h2",
+}: {
+  eyebrow: string;
+  title: string;
+  href: string;
+  cta: string;
+  as?: "h1" | "h2";
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-start px-4 pb-8 text-white md:px-6 md:pb-12">
+      <p className="text-xs font-medium tracking-[0.15em] uppercase text-white/90">{eyebrow}</p>
+      <Heading className="mt-3 text-5xl leading-none font-medium tracking-tight text-balance sm:text-7xl md:text-8xl lg:text-9xl">
+        {title}
+      </Heading>
+      <div className="pointer-events-auto mt-6">
+        <DiscoverLink href={href} light>
+          {cta}
+        </DiscoverLink>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Le hero : la vidéo occupe tout l'écran, sous le header transparent. Le fond du
+ * film est clair, d'où les deux dégradés qui gardent le texte blanc lisible. Sur
+ * mobile, la barre du bas (fixe) est déduite pour que le texte reste visible.
+ */
+function VideoHero() {
+  const href = "/modeles";
+  const title = "Créer ma tenue";
+  const cta = "Découvrir";
+  return (
+    <section className="relative h-[calc(100svh-2.25rem-var(--spacing-bottom-nav))] min-h-[28rem] w-full overflow-hidden bg-neutral-900 md:h-[calc(100svh-2.25rem)]">
+      <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0">
+        <HeroVideo
+          poster="/videos/hero-poster.jpg"
+          alt="Deux mannequins en tenue, pendant une séance photo en studio"
+        />
+      </Link>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+      <BannerCaption as="h1" eyebrow="Sur mesure · Sénégal" title={title} href={href} cta={cta} />
+    </section>
+  );
+}
+
 /**
  * Bannière pleine largeur. Une image : plein cadre. Deux images : côte à côte
  * sur ordinateur, seule la première sur mobile (comme les visuels desktop /
@@ -51,24 +105,15 @@ function Banner({
   title,
   href,
   cta = "Découvrir",
-  tall,
-  preload,
 }: {
-  images: { src: string; alt: string }[];
+  images: { src: string; alt: string; position?: string }[];
   eyebrow: string;
   title: string;
   href: string;
   cta?: string;
-  tall?: boolean;
-  preload?: boolean;
 }) {
   return (
-    <section
-      className={cn(
-        "relative w-full overflow-hidden bg-neutral-900",
-        tall ? "h-[82svh] max-h-[56rem] min-h-[28rem]" : "aspect-4/5 md:aspect-16/7",
-      )}
-    >
+    <section className="relative aspect-4/5 w-full overflow-hidden bg-neutral-900 md:aspect-16/7">
       <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0 flex">
         {images.map((img, i) => (
           <div
@@ -79,28 +124,20 @@ function Banner({
               src={img.src}
               alt={img.alt}
               fill
-              preload={preload && i === 0}
               sizes={images.length > 1 ? "(min-width: 768px) 50vw, 100vw" : "100vw"}
-              className="object-cover"
+              className={cn("object-cover", img.position)}
             />
           </div>
         ))}
       </Link>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center px-4 pb-12 text-center text-white md:pb-16">
-        <p className="text-xs font-medium tracking-[0.3em] uppercase text-white/85">{eyebrow}</p>
-        <h2 className="mt-3 font-serif text-4xl leading-none font-medium tracking-tight text-balance sm:text-5xl md:text-7xl">
-          {title}
-        </h2>
-        <div className="pointer-events-auto mt-6">
-          <DiscoverLink href={href} light>
-            {cta}
-          </DiscoverLink>
-        </div>
-      </div>
+      <BannerCaption eyebrow={eyebrow} title={title} href={href} cta={cta} />
     </section>
   );
 }
+
+/** Largeur réelle des cartes de la rangée (`w-48 sm:w-60 lg:w-72`) : pas de photo trop grande sur téléphone. */
+const CARD_SIZES = "(min-width: 1024px) 18rem, (min-width: 640px) 15rem, 12rem";
 
 /** Carte produit sobre : image 4/5, nom puis précision, sans cadre. */
 function GarmentCard({ tile }: { tile: CollectionTile }) {
@@ -111,7 +148,7 @@ function GarmentCard({ tile }: { tile: CollectionTile }) {
           src={tile.src}
           alt={tile.alt}
           fill
-          sizes="18rem"
+          sizes={CARD_SIZES}
           className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
         />
       </div>
@@ -130,7 +167,7 @@ function FabricCard({ fabric }: { fabric: Fabric }) {
             src={fabric.image_url}
             alt={fabric.name}
             fill
-            sizes="18rem"
+            sizes={CARD_SIZES}
             className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
           />
         )}
@@ -193,19 +230,16 @@ export default async function HomePage() {
 
   return (
     <div>
-      <Banner
-        tall
-        preload
-        images={[{ src: "/look/1.png", alt: "Créatrice dessinant une tenue sur mesure" }]}
-        eyebrow="Sur mesure · Sénégal"
-        title="Créer ma tenue"
-        href="/modeles"
-      />
+      <VideoHero />
 
       <Banner
         images={[
-          { src: HOMME[0].src, alt: HOMME[0].alt },
-          { src: HOMME[2].src, alt: HOMME[2].alt },
+          {
+            src: "/collection homme/mallem.jpg",
+            alt: "Silhouette d'un homme en costume devant une porte éclairée",
+            // Sur mobile, l'homme passe à droite : la porte claire ne gêne pas le titre.
+            position: "object-[40%_center] md:object-center",
+          },
         ]}
         eyebrow="Collection"
         title="Homme"
@@ -218,10 +252,7 @@ export default async function HomePage() {
       </Grid>
 
       <Banner
-        images={[
-          { src: FEMME[0].src, alt: FEMME[0].alt },
-          { src: FEMME[1].src, alt: FEMME[1].alt },
-        ]}
+        images={[{ src: "/collection femme/bgcolfem.jpg", alt: "Deux femmes en manteau devant une porte sombre" }]}
         eyebrow="Collection"
         title="Femme"
         href="/modeles?category=femme"
@@ -235,7 +266,7 @@ export default async function HomePage() {
       {fabrics.length > 0 && (
         <>
           <Banner
-            images={[{ src: "/look/choisir_tissu.png", alt: "Choix d'un tissu brodé" }]}
+            images={[{ src: "/look/karola.jpg", alt: "Rouleaux de tissus jaunes, orange et rouges" }]}
             eyebrow="Wax, bazin, broderie"
             title="Tissus"
             href="/tissus"
@@ -249,7 +280,14 @@ export default async function HomePage() {
       )}
 
       <Banner
-        images={[{ src: "/look/2.png", alt: "Tailleur présentant le catalogue de tissus" }]}
+        images={[
+          {
+            src: "/look/tailleur.jpg",
+            alt: "Pied-de-biche d'une machine à coudre sur un tissu noir",
+            // Calée vers le bas : la machine passe au-dessus du titre.
+            position: "object-[30%_center] md:object-bottom",
+          },
+        ]}
         eyebrow="Nos artisans"
         title="Tailleurs"
         href="/tailleurs"

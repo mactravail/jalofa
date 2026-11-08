@@ -209,7 +209,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
 
       {/* « À partir de » — le prix de confection saisi ci-dessus est un prix de
           départ. Le client qui prend une création telle quelle le paie ; s'il la
-          personnalise, il reçoit un devis (prix final fixé depuis « À traiter »).
+          personnalise, il reçoit un devis (prix final fixé depuis « Nouvelles commandes »).
           Plus de réglage « prix sur demande » : le devis à la personnalisation
           est désormais le fonctionnement par défaut, pour tous les tailleurs. */}
       <div className="bg-muted/40 flex items-start gap-3 rounded-lg border border-dashed p-3 text-sm">
@@ -218,7 +218,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
           <span className="text-foreground font-medium">Prix « à partir de ».</span>{" "}
           Le prix de confection ci-dessus est un tarif de départ. Personnalisée,
           la tenue passe par un devis : vous en fixez le prix final depuis
-          « À traiter ».
+          « Nouvelles commandes ».
         </p>
       </div>
 

@@ -46,7 +46,7 @@ export function DashboardShell({
 }: {
   role: ProRole;
   fullName: string | null;
-  /** Pastilles hors pipeline — « À traiter » se compte tout seul, ci-dessous. */
+  /** Pastilles hors pipeline — « Nouvelles commandes » se compte tout seul, ci-dessous. */
   badges: DashboardBadges;
   /**
    * Les espaces auxquels le pro a droit. Au-delà d'un (Gratuit/Premium), le châssis
@@ -59,10 +59,10 @@ export function DashboardShell({
   const [open, setOpen] = useState(false);
   const groups = dashboardNav(role);
 
-  // La pastille se lit dans le pipeline, comme la page « À traiter » : les deux
+  // La pastille se lit dans le pipeline, comme la page des nouvelles commandes : les deux
   // ne peuvent pas se contredire après un déplacement.
   const todo = useBucket("todo").length;
-  const allBadges: DashboardBadges = { ...badges, todo, notifications: todo };
+  const allBadges: DashboardBadges = { ...badges, todo };
   const tailor = role === "tailor";
 
   const root = DASHBOARD_ROOT[role];
@@ -264,9 +264,8 @@ function Nav({
             {group.items.map((item) => {
               const active = isActive(item.href);
               const count = badges[item.id] ?? 0;
-              // La teinte de la fonction : la même puce de couleur dans le menu,
-              // sur la tuile et dans les listes — on reconnaît « nouvelles
-              // commandes » à son jaune sans lire le mot.
+              // La teinte de la fonction : on reconnaît « nouvelles commandes » à
+              // son jaune sans lire le mot.
               const tone = TONE[NAV_TONE[item.id] ?? "slate"];
               return (
                 <li key={item.id}>
@@ -275,20 +274,13 @@ function Nav({
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors",
+                      "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[0.9375rem] transition-colors",
                       active
                         ? "bg-muted text-foreground font-semibold"
-                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground font-medium",
+                        : "text-foreground/80 hover:bg-muted/60 hover:text-foreground font-medium",
                     )}
                   >
-                    <span
-                      className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                        active ? tone.solid : tone.soft,
-                      )}
-                    >
-                      <item.icon className="size-4" />
-                    </span>
+                    <item.icon className={cn("size-5 shrink-0", tone.text)} />
                     <span className="truncate">{item.label}</span>
                     {count > 0 && (
                       <span className="ml-auto flex min-w-5 shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">

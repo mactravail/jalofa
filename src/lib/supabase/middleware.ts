@@ -15,6 +15,28 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  const { pathname } = request.nextUrl;
+
+  // Routes that require an authenticated user.
+  const protectedPrefixes = [
+    // `/commande` n'y est plus : personnaliser ne demande pas de s'inscrire
+    // avant (le compte client est créé avec le devis, cf. `ensureClientAccount`).
+    "/compte",
+    "/tailleur/espace",
+    "/vendeur/espace",
+    "/admin",
+  ];
+  const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
+
+  // Visiteur sans session sur une page publique : rien à rafraîchir ni à garder.
+  // C'est le cas le plus courant, il ne doit rien coûter.
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-"));
+  if (!hasAuthCookie && !isProtected) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,25 +58,15 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // IMPORTANT: do not run code between createServerClient and getUser().
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // IMPORTANT: do not run code between createServerClient and getClaims().
+  //
+  // `getClaims` vérifie la signature du jeton sur place (clés ES256) et le
+  // rafraîchit s'il expire, là où `getUser` fait un aller-retour réseau vers
+  // Supabase Auth à CHAQUE requête — préchargements de liens compris.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
-  const { pathname } = request.nextUrl;
-
-  // Routes that require an authenticated user.
-  const protectedPrefixes = [
-    // `/commande` n'y est plus : personnaliser ne demande pas de s'inscrire
-    // avant (le compte client est créé avec le devis, cf. `ensureClientAccount`).
-    "/compte",
-    "/tailleur/espace",
-    "/vendeur/espace",
-    "/admin",
-  ];
-  const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
-
-  if (!user && isProtected) {
+  if (!claims && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/connexion";
     url.searchParams.set("redirect", pathname);
@@ -64,8 +76,8 @@ export async function updateSession(request: NextRequest) {
   // Prevent logged-in users from seeing the auth screens. Un invité (session
   // anonyme) doit, lui, pouvoir se connecter ou créer un vrai compte.
   if (
-    user &&
-    !user.is_anonymous &&
+    claims &&
+    !claims.is_anonymous &&
     (pathname === "/connexion" || pathname === "/inscription")
   ) {
     const url = request.nextUrl.clone();

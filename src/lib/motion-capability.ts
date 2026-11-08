@@ -25,3 +25,24 @@ export function canPlayFilm(): boolean {
   if ((nav.deviceMemory ?? 8) < 4) return false;
   return true;
 }
+
+/**
+ * La vidéo du hero de la home, elle, tourne aussi sur téléphone (fichier dédié,
+ * plus léger) : seuls l'économiseur de données, une connexion lente,
+ * reduced-motion et les appareils très modestes restent sur l'image fixe, sans
+ * télécharger un octet de vidéo.
+ */
+export function canPlayHeroVideo(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+
+  const nav = navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+    deviceMemory?: number;
+  };
+  if (nav.connection?.saveData) return false;
+  // 2,6 Mo de vidéo sur de la 3G : autant de données en moins pour les pages suivantes.
+  if (["slow-2g", "2g", "3g"].includes(nav.connection?.effectiveType ?? "")) return false;
+  if ((nav.deviceMemory ?? 8) < 2) return false;
+  return true;
+}

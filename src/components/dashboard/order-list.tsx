@@ -80,8 +80,8 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
             <span className="text-foreground/70">
               {quotePending
                 ? order.tailoring_price > 0
-                  ? `Devis · ${formatPrice(order.tailoring_price)}`
-                  : "Devis · à chiffrer"
+                  ? `Prix envoyé · ${formatPrice(order.tailoring_price)}`
+                  : "Sans prix"
                 : `${amountLabel} ${formatPrice(amountFor(role, order))}`}
             </span>
           </p>

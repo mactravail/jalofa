@@ -8,7 +8,7 @@ import {
   getTailorModels,
 } from "@/lib/data";
 
-export const metadata: Metadata = { title: "Mes créations" };
+export const metadata: Metadata = { title: "Mes modèles" };
 
 export default async function TailorModelsPage() {
   const [models, suggestions, categories] = await Promise.all([
@@ -19,8 +19,8 @@ export default async function TailorModelsPage() {
 
   return (
     <DashboardPage
-      title="Mes créations"
-      subtitle="Les modèles que vous proposez au catalogue. Les clients qui les choisissent vous sont adressés directement."
+      title="Mes modèles"
+      subtitle="Les modèles que vous vendez."
     >
       <TailorModelsPanel
         models={models}

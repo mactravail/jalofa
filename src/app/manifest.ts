@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { APP_NAME, APP_TAGLINE, THEME_COLOR_LIGHT } from "@/lib/constants";
+import { APP_NAME, APP_TAGLINE, THEME_COLOR } from "@/lib/constants";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -14,8 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: THEME_COLOR_LIGHT,
-    theme_color: THEME_COLOR_LIGHT,
+    background_color: THEME_COLOR,
+    theme_color: THEME_COLOR,
     categories: ["shopping", "lifestyle"],
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

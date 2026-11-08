@@ -8,8 +8,14 @@ const nextConfig: NextConfig = {
     // resize falls back to the original. Kept under Vercel's ~4,5 Mo request cap
     // and mirrored by MAX_UPLOAD_BYTES in `src/lib/image.ts`.
     serverActions: { bodySizeLimit: "4mb" },
+    // Revenir sur une page vue il y a moins de 30 s est instantané : le navigateur
+    // la garde en mémoire. Après une action (`revalidatePath`) elle est rechargée.
+    staleTimes: { dynamic: 30 },
   },
   images: {
+    // Sans le 3840 par défaut : un écran « retina » pleine largeur téléchargeait
+    // une photo de 4K, invisible à l'œil sur nos bannières.
+    deviceSizes: [640, 828, 1080, 1200, 1920, 2048],
     // AVIF d'abord (≈ 20-30 % plus léger que le WebP) puis repli WebP : moins
     // d'octets sur la donnée mobile, décisif sur le marché visé. Next encode à
     // la demande et met chaque format en cache.
@@ -41,6 +47,17 @@ const nextConfig: NextConfig = {
    */
   async headers() {
     return [
+      // La vidéo n'est pas revérifiée à chaque visite : un jour de cache navigateur,
+      // puis rafraîchissement en arrière-plan (son nom de fichier ne change pas).
+      {
+        source: "/videos/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
       {
         source: "/:path*",
         headers: [
@@ -77,6 +94,8 @@ const nextConfig: NextConfig = {
       // garment or fabric page), never inside it — so the old « Tissu » step
       // route is gone. Send stale links to the catalogue rather than a 404.
       { source: "/commande/nouvelle/tissu", destination: "/modeles", permanent: false },
+      // « Comment ça marche » vit désormais dans la FAQ : une seule page.
+      { source: "/comment-ca-marche", destination: "/faq#comment-ca-marche", permanent: true },
     ];
   },
 };

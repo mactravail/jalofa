@@ -54,8 +54,11 @@
    Tout est neutre : chroma = 0 sur chaque token. Le seul « couleur » du site
    vient des photos de tissus/modèles (jamais désaturées) et des états
    fonctionnels (--destructive, badges de statut). L'encre noire = action ;
-   les boutons se distinguent par inversion de remplissage, pas par teinte. */
-:root {
+   les boutons se distinguent par inversion de remplissage, pas par teinte.
+   `.surface-light` remet ces valeurs dans un bloc blanc posé sur le site noir
+   (formulaire client) : champs et boutons s'y adaptent seuls. */
+:root,
+.surface-light {
   --background: oklch(0.99 0 0);
   --foreground: oklch(0.17 0 0);
   --card: oklch(1 0 0);
@@ -90,20 +93,23 @@
   --sidebar-ring: oklch(0.18 0 0);
 }
 
+/* Le thème du site : tout JALOFA est en noir (imposé dans app/layout.tsx, il n'y
+   a pas de choix clair/sombre). Fond noir pur, cartes à peine plus claires pour
+   qu'elles se détachent. */
 .dark {
-  --background: oklch(0.15 0 0);
+  --background: oklch(0 0 0);
   --foreground: oklch(0.97 0 0);
-  --card: oklch(0.19 0 0);
+  --card: oklch(0.17 0 0);
   --card-foreground: oklch(0.97 0 0);
   --popover: oklch(0.19 0 0);
   --popover-foreground: oklch(0.97 0 0);
   --primary: oklch(0.97 0 0);
   --primary-foreground: oklch(0.18 0 0);
-  --secondary: oklch(0.25 0 0);
+  --secondary: oklch(0.23 0 0);
   --secondary-foreground: oklch(0.97 0 0);
-  --muted: oklch(0.25 0 0);
-  --muted-foreground: oklch(0.71 0 0);
-  --accent: oklch(0.3 0 0);
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.74 0 0);
+  --accent: oklch(0.27 0 0);
   --accent-foreground: oklch(0.97 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 12%);
@@ -114,7 +120,7 @@
   --chart-3: oklch(0.65 0 0);
   --chart-4: oklch(0.5 0 0);
   --chart-5: oklch(0.37 0 0);
-  --sidebar: oklch(0.19 0 0);
+  --sidebar: oklch(0.13 0 0);
   --sidebar-foreground: oklch(0.97 0 0);
   --sidebar-primary: oklch(0.97 0 0);
   --sidebar-primary-foreground: oklch(0.18 0 0);
@@ -184,4 +190,49 @@
   .animate-marquee {
     animation: none;
   }
+}
+
+/* Collection Femme. Le hero recule lentement, les tableaux montent au défilement
+   (ignoré sans `animation-timeline`), et une ligne de strass reprend le col de la
+   photo du hero. Tout est figé si l'utilisateur demande moins d'animations. */
+@keyframes dream-zoom {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes dream-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dream-zoom {
+    animation: dream-zoom 14s ease-out both;
+  }
+
+  @supports (animation-timeline: view()) {
+    .dream-rise {
+      animation: dream-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+}
+
+.strass-line {
+  height: 6px;
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.9) 0 1.3px, transparent 1.8px);
+  background-size: 14px 6px;
+  background-position: center;
+  mask-image: linear-gradient(to right, transparent, #000 25%, #000 75%, transparent);
 }

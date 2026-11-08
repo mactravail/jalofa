@@ -97,8 +97,8 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
           <p
             className={
               notice.ok
-                ? "flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-                : "flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                ? "flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-300"
+                : "flex items-center gap-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-300"
             }
           >
             {notice.ok ? (

@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { SubscriptionPlanId } from "@/lib/subscriptions";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 /**
@@ -19,20 +19,14 @@ export function isSupabaseConfigured(): boolean {
 
 export async function getSessionUser() {
   if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  return getAuthUser();
 }
 
 /** `cache` : l'en-tête, la barre du bas et la page le lisent dans le même rendu. */
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const { data } = await supabase
@@ -65,9 +59,7 @@ export async function getProAccess(): Promise<ProAccess> {
     return { tailor: demo, vendor: demo };
   }
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return { tailor: null, vendor: null };
 
   const [tailor, vendor] = await Promise.all([

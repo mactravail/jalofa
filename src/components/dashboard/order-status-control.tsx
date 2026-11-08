@@ -26,6 +26,12 @@ import {
   tailorAwaitingFabric,
   tailorInWorkshop,
 } from "@/lib/pipeline";
+import { cn } from "@/lib/utils";
+
+/** Faits pour le pouce : on ne doit pas pouvoir les rater. */
+const BIG = "h-12 flex-1 rounded-xl px-5 text-base font-semibold sm:flex-none";
+/** Oui = vert, non = rouge : on comprend sans lire. */
+const YES = "bg-emerald-600 text-white hover:bg-emerald-700";
 
 /**
  * Inline pipeline control for a pro (tailor or vendor). Shows the actions the
@@ -64,7 +70,7 @@ export function OrderStatusControl({
         toast.success(
           to === bucketOf(role, status, type)
             ? `Statut mis à jour : ${ORDER_STATUS_LABELS[next]}`
-            : `${ORDER_STATUS_LABELS[next]} — commande déplacée vers « ${BUCKET_LABELS[role][to]} »`,
+            : `${ORDER_STATUS_LABELS[next]} — voir « ${BUCKET_LABELS[role][to]} »`,
         );
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erreur de mise à jour");
@@ -90,7 +96,7 @@ export function OrderStatusControl({
         await quote(orderId, price);
         setQuoteOpen(false);
         toast.success(
-          `Devis envoyé : ${formatPrice(price)} — en attente du client.`,
+          `Prix envoyé : ${formatPrice(price)}. Le client doit répondre.`,
         );
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
@@ -111,23 +117,23 @@ export function OrderStatusControl({
     if (tailoringPrice > 0) {
       return (
         <span className="text-muted-foreground text-sm">
-          Devis envoyé · en attente du client
+          Prix envoyé. Le client doit répondre.
         </span>
       );
     }
     return (
       <>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => setQuoteOpen(true)} disabled={isPending}>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button className={BIG} onClick={() => setQuoteOpen(true)} disabled={isPending}>
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <Tag className="size-4" />
             )}
-            Chiffrer le devis
+            Donner mon prix
           </Button>
           <Button
-            size="sm"
+            className={BIG}
             variant="destructive"
             onClick={() => setRejectOpen(true)}
             disabled={isPending}
@@ -164,9 +170,9 @@ export function OrderStatusControl({
     const accepted = nextStatus(status, type);
     return (
       <>
-        <div className="flex gap-2">
+        <div className="flex w-full gap-2 sm:w-auto">
           <Button
-            size="sm"
+            className={cn(BIG, YES)}
             onClick={() => accepted && run(accepted)}
             disabled={isPending}
           >
@@ -178,7 +184,7 @@ export function OrderStatusControl({
             Accepter
           </Button>
           <Button
-            size="sm"
+            className={BIG}
             variant="destructive"
             onClick={() => setRejectOpen(true)}
             disabled={isPending}
@@ -204,14 +210,14 @@ export function OrderStatusControl({
     if (tailorAwaitingFabric(status, type)) {
       const waiting = ownerOf(status, type) === "vendor";
       return (
-        <div className="flex flex-col items-start gap-1.5 sm:items-end">
+        <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
           {waiting && (
             <span className="text-muted-foreground text-sm">
               En attente du fournisseur
             </span>
           )}
           <Button
-            size="sm"
+            className={BIG}
             variant="outline"
             onClick={() => run("fabric_received_by_tailor")}
             disabled={isPending}
@@ -230,13 +236,13 @@ export function OrderStatusControl({
     // Le tissu est en main : un seul geste pour clôturer, prêt et livré.
     if (tailorInWorkshop(status, type)) {
       return (
-        <Button size="sm" onClick={() => run("delivered")} disabled={isPending}>
+        <Button className={cn(BIG, YES)} onClick={() => run("delivered")} disabled={isPending}>
           {isPending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
             <Truck className="size-4" />
           )}
-          Marquer prêt &amp; livré
+          Livré
         </Button>
       );
     }
@@ -256,13 +262,13 @@ export function OrderStatusControl({
 
   return (
     <Button
-      size="sm"
+      className={BIG}
       variant="outline"
       onClick={() => run(next)}
       disabled={isPending}
     >
       {isPending && <Loader2 className="size-4 animate-spin" />}
-      Passer à : {ORDER_STATUS_LABELS[next]}
+      {ORDER_STATUS_LABELS[next]}
     </Button>
   );
 }

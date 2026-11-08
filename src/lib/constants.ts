@@ -6,10 +6,9 @@
 export const APP_NAME = "JALOFA";
 export const APP_TAGLINE = "La couture sur mesure, depuis votre téléphone";
 
-// Équivalents hex de --background (globals.css, light/dark) : le manifest PWA
-// et la meta theme-color ne savent pas lire oklch().
-export const THEME_COLOR_LIGHT = "#fbfbfb";
-export const THEME_COLOR_DARK = "#1c1c1c";
+// Équivalent hex de --background (globals.css) : le manifest PWA et la meta
+// theme-color ne savent pas lire oklch().
+export const THEME_COLOR = "#000000";
 
 // ---------------------------------------------------------------------------
 // Currency (West African CFA franc)

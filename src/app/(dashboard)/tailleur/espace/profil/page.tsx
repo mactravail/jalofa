@@ -7,7 +7,7 @@ import { TailorProfileForm } from "@/components/dashboard/tailor-profile-form";
 import { getCurrentTailor } from "@/lib/data";
 import type { Tailor } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Mon profil public" };
+export const metadata: Metadata = { title: "Ma page publique" };
 
 // Boutique vide de repli : le formulaire a toujours une ligne à éditer, même
 // avant que le tailleur n'ait rien renseigné.
@@ -36,8 +36,8 @@ export default async function TailorProfilePage() {
 
   return (
     <DashboardPage
-      title="Mon profil public"
-      subtitle="La fiche que les clients voient avant de commander : photo, présentation, tarifs. Soignez-la, c'est votre vitrine."
+      title="Ma page publique"
+      subtitle="La page que les clients voient avant de commander."
     >
       {tailor.id && (
         <Link

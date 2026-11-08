@@ -2,7 +2,7 @@ import "server-only";
 
 import { DEMO_TAILOR_ORDERS, DEMO_VENDOR_ORDERS } from "@/lib/orders-demo";
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Measurement, Order, OrderStatusHistory } from "@/lib/types";
 
 /**
@@ -70,9 +70,7 @@ const PRO_RELATIONS =
 export async function getMyOrders(): Promise<OrderListItem[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const { data } = await supabase
@@ -87,9 +85,7 @@ export async function getMyOrders(): Promise<OrderListItem[]> {
 export async function getTailorOrders(): Promise<OrderListItem[]> {
   if (!isSupabaseConfigured()) return DEMO_TAILOR_ORDERS;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const { data } = await supabase
@@ -104,9 +100,7 @@ export async function getTailorOrders(): Promise<OrderListItem[]> {
 export async function getVendorOrders(): Promise<OrderListItem[]> {
   if (!isSupabaseConfigured()) return DEMO_VENDOR_ORDERS;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const { data } = await supabase

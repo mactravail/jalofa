@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-context";
 import { Wordmark } from "@/components/wordmark";
@@ -16,8 +16,16 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NAV_LINKS } from "@/lib/nav";
+import { cn } from "@/lib/utils";
 
-export function MobileNav({ isAuthenticated }: { isAuthenticated: boolean }) {
+export function MobileNav({
+  isAuthenticated,
+  triggerClassName,
+}: {
+  isAuthenticated: boolean;
+  /** Le header rend le bouton visible sur ordinateur, et blanc sur la vidéo de la home. */
+  triggerClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const { count } = useCart();
 
@@ -25,10 +33,18 @@ export function MobileNav({ isAuthenticated }: { isAuthenticated: boolean }) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label="Menu" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("md:hidden", triggerClassName)}
+            aria-label="Menu"
+          />
         }
       >
-        <Menu className="size-5" />
+        <span aria-hidden className="flex w-6 flex-col gap-2">
+          <span className="h-px w-full bg-current" />
+          <span className="h-px w-full bg-current" />
+        </span>
       </SheetTrigger>
       <SheetContent side="left" className="w-72">
         <SheetHeader>

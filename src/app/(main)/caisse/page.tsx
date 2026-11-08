@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { CheckoutView, type CheckoutAccount } from "@/components/cart/checkout-view";
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Caisse" };
 
@@ -11,9 +11,7 @@ export const metadata: Metadata = { title: "Caisse" };
 async function currentAccount(): Promise<CheckoutAccount | null> {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user || user.is_anonymous) return null;
   const { data } = await supabase
     .from("profiles")

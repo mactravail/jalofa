@@ -4,15 +4,15 @@ import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { PayoutMethodForm } from "@/components/dashboard/payout-method-form";
 import { getCurrentTailor } from "@/lib/data";
 
-export const metadata: Metadata = { title: "Paiement" };
+export const metadata: Metadata = { title: "Recevoir mon argent" };
 
 export default async function TailorPayoutPage() {
   const tailor = await getCurrentTailor();
 
   return (
     <DashboardPage
-      title="Paiement"
-      subtitle="Comment vous êtes réglé de vos ventes. Où JALOFA vous verse l'argent de vos ventes."
+      title="Recevoir mon argent"
+      subtitle="Où JALOFA vous envoie l'argent de vos ventes."
     >
       <div className="max-w-xl">
         <PayoutMethodForm

@@ -2,7 +2,7 @@ import "server-only";
 
 import { listDemoFabricSales } from "@/lib/notifications-demo";
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Notification } from "@/lib/types";
 
 /**
@@ -14,9 +14,7 @@ import type { Notification } from "@/lib/types";
 export async function getMyNotifications(limit = 20): Promise<Notification[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const { data } = await supabase
@@ -78,9 +76,7 @@ export async function getVendorFabricSales(): Promise<FabricSale[]> {
   if (!isSupabaseConfigured()) return listDemoFabricSales();
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const { data } = await supabase

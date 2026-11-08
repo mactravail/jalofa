@@ -43,7 +43,7 @@ export async function RevenueView({ role }: { role: ProRole }) {
   const pending = orders.filter((o) => o.payment_status === "pending");
 
   return (
-    <DashboardPage title="Mes revenus" subtitle={copy.subtitle}>
+    <DashboardPage title="Ce que j'ai gagné" subtitle={copy.subtitle}>
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <Card className="border-0 bg-emerald-500 text-white">
           <CardContent className="p-5">

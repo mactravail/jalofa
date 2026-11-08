@@ -12,7 +12,7 @@ import {
   VENDOR_REVIEWS,
 } from "@/lib/fixtures";
 import { isSupabaseConfigured } from "@/lib/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type {
   Fabric,
   FabricCategory,
@@ -100,9 +100,7 @@ export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]>
 export async function getVendorFabrics(): Promise<Fabric[]> {
   if (!isSupabaseConfigured()) return FABRICS;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
   const { data } = await supabase
     .from("fabrics")
@@ -246,9 +244,7 @@ export async function getTailorModels(): Promise<GarmentModel[]> {
     return MODELS.filter((m) => m.tailor_id === demoTailorId);
   }
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
   const { data } = await supabase
     .from("models")
@@ -358,9 +354,7 @@ export async function getTailorById(id: string): Promise<Tailor | null> {
 export async function getCurrentTailor(): Promise<Tailor | null> {
   if (!isSupabaseConfigured()) return TAILORS[0] ?? null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
   const { data } = await supabase
     .from("tailors")
@@ -416,9 +410,7 @@ export async function getVendorById(id: string): Promise<Vendor | null> {
 export async function getCurrentVendor(): Promise<Vendor | null> {
   if (!isSupabaseConfigured()) return VENDORS[0] ?? null;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
   const { data } = await supabase
     .from("vendors")
@@ -443,6 +435,44 @@ type ReviewRow = Review & {
   client?: { full_name: string | null } | null;
   review_photos?: { image_url: string }[] | null;
 };
+
+export type LatestReviews = {
+  reviews: TailorReview[];
+  count: number;
+  average: number;
+};
+
+/**
+ * Les derniers avis clients de toute la plateforme, sans tri par note, avec le
+ * total et la moyenne de TOUS les avis. Ce sont de vraies lignes `reviews` : sans
+ * avis, le résultat est vide.
+ */
+export async function getLatestReviews(limit = 6): Promise<LatestReviews> {
+  if (!isSupabaseConfigured()) {
+    return { reviews: [], count: 0, average: 0 };
+  }
+  const supabase = await createClient();
+  const [latest, ratings] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select(
+        "*, client:profiles!reviews_client_id_fkey(full_name), review_photos(image_url)",
+      )
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase.from("reviews").select("rating"),
+  ]);
+  const all = (ratings.data as { rating: number }[] | null) ?? [];
+  return {
+    reviews: ((latest.data as ReviewRow[]) ?? []).map((r) => ({
+      ...r,
+      author_name: r.client?.full_name ?? null,
+      photos: (r.review_photos ?? []).map((p) => p.image_url),
+    })),
+    count: all.length,
+    average: all.length ? all.reduce((sum, r) => sum + r.rating, 0) / all.length : 0,
+  };
+}
 
 /** Avis publics d'un tailleur, du plus récent au plus ancien. */
 export async function getTailorReviews(tailorId: string): Promise<TailorReview[]> {

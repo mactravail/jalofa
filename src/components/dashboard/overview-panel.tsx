@@ -1,40 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Package, Scissors, Users, Wallet } from "lucide-react";
+import {
+  ChevronRight,
+  ClipboardList,
+  CreditCard,
+  Plus,
+  Scissors,
+  Wallet,
+} from "lucide-react";
 
+import { Price } from "@/components/cart/price";
 import { NewOrdersFeed } from "@/components/dashboard/new-orders-feed";
-import { OverviewHero } from "@/components/dashboard/overview-hero";
-import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
-import { formatPrice } from "@/lib/constants";
-import { groupClients } from "@/lib/clients";
+import { buttonVariants } from "@/components/ui/button";
 import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
-import { TONE, type Tone } from "@/lib/dashboard-tone";
 import { revenueOf } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
 const FEED_MAX = 4;
 
 /**
- * Le corps de la vue d'ensemble : on dit bonjour, on montre les quatre chiffres
- * qui comptent, puis les nouvelles commandes, puis les gros raccourcis. Tout lit
- * le même pipeline partagé, donc les compteurs suivent les commandes qu'on vient
- * d'accepter.
+ * Le corps de l'accueil, dans l'ordre où un pro se pose les questions :
+ * combien ? (trois chiffres), quoi faire ? (les nouvelles commandes), et comment
+ * vendre plus ? (un seul gros bouton). Tout lit le même pipeline partagé, donc les
+ * chiffres suivent les commandes qu'on vient d'accepter.
  */
 export function OverviewPanel({
   role,
-  firstName,
+  needsPayout,
 }: {
   role: ProRole;
-  firstName: string | null;
+  needsPayout: boolean;
 }) {
   const { orders } = usePipeline();
   const todo = useBucket("todo");
   const ongoing = useBucket("ongoing");
   const root = DASHBOARD_ROOT[role];
 
-  const clients = groupClients(role, orders).length;
   const revenue = revenueOf(
     role,
     orders.filter((o) => o.payment_status === "paid"),
@@ -42,108 +45,120 @@ export function OverviewPanel({
 
   return (
     <div className="space-y-8">
-      <OverviewHero firstName={firstName} />
+      <h1 className="sr-only">Accueil</h1>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat
-          icon={Package}
-          label="Nouvelles"
-          value={String(todo.length)}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Tile
           href={`${root}/a-traiter`}
-          tone="amber"
-          highlight={todo.length > 0}
-        />
-        <Stat
+          icon={ClipboardList}
+          label="Nouvelles"
+          iconClass="text-amber-500"
+          urgent={todo.length > 0}
+        >
+          {todo.length}
+        </Tile>
+        <Tile
+          href={`${root}/en-cours`}
           icon={Scissors}
           label="En cours"
-          value={String(ongoing.length)}
-          href={`${root}/en-cours`}
-          tone="blue"
-        />
-        <Stat
-          icon={Users}
-          label="Clients"
-          value={String(clients)}
-          href={`${root}/clients`}
-          tone="violet"
-        />
-        <Stat
-          icon={Wallet}
-          label="Gagné"
-          value={formatPrice(revenue)}
+          iconClass="text-blue-400"
+        >
+          {ongoing.length}
+        </Tile>
+        <Tile
           href={`${root}/revenus`}
-          tone="emerald"
-        />
+          icon={Wallet}
+          label="Mon argent"
+          iconClass="text-emerald-400"
+          className="col-span-2 sm:col-span-1"
+        >
+          <Price amount={revenue} />
+        </Tile>
       </div>
 
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">Vos nouvelles commandes</h2>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-xl font-bold">Nouvelles commandes</h2>
           {todo.length > FEED_MAX && (
             <Link
               href={`${root}/a-traiter`}
-              className="text-primary flex items-center gap-1 text-sm font-medium hover:underline"
+              className="flex shrink-0 items-center gap-1 text-base font-medium hover:underline"
             >
-              Voir les {todo.length} <ArrowRight className="size-4" />
+              Voir les {todo.length} <ChevronRight className="size-4" />
             </Link>
           )}
         </div>
         <NewOrdersFeed max={FEED_MAX} />
       </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-bold">Que voulez-vous faire ?</h2>
-        <QuickActions role={role} />
-      </section>
+      <div className="space-y-3">
+        <Link
+          href={
+            role === "tailor"
+              ? `${root}/creations?nouveau=1`
+              : `${root}/tissus?nouveau=1`
+          }
+          className={cn(
+            buttonVariants(),
+            "h-14 w-full gap-2 rounded-xl text-base font-semibold",
+          )}
+        >
+          <Plus className="size-5" />
+          {role === "tailor" ? "Ajouter un modèle" : "Ajouter un tissu"}
+        </Link>
+
+        {needsPayout && (
+          <Link
+            href={`${root}/paiement`}
+            className="bg-card hover:bg-muted/50 flex min-h-14 items-center gap-3 rounded-xl border border-amber-500/40 px-4 py-3 text-base font-medium transition-colors"
+          >
+            <CreditCard className="size-5 shrink-0 text-amber-500" />
+            <span className="min-w-0 flex-1">
+              Où voulez-vous recevoir votre argent ?
+            </span>
+            <ChevronRight className="text-muted-foreground size-5 shrink-0" />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
 
-function Stat({
+function Tile({
+  href,
   icon: Icon,
   label,
-  value,
-  href,
-  tone,
-  highlight = false,
+  iconClass,
+  urgent = false,
+  className,
+  children,
 }: {
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: string;
-  href: string;
-  tone: Tone;
-  /** Met la tuile en avant (fond teinté, puce pleine) quand ça presse. */
-  highlight?: boolean;
+  iconClass: string;
+  /** Du travail attend : la tuile passe en plein, on ne peut pas la rater. */
+  urgent?: boolean;
+  className?: string;
+  children: React.ReactNode;
 }) {
-  const t = TONE[tone];
   return (
     <Link
       href={href}
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border p-4 transition-transform active:scale-[0.98]",
-        highlight ? cn(t.tint, t.border) : "bg-card hover:bg-muted/40",
+        "flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-colors sm:p-5",
+        urgent
+          ? "border-transparent bg-amber-500 text-amber-950 hover:bg-amber-400"
+          : "bg-card hover:bg-muted/50",
+        className,
       )}
     >
-      <span
-        className={cn(
-          "flex size-11 items-center justify-center rounded-2xl",
-          highlight ? t.solid : t.soft,
-        )}
-      >
-        <Icon className="size-6" />
+      <span className="flex items-center gap-2 text-base font-medium">
+        <Icon className={cn("size-5 shrink-0", !urgent && iconClass)} />
+        {label}
       </span>
-      <span className="mt-1">
-        <span className="block truncate text-xl font-bold tracking-tight sm:text-2xl">
-          {value}
-        </span>
-        <span
-          className={cn(
-            "block text-sm font-medium",
-            highlight ? "" : "text-muted-foreground",
-          )}
-        >
-          {label}
-        </span>
+      <span className="block truncate text-3xl font-bold tracking-tight sm:text-4xl">
+        {children}
       </span>
     </Link>
   );

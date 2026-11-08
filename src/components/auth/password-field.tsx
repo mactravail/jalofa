@@ -32,6 +32,7 @@ export function PasswordField({
    * liste d'exigences ni de jauge, on garde l'œil afficher/masquer.
    */
   requirements = true,
+  inputClassName,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -39,6 +40,7 @@ export function PasswordField({
   label?: string;
   autoComplete?: string;
   requirements?: boolean;
+  inputClassName?: string;
 }) {
   const id = useId();
   const listId = `${id}-rules`;
@@ -66,7 +68,7 @@ export function PasswordField({
           aria-invalid={
             requirements && value.length > 0 && !valid ? true : undefined
           }
-          className="pr-9"
+          className={cn(inputClassName, "pr-9")}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setTouched(true)}

@@ -1,15 +1,19 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Check, Scissors, Shirt, Store } from "lucide-react";
+import { ArrowRight, Scissors, Shirt, Store } from "lucide-react";
+
+import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
 
 /**
  * Premier écran de « Créer un compte » : deux comptes seulement, qui doivent se
- * distinguer d'un coup d'œil (public peu lettré → l'image et la couleur parlent
- * avant le texte) :
- * La carte **Pro** passe en premier.
- *  - **Client** : carte claire, photo d'une tenue — « je commande » ;
- *  - **Pro** : carte noire, photo d'atelier — « je travaille » : un seul compte
- *    pour publier comme tailleur ET vendre du tissu, deux offres ensuite.
+ * distinguer d'un coup d'œil (public peu lettré → le picto et le contraste
+ * parlent avant le texte). Aucune photo : le décor vient du métier (mètre ruban,
+ * surpiqûre).
+ *  - **Pro** (en premier) : carte noire — un seul compte pour publier comme
+ *    tailleur ET vendre du tissu, deux offres ensuite ;
+ *  - **Client** : carte blanche — « je commande ».
+ *
+ * `data-wide` élargit le conteneur du layout d'auth : les cartes passent côte à
+ * côte sur grand écran.
  */
 export function RegisterChoice({ redirect }: { redirect?: string }) {
   const clientHref = redirect
@@ -17,107 +21,99 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
     : "/inscription?role=client";
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-1.5 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Rejoindre JALOFA</h1>
-        <p className="text-muted-foreground text-sm">
-          Quel compte voulez-vous créer ?
+    <div data-wide className="space-y-7">
+      <header className="motion-safe:animate-in motion-safe:fade-in space-y-4 text-center motion-safe:duration-500">
+        <p className="text-muted-foreground text-xs font-medium tracking-[0.25em] uppercase">
+          Créer un compte
         </p>
-      </div>
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+          Qui êtes-vous ?
+        </h1>
+        <TapeMeasure />
+      </header>
 
-      {/* Pro — noir */}
-      <Link
-        href="/inscription?role=pro"
-        className="group block overflow-hidden rounded-2xl bg-neutral-950 text-white ring-1 ring-neutral-950 transition-shadow hover:shadow-xl"
-      >
-        <div className="relative h-36 overflow-hidden">
-          <Image
-            src="/look/2.png"
-            alt="Tailleur présentant ses tissus"
-            fill
-            sizes="(max-width: 448px) 100vw, 448px"
-            className="object-cover object-[70%_center] opacity-90 transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-transparent" />
-          <span className="absolute top-3 left-3 rounded-full bg-neutral-950/85 px-2.5 py-1 text-xs font-semibold text-white ring-1 ring-white/20">
-            Professionnel
-          </span>
-        </div>
-        <div className="space-y-3 p-4 pt-1">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-neutral-950">
-              <Scissors className="size-5" />
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Pro — noir */}
+        <Link
+          href="/inscription?role=pro"
+          className="group motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 relative flex min-h-80 flex-col rounded-3xl bg-gradient-to-b from-neutral-900 to-neutral-950 p-7 text-white ring-1 ring-white/20 transition-shadow hover:ring-white/60 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none motion-safe:delay-100 motion-safe:duration-500 motion-safe:fill-mode-both"
+        >
+          <Stitching className="border-white/25" />
+
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
+              Professionnel
             </span>
-            <div className="min-w-0">
-              <p className="font-heading text-lg font-bold">Je suis pro</p>
-              <p className="text-sm text-white/70">
-                Je couds et je vends du tissu.
-              </p>
-            </div>
+            <Scissors
+              aria-hidden
+              strokeWidth={0.6}
+              className="size-24 shrink-0 transition-transform duration-500 group-hover:-rotate-12"
+            />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
-              <Scissors className="size-3.5" /> Tailleur
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
-              <Store className="size-3.5" /> Vendeur de tissu
-            </span>
-          </div>
-
-          <p className="flex items-start gap-1.5 text-xs text-white/70">
-            <Check className="mt-px size-3.5 shrink-0 text-white" />
-            Un seul compte pour les deux métiers — 2 offres : Gratuit ou Pro.
+          <h2 className="mt-3 text-3xl font-bold tracking-tight">Je suis pro</h2>
+          <p className="mt-1.5 text-base text-white/70">
+            Je couds et je vends du tissu.
           </p>
 
-          <span className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-white py-3 text-sm font-semibold text-neutral-950 transition-colors group-hover:bg-neutral-200">
-            Voir les offres pro
-            <ArrowRight className="size-4" />
-          </span>
-        </div>
-      </Link>
-
-      {/* Client — clair */}
-      <Link
-        href={clientHref}
-        className="group bg-card ring-foreground/10 hover:ring-foreground/40 block overflow-hidden rounded-2xl ring-1 transition-shadow hover:shadow-lg"
-      >
-        <div className="relative h-36 overflow-hidden bg-neutral-100">
-          <Image
-            src="/collection homme/e.jpg"
-            alt="Client portant une tenue sur mesure"
-            fill
-            sizes="(max-width: 448px) 100vw, 448px"
-            className="object-cover object-[center_15%] transition-transform duration-500 group-hover:scale-105"
-          />
-          <span className="absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-neutral-900 shadow-sm">
-            Gratuit
-          </span>
-        </div>
-        <div className="space-y-3 p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
-              <Shirt className="size-5" />
+          <div className="mt-4 mb-6 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+              <Scissors aria-hidden className="size-4" /> Tailleur
             </span>
-            <div className="min-w-0">
-              <p className="font-heading text-lg font-bold">Je suis client</p>
-              <p className="text-muted-foreground text-sm">
-                Je commande des tenues sur mesure.
-              </p>
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+              <Store aria-hidden className="size-4" /> Vendeur de tissu
+            </span>
           </div>
-          <span className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-neutral-900 py-3 text-sm font-semibold text-neutral-900 transition-colors group-hover:bg-neutral-900 group-hover:text-white">
-            Créer mon compte client
-            <ArrowRight className="size-4" />
+
+          <span className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-base font-semibold text-neutral-950 transition-colors group-hover:bg-neutral-200">
+            Voir les offres pro
+            <ArrowRight
+              aria-hidden
+              className="size-5 transition-transform group-hover:translate-x-1"
+            />
           </span>
-        </div>
-      </Link>
+        </Link>
+
+        {/* Client — blanc */}
+        <Link
+          href={clientHref}
+          className="group motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 relative flex min-h-80 flex-col rounded-3xl bg-white p-7 text-neutral-950 ring-offset-2 ring-offset-black transition-shadow hover:ring-2 hover:ring-white/60 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none motion-safe:delay-200 motion-safe:duration-500 motion-safe:fill-mode-both"
+        >
+          <Stitching className="border-neutral-950/25" />
+
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-xs font-semibold tracking-[0.2em] text-neutral-600 uppercase">
+              Gratuit
+            </span>
+            <Shirt
+              aria-hidden
+              strokeWidth={0.6}
+              className="size-24 shrink-0 transition-transform duration-500 group-hover:-rotate-6"
+            />
+          </div>
+
+          <h2 className="mt-3 text-3xl font-bold tracking-tight">
+            Je suis client
+          </h2>
+          <p className="mt-1.5 mb-6 text-base text-neutral-600">
+            Je commande des tenues sur mesure.
+          </p>
+
+          <span className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 py-3.5 text-base font-semibold text-white transition-colors group-hover:bg-neutral-800">
+            Créer mon compte
+            <ArrowRight
+              aria-hidden
+              className="size-5 transition-transform group-hover:translate-x-1"
+            />
+          </span>
+        </Link>
+      </div>
 
       <p className="text-muted-foreground text-center text-sm">
         Déjà inscrit ?{" "}
         <Link
           href="/connexion"
-          className="text-primary font-medium hover:underline"
+          className="text-foreground inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline"
         >
           Se connecter
         </Link>

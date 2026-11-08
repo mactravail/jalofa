@@ -17,7 +17,9 @@ export default function AuthLayout({
       >
         <Wordmark size="lg" />
       </Link>
-      <div className="w-full max-w-md">{children}</div>
+      <div className="w-full max-w-md has-[[data-wide]]:max-w-3xl">
+        {children}
+      </div>
       <p className="text-muted-foreground mt-8 max-w-xs text-center text-xs">
         {APP_TAGLINE}
       </p>

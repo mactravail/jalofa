@@ -47,7 +47,7 @@ export function QuoteOrderDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Chiffrer ce devis</DialogTitle>
+          <DialogTitle>Donner mon prix</DialogTitle>
           <DialogDescription>
             Indiquez votre prix de confection. Le client le recevra, puis
             décidera de l&apos;accepter et de payer.
