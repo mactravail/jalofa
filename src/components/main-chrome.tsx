@@ -21,14 +21,17 @@ export function MainChrome({
   const pathname = usePathname();
   const immersive = pathname?.startsWith("/commande/nouvelle") ?? false;
 
+  // Dans son compte, on est là pour agir : pas de footer du site.
+  const inAccount = pathname === "/compte" || pathname?.startsWith("/compte/");
+
   if (immersive) return <main className="flex-1">{children}</main>;
 
   return (
     <>
       {header}
       <main className="flex-1">{children}</main>
-      {footer}
-      {/* La barre est fixe : ce cale évite qu'elle recouvre le bas du footer. */}
+      {!inAccount && footer}
+      {/* La barre est fixe : ce cale évite qu'elle recouvre le bas de la page. */}
       <div aria-hidden className="h-bottom-nav md:hidden" />
       {bottomNav}
     </>

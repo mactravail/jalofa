@@ -51,7 +51,7 @@ export default async function AccountPage() {
           href={DASHBOARD_ROOT[pro]}
           className={cn(
             buttonVariants({ size: "lg" }),
-            "h-16 w-full justify-between gap-3 rounded-2xl px-5 text-lg font-semibold",
+            "h-16 w-full justify-between gap-3 rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 px-5 text-lg font-semibold text-white hover:opacity-90",
           )}
         >
           <span className="flex items-center gap-3">
