@@ -49,7 +49,12 @@ export type Payout = {
   delivery: number;
   /** La commission gardée par JALOFA (0 hors plan Gratuit), arrondie. */
   commission: number;
-  /** Ce que JALOFA doit reverser : `gross − commission`. */
+  /**
+   * Offre Pro « payée à la première vente » : la part de son prix retenue sur
+   * ce reversement (cf. `applyDeferredFees`). 0 sinon.
+   */
+  proFee: number;
+  /** Ce que JALOFA doit reverser : `gross − commission − proFee`. */
   net: number;
   /** Part du pro sur des commandes pas encore réglées — à reverser plus tard. */
   pending: number;
@@ -61,6 +66,7 @@ export type Payout = {
 export type PayoutTotals = {
   gross: number;
   commission: number;
+  proFee: number;
   net: number;
   pending: number;
   held: number;
@@ -123,6 +129,7 @@ export function buildPayouts(
         gross: 0,
         delivery: 0,
         commission: 0,
+        proFee: 0,
         net: 0,
         pending: 0,
         held: 0,
@@ -150,17 +157,43 @@ export function buildPayouts(
   return [...rows.values()].sort((a, b) => b.net - a.net);
 }
 
+/**
+ * Retient le prix de l'offre Pro « payée à la première vente » sur ce que
+ * JALOFA doit au pro. Un compte pro tient l'atelier ET la boutique (même id) :
+ * on puise d'abord dans le reversement tailleur, puis dans le vendeur, sans
+ * jamais rendre un net négatif. Ce qui n'est pas encore couvert attend les
+ * ventes suivantes. Modifie les lignes en place.
+ */
+export function applyDeferredFees(
+  rowSets: Payout[][],
+  dues: Map<string, number>,
+): void {
+  const left = new Map(dues);
+  for (const rows of rowSets) {
+    for (const row of rows) {
+      const due = left.get(row.id) ?? 0;
+      if (due <= 0 || row.net <= 0) continue;
+      const take = Math.min(due, row.net);
+      row.proFee += take;
+      row.net -= take;
+      left.set(row.id, due - take);
+    }
+    rows.sort((a, b) => b.net - a.net);
+  }
+}
+
 /** Cumule les reversements d'une liste (net dû, commission gardée, en attente). */
 export function sumPayouts(rows: Payout[]): PayoutTotals {
   return rows.reduce<PayoutTotals>(
     (total, row) => ({
       gross: total.gross + row.gross,
       commission: total.commission + row.commission,
+      proFee: total.proFee + row.proFee,
       net: total.net + row.net,
       pending: total.pending + row.pending,
       held: total.held + row.held,
     }),
-    { gross: 0, commission: 0, net: 0, pending: 0, held: 0 },
+    { gross: 0, commission: 0, proFee: 0, net: 0, pending: 0, held: 0 },
   );
 }
 

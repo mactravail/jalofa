@@ -7,7 +7,11 @@ import { redirect } from "next/navigation";
 import { passwordIssue } from "@/lib/password";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { safeRedirect } from "@/lib/safe-redirect";
-import { OFFER_PAGE, startProCheckout } from "@/lib/pro-subscription";
+import {
+  OFFER_PAGE,
+  startDeferredProOffer,
+  startProCheckout,
+} from "@/lib/pro-subscription";
 import { PAID_PLAN_ID } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -98,6 +102,8 @@ export async function signUp(
   const isPro = rawRole === "pro" || rawRole === "tailor" || rawRole === "vendor";
   const role = isPro ? "tailor" : "client";
   const wantsPaidOffer = isPro && String(formData.get("offer") ?? "") === PAID_PLAN_ID;
+  // Offre Pro : payer maintenant (PayDunya) ou à la première vente.
+  const payLater = String(formData.get("pay_when") ?? "") === "first_sale";
 
   if (!isSupabaseConfigured()) return { error: DB_NOT_READY };
 
@@ -135,6 +141,18 @@ export async function signUp(
     // Offre Pro choisie : on part directement payer sur PayDunya. Si la
     // passerelle échoue, le compte existe déjà (offre Gratuit) et la page
     // « Mon offre » permet de réessayer.
+    // « Payer à ma première vente » : l'offre Pro s'active sans paiement, son
+    // prix sera retenu sur le reversement de la première vente.
+    if (wantsPaidOffer && payLater && data.user) {
+      let ok = true;
+      try {
+        await startDeferredProOffer(data.user.id);
+      } catch (err) {
+        ok = false;
+        console.error("[pro offer deferred]", err);
+      }
+      redirect(ok ? `${OFFER_PAGE}?differe=1` : `${OFFER_PAGE}?erreur=differe`);
+    }
     if (wantsPaidOffer && data.user) {
       let checkoutUrl: string | null = null;
       try {

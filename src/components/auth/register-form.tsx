@@ -5,9 +5,11 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Check,
+  HandCoins,
   Loader2,
   Scissors,
   Shirt,
+  Smartphone,
   Store,
 } from "lucide-react";
 
@@ -64,13 +66,21 @@ const OFFERS: {
   },
 ];
 
+/** Offre Pro : payer tout de suite, ou laisser JALOFA prendre le prix sur la première vente. */
+type PayWhen = "now" | "first_sale";
+const PAY_WHEN: { id: PayWhen; label: string; icon: typeof Smartphone }[] = [
+  { id: "now", label: "Payer maintenant", icon: Smartphone },
+  { id: "first_sale", label: "Payer à ma première vente", icon: HandCoins },
+];
+
 /**
  * Formulaire d'inscription, dans le style de l'écran de choix (mètre ruban,
  * surpiqûre, grand picto) et dans la couleur de la carte choisie. Deux comptes :
  *  - **client** : carte blanche, gratuit, rien à choisir ;
  *  - **pro** : carte noire, un seul compte pour vendre du tissu et publier comme
- *    tailleur, avec deux offres. L'offre **Pro** se paie en mobile money via
- *    PayDunya juste après la création du compte.
+ *    tailleur, avec deux offres. L'offre **Pro** se paie au choix tout de suite
+ *    (mobile money via PayDunya) ou à la première vente : son prix est alors
+ *    retenu sur le reversement de cette vente.
  *
  * Toute inscription exige l'acceptation des conditions et la case « Je ne suis
  * pas un robot ».
@@ -86,6 +96,7 @@ export function RegisterForm({
 }) {
   const isPro = kind === "pro";
   const [offer, setOffer] = useState<ProOfferId>(initialOffer ?? "free");
+  const [payWhen, setPayWhen] = useState<PayWhen>("now");
   const [password, setPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [notRobot, setNotRobot] = useState(false);
@@ -101,7 +112,7 @@ export function RegisterForm({
 
   const submitLabel = !isPro
     ? "Créer mon compte"
-    : paid
+    : paid && payWhen === "now"
       ? "Créer mon compte et payer"
       : "Créer mon compte pro";
 
@@ -223,21 +234,64 @@ export function RegisterForm({
                 })}
               </div>
               {paid && (
-                <p className="text-muted-foreground text-sm">
-                  Après la création du compte, vous payez{" "}
-                  <Price
-                    amount={PAID_PLAN.monthlyPrice}
-                    className="text-foreground font-medium"
-                  />{" "}
-                  avec Orange Money, Wave, Free Money ou carte (paiement sécurisé
-                  PayDunya).
-                </p>
+                <div className="space-y-2 pt-2">
+                  <Label>Quand payer ?</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PAY_WHEN.map((p) => {
+                      const selected = payWhen === p.id;
+                      const PayIcon = p.icon;
+                      return (
+                        <button
+                          type="button"
+                          key={p.id}
+                          onClick={() => setPayWhen(p.id)}
+                          aria-pressed={selected}
+                          className={cn(
+                            "focus-visible:ring-ring/50 flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-center transition-colors outline-none focus-visible:ring-3",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-white/20 hover:border-white/50",
+                          )}
+                        >
+                          <PayIcon aria-hidden className="size-6" />
+                          <span className="text-base leading-tight font-bold">
+                            {p.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {payWhen === "now" ? (
+                      <>
+                        Après la création du compte, vous payez{" "}
+                        <Price
+                          amount={PAID_PLAN.monthlyPrice}
+                          className="text-foreground font-medium"
+                        />{" "}
+                        avec Orange Money, Wave, Free Money ou carte (paiement
+                        sécurisé PayDunya).
+                      </>
+                    ) : (
+                      <>
+                        Rien à payer aujourd&apos;hui. L&apos;offre {PAID_PLAN.name}{" "}
+                        est active tout de suite, et{" "}
+                        <Price
+                          amount={PAID_PLAN.monthlyPrice}
+                          className="text-foreground font-medium"
+                        />{" "}
+                        sont retenus sur l&apos;argent de votre première vente.
+                      </>
+                    )}
+                  </p>
+                </div>
               )}
             </div>
           )}
 
           <input type="hidden" name="role" value={isPro ? "pro" : "client"} />
           {isPro && <input type="hidden" name="offer" value={offer} />}
+          {paid && <input type="hidden" name="pay_when" value={payWhen} />}
           {redirectTo && !isPro && (
             <input type="hidden" name="redirect" value={redirectTo} />
           )}

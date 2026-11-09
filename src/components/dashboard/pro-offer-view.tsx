@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { payProSubscription } from "@/lib/actions/pro-subscription";
 import { isPaydunyaConfigured } from "@/lib/paydunya";
 import {
+  readDeferredFee,
   readProSubscription,
   settleProPayment,
   type ProSubscription,
@@ -25,6 +26,8 @@ export type OfferSearchParams = {
   token?: string;
   annule?: string;
   erreur?: string;
+  /** Retour d'inscription : offre Pro choisie « payée à la première vente ». */
+  differe?: string;
 };
 
 /**
@@ -35,6 +38,7 @@ export type OfferSearchParams = {
 export async function ProOfferView({ params }: { params: OfferSearchParams }) {
   let sub: ProSubscription = { plan: "free", expiresAt: null };
   let notice: { ok: boolean; text: string } | null = null;
+  let feeDue = 0;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -61,17 +65,30 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
       } catch (err) {
         console.error("[pro subscription]", err);
       }
+      try {
+        feeDue = await readDeferredFee(user.id);
+      } catch {
+        feeDue = 0;
+      }
     }
   }
 
   if (!notice && params.annule) {
     notice = { ok: false, text: "Paiement annulé. Vous restez sur l'offre Gratuit." };
   }
+  if (!notice && params.differe) {
+    notice = {
+      ok: true,
+      text: `L'offre ${PAID_PLAN.name} est active. Vous paierez à votre première vente.`,
+    };
+  }
   if (!notice && params.erreur) {
     notice = {
       ok: false,
       text:
-        params.erreur === "indisponible"
+        params.erreur === "differe"
+          ? "Votre compte est créé (offre Gratuit). Le paiement à la première vente n'a pas pu être enregistré : réessayez ci-dessous."
+          : params.erreur === "indisponible"
           ? "Le paiement en ligne n'est pas encore disponible. Réessayez plus tard."
           : "Le paiement n'a pas pu démarrer. Réessayez.",
     };
@@ -124,6 +141,12 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
                 ? `0% de commission${until ? ` — actif jusqu'au ${until}` : ""}.`
                 : `Aucun abonnement — ${Math.round(FREE_COMMISSION_RATE * 100)}% de commission sur chaque vente, hors livraison.`}
             </p>
+            {feeDue > 0 && (
+              <p className="rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-300">
+                <Price amount={feeDue} className="font-semibold" /> seront retenus
+                sur l&apos;argent de votre première vente.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -152,7 +175,11 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
             </ul>
             <form action={payProSubscription}>
               <Button type="submit" size="lg" className="w-full" disabled={!canPay}>
-                {isPaid ? "Prolonger d'un mois" : `Passer à l'offre ${PAID_PLAN.name}`}
+                {feeDue > 0
+                  ? "Payer maintenant"
+                  : isPaid
+                    ? "Prolonger d'un mois"
+                    : `Passer à l'offre ${PAID_PLAN.name}`}
               </Button>
             </form>
             <p className="text-muted-foreground text-center text-xs">

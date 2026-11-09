@@ -81,6 +81,13 @@ function PayoutCard({ row, grossLabel }: { row: Payout; grossLabel: string }) {
             commission, reversement intégral
           </p>
         )}
+        {row.proFee > 0 && (
+          <Line
+            label="Offre Pro retenue sur la vente"
+            value={`− ${formatPrice(row.proFee)}`}
+            muted
+          />
+        )}
       </dl>
 
       <div className="mt-2 flex items-center justify-between border-t pt-2">

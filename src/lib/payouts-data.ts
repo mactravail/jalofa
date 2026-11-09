@@ -1,7 +1,9 @@
 import "server-only";
 
 import { getAllOrders, getAllTailors, getAllVendors } from "@/lib/admin-data";
+import { readDeferredFees } from "@/lib/pro-subscription";
 import {
+  applyDeferredFees,
   buildPayouts,
   proDirectory,
   subscriptionMrr,
@@ -27,14 +29,16 @@ export type PayoutBoard = {
 };
 
 export async function getPayoutBoard(): Promise<PayoutBoard> {
-  const [orders, vendors, tailors] = await Promise.all([
+  const [orders, vendors, tailors, dues] = await Promise.all([
     getAllOrders(),
     getAllVendors(),
     getAllTailors(),
+    safeDeferredFees(),
   ]);
 
   const vendorRows = buildPayouts("vendor", orders, proDirectory(vendors));
   const tailorRows = buildPayouts("tailor", orders, proDirectory(tailors));
+  applyDeferredFees([tailorRows, vendorRows], dues);
 
   const vendorTotals = sumPayouts(vendorRows);
   const tailorTotals = sumPayouts(tailorRows);
@@ -45,6 +49,7 @@ export async function getPayoutBoard(): Promise<PayoutBoard> {
     totals: {
       gross: vendorTotals.gross + tailorTotals.gross,
       commission: vendorTotals.commission + tailorTotals.commission,
+      proFee: vendorTotals.proFee + tailorTotals.proFee,
       net: vendorTotals.net + tailorTotals.net,
       pending: vendorTotals.pending + tailorTotals.pending,
       held: vendorTotals.held + tailorTotals.held,
@@ -79,21 +84,21 @@ export type PlatformFinance = {
 };
 
 export async function getPlatformFinance(): Promise<PlatformFinance> {
-  const [orders, vendors, tailors] = await Promise.all([
+  const [orders, vendors, tailors, dues] = await Promise.all([
     getAllOrders(),
     getAllVendors(),
     getAllTailors(),
+    safeDeferredFees(),
   ]);
 
   const paid = orders.filter((o) => o.payment_status === "paid");
   const pending = orders.filter((o) => o.payment_status === "pending");
 
-  const vendorTotals = sumPayouts(
-    buildPayouts("vendor", orders, proDirectory(vendors)),
-  );
-  const tailorTotals = sumPayouts(
-    buildPayouts("tailor", orders, proDirectory(tailors)),
-  );
+  const vendorRows = buildPayouts("vendor", orders, proDirectory(vendors));
+  const tailorRows = buildPayouts("tailor", orders, proDirectory(tailors));
+  applyDeferredFees([tailorRows, vendorRows], dues);
+  const vendorTotals = sumPayouts(vendorRows);
+  const tailorTotals = sumPayouts(tailorRows);
 
   const commission = vendorTotals.commission + tailorTotals.commission;
   const subscriptions = subscriptionMrr(vendors) + subscriptionMrr(tailors);
@@ -112,4 +117,13 @@ export async function getPlatformFinance(): Promise<PlatformFinance> {
     paidCount: paid.length,
     pendingCount: pending.length,
   };
+}
+
+/** Frais différés, sans faire tomber la page si la base n'est pas prête. */
+async function safeDeferredFees(): Promise<Map<string, number>> {
+  try {
+    return await readDeferredFees();
+  } catch {
+    return new Map();
+  }
 }

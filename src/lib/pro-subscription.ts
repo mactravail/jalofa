@@ -82,6 +82,71 @@ export async function startProCheckout(buyer: ProBuyer): Promise<string | null> 
   return invoice.checkoutUrl;
 }
 
+/**
+ * « Payer à ma première vente » : l'offre Pro s'active tout de suite (un mois),
+ * et son prix est enregistré comme frais différé (`provider = 'sale'`,
+ * `status = 'deferred'`), retenu sur le reversement de la première vente
+ * (cf. `applyDeferredFees`). Un seul frais différé ouvert par pro : si un autre
+ * existe déjà, on ne réactive rien.
+ */
+export async function startDeferredProOffer(proId: string): Promise<void> {
+  const plan = getPlan(PAID_PLAN_ID);
+  if (!plan) throw new Error("Offre Pro introuvable");
+  const admin = db();
+
+  const { data: open } = await admin
+    .from("subscription_payments")
+    .select("id")
+    .eq("pro_id", proId)
+    .eq("status", "deferred")
+    .limit(1);
+  if (open?.length) return;
+
+  const { error } = await admin.from("subscription_payments").insert({
+    pro_id: proId,
+    plan: plan.id,
+    months: 1,
+    amount: plan.monthlyPrice,
+    provider: "sale",
+    status: "deferred",
+  });
+  if (error) throw new Error(`Frais différé non enregistré : ${error.message}`);
+
+  const patch = {
+    plan: plan.id,
+    plan_expires_at: addMonths(new Date(), 1).toISOString(),
+  };
+  await Promise.all([
+    admin.from("tailors").update(patch).eq("id", proId),
+    admin.from("vendors").update(patch).eq("id", proId),
+  ]);
+}
+
+/** Le frais d'offre Pro encore dû par un pro (0 s'il n'a rien à payer). */
+export async function readDeferredFee(proId: string): Promise<number> {
+  const { data } = await db()
+    .from("subscription_payments")
+    .select("amount")
+    .eq("pro_id", proId)
+    .eq("status", "deferred");
+  return (data ?? []).reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+}
+
+/** Tous les frais différés ouverts, par pro — pour les reversements de l'admin. */
+export async function readDeferredFees(): Promise<Map<string, number>> {
+  const dues = new Map<string, number>();
+  const { data, error } = await db()
+    .from("subscription_payments")
+    .select("pro_id, amount")
+    .eq("status", "deferred");
+  if (error) return dues; // migration pas encore appliquée : rien de différé
+  for (const r of data ?? []) {
+    const id = r.pro_id as string;
+    dues.set(id, (dues.get(id) ?? 0) + Number(r.amount ?? 0));
+  }
+  return dues;
+}
+
 /** Le plan en cours du pro — lu sur l'atelier, sinon sur la boutique de tissus. */
 async function currentPlanRow(admin: SupabaseClient, proId: string) {
   for (const table of ["tailors", "vendors"]) {
@@ -161,12 +226,27 @@ export async function settleProPayment(
     .select("id");
   if (!claimed?.length) return "completed";
 
+  // Payé en ligne : plus rien à retenir sur la première vente. Ce paiement
+  // règle alors le mois déjà ouvert par le frais différé — il ne s'y ajoute pas.
+  const { data: settledDeferred } = await admin
+    .from("subscription_payments")
+    .update({ status: "cancelled" })
+    .eq("pro_id", payment.pro_id)
+    .eq("status", "deferred")
+    .select("months");
+  const alreadyGranted = (settledDeferred ?? []).reduce(
+    (sum, r) => sum + (Number(r.months) || 0),
+    0,
+  );
+  const extraMonths = Math.max(0, (Number(payment.months) || 1) - alreadyGranted);
+
   // Prolonge l'abonnement à partir de l'échéance en cours (si encore active).
   const shop = await currentPlanRow(admin, payment.pro_id as string);
   const current =
     shop.plan === payment.plan && shop.expiresAt ? new Date(shop.expiresAt) : null;
-  const base = current && current.getTime() > Date.now() ? current : new Date();
-  const expires = addMonths(base, Number(payment.months) || 1).toISOString();
+  const active = current && current.getTime() > Date.now() ? current : null;
+  if (active && extraMonths === 0) return "completed";
+  const expires = addMonths(active ?? new Date(), active ? extraMonths : Number(payment.months) || 1).toISOString();
 
   const patch = { plan: payment.plan, plan_expires_at: expires };
   await Promise.all([
