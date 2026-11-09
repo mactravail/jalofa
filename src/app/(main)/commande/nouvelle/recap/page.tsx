@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PasswordField } from "@/components/auth/password-field";
 import { TermsCheckbox } from "@/components/auth/signup-verification";
 import { useConfigurator } from "@/components/order/configurator-context";
+import { StyleInspiration } from "@/components/order/style-inspiration";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,8 +22,6 @@ export default function ReviewStep() {
 
   const personalisation =
     isFabricOnly ? [] : styleDetailSummary(model, state.styleDetails);
-
-  const styleRefs = isFabricOnly ? [] : state.styleRefs;
 
   // On attend que la saisie soit commencée pour ne pas afficher l'erreur trop tôt.
   const passwordsDiffer =
@@ -106,33 +105,6 @@ export default function ReviewStep() {
           Ce tissu sera envoyé directement à l&apos;atelier du tailleur. Vous serez
           prévenu quand il l&apos;aura reçu.
         </p>
-      )}
-
-      {styleRefs.length > 0 && (
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium">
-            Vos inspirations ({styleRefs.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {styleRefs.map((ref) => (
-              <div
-                key={ref.id}
-                className="bg-muted/40 relative size-16 overflow-hidden rounded-lg border"
-              >
-                <Image
-                  src={ref.dataUrl}
-                  alt={ref.name}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
-          <p className="text-muted-foreground text-xs">
-            Ces photos seront transmises au tailleur avec votre commande.
-          </p>
-        </section>
       )}
 
       {!isFabricOnly && (
@@ -292,6 +264,14 @@ export default function ReviewStep() {
           Ne mettez pas votre numéro ni votre e-mail : ils seront masqués.
         </p>
       </div>
+
+      {/* Références libres — ce que les détails illustrés ne savent pas dire. */}
+      {!isFabricOnly && (
+        <StyleInspiration
+          refs={state.styleRefs}
+          onChange={(styleRefs) => update({ styleRefs })}
+        />
+      )}
 
       <p className="text-muted-foreground text-sm">
         {isFabricOnly ? (

@@ -60,10 +60,14 @@ export function StyleInspiration({
 
   return (
     <section>
-      <h3 className="text-base font-semibold tracking-tight">Votre inspiration</h3>
+      <h3 className="text-base font-semibold tracking-tight">
+        Votre inspiration{" "}
+        <span className="text-muted-foreground text-sm font-normal">(facultatif)</span>
+      </h3>
       <p className="text-muted-foreground mt-0.5 text-xs">
         Une tenue vue quelque part, un croquis, une photo à vous — jusqu&apos;à{" "}
         {MAX_STYLE_REFS} photos pour que le tailleur voie ce que vous avez en tête.
+        Sans photo, vous pouvez quand même demander votre devis.
       </p>
 
       <div

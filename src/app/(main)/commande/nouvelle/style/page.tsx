@@ -25,7 +25,6 @@ import {
   type DetailGroup,
 } from "@/components/order/garment-detail-icons";
 import { StyleIcon } from "@/components/order/style-icons";
-import { StyleInspiration } from "@/components/order/style-inspiration";
 import { formatPrice } from "@/lib/constants";
 import { styleGroupsFor } from "@/lib/style-options";
 import { cn } from "@/lib/utils";
@@ -177,7 +176,7 @@ export default function StyleStep() {
                 </span>
               )}
             </h3>
-            <div className={cn("grid gap-2", isTailorModel ? "grid-cols-2" : "grid-cols-3")}>
+            <div className={cn("grid gap-2", isTailorModel ? "grid-cols-3 sm:grid-cols-4" : "grid-cols-3")}>
               {group.options.map((opt) => {
                 const active = state.styleDetails[group.slug] === opt.slug;
                 return (
@@ -197,7 +196,7 @@ export default function StyleStep() {
                       className={cn(
                         "bg-card relative flex w-full items-center justify-center rounded-lg border transition-colors",
                         isTailorModel
-                          ? "aspect-[4/5]"
+                          ? "aspect-square"
                           : opt.photo
                             ? PHOTO_TILE
                             : cn("p-2", TALL_GROUPS.has(group.slug) ? "aspect-[4/5]" : "aspect-square"),
@@ -218,7 +217,7 @@ export default function StyleStep() {
                           fill
                           sizes={
                             isTailorModel
-                              ? "(min-width: 1024px) 170px, 50vw"
+                              ? "(min-width: 1024px) 130px, 33vw"
                               : "(min-width: 1024px) 160px, 30vw"
                           }
                           className={cn(
@@ -281,17 +280,11 @@ export default function StyleStep() {
       {isTailorModel && groups.length === 0 && (
         <p className="text-muted-foreground rounded-xl border p-3 text-sm">
           Ce modèle est cousu tel qu&apos;il est présenté. Une envie particulière ?
-          Ajoutez une photo ci-dessous ou écrivez au tailleur au récapitulatif.
+          Ajoutez une photo ou écrivez au tailleur au récapitulatif.
         </p>
       )}
 
       <ModelCareTips tips={model?.care_tips} />
-
-      {/* Références libres — ce que les groupes illustrés ne savent pas dire. */}
-      <StyleInspiration
-        refs={state.styleRefs}
-        onChange={(styleRefs) => update({ styleRefs })}
-      />
     </div>
   );
 }
