@@ -11,7 +11,11 @@ export const MAX_CARE_TIPS_LENGTH = 1000;
 const MAX_NAME_LENGTH = 40;
 const MAX_EXTRA = 10_000_000;
 
-/** Retire les lignes vides : ni nom ni photo, ce n'est pas encore un choix. */
+/**
+ * Ne garde que les choix qui ont leur photo : rien n'est obligatoire, le
+ * tailleur met une seule photo s'il veut, et un détail sans aucune photo
+ * (« Coupe » ajouté puis laissé vide) disparaît simplement.
+ */
 export function compactStyleGroups(groups: ModelStyleGroup[]): ModelStyleGroup[] {
   return groups
     .map((g) => ({
@@ -19,23 +23,17 @@ export function compactStyleGroups(groups: ModelStyleGroup[]): ModelStyleGroup[]
       name: g.name.trim(),
       options: g.options
         .map((o) => ({ ...o, name: o.name.trim() }))
-        .filter((o) => o.name || o.photo),
+        .filter((o) => o.photo),
     }))
-    .filter((g) => g.name || g.options.length > 0);
+    .filter((g) => g.options.length > 0);
 }
 
 /** Ce qui empêche de publier ce style, en mots simples. `null` : tout va bien. */
 export function modelStyleProblem(groups: ModelStyleGroup[]): string | null {
   for (const group of compactStyleGroups(groups)) {
     if (!group.name) return "Donnez un nom à chaque détail (ex. Poches, Longueur).";
-    if (group.options.length < 2) {
-      return `« ${group.name} » : ajoutez au moins 2 choix.`;
-    }
     for (const option of group.options) {
-      if (!option.name) return `« ${group.name} » : donnez un nom à chaque choix.`;
-      if (!option.photo) {
-        return `« ${group.name} » : ajoutez la photo de « ${option.name} ».`;
-      }
+      if (!option.name) return `« ${group.name} » : donnez un nom à chaque photo.`;
     }
   }
   return null;

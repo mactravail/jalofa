@@ -113,8 +113,9 @@ export function ModelStyleEditor({
       <div>
         <Label>Style de ce modèle</Label>
         <p className="text-muted-foreground mt-1 text-xs">
-          Ajoutez seulement ce que le client peut choisir, avec une vraie photo pour
-          chaque choix. Le premier choix est le modèle tel que vous le présentez.
+          Facultatif. Mettez seulement les photos que vous avez : une seule suffit.
+          Un choix sans photo n&apos;est pas montré au client. La première photo
+          est le modèle tel que vous le présentez.
         </p>
       </div>
 
@@ -141,8 +142,13 @@ export function ModelStyleEditor({
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {group.options.map((option, i) => {
+            {group.options.map((option) => {
               const photo = option.preview ?? option.photo;
+              // Seuls les choix avec photo sont publiés : le premier d'entre eux
+              // est le modèle tel que présenté, son prix est déjà compté.
+              const firstWithPhoto =
+                group.options.find((o) => o.preview ?? o.photo) ?? group.options[0];
+              const included = firstWithPhoto?.slug === option.slug;
               return (
                 <div key={option.slug} className="min-w-0 space-y-1.5">
                   <div className="bg-background relative aspect-[4/5] overflow-hidden rounded-lg border">
@@ -184,7 +190,7 @@ export function ModelStyleEditor({
                     placeholder="Nom du choix"
                     aria-label="Nom du choix"
                   />
-                  {i === 0 ? (
+                  {included ? (
                     <p className="text-muted-foreground px-1 text-xs">Prix inclus</p>
                   ) : (
                     <Input
