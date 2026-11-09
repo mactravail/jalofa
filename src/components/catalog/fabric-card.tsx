@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/constants";
+import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ export function FabricCard({
   /** Pastille de mise en avant (« Best-seller »…), posée par la grille appelante. */
   badge?: string;
 }) {
+  const colors = parseFabricColors(fabric.color);
   return (
     <Link
       href={`/tissus/${fabric.id}`}
@@ -32,12 +34,22 @@ export function FabricCard({
         {badge && (
           <Badge className="absolute left-2 top-2">{badge}</Badge>
         )}
-        {fabric.color && (
+        {colors.length > 0 && (
           <Badge
             variant="secondary"
-            className={cn("absolute left-2", badge ? "top-9" : "top-2")}
+            className={cn("absolute left-2 gap-1", badge ? "top-9" : "top-2")}
           >
-            {fabric.color}
+            {colors.slice(0, 4).map((c) => {
+              const hex = fabricColorHex(c);
+              return hex ? (
+                <span
+                  key={c}
+                  className="size-2.5 rounded-full border border-black/20"
+                  style={{ backgroundColor: hex }}
+                />
+              ) : null;
+            })}
+            {colors.length === 1 ? colors[0] : `${colors.length} couleurs`}
           </Badge>
         )}
         {fabric.in_stock === false && (

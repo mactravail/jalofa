@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { saveFabric } from "@/lib/actions/fabrics";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
+import { FabricColorPicker } from "@/components/dashboard/fabric-color-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -208,7 +209,7 @@ export function FabricFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
             <div className="space-y-2">
               <Label>Catégorie</Label>
               <Select
@@ -229,15 +230,14 @@ export function FabricFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="fabric-color">Couleur</Label>
-              <Input
-                id="fabric-color"
-                name="color"
-                defaultValue={fabric?.color ?? ""}
-                placeholder="Ex. Bleu nuit"
-              />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Couleurs</Label>
+            <FabricColorPicker
+              key={`${fabric?.id ?? "new"}-${open}`}
+              defaultValue={fabric?.color}
+            />
           </div>
 
           <div className="space-y-2">

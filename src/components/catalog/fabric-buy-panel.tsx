@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-context";
+import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import { ReviewStars } from "@/components/catalog/review-stars";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatPrice } from "@/lib/constants";
@@ -145,6 +146,29 @@ export function FabricBuyPanel({
 
       {fabric.description && (
         <p className="text-muted-foreground mt-4 leading-relaxed">{fabric.description}</p>
+      )}
+
+      {/* Les couleurs du tissu, cochées par le vendeur — en pastilles. */}
+      {parseFabricColors(fabric.color).length > 0 && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {parseFabricColors(fabric.color).map((c) => {
+            const hex = fabricColorHex(c);
+            return (
+              <span
+                key={c}
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
+              >
+                {hex && (
+                  <span
+                    className="size-3.5 rounded-full border border-black/20"
+                    style={{ backgroundColor: hex }}
+                  />
+                )}
+                {c}
+              </span>
+            );
+          })}
+        </div>
       )}
 
       {/* Coloris — la couleur de CE rouleau, et les fiches voisines de la même

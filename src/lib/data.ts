@@ -79,7 +79,10 @@ export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]>
   if (!isSupabaseConfigured()) {
     return FABRICS.filter((f) => {
       if (filters.category && f.category_slug !== filters.category) return false;
-      if (filters.color && f.color?.toLowerCase() !== filters.color.toLowerCase())
+      if (
+        filters.color &&
+        !f.color?.toLowerCase().includes(filters.color.toLowerCase())
+      )
         return false;
       if (filters.maxPrice && f.price_per_meter > filters.maxPrice) return false;
       if (filters.q && !f.name.toLowerCase().includes(filters.q.toLowerCase()))
@@ -91,7 +94,7 @@ export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]>
   const supabase = await createClient();
   let query = supabase.from("fabrics").select("*").eq("is_active", true);
   if (filters.category) query = query.eq("category_slug", filters.category);
-  if (filters.color) query = query.ilike("color", filters.color);
+  if (filters.color) query = query.ilike("color", `%${filters.color}%`);
   if (filters.maxPrice) query = query.lte("price_per_meter", filters.maxPrice);
   if (filters.q) query = query.ilike("name", `%${filters.q}%`);
   const { data } = await query.order("created_at", { ascending: false });
