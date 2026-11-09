@@ -8,7 +8,12 @@ import { getProOrders } from "@/lib/dashboard-data";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
 import { getRevenueSeries } from "@/lib/revenue-data";
-import { amountFor, revenueOf } from "@/lib/pipeline";
+import {
+  amountFor,
+  moneyHeldForReceipt,
+  moneyReleased,
+  revenueOf,
+} from "@/lib/pipeline";
 
 const COPY: Record<ProRole, { subtitle: string; earned: string; chart: string }> = {
   tailor: {
@@ -17,7 +22,8 @@ const COPY: Record<ProRole, { subtitle: string; earned: string; chart: string }>
     chart: "Revenus de la confection",
   },
   vendor: {
-    subtitle: "Ce que vous rapportent vos tissus, commande par commande.",
+    subtitle:
+      "Vous recevez votre argent quand le tissu est reçu par le tailleur ou le client.",
     earned: "Encaissé sur les tissus",
     chart: "Revenus des tissus",
   },
@@ -39,8 +45,12 @@ export async function RevenueView({ role }: { role: ProRole }) {
 
   // La part qui revient à ce métier — la livraison et l'autre métier sont
   // exclus, d'où l'écart avec le total payé par le client.
-  const paid = orders.filter((o) => o.payment_status === "paid");
-  const pending = orders.filter((o) => o.payment_status === "pending");
+  const paid = orders.filter((o) => moneyReleased(role, o));
+  // Le vendeur attend la réception du tissu ; le tailleur, le paiement du client.
+  const pending =
+    role === "vendor"
+      ? orders.filter((o) => moneyHeldForReceipt(role, o))
+      : orders.filter((o) => o.payment_status === "pending");
 
   return (
     <DashboardPage title="Ce que j'ai gagné" subtitle={copy.subtitle}>
@@ -63,14 +73,17 @@ export async function RevenueView({ role }: { role: ProRole }) {
         <Card>
           <CardContent className="p-5">
             <p className="text-muted-foreground flex items-center gap-2 text-sm">
-              <Clock className="size-4" /> En attente de paiement
+              <Clock className="size-4" />{" "}
+              {role === "vendor" ? "En attente de réception du tissu" : "En attente de paiement"}
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight">
               {formatPrice(revenueOf(role, pending))}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              {pending.length} commande{pending.length > 1 ? "s" : ""} non réglée
-              {pending.length > 1 ? "s" : ""}
+              {pending.length} commande{pending.length > 1 ? "s" : ""}
+              {role === "vendor"
+                ? ""
+                : ` non réglée${pending.length > 1 ? "s" : ""}`}
             </p>
           </CardContent>
         </Card>
@@ -104,7 +117,8 @@ export async function RevenueView({ role }: { role: ProRole }) {
 }
 
 function RevenueRow({ order, role }: { order: OrderListItem; role: ProRole }) {
-  const paid = order.payment_status === "paid";
+  const paid = moneyReleased(role, order);
+  const held = moneyHeldForReceipt(role, order);
 
   return (
     <div className="flex items-center gap-4 p-4">
@@ -113,7 +127,7 @@ function RevenueRow({ order, role }: { order: OrderListItem; role: ProRole }) {
           {order.order_number}
         </p>
         <p className="mt-0.5 truncate font-medium">
-          {order.client?.full_name ?? "Client"}
+          {order.model?.name ?? order.fabric?.name ?? "Commande"}
         </p>
         <p className="text-muted-foreground truncate text-xs">
           {DATE_FORMAT.format(new Date(order.created_at))}
@@ -126,7 +140,13 @@ function RevenueRow({ order, role }: { order: OrderListItem; role: ProRole }) {
           {formatPrice(amountFor(role, order))}
         </p>
         <p className="text-muted-foreground text-xs">
-          {paid ? "Encaissé" : "En attente"}
+          {paid
+            ? "Encaissé"
+            : held
+              ? order.fabric_return
+                ? "Retour en cours"
+                : "Tissu pas encore reçu"
+              : "En attente"}
         </p>
       </div>
     </div>

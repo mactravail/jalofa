@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { saveFabric } from "@/lib/actions/fabrics";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
+import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,11 +36,14 @@ export function FabricFormDialog({
   onOpenChange,
   fabric,
   categories,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fabric: Fabric | null;
   categories: FabricCategory[];
+  /** Appelé avec l'id du tissu une fois enregistré. */
+  onSaved?: (fabricId: string) => void;
 }) {
   const isEdit = Boolean(fabric);
   const formRef = useRef<HTMLFormElement>(null);
@@ -97,6 +101,7 @@ export function FabricFormDialog({
               ? "Tissu ajouté et mis en ligne."
               : "Tissu ajouté (brouillon, non visible en boutique).",
         );
+        if (res.id) onSaved?.(res.id);
         onOpenChange(false);
       } else if (res) {
         setError(res.error);
@@ -123,7 +128,7 @@ export function FabricFormDialog({
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Mettez à jour les informations et le stock de ce tissu."
+              ? "Mettez à jour les informations de ce tissu."
               : "Renseignez les informations du tissu à mettre en vente."}
           </DialogDescription>
         </DialogHeader>
@@ -189,32 +194,18 @@ export function FabricFormDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="fabric-price">Prix / mètre ({CURRENCY})</Label>
-              <Input
-                id="fabric-price"
-                name="price_per_meter"
-                type="number"
-                min={0}
-                step={1}
-                required
-                defaultValue={fabric?.price_per_meter ?? ""}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fabric-stock">Stock (mètres)</Label>
-              <Input
-                id="fabric-stock"
-                name="stock_meters"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={fabric?.stock_meters ?? ""}
-                placeholder="0"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="fabric-price">Prix / mètre ({CURRENCY})</Label>
+            <Input
+              id="fabric-price"
+              name="price_per_meter"
+              type="number"
+              min={0}
+              step={1}
+              required
+              defaultValue={fabric?.price_per_meter ?? ""}
+              placeholder="0"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -258,6 +249,8 @@ export function FabricFormDialog({
               placeholder="Ex. Coton, laine, lin…"
             />
           </div>
+
+          <DeliveryZoneField defaultValue={fabric?.delivery_zone} />
 
           <div className="space-y-2">
             <Label htmlFor="fabric-description">Description</Label>

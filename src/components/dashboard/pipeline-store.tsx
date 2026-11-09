@@ -44,8 +44,13 @@ type PipelineValue = {
   move: (orderId: string, status: OrderStatus) => Promise<void>;
   /** Refuse une commande en enregistrant le motif (le client en est notifié). */
   reject: (orderId: string, reason: RejectionReason) => Promise<void>;
-  /** Chiffre une demande de devis : fixe le prix de confection. */
-  quote: (orderId: string, price: number) => Promise<void>;
+  /** Répond à une demande de devis : prix de confection et de livraison. */
+  quote: (
+    orderId: string,
+    price: number,
+    deliveryFee: number,
+    fabricPrice: number,
+  ) => Promise<void>;
 };
 
 const PipelineContext = createContext<PipelineValue | null>(null);
@@ -121,14 +126,18 @@ export function PipelineProvider({
   );
 
   const quote = useCallback(
-    async (orderId: string, price: number) => {
+    async (orderId: string, price: number, deliveryFee: number, fabricPrice: number) => {
       if (demo) {
         // Devis chiffré en démo : le prix apparaît, la commande reste reçue et
         // impayée (elle attend l'accord du client).
-        patch(orderId, { tailoring_price: price, total_amount: price });
+        patch(orderId, {
+          tailoring_price: price,
+          delivery_fee: deliveryFee,
+          total_amount: price + deliveryFee + fabricPrice,
+        });
         return;
       }
-      const res = await quoteOrder(orderId, price);
+      const res = await quoteOrder(orderId, price, deliveryFee);
       if (!res.ok) throw new Error(res.error);
     },
     [demo, patch],

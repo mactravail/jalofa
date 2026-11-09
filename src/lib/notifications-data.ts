@@ -46,15 +46,13 @@ export type FabricSale = {
   fabric_meters: number | null;
   /** The vendor's share of the order — confection and delivery excluded. */
   fabric_price: number;
-  client_name: string | null;
 };
 
 const SALE_SELECT = `
   id, created_at, is_read, order_id,
   order:orders(
     order_number, fabric_meters, fabric_price,
-    fabric:fabrics(name, image_url),
-    client:profiles!orders_client_id_fkey(full_name)
+    fabric:fabrics(name, image_url)
   )
 `;
 
@@ -68,7 +66,6 @@ type SaleRow = {
     fabric_meters: number | null;
     fabric_price: number;
     fabric: { name: string; image_url: string | null } | null;
-    client: { full_name: string | null } | null;
   } | null;
 };
 
@@ -96,6 +93,5 @@ export async function getVendorFabricSales(): Promise<FabricSale[]> {
     fabric_image: n.order?.fabric?.image_url ?? null,
     fabric_meters: n.order?.fabric_meters ?? null,
     fabric_price: Number(n.order?.fabric_price ?? 0),
-    client_name: n.order?.client?.full_name ?? null,
   }));
 }

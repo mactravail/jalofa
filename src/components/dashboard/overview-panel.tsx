@@ -15,7 +15,7 @@ import { NewOrdersFeed } from "@/components/dashboard/new-orders-feed";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
 import { buttonVariants } from "@/components/ui/button";
 import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
-import { revenueOf } from "@/lib/pipeline";
+import { moneyReleased, revenueOf } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
 const FEED_MAX = 4;
@@ -40,7 +40,7 @@ export function OverviewPanel({
 
   const revenue = revenueOf(
     role,
-    orders.filter((o) => o.payment_status === "paid"),
+    orders.filter((o) => moneyReleased(role, o)),
   );
 
   return (

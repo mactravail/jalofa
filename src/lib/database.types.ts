@@ -27,7 +27,12 @@ export interface Database {
       [key: string]: GenericTable;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      confirm_fabric_received: {
+        Args: { p_order_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: {
       user_role: "client" | "tailor" | "vendor" | "admin";
       order_type: "full" | "fabric_only" | "own_fabric";

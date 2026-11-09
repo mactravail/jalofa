@@ -62,6 +62,13 @@ function PayoutCard({ row, grossLabel }: { row: Payout; grossLabel: string }) {
 
       <dl className="mt-3 space-y-1.5 text-sm">
         <Line label={grossLabel} value={formatPrice(row.gross)} />
+        {row.delivery > 0 && (
+          <Line
+            label="Dont livraison (sans commission)"
+            value={formatPrice(row.delivery)}
+            muted
+          />
+        )}
         {takesCommission ? (
           <Line
             label={`Commission JALOFA (${Math.round(rate * 100)}%)`}
@@ -82,6 +89,12 @@ function PayoutCard({ row, grossLabel }: { row: Payout; grossLabel: string }) {
           {formatPrice(row.net)}
         </span>
       </div>
+
+      {row.held > 0 && (
+        <p className="text-muted-foreground mt-2 text-xs">
+          Retenu jusqu’à la réception du tissu : {formatPrice(row.held)}
+        </p>
+      )}
 
       {row.pending > 0 && (
         <p className="text-muted-foreground mt-2 text-xs">

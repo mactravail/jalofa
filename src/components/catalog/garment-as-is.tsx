@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { useCart } from "@/components/cart/cart-context";
 import { STANDARD_SIZES, formatPrice } from "@/lib/constants";
+import type { FreeDeliveryZone } from "@/lib/delivery";
 import { cn } from "@/lib/utils";
 
 // « Prendre le vêtement tel quel » : le client accepte le modèle tel qu'il est
@@ -25,6 +26,8 @@ export type AsIsPreset = {
   /** Le tailleur figé par ce preset offre la livraison. Absent = pas de tailleur
    *  encore lié (ex. boubou pris tel quel), donc livraison non offerte. */
   freeDelivery?: boolean;
+  /** Où le prix du tailleur inclut la livraison. */
+  freeDeliveryZone?: FreeDeliveryZone;
   /** Récap court affiché sur la ligne du panier. */
   personalisation: { group: string; option: string }[];
   /** Spécifications complètes transmises au tailleur (notes). */
@@ -65,6 +68,7 @@ export function useAddAsIs(preset: AsIsPreset) {
       styleName: null,
       tailorName: preset.tailorName,
       freeDelivery: preset.freeDelivery ?? false,
+      freeDeliveryZone: preset.freeDeliveryZone,
       personalisation: preset.personalisation,
       measurementLabel: `Taille ${size}`,
       unitFabricPrice: preset.fabricPrice,

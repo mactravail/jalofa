@@ -282,6 +282,16 @@ export const BOUBOU_DETAIL_DEFAULTS: BoubouDetails = Object.fromEntries(
   ]),
 );
 
+/**
+ * La configuration du modèle présenté, celle qu'on prend « tel quel » : les coupes
+ * par défaut, mais avec la broderie visible sur la photo.
+ */
+export const BOUBOU_AS_IS_DETAILS: BoubouDetails = {
+  boubou: { ...BOUBOU_DETAIL_DEFAULTS.boubou, broderie: "riche" },
+  interieur: { ...BOUBOU_DETAIL_DEFAULTS.interieur, broderie: "col" },
+  pantalon: { ...BOUBOU_DETAIL_DEFAULTS.pantalon },
+};
+
 // `piece:group:option` → option, so surcharges stay O(1) per lookup even though
 // several pieces share group slugs ("broderie", "couture", "poches"…).
 const OPTION_INDEX = new Map<string, BoubouOption>(

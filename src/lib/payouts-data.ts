@@ -47,6 +47,7 @@ export async function getPayoutBoard(): Promise<PayoutBoard> {
       commission: vendorTotals.commission + tailorTotals.commission,
       net: vendorTotals.net + tailorTotals.net,
       pending: vendorTotals.pending + tailorTotals.pending,
+      held: vendorTotals.held + tailorTotals.held,
       vendorNet: vendorTotals.net,
       tailorNet: tailorTotals.net,
     },
@@ -61,13 +62,13 @@ export type PlatformFinance = {
   fabricRevenue: number;
   /** Part « confection » du volume encaissé (revient aux tailleurs). */
   tailoringRevenue: number;
-  /** Frais de livraison encaissés — gardés par JALOFA. */
+  /** Frais de livraison encaissés — reversés à celui qui livre, sans commission. */
   delivery: number;
   /** Commissions prélevées sur les ventes des pros au plan Gratuit. */
   commission: number;
   /** Abonnements des pros — 100% JALOFA. */
   subscriptions: number;
-  /** Revenu propre total de la plateforme : commissions + abonnements + livraison. */
+  /** Revenu propre total de la plateforme : commissions + abonnements. */
   platformTotal: number;
   /** Ce que JALOFA doit reverser aux prestataires (net, commissions déduites). */
   netOwed: number;
@@ -105,7 +106,7 @@ export async function getPlatformFinance(): Promise<PlatformFinance> {
     delivery,
     commission,
     subscriptions,
-    platformTotal: commission + subscriptions + delivery,
+    platformTotal: commission + subscriptions,
     netOwed: vendorTotals.net + tailorTotals.net,
     pendingVolume: pending.reduce((sum, o) => sum + o.total_amount, 0),
     paidCount: paid.length,

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, MapPin, Scissors, Star, Truck } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Scissors, Star } from "lucide-react";
 
 import {
   CertifiedBadge,
@@ -82,11 +82,6 @@ export default async function TailorProfilePage({
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" /> {tailor.city}
               </span>
-              {tailor.free_delivery && (
-                <span className="text-primary flex items-center gap-1 font-medium">
-                  <Truck className="size-4" /> Livraison offerte
-                </span>
-              )}
             </div>
           </div>
           <Link

@@ -9,6 +9,7 @@ import type {
   Vendor,
   VendorReview,
 } from "@/lib/types";
+import { demoBodyFits } from "@/lib/model-body-fit";
 
 // Local demo data — mirrors supabase/seed.sql. Used as a fallback so the whole
 // catalog is browsable before the Supabase project is provisioned.
@@ -694,6 +695,51 @@ const MODELS_RAW: Omit<GarmentModel, "slug" | "price">[] = [
     difficulty: "difficile",
     avg_days: 12,
     image_url: hommeStyle("grand boubou.jpg"),
+    is_active: true,
+    photos: [],
+  },
+  {
+    id: "demo-fatou-thiaya",
+    tailor_id: "demo-tailor-fatou",
+    name: "Thiaya de Fatou",
+    category_slug: "homme",
+    description:
+      "Thiaya ample et confortable, coupé dans un tissu léger, pour tous les jours comme pour les grandes occasions.",
+    care_tips:
+      "Laver à la main, à l'eau froide\nNe pas utiliser de javel\nÉviter le parfum directement sur le tissu",
+    body_fits: demoBodyFits("homme", {
+      mince: [2, 2.5, 3, 3.5],
+      moyen: [2.5, 3, 3.5, 4],
+      muscle: [3, 3.5, 4, 4.5],
+      fort: [3.5, 4, 4.5, 5],
+      tres_fort: [4, 4.5, 5, 5.5],
+    }),
+    style_groups: [
+      {
+        slug: "type",
+        name: "Type de thiaya",
+        options: [
+          { slug: "ample", name: "Ample", photo: hommeStyle("thiaya.jpg"), extra: 0 },
+          {
+            slug: "ajuste",
+            name: "Ajusté",
+            photo: femmeStyle("thiaya", "thiaya femme.jpg"),
+            extra: 3000,
+          },
+        ],
+      },
+      {
+        slug: "poches",
+        name: "Poches",
+        options: [
+          { slug: "avec", name: "Avec poches", photo: hommeStyle("pantalon.avif"), extra: 0 },
+          { slug: "sans", name: "Sans poche", photo: hommeStyle("thiaya.jpg"), extra: 0 },
+        ],
+      },
+    ],
+    difficulty: "moyen",
+    avg_days: 7,
+    image_url: hommeStyle("thiaya.jpg"),
     is_active: true,
     photos: [],
   },

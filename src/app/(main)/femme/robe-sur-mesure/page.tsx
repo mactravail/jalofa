@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Ruler, Store, Truck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { GarmentBuyBox } from "@/components/catalog/garment-buy-box";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
-import { GarmentReviews } from "@/components/catalog/garment-reviews";
+import {
+  GarmentDetails,
+  GarmentFooter,
+  GarmentHeading,
+} from "@/components/catalog/garment-summary";
 import { GarmentTypeSwitcher } from "@/components/catalog/garment-type-switcher";
 import { DemoBanner } from "@/components/demo-banner";
-import { Badge } from "@/components/ui/badge";
 import { modelPhotos } from "@/lib/constants";
-import { getFabrics, getModelBySlug, getTailorById, getTailors } from "@/lib/data";
+import {
+  getFabrics,
+  getModelBySlug,
+  getModelReviews,
+  getTailorById,
+  getTailors,
+} from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { ROBE_TYPES } from "@/lib/garment-routes";
-import { garmentSocialProof } from "@/lib/garment-social-proof";
+import { getRelatedGarments } from "@/lib/related-models";
 import type { GarmentModel, Tailor } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -30,12 +39,6 @@ export const metadata: Metadata = {
 // configurateur = un vêtement »). Contrairement au grand boubou, aucun membre
 // de cette famille n'a de tarification bespoke : tous passent par le calcul
 // générique tissu + tailleur.
-const DIFFICULTY_LABEL: Record<string, string> = {
-  facile: "Facile",
-  moyen: "Intermédiaire",
-  difficile: "Avancé",
-};
-
 export default async function RobePage({
   searchParams,
 }: {
@@ -89,12 +92,17 @@ export default async function RobePage({
     fromPrice: presets[i].total,
   }));
 
-  // Les avis de CE type précis : ils suivent le switcher, comme le reste de la
-  // page. L'auteur du modèle passe en tête des ateliers cités.
-  const reviewTailors = author
-    ? [author, ...tailors.filter((t) => t.id !== author.id)]
-    : tailors;
-  const proof = garmentSocialProof(model, reviewTailors);
+  // Les avis de CE type précis et les modèles proches : ils suivent le switcher,
+  // comme le reste de la page. Les autres types sont déjà dans le switcher.
+  const [reviews, related] = await Promise.all([
+    getModelReviews(model.id),
+    getRelatedGarments({
+      model,
+      excludeIds: models.map((m) => m.id),
+      fabric: asIsFabric,
+      tailor: tailors[0] ?? null,
+    }),
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -128,42 +136,12 @@ export default async function RobePage({
         />
 
         <div>
-          <p className="text-primary text-xs font-medium tracking-wide uppercase">
-            Femme · Robe sur mesure
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">{model.name}</h1>
-          <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-3 text-sm">
-            <span className="flex items-center gap-1.5">
-              <Clock className="size-4" /> ~{model.avg_days} jours de confection
-            </span>
-            {model.difficulty && (
-              <Badge variant="outline">
-                {DIFFICULTY_LABEL[model.difficulty] ?? model.difficulty}
-              </Badge>
-            )}
-          </div>
-
-          {author && (
-            <Link
-              href={`/tailleurs/${author.id}`}
-              className="bg-muted/50 hover:bg-muted mt-4 flex items-center gap-3 rounded-xl border p-3 transition-colors"
-            >
-              <Store className="text-primary size-5 shrink-0" />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">
-                  Création de {author.shop_name}
-                </span>
-                <span className="text-muted-foreground block text-xs">
-                  Ce modèle est confectionné par son créateur
-                  {author.city ? ` · ${author.city}` : ""}
-                </span>
-              </span>
-            </Link>
-          )}
-
-          {model.description && (
-            <p className="text-muted-foreground mt-4">{model.description}</p>
-          )}
+          <GarmentHeading
+            model={model}
+            author={author}
+            reviews={reviews}
+            eyebrow="Femme · Robe sur mesure"
+          />
 
           {/* Deux chemins pour ce type précis. */}
           <div className="mt-6">
@@ -178,27 +156,11 @@ export default async function RobePage({
             />
           </div>
 
-          <div className="text-muted-foreground mt-6 space-y-1.5 border-t pt-4 text-sm">
-            <p className="flex items-center gap-2">
-              <Ruler className="size-4" /> Tailles standard XS → XXXL, ajustées par le
-              tailleur.
-            </p>
-            <p className="flex items-center gap-2">
-              <Truck className="size-4" /> Livraison à domicile · paiement à la caisse.
-            </p>
-          </div>
+          <GarmentDetails model={model} />
         </div>
       </div>
 
-      {/* Les avis, juste sous la fiche — là où on les cherche. */}
-      <div className="mt-16 border-t pt-12">
-        <GarmentReviews
-          proof={proof}
-          garmentName={model.name}
-          storageKey={model.slug ?? model.id}
-          tailors={reviewTailors}
-        />
-      </div>
+      <GarmentFooter reviews={reviews} related={related} />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { Price } from "@/components/cart/price";
 import { OrderDetailSheet } from "@/components/dashboard/order-detail-sheet";
 import { OrderStatusControl } from "@/components/dashboard/order-status-control";
+import { pipelineType } from "@/lib/pipeline";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
 import { clientNameOf } from "@/lib/clients";
 import { ORDER_TYPE_LABELS, formatReceivedAt } from "@/lib/constants";
@@ -67,10 +68,13 @@ function NewOrderCard({
           )}
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-semibold">
-              {clientNameOf(order)}
+            <p className="truncate text-lg font-semibold">{title}</p>
+            <p className="text-muted-foreground truncate font-mono text-sm">
+              Code {order.order_number}
             </p>
-            <p className="text-muted-foreground truncate text-base">{title}</p>
+            {(order.contact_first_name || order.contact_last_name) && (
+              <p className="text-muted-foreground truncate text-sm">{clientNameOf(order)}</p>
+            )}
             <p
               className="text-muted-foreground mt-1 text-sm first-letter:uppercase"
               suppressHydrationWarning
@@ -95,9 +99,14 @@ function NewOrderCard({
         <OrderStatusControl
           orderId={order.id}
           status={order.status}
-          type={order.type}
+          type={pipelineType(order)}
           isQuote={order.is_quote}
           tailoringPrice={order.tailoring_price}
+          fabricPrice={order.fabric_price}
+          deliveryAddress={order.delivery_address}
+          deliveryCity={order.delivery_city}
+          deliveryCountry={order.delivery_country}
+          deliveryZone={order.model?.delivery_zone}
           paymentStatus={order.payment_status}
         />
       </div>

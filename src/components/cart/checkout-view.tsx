@@ -34,11 +34,12 @@ import { placeOrders, type PlaceOrdersState } from "@/lib/actions/checkout";
 import {
   DELIVERY_METHOD_LABELS,
   PAYMENT_METHOD_LABELS,
-  formatPrice,
   type DeliveryMethod,
   type PaymentMethod,
 } from "@/lib/constants";
-import { DELIVERY_FEE, basketHasFreeDelivery } from "@/lib/pricing";
+import { CANCEL_WINDOW_HOURS, RETURN_WINDOW_DAYS } from "@/lib/after-sale";
+import { deliveryPolicy } from "@/lib/delivery";
+import { basketHasFreeDelivery } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 // Always collected — a pickup order still needs someone to hand the piece to.
@@ -53,6 +54,7 @@ const EMPTY_ADDRESS = {
   address_line: "",
   city: "",
   region: "",
+  country: "Sénégal",
 };
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -91,7 +93,10 @@ export function CheckoutView({
   const router = useRouter();
   const { items, subtotal, count, hydrated, clear } = useCart();
 
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("home");
+  const [chosenDelivery, setDeliveryMethod] = useState<DeliveryMethod>("home");
+  // Une tenue est livrée par le tailleur à l'adresse du client : pas de retrait.
+  const hasGarment = items.some((it) => it.type !== "fabric_only");
+  const deliveryMethod: DeliveryMethod = hasGarment ? "home" : chosenDelivery;
   const [contact, setContact] = useState(account ?? EMPTY_CONTACT);
   const needsPassword = accountsEnabled && !account;
   const [password, setPassword] = useState("");
@@ -123,11 +128,10 @@ export function CheckoutView({
     }
   }, [result, clear, router, needsPassword]);
 
-  // Livraison offerte quand tous les articles viennent de tailleurs qui la
-  // prennent à leur charge (cf. `basketHasFreeDelivery`).
-  const freeHomeDelivery = basketHasFreeDelivery(items);
-  const deliveryFee = deliveryMethod === "home" && !freeHomeDelivery ? DELIVERY_FEE : 0;
-  const total = subtotal + deliveryFee;
+  // JALOFA n'ajoute aucun frais : chaque pro a dit, sur son produit, si la livraison
+  // est gratuite. Hors de sa zone, le client règle directement le GP ou le livreur.
+  const freeHomeDelivery = basketHasFreeDelivery(items, address);
+  const total = subtotal;
 
   const payload = useMemo(
     () =>
@@ -279,22 +283,31 @@ export function CheckoutView({
                 onClick={() => setDeliveryMethod("home")}
                 icon={MapPin}
                 title="Livraison à domicile"
-                desc={freeHomeDelivery ? "Offerte" : `+ ${formatPrice(DELIVERY_FEE)}`}
+                desc={freeHomeDelivery ? "Gratuite" : "Selon le pro"}
               />
-              <OptionCard
-                active={deliveryMethod === "pickup"}
-                onClick={() => setDeliveryMethod("pickup")}
-                icon={Store}
-                title="Retrait en boutique"
-                desc="Gratuit"
-              />
+              {!hasGarment && (
+                <OptionCard
+                  active={deliveryMethod === "pickup"}
+                  onClick={() => setDeliveryMethod("pickup")}
+                  icon={Store}
+                  title="Retrait en boutique"
+                  desc="Gratuit"
+                />
+              )}
             </div>
 
-            {freeHomeDelivery && (
-              <p className="text-primary mt-3 flex items-center gap-1.5 text-sm font-medium">
-                <Truck className="size-4" />
-                Votre atelier offre la livraison à domicile.
-              </p>
+            {deliveryMethod === "home" && (
+              <ul className="mt-3 space-y-1.5 text-sm">
+                {items.map((item) => (
+                  <li key={item.lineId} className="flex items-start gap-1.5">
+                    <Truck className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="font-medium">{item.title} : </span>
+                      {deliveryPolicy(item.freeDeliveryZone)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -325,9 +338,21 @@ export function CheckoutView({
                   onChange={(v) => setAddress((a) => ({ ...a, region: v }))}
                 />
               )}
+              {deliveryMethod === "home" && (
+                <Field
+                  label="Pays"
+                  value={address.country}
+                  onChange={(v) => setAddress((a) => ({ ...a, country: v }))}
+                />
+              )}
             </div>
             <p className="text-muted-foreground mt-2 text-xs">
               La ville nous aide à regrouper et accélérer les livraisons.
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Annulation possible pendant {CANCEL_WINDOW_HOURS} h. Un tissu peut être
+              rendu pendant {RETURN_WINDOW_DAYS} jours, envoi à votre charge. Une tenue
+              cousue ne se rend pas, mais votre tailleur peut la retoucher.
             </p>
           </section>
 
@@ -398,13 +423,7 @@ export function CheckoutView({
                   {DELIVERY_METHOD_LABELS[deliveryMethod]}
                 </dt>
                 <dd className="font-medium whitespace-nowrap">
-                  {deliveryFee > 0 ? (
-                    <Price amount={deliveryFee} />
-                  ) : deliveryMethod === "home" ? (
-                    "Offerte"
-                  ) : (
-                    "Gratuit"
-                  )}
+                  {deliveryMethod === "pickup" || freeHomeDelivery ? "Gratuite" : "Selon le pro"}
                 </dd>
               </div>
             </dl>

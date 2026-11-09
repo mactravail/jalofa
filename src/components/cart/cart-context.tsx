@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import type { OrderType } from "@/lib/constants";
+import type { FreeDeliveryZone } from "@/lib/delivery";
 import type { StyleRef } from "@/lib/style-refs";
 
 // ---------------------------------------------------------------------------
@@ -57,6 +58,8 @@ export type CartItem = {
   /** Le tailleur de cette ligne offre la livraison — sert l'estimation de la
    *  livraison à la caisse (le montant facturé est recalculé côté serveur). */
   freeDelivery: boolean;
+  /** Où le pro offre la livraison de ce produit. */
+  freeDeliveryZone?: FreeDeliveryZone;
   personalisation: { group: string; option: string }[];
   measurementLabel: string | null;
 

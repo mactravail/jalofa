@@ -13,6 +13,8 @@ import type {
   SuspensionReason,
   UserRole,
 } from "@/lib/constants";
+import type { BodyFigureShape } from "@/lib/body-figure";
+import type { FreeDeliveryZone } from "@/lib/delivery";
 import type { SubscriptionPlanId } from "@/lib/subscriptions";
 
 // Domain row types used when rendering data. These mirror the SQL schema and
@@ -41,6 +43,8 @@ export interface Address {
 }
 
 export interface Tailor {
+  /** Où le prix du tailleur inclut la livraison. */
+  free_delivery_zone?: FreeDeliveryZone;
   id: string;
   shop_name: string | null;
   bio: string | null;
@@ -167,6 +171,12 @@ export interface FabricCategory {
   sort_order: number;
 }
 
+/** Où envoyer un tissu acheté chez un autre vendeur — donnée privée. */
+export interface TailorAtelier {
+  address: string;
+  phone: string;
+}
+
 export interface Fabric {
   id: string;
   vendor_id: string | null;
@@ -177,8 +187,12 @@ export interface Fabric {
   price_per_meter: number;
   description: string | null;
   stock_meters: number;
+  /** Le pro a-t-il encore ce tissu ? Sans indication, il est disponible. */
+  in_stock?: boolean;
   image_url: string | null;
   is_active: boolean;
+  /** Où ce pro offre la livraison de ce tissu. */
+  delivery_zone?: FreeDeliveryZone;
 }
 
 export interface ModelCategory {
@@ -194,7 +208,52 @@ export interface Style {
   sort_order: number;
 }
 
+/** Un choix proposé par le tailleur sur son modèle (ex. « Sans poche »). */
+export interface ModelStyleOption {
+  slug: string;
+  name: string;
+  /** Sa vraie photo. `null` seulement sur un brouillon : jamais montré au client. */
+  photo: string | null;
+  /** Supplément en FCFA. Le premier choix est le modèle présenté : toujours 0. */
+  extra: number;
+}
+
+/** Un détail du modèle, défini par son tailleur (ex. « Poches »). */
+export interface ModelStyleGroup {
+  slug: string;
+  name: string;
+  options: ModelStyleOption[];
+}
+
+/** Les mesures qui aident à reconnaître une silhouette. La hauteur n'en fait pas partie. */
+export type BodyRangeKey = "chest" | "waist" | "hips" | "shoulders";
+
+/** La taille estimée d'une personne : une tranche de hauteur, sans lien avec le corps. */
+export type HeightBand = "petite" | "moyenne" | "grande" | "tres_grande";
+
+/** Un intervalle en cm. `null` seulement sur un brouillon : jamais montré au client. */
+export interface BodyRange {
+  min: number | null;
+  max: number | null;
+}
+
+/** Ce que le tailleur indique, sur son modèle, pour une silhouette donnée. */
+export interface ModelBodyFit {
+  body: BodyFigureShape;
+  /** Les mètres de tissu par taille. `null` seulement sur un brouillon. */
+  meters: Record<HeightBand, number | null>;
+  ranges: Record<BodyRangeKey, BodyRange>;
+}
+
 export interface GarmentModel {
+  /** Ce que le client peut choisir sur ce modèle, défini par son tailleur. */
+  style_groups?: ModelStyleGroup[];
+  /** Le tissu nécessaire par silhouette, défini par son tailleur. */
+  body_fits?: ModelBodyFit[];
+  /** Où ce pro offre la livraison de ce modèle. */
+  delivery_zone?: FreeDeliveryZone;
+  /** Les recommandations du tailleur (lavage, à éviter…), une par ligne. */
+  care_tips?: string | null;
   id: string;
   /**
    * Identifiant stable et lisible, indépendant de l'`id` UUID généré en base.
@@ -287,6 +346,11 @@ export interface Order {
    * pour toute commande achetée au prix affiché.
    */
   is_quote: boolean;
+  /** Combien de fois le client a modifié sa demande de devis. */
+  quote_revision: number;
+  /** L'adresse où le pro livre : il la voit dès le devis, sans le nom du client. */
+  delivery_address: string | null;
+  delivery_country: string | null;
   fabric_price: number;
   tailoring_price: number;
   delivery_fee: number;

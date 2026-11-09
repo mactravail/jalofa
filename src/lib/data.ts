@@ -12,6 +12,7 @@ import {
   VENDOR_REVIEWS,
 } from "@/lib/fixtures";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type {
   Fabric,
@@ -21,6 +22,7 @@ import type {
   Review,
   Style,
   Tailor,
+  TailorAtelier,
   Vendor,
   VendorReview,
 } from "@/lib/types";
@@ -134,6 +136,62 @@ export async function getFabricsByVendor(vendorId: string): Promise<Fabric[]> {
   return (data as Fabric[]) ?? [];
 }
 
+/** Les tissus que le tailleur a publiés pour ce modèle. */
+export async function getModelFabricIds(modelId: string): Promise<string[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("model_fabrics")
+    .select("fabric_id")
+    .eq("model_id", modelId);
+  return ((data as { fabric_id: string }[] | null) ?? []).map((r) => r.fabric_id);
+}
+
+/** Pour l'espace tailleur : les tissus de chacun de ses modèles, par modèle. */
+export async function getMyModelFabricLinks(): Promise<Record<string, string[]>> {
+  if (!isSupabaseConfigured()) return {};
+  const supabase = await createClient();
+  const user = await getAuthUser();
+  if (!user) return {};
+  const { data } = await supabase
+    .from("model_fabrics")
+    .select("model_id, fabric_id, model:models!inner(tailor_id)")
+    .eq("model.tailor_id", user.id);
+  const links: Record<string, string[]> = {};
+  for (const row of (data as unknown as { model_id: string; fabric_id: string }[] | null) ?? []) {
+    (links[row.model_id] ??= []).push(row.fabric_id);
+  }
+  return links;
+}
+
+/** L'adresse de retour du vendeur connecté (privée). */
+export async function getMyVendorAddress(): Promise<TailorAtelier | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const user = await getAuthUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("vendor_addresses")
+    .select("address, phone")
+    .eq("vendor_id", user.id)
+    .maybeSingle();
+  return (data as TailorAtelier | null) ?? null;
+}
+
+/** L'adresse de l'atelier du tailleur connecté (privée). */
+export async function getMyAtelier(): Promise<TailorAtelier | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const user = await getAuthUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("tailor_ateliers")
+    .select("address, phone")
+    .eq("tailor_id", user.id)
+    .maybeSingle();
+  return (data as TailorAtelier | null) ?? null;
+}
+
 // --- Models ----------------------------------------------------------------
 
 // La galerie vit dans `model_photos` ; on l'aplatit en `photos` triée pour que
@@ -162,6 +220,9 @@ function toModel(row: ModelRow): GarmentModel {
     price: row.price ?? null,
     image_url: row.image_url,
     is_active: row.is_active,
+    style_groups: row.style_groups ?? [],
+    body_fits: row.body_fits ?? [],
+    care_tips: row.care_tips ?? null,
     photos: (row.model_photos ?? [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -495,6 +556,79 @@ export async function getTailorReviews(tailorId: string): Promise<TailorReview[]
     author_name: r.client?.full_name ?? null,
     photos: (r.review_photos ?? []).map((p) => p.image_url),
   }));
+}
+
+export type ModelReviewStats = { count: number; average: number };
+
+const MODEL_REVIEWS_SHOWN = 12;
+
+// Un avis est lié à une commande, et c'est elle qui porte le modèle. La RLS cache
+// les commandes aux visiteurs, d'où le client de service dans les deux fonctions
+// suivantes : les commandes ne servent qu'à filtrer, rien d'elles n'est renvoyé.
+
+/** Les vrais avis d'un modèle, les plus récents d'abord, avec le total et la moyenne. */
+export async function getModelReviews(modelId: string): Promise<LatestReviews> {
+  const none = { reviews: [], count: 0, average: 0 };
+  if (!isSupabaseConfigured()) return none;
+  try {
+    const { data, error } = await createAdminClient()
+      .from("reviews")
+      .select(
+        "id, order_id, client_id, tailor_id, rating, comment, created_at, client:profiles!reviews_client_id_fkey(full_name), review_photos(image_url), orders!inner(model_id)",
+      )
+      .eq("orders.model_id", modelId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as ReviewRow[];
+    return {
+      reviews: rows.slice(0, MODEL_REVIEWS_SHOWN).map((r) => ({
+        id: r.id,
+        order_id: r.order_id,
+        client_id: r.client_id,
+        tailor_id: r.tailor_id,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at,
+        author_name: r.client?.full_name ?? null,
+        photos: (r.review_photos ?? []).map((p) => p.image_url),
+      })),
+      count: rows.length,
+      average: rows.length ? rows.reduce((sum, r) => sum + r.rating, 0) / rows.length : 0,
+    };
+  } catch (error) {
+    console.error("[getModelReviews]", error);
+    return none;
+  }
+}
+
+/** Nombre et moyenne des vrais avis de plusieurs modèles ; un modèle sans avis est absent. */
+export async function getModelReviewStats(
+  modelIds: string[],
+): Promise<Map<string, ModelReviewStats>> {
+  const stats = new Map<string, ModelReviewStats>();
+  if (!isSupabaseConfigured() || modelIds.length === 0) return stats;
+  try {
+    const { data, error } = await createAdminClient()
+      .from("reviews")
+      .select("rating, orders!inner(model_id)")
+      .in("orders.model_id", modelIds);
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as {
+      rating: number;
+      orders: { model_id: string };
+    }[];
+    for (const { rating, orders } of rows) {
+      const current = stats.get(orders.model_id) ?? { count: 0, average: 0 };
+      const count = current.count + 1;
+      stats.set(orders.model_id, {
+        count,
+        average: (current.average * current.count + rating) / count,
+      });
+    }
+  } catch (error) {
+    console.error("[getModelReviewStats]", error);
+  }
+  return stats;
 }
 
 /**

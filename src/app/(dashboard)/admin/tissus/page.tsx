@@ -57,7 +57,7 @@ function FabricRow({ fabric }: { fabric: Fabric }) {
           <p className="text-muted-foreground mt-0.5 truncate text-xs">{meta}</p>
         )}
         <p className="text-muted-foreground mt-0.5 text-xs">
-          {fabric.stock_meters} m en stock
+          {fabric.in_stock === false ? "Épuisé" : "Disponible"}
         </p>
       </div>
 

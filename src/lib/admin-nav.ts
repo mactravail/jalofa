@@ -2,6 +2,7 @@ import {
   Ban,
   LayoutDashboard,
   Layers,
+  MessageCircle,
   MessageSquare,
   ShoppingBag,
   Scissors,
@@ -9,6 +10,7 @@ import {
   Sparkles,
   Star,
   Store,
+  Undo2,
   UserCog,
   Users,
 } from "lucide-react";
@@ -28,6 +30,8 @@ export type AdminNavId =
   | "account"
   | "orders"
   | "rejections"
+  | "receipts"
+  | "refunds"
   | "users"
   | "subscriptions"
   | "tailors"
@@ -89,6 +93,18 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/refus`,
         label: "Refus",
         icon: Ban,
+      },
+      {
+        id: "receipts",
+        href: `${ADMIN_ROOT}/receptions`,
+        label: "Tissus à confirmer",
+        icon: MessageCircle,
+      },
+      {
+        id: "refunds",
+        href: `${ADMIN_ROOT}/remboursements`,
+        label: "Remboursements",
+        icon: Undo2,
       },
       {
         id: "users",

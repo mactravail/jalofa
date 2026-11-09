@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
+import { VendorAddressForm } from "@/components/dashboard/atelier-form";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { VendorProfileForm } from "@/components/dashboard/vendor-profile-form";
-import { getCurrentVendor } from "@/lib/data";
+import { getCurrentVendor, getMyVendorAddress } from "@/lib/data";
 import type { Vendor } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Ma page publique" };
@@ -29,7 +30,8 @@ const EMPTY_VENDOR: Vendor = {
 };
 
 export default async function VendorProfilePage() {
-  const vendor = (await getCurrentVendor()) ?? EMPTY_VENDOR;
+  const [current, address] = await Promise.all([getCurrentVendor(), getMyVendorAddress()]);
+  const vendor = current ?? EMPTY_VENDOR;
 
   return (
     <DashboardPage
@@ -46,6 +48,7 @@ export default async function VendorProfilePage() {
         </Link>
       )}
       <VendorProfileForm vendor={vendor} />
+      <VendorAddressForm address={address} />
     </DashboardPage>
   );
 }

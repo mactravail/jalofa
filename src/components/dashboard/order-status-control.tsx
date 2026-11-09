@@ -17,6 +17,7 @@ import {
   type RejectionReason,
 } from "@/lib/constants";
 import { BUCKET_LABELS } from "@/lib/dashboard-nav";
+import type { FreeDeliveryZone } from "@/lib/delivery";
 import {
   bucketOf,
   isTerminal,
@@ -44,6 +45,11 @@ export function OrderStatusControl({
   type,
   isQuote = false,
   tailoringPrice = 0,
+  fabricPrice = 0,
+  deliveryAddress = null,
+  deliveryCity = null,
+  deliveryCountry = null,
+  deliveryZone = "none",
   paymentStatus,
 }: {
   orderId: string;
@@ -53,6 +59,14 @@ export function OrderStatusControl({
   isQuote?: boolean;
   /** Prix de confection déjà fixé — 0 tant qu'un devis n'est pas chiffré. */
   tailoringPrice?: number;
+  /** Le prix du tissu, déjà connu : il entre dans le devis du tailleur. */
+  fabricPrice?: number;
+  /** Où livrer : le tailleur en tient compte pour son prix de livraison. */
+  deliveryAddress?: string | null;
+  deliveryCity?: string | null;
+  deliveryCountry?: string | null;
+  /** Le choix du tailleur pour la livraison de ce modèle. */
+  deliveryZone?: FreeDeliveryZone;
   paymentStatus?: PaymentStatus;
 }) {
   const { role, move, reject, quote } = usePipeline();
@@ -90,13 +104,13 @@ export function OrderStatusControl({
     });
   };
 
-  const confirmQuote = (price: number) => {
+  const confirmQuote = (price: number, deliveryFee: number) => {
     startTransition(async () => {
       try {
-        await quote(orderId, price);
+        await quote(orderId, price, deliveryFee, fabricPrice);
         setQuoteOpen(false);
         toast.success(
-          `Prix envoyé : ${formatPrice(price)}. Le client doit répondre.`,
+          `Devis envoyé : ${formatPrice(price + deliveryFee + fabricPrice)}. Le client doit répondre.`,
         );
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
@@ -146,6 +160,11 @@ export function OrderStatusControl({
           onOpenChange={setQuoteOpen}
           onConfirm={confirmQuote}
           isPending={isPending}
+          fabricPrice={fabricPrice}
+          address={deliveryAddress}
+          city={deliveryCity}
+          country={deliveryCountry}
+          deliveryZone={deliveryZone}
         />
         <RejectOrderDialog
           open={rejectOpen}
@@ -246,6 +265,38 @@ export function OrderStatusControl({
         </Button>
       );
     }
+  }
+
+  // --- Vendeur d'une commande complète : un seul geste -----------------------
+  // Le tissu part à l'atelier ; l'adresse est affichée juste au-dessus.
+  if (
+    role === "vendor" &&
+    type === "full" &&
+    (status === "accepted" || status === "fabric_prepared")
+  ) {
+    return (
+      <Button
+        className={cn(BIG, YES)}
+        onClick={() => run("fabric_shipped")}
+        disabled={isPending}
+      >
+        {isPending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Truck className="size-4" />
+        )}
+        Tissu envoyé
+      </Button>
+    );
+  }
+
+  // Tissu seul expédié : c'est le client qui confirme la réception.
+  if (role === "vendor" && type === "fabric_only" && status === "fabric_shipped") {
+    return (
+      <span className="text-muted-foreground text-sm">
+        Tissu envoyé. JALOFA confirme la réception avec le client.
+      </span>
+    );
   }
 
   // --- Vendeur (et repli) : étape par étape -------------------------------

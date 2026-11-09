@@ -2,7 +2,7 @@ import "server-only";
 
 import { getAllOrders } from "@/lib/admin-data";
 import { getProOrders } from "@/lib/dashboard-data";
-import { amountFor } from "@/lib/pipeline";
+import { amountFor, moneyReleased } from "@/lib/pipeline";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { demoRevenueEvents, type RevenueChannel } from "@/lib/revenue-demo";
 import {
@@ -35,7 +35,7 @@ export async function getRevenueSeries(
   } else {
     const orders = await getProOrders(channel);
     events = orders
-      .filter((o) => o.payment_status === "paid")
+      .filter((o) => moneyReleased(channel, o))
       .map((o) => ({ date: o.created_at, amount: amountFor(channel, o) }));
   }
 

@@ -21,6 +21,37 @@ function text(value: FormDataEntryValue | null): string | null {
   return s.length > 0 ? s : null;
 }
 
+/** Enregistre l'adresse privée où les clients renvoient un tissu. */
+export async function saveVendorAddress(
+  _prev: VendorProfileState,
+  formData: FormData,
+): Promise<VendorProfileState> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+
+  const address = text(formData.get("vendor_address"));
+  const phone = text(formData.get("vendor_phone"));
+  if (!address || !phone) {
+    return { ok: false, error: "Indiquez l'adresse et le téléphone." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Vous devez être connecté." };
+
+  const { error } = await supabase.from("vendor_addresses").upsert({
+    vendor_id: user.id,
+    address,
+    phone,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/vendeur/espace", "layout");
+  return { ok: true };
+}
+
 /**
  * Enregistre le profil public de la boutique du vendeur connecté.
  *
@@ -71,7 +102,6 @@ export async function saveVendorProfile(
       shop_name,
       bio: text(formData.get("bio")),
       city: text(formData.get("city")),
-      free_delivery: formData.get("free_delivery") === "on",
       cover_url,
       is_active: formData.get("is_active") === "on",
     })

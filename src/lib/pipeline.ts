@@ -54,6 +54,39 @@ export function timelineFor(type: OrderType): OrderStatus[] {
   return FULL;
 }
 
+/** Les parties d'une commande dont dépend le chemin du tissu. */
+type OrderParties = {
+  tailor_id?: string | null;
+  vendor_id?: string | null;
+};
+
+/** Le tissu de cette commande complète appartient à son propre tailleur. */
+export function tailorOwnsFabric(order: OrderParties & { type: OrderType }): boolean {
+  return (
+    order.type === "full" &&
+    Boolean(order.tailor_id) &&
+    order.tailor_id === order.vendor_id
+  );
+}
+
+/**
+ * Le parcours que suit réellement une commande. Quand le tailleur coud son
+ * propre tissu, il n'y a rien à préparer ni à envoyer : la commande suit le
+ * parcours sans étapes de tissu, tout en restant une commande complète (prix et
+ * libellés). Une ancienne commande déjà engagée dans une étape de tissu garde le
+ * parcours complet, pour ne jamais se retrouver hors de sa frise.
+ */
+export function pipelineType(
+  order: OrderParties & { type: OrderType; status: OrderStatus },
+): OrderType {
+  if (!tailorOwnsFabric(order)) return order.type;
+  return order.status === "fabric_prepared" ||
+    order.status === "fabric_shipped" ||
+    order.status === "fabric_received_by_tailor"
+    ? "full"
+    : "own_fabric";
+}
+
 /** The next status in the pipeline, or null once the flow is complete. */
 export function nextStatus(status: OrderStatus, type: OrderType): OrderStatus | null {
   const timeline = timelineFor(type);
@@ -197,26 +230,131 @@ export function bucketOf(
   return status === entryStatus(role, type) ? "todo" : "ongoing";
 }
 
-export function bucketOrders<T extends { status: OrderStatus; type: OrderType }>(
-  role: UserRole,
-  orders: T[],
-  bucket: OrderBucket,
-): T[] {
-  return orders.filter((o) => bucketOf(role, o.status, o.type) === bucket);
+export function bucketOrders<
+  T extends OrderParties & {
+    status: OrderStatus;
+    type: OrderType;
+    fabric_return?: { status: string } | null;
+    alterations?: { status: string }[] | null;
+  },
+>(role: UserRole, orders: T[], bucket: OrderBucket): T[] {
+  return orders.filter((o) => {
+    const current = afterSaleWaiting(role, o)
+      ? "todo"
+      : bucketOf(role, o.status, pipelineType(o));
+    return current === bucket;
+  });
 }
 
-/** The share of an order that goes to this role. */
-export function amountFor(
+type OrderShare = OrderParties & {
+  type: OrderType;
+  fabric_price: number;
+  tailoring_price: number;
+  delivery_fee: number;
+};
+
+/**
+ * La part de livraison que touche ce métier : tout pour celui qui livre le client,
+ * rien pour l'autre. JALOFA ne prend aucune commission dessus.
+ */
+export function deliveryShareFor(
   role: UserRole,
-  order: { fabric_price: number; tailoring_price: number },
+  order: { type: OrderType; delivery_fee: number },
 ): number {
-  return role === "vendor" ? order.fabric_price : order.tailoring_price;
+  return (role === "tailor" || role === "vendor") && deliversToClient(role, order.type)
+    ? Number(order.delivery_fee ?? 0)
+    : 0;
 }
 
-export function revenueOf(
+/**
+ * The share of an order that goes to this role. Un tailleur qui coud son propre
+ * tissu touche les deux parts, comptées une seule fois, côté tailleur. L'argent de
+ * la livraison revient à celui qui livre le client : JALOFA ne livre rien.
+ */
+export function amountFor(role: UserRole, order: OrderShare): number {
+  const delivery = deliveryShareFor(role, order);
+  const own = Boolean(order.tailor_id) && order.tailor_id === order.vendor_id;
+  if (own) {
+    return role === "vendor"
+      ? 0
+      : Number(order.fabric_price) + Number(order.tailoring_price) + delivery;
+  }
+  return (role === "vendor" ? Number(order.fabric_price) : Number(order.tailoring_price)) + delivery;
+}
+
+/**
+ * Le pro reçoit-il le nom, le téléphone et l'e-mail du client ? Seulement une fois
+ * la commande payée, et seulement celui qui le livre : sur une commande complète,
+ * le vendeur envoie le tissu à l'atelier, pas au client. Même règle que la RLS de
+ * `order_contacts`.
+ */
+export function contactRevealed(
+  role: "tailor" | "vendor",
+  order: { type: OrderType; status: OrderStatus; payment_status: string },
+): boolean {
+  return (
+    order.payment_status === "paid" &&
+    order.status !== "cancelled" &&
+    order.status !== "rejected" &&
+    deliversToClient(role, order.type)
+  );
+}
+
+/**
+ * Le tissu est arrivé : chez le tailleur pour une commande complète, chez le
+ * client pour un tissu seul. C'est ce qui libère l'argent du vendeur.
+ */
+export function fabricReceived(order: { type: OrderType; status: OrderStatus }): boolean {
+  if (order.status === "rejected" || order.status === "cancelled") return false;
+  if (order.type === "fabric_only") return order.status === "delivered";
+  return FULL.indexOf(order.status) >= FULL.indexOf("fabric_received_by_tailor");
+}
+
+type MoneyOrder = {
+  type: OrderType;
+  status: OrderStatus;
+  payment_status: string;
+  fabric_return?: { status: string } | null;
+};
+
+/**
+ * L'argent de cette commande revient-il déjà à ce pro ? Jamais sur une commande
+ * annulée ou refusée (le client est remboursé), ni sur un tissu en cours de retour.
+ */
+export function moneyReleased(role: UserRole, order: MoneyOrder): boolean {
+  if (order.payment_status !== "paid") return false;
+  if (order.status === "rejected" || order.status === "cancelled") return false;
+  if (role !== "vendor") return true;
+  return fabricReceived(order) && !order.fabric_return;
+}
+
+/** Payé par le client, mais retenu : tissu pas encore reçu, ou en cours de retour. */
+export function moneyHeldForReceipt(role: UserRole, order: MoneyOrder): boolean {
+  return (
+    role === "vendor" &&
+    order.payment_status === "paid" &&
+    order.status !== "rejected" &&
+    order.status !== "cancelled" &&
+    !moneyReleased(role, order)
+  );
+}
+
+/** Une retouche ou un retour attend ce pro : la commande revient dans ses « Nouvelles ». */
+export function afterSaleWaiting(
   role: UserRole,
-  orders: { fabric_price: number; tailoring_price: number }[],
-): number {
+  order: {
+    fabric_return?: { status: string } | null;
+    alterations?: { status: string }[] | null;
+  },
+): boolean {
+  if (role === "vendor") return order.fabric_return?.status === "requested";
+  if (role === "tailor") {
+    return (order.alterations ?? []).some((a) => a.status === "requested");
+  }
+  return false;
+}
+
+export function revenueOf(role: UserRole, orders: OrderShare[]): number {
   return orders.reduce((sum, o) => sum + amountFor(role, o), 0);
 }
 

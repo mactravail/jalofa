@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useId, useState } from "react";
-import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 import { formatPrice } from "@/lib/constants";
-import { formatMeters } from "@/lib/fabric-metrage";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,10 +12,14 @@ import { cn } from "@/lib/utils";
 // une page d'achat — il ne rechoisit plus le tissu, il n'en règle que le métrage.
 export function FabricPicker({
   fabrics,
+  groups,
   value,
   onChange,
 }: {
   fabrics: Fabric[];
+  /** Plusieurs rangées titrées (« Tissus de l'atelier », « Autres vendeurs »).
+   *  Absent : une seule rangée avec tous les `fabrics`. */
+  groups?: { label: string; fabrics: Fabric[] }[];
   value: string | null;
   onChange: (fabricId: string) => void;
 }) {
@@ -30,38 +32,47 @@ export function FabricPicker({
 
   if (fabrics.length === 0) return null;
 
+  const rows = (groups ?? [{ label: "", fabrics }]).filter((g) => g.fabrics.length > 0);
+
   return (
     <div>
       <p className="text-sm font-medium">Choisissez votre tissu</p>
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-        {fabrics.map((f) => {
-          const active = f.id === value;
-          return (
-            <button
-              type="button"
-              key={f.id}
-              onClick={() => onChange(f.id)}
-              aria-pressed={active}
-              aria-label={f.name}
-              title={f.name}
-              className={cn(
-                "relative size-14 shrink-0 overflow-hidden rounded-lg border transition-colors",
-                active ? "border-primary ring-primary/30 ring-2" : "hover:border-border",
-              )}
-            >
-              {f.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={f.image_url} alt={f.name} className="size-full object-cover" />
-              )}
-              {active && (
-                <span className="text-primary-foreground bg-primary absolute right-0.5 top-0.5 grid size-4 place-items-center rounded-full">
-                  <Check className="size-2.5" strokeWidth={3} />
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {rows.map((row) => (
+        <div key={row.label} className="mt-2">
+          {row.label && (
+            <p className="text-muted-foreground mb-1.5 text-xs font-medium">{row.label}</p>
+          )}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {row.fabrics.map((f) => {
+              const active = f.id === value;
+              return (
+                <button
+                  type="button"
+                  key={f.id}
+                  onClick={() => onChange(f.id)}
+                  aria-pressed={active}
+                  aria-label={f.name}
+                  title={f.name}
+                  className={cn(
+                    "relative size-14 shrink-0 overflow-hidden rounded-lg border transition-colors",
+                    active ? "border-primary ring-primary/30 ring-2" : "hover:border-border",
+                  )}
+                >
+                  {f.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.image_url} alt={f.name} className="size-full object-cover" />
+                  )}
+                  {active && (
+                    <span className="text-primary-foreground bg-primary absolute right-0.5 top-0.5 grid size-4 place-items-center rounded-full">
+                      <Check className="size-2.5" strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
       {selected && (
         <div className="mt-2">
           <p className="text-muted-foreground text-sm">
@@ -98,18 +109,7 @@ export function FabricPicker({
                   <dt className="text-muted-foreground w-24 shrink-0">Coloris</dt>
                   <dd>{selected.color ?? "—"}</dd>
                 </div>
-                <div className="flex gap-3">
-                  <dt className="text-muted-foreground w-24 shrink-0">En stock</dt>
-                  <dd>{formatMeters(selected.stock_meters)}</dd>
-                </div>
               </dl>
-              <Link
-                href={`/tissus/${selected.id}`}
-                className="text-muted-foreground hover:text-foreground mt-3 inline-flex items-center gap-0.5 text-sm underline-offset-2 hover:underline"
-              >
-                Fiche complète du tissu
-                <ChevronRight className="size-3.5" aria-hidden />
-              </Link>
             </div>
           )}
         </div>

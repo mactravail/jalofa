@@ -102,7 +102,66 @@ export type AdminReviewRow = {
 };
 
 const ORDER_SELECT =
-  "*, model:models(name), fabric:fabrics(name, image_url), tailor:tailors(shop_name), vendor:vendors(shop_name), style:styles(name), client:profiles!orders_client_id_fkey(full_name, phone)";
+  "*, model:models(name), fabric:fabrics(name, image_url), tailor:tailors(shop_name), vendor:vendors(shop_name), style:styles(name), client:profiles!orders_client_id_fkey(full_name, phone), private_contact:order_contacts(first_name, last_name, email, phone), fabric_return:fabric_returns(status)";
+
+/**
+ * L'admin relie tout de suite le code au client, sans attendre le paiement. Recopié
+ * sur les colonnes `contact_*` (vides en base), que lisent les pages de l'admin.
+ */
+function withPrivateContact(order: OrderListItem): OrderListItem {
+  const contact = order.private_contact;
+  if (!contact) return order;
+  return {
+    ...order,
+    contact_first_name: contact.first_name,
+    contact_last_name: contact.last_name,
+    contact_email: contact.email,
+    contact_phone: contact.phone,
+  };
+}
+
+/**
+ * Tissus seuls expédiés, en attente de la confirmation du client, avec l'heure
+ * d'expédition pour compter les 48 h.
+ */
+export async function getFabricsAwaitingReceipt(): Promise<
+  { order: OrderListItem; shippedAt: string | null }[]
+> {
+  const orders = (await getAllOrders()).filter(
+    (o) => o.type === "fabric_only" && o.status === "fabric_shipped",
+  );
+  const supabase = await adminDb();
+  if (!supabase || orders.length === 0) return [];
+
+  const { data } = await supabase
+    .from("order_status_history")
+    .select("order_id, created_at")
+    .eq("status", "fabric_shipped")
+    .in("order_id", orders.map((o) => o.id));
+  const shippedAt = new Map(
+    ((data ?? []) as { order_id: string; created_at: string }[]).map((h) => [
+      h.order_id,
+      h.created_at,
+    ]),
+  );
+  return orders.map((order) => ({ order, shippedAt: shippedAt.get(order.id) ?? null }));
+}
+
+/** Ce que JALOFA doit rendre aux clients : annulations et tissus retournés. */
+export async function getRefundsDue(): Promise<
+  { order: OrderListItem; amount: number; reason: string }[]
+> {
+  return (await getAllOrders()).flatMap((order) => {
+    if (order.payment_status !== "paid") return [];
+    if (order.status === "cancelled") {
+      return [{ order, amount: order.total_amount, reason: "Commande annulée" }];
+    }
+    if (order.fabric_return?.status === "received") {
+      return [{ order, amount: order.fabric_price, reason: "Tissu retourné" }];
+    }
+    return [];
+  });
+}
 
 export const getAllOrders = cache(async (): Promise<OrderListItem[]> => {
   if (!isSupabaseConfigured()) return DEMO_ALL_ORDERS;
@@ -112,7 +171,7 @@ export const getAllOrders = cache(async (): Promise<OrderListItem[]> => {
     .from("orders")
     .select(ORDER_SELECT)
     .order("created_at", { ascending: false });
-  return (data as unknown as OrderListItem[]) ?? [];
+  return ((data as unknown as OrderListItem[]) ?? []).map(withPrivateContact);
 });
 
 export const getAllUsers = cache(async (): Promise<Profile[]> => {
@@ -353,9 +412,7 @@ export type AdminStats = {
     commission: number;
     /** Abonnements des pros — 100% JALOFA. */
     subscriptions: number;
-    /** Frais de livraison encaissés. */
-    delivery: number;
-    /** Total : commissions + abonnements + livraison. */
+    /** Total : commissions + abonnements. La livraison revient à celui qui livre. */
     total: number;
   };
   /** Ce que JALOFA doit reverser aux prestataires (net, commissions déduites). */
@@ -383,8 +440,8 @@ export async function getAdminStats(): Promise<AdminStats> {
   const gmv = gmvOf(orders);
 
   // La part propre à JALOFA : les commissions ne pèsent que sur les pros au plan
-  // Gratuit (`buildPayouts`), auxquelles s'ajoutent les abonnements (100% JALOFA)
-  // et les frais de livraison. Distinct du net reversé aux prestataires.
+  // Gratuit (`buildPayouts`), auxquelles s'ajoutent les abonnements (100% JALOFA).
+  // Distinct du net reversé aux prestataires.
   const vendorTotals = sumPayouts(
     buildPayouts("vendor", orders, proDirectory(vendors)),
   );
@@ -393,9 +450,6 @@ export async function getAdminStats(): Promise<AdminStats> {
   );
   const commission = vendorTotals.commission + tailorTotals.commission;
   const subscriptions = subscriptionMrr(vendors) + subscriptionMrr(tailors);
-  const delivery = orders
-    .filter((o) => o.payment_status === "paid")
-    .reduce((sum, o) => sum + o.delivery_fee, 0);
 
   return {
     users: {
@@ -416,8 +470,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     platform: {
       commission,
       subscriptions,
-      delivery,
-      total: commission + subscriptions + delivery,
+      total: commission + subscriptions,
     },
     netOwed: vendorTotals.net + tailorTotals.net,
     catalog: {

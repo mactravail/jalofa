@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Clock, MapPin, Scissors, Star, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, Clock, MapPin, Scissors, Star } from "lucide-react";
 
 import { Price } from "@/components/cart/price";
 import { TrustScoreBadge } from "@/components/catalog/trust-score";
@@ -66,12 +66,6 @@ export function TailorCard({ tailor }: { tailor: Tailor }) {
             <Clock className="size-4" aria-hidden /> {tailor.avg_delivery_days} jours
           </span>
         </div>
-
-        {tailor.free_delivery && (
-          <p className="mt-2 flex items-center gap-1.5 text-sm font-medium">
-            <Truck className="size-4" aria-hidden /> Livraison offerte
-          </p>
-        )}
 
         <span className="mt-4 flex h-12 items-center justify-center gap-2 rounded-lg border border-white/40 text-base font-semibold transition-colors group-hover:bg-white group-hover:text-black">
           Voir ce tailleur

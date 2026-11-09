@@ -17,6 +17,9 @@ export function OrderCard({
     order.model?.name ??
     order.fabric?.name ??
     ORDER_TYPE_LABELS[order.type];
+  // Un devis se reconnaît d'un coup d'œil : le client a-t-il quelque chose à faire ?
+  const quotePending = order.is_quote && order.payment_status === "pending";
+  const quoteReady = quotePending && order.tailoring_price > 0;
 
   return (
     <Link
@@ -41,6 +44,11 @@ export function OrderCard({
           <OrderStatusBadge status={order.status} />
         </div>
         <p className="mt-1 truncate font-medium">{title}</p>
+        {quotePending && (
+          <p className={quoteReady ? "text-primary text-sm font-semibold" : "text-muted-foreground text-sm"}>
+            {quoteReady ? "Votre devis est prêt" : "Devis en attente du tailleur"}
+          </p>
+        )}
         <p className="text-muted-foreground truncate text-sm">
           {clientName
             ? clientName
@@ -48,7 +56,9 @@ export function OrderCard({
         </p>
       </div>
       <div className="text-right">
-        <p className="font-semibold">{formatPrice(order.total_amount)}</p>
+        {(!quotePending || quoteReady) && (
+          <p className="font-semibold">{formatPrice(order.total_amount)}</p>
+        )}
         <p className="text-muted-foreground text-xs">
           {new Date(order.created_at).toLocaleDateString("fr-FR", {
             day: "2-digit",

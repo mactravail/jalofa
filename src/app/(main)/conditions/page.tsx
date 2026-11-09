@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: `Conditions générales d'utilisation de ${APP_NAME} : règles communes, conditions pour les clients et conditions pour les tailleurs et vendeurs.`,
 };
 
-const LAST_UPDATED = "25 juillet 2026";
+const LAST_UPDATED = "9 novembre 2026";
 
 type Clause = {
   title: string;
@@ -57,8 +57,9 @@ const PARTS: Part[] = [
         list: [
           "Chaque tailleur fixe et publie ses prix ; chaque vendeur affiche le prix de ses tissus.",
           "Avant de confirmer, le client voit le montant total et son détail (tissu, confection, livraison et, le cas échéant, frais de service).",
-          "Aucun frais caché. Le client paie une seule fois, sur la plateforme, et plus rien ne lui est réclamé ensuite pour cette commande.",
+          "Aucun frais caché. Le client paie une seule fois, sur la plateforme, et plus rien ne lui est réclamé ensuite pour cette commande, sauf le transport lorsque le pro a indiqué qu'il est à la charge du client (voir l'article A5).",
           `Toute demande d'argent en dehors de ${APP_NAME} — de la main à la main, sur un autre numéro, « pour aller plus vite » — est strictement interdite et constitue une faute grave.`,
+          `Le client évite de payer en dehors de ${APP_NAME}. S'il le fait quand même, c'est à ses risques : ${APP_NAME} n'est pas responsable de cet argent, ne le rembourse pas et n'intervient pas en cas d'arnaque.`,
         ],
       },
       {
@@ -87,7 +88,7 @@ const PARTS: Part[] = [
       },
       {
         title: "10. Rôle d'intermédiaire et responsabilité",
-        body: `${APP_NAME} met en relation et sécurise les échanges, mais ne confectionne pas les vêtements et ne fabrique pas les tissus. La qualité de la confection relève du tailleur choisi ; la conformité du tissu relève du vendeur. ${APP_NAME} s'efforce d'assurer l'exactitude des informations publiées et le bon fonctionnement du site, sans pouvoir en garantir l'absence totale d'erreurs ou d'interruptions. En cas de litige, ${APP_NAME} intervient selon les présentes conditions.`,
+        body: `${APP_NAME} met en relation et sécurise les échanges, mais ne vend rien, ne livre rien, ne confectionne pas les vêtements et ne fabrique pas les tissus. Chaque professionnel fixe ses prix et assure sa livraison : pour chaque tissu et chaque modèle, il indique si elle est gratuite, et où. La qualité de la confection relève du tailleur choisi ; la conformité du tissu relève du vendeur. ${APP_NAME} s'efforce d'assurer l'exactitude des informations publiées et le bon fonctionnement du site, sans pouvoir en garantir l'absence totale d'erreurs ou d'interruptions. En cas de litige, ${APP_NAME} intervient selon les présentes conditions.`,
       },
       {
         title: "11. Données personnelles",
@@ -119,7 +120,25 @@ const PARTS: Part[] = [
       },
       {
         title: "A3. Un prix tout compris, payé une seule fois",
-        body: `Le montant affiché avant paiement est le montant définitif pour cette commande. Vous ne paierez rien de plus par la suite : ni supplément, ni frais caché, ni « complément » réclamé par le tailleur ou le vendeur. Si un professionnel vous demande de l'argent en dehors de ${APP_NAME}, refusez et signalez-le : c'est interdit.`,
+        body: `Le montant affiché avant paiement est le montant définitif pour cette commande. Vous ne paierez rien de plus au tailleur ou au vendeur par la suite : ni supplément, ni frais caché, ni « complément ». Seul le transport peut rester à votre charge, si c'est indiqué sur le produit (article A5). Si un professionnel vous demande de l'argent en dehors de ${APP_NAME}, refusez et signalez-le : c'est interdit.`,
+      },
+      {
+        title: "A3 bis. Devis gratuits",
+        body: "Pour une tenue personnalisée, chaque tailleur fixe librement son prix, sur devis :",
+        list: [
+          "Demander un devis est toujours gratuit et sans engagement, autant de fois que vous le souhaitez.",
+          "Le devis apparaît dans votre espace, avec le détail : le tissu, la livraison et le travail du tailleur.",
+          "Vous pouvez modifier le tissu ou des détails de votre demande, et demander un nouveau devis. Il remplace le précédent.",
+          "Si vous acceptez, vous payez le total en une seule fois. Le tailleur et le vendeur de tissu sont alors prévenus et commencent leur travail.",
+        ],
+      },
+      {
+        title: "A3 ter. Ne payez jamais en dehors du site",
+        body: `Votre protection (fonds en attente, réclamation, remboursement) ne vaut que pour les paiements faits sur ${APP_NAME}. Si vous payez un tailleur ou un vendeur en dehors du site et que vous êtes victime d'une arnaque, d'un retard ou d'une mauvaise prestation, c'est sous votre seule responsabilité : ${APP_NAME} ne vous remboursera pas et n'interviendra pas.`,
+      },
+      {
+        title: "A3 quater. Vos informations restent privées",
+        body: `Pendant le devis, le tailleur reçoit le récapitulatif de votre demande, un code et votre adresse de livraison. Votre nom, votre téléphone et votre e-mail ne sont connus que de ${APP_NAME}. Il les reçoit une fois la commande payée, pour vous livrer. Ne donnez pas vos coordonnées dans la note de commande : elles y sont masquées.`,
       },
       {
         title: "A4. Délais de confection (12 jours maximum)",
@@ -127,7 +146,7 @@ const PARTS: Part[] = [
       },
       {
         title: "A5. Livraison et vérification à réception",
-        body: "À la réception, vérifiez que ce que vous recevez correspond bien à votre commande : le bon modèle, les bonnes finitions, et — pour un tissu — la bonne matière, la bonne couleur et le bon métrage. En cas de problème, ne tardez pas : ouvrez une réclamation pendant le délai de fonds en attente de 5 jours.",
+        body: `${APP_NAME} ne livre pas et n'ajoute aucun frais de livraison à un achat direct. Pour chaque tissu et chaque modèle, le professionnel indique où la livraison est gratuite, et cette information vous est montrée avant de payer. Hors de cette zone, vous réglez directement le GP ou le livreur : ce paiement ne passe pas par ${APP_NAME}, qui n'en est pas responsable. À la réception, vérifiez que ce que vous recevez correspond bien à votre commande : le bon modèle, les bonnes finitions, et — pour un tissu — la bonne matière, la bonne couleur et le bon métrage. En cas de problème, ne tardez pas : ouvrez une réclamation pendant le délai de fonds en attente de 5 jours.`,
       },
       {
         title: "A6. Votre droit de réclamation et de remboursement",
@@ -183,7 +202,7 @@ const PARTS: Part[] = [
       },
       {
         title: "B2. Abonnements et commissions",
-        body: `Vous choisissez votre formule sur la page des abonnements : le plan Gratuit (sans abonnement mensuel, mais avec une commission par vente) ou un plan payant Standard ou Premium (sans commission). Les abonnements payants sont sans engagement et résiliables à tout moment ; ils se règlent par Wave. Les tarifs et commissions en vigueur sont ceux affichés sur la page « Abonnements ». En cas d'exclusion pour faute, l'abonnement déjà payé n'est pas remboursé.`,
+        body: `Vous choisissez votre formule sur la page des abonnements : le plan Gratuit (sans abonnement mensuel, mais avec une commission par vente) ou un plan payant Standard ou Premium (sans commission). Les abonnements payants sont sans engagement et résiliables à tout moment ; ils se règlent par Wave. Les tarifs et commissions en vigueur sont ceux affichés sur la page « Abonnements ». Aucune commission n'est prélevée sur la livraison. En cas d'exclusion pour faute, l'abonnement déjà payé n'est pas remboursé.`,
       },
       {
         title: "B3. Vos engagements fondamentaux",
@@ -194,7 +213,8 @@ const PARTS: Part[] = [
           "respecter le délai que vous annoncez, dans la limite de 12 jours pour la confection ;",
           "décrire vos tissus et vos modèles avec exactitude ;",
           "communiquer avec vos clients et honorer les commandes acceptées ;",
-          `n'exiger aucun paiement en dehors de ${APP_NAME}.`,
+          `n'exiger aucun paiement en dehors de ${APP_NAME} ;`,
+          "ne pas chercher à contacter un client avant son paiement : pendant le devis, vous travaillez à partir du récapitulatif, de son code et de son adresse de livraison.",
         ],
       },
       {

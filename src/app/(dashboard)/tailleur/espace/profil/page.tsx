@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
+import { AtelierForm } from "@/components/dashboard/atelier-form";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { TailorProfileForm } from "@/components/dashboard/tailor-profile-form";
-import { getCurrentTailor } from "@/lib/data";
+import { getCurrentTailor, getMyAtelier } from "@/lib/data";
 import type { Tailor } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Ma page publique" };
@@ -32,7 +33,8 @@ const EMPTY_TAILOR: Tailor = {
 };
 
 export default async function TailorProfilePage() {
-  const tailor = (await getCurrentTailor()) ?? EMPTY_TAILOR;
+  const [current, atelier] = await Promise.all([getCurrentTailor(), getMyAtelier()]);
+  const tailor = current ?? EMPTY_TAILOR;
 
   return (
     <DashboardPage
@@ -49,6 +51,7 @@ export default async function TailorProfilePage() {
         </Link>
       )}
       <TailorProfileForm tailor={tailor} />
+      <AtelierForm atelier={atelier} />
     </DashboardPage>
   );
 }

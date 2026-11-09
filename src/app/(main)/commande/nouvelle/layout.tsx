@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: "Créer une tenue" };
  * Personnaliser ne demande pas de s'inscrire avant. Au récap :
  * - pas de compte → nom, téléphone, e-mail, mot de passe : le compte client est
  *   créé avec la demande de devis, pour la suivre ensuite ;
- * - compte sans nom ni téléphone → ces deux champs (le tailleur doit joindre
- *   le client).
+ * - compte sans nom ni téléphone → ces deux champs (JALOFA doit pouvoir joindre
+ *   le client ; le tailleur ne les voit pas pendant le devis).
  */
 async function contactMode(): Promise<"account" | "contact" | null> {
   if (!isSupabaseConfigured()) return null;

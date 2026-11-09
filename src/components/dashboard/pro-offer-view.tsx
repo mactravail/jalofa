@@ -122,7 +122,7 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
             <p className="text-muted-foreground text-sm">
               {isPaid
                 ? `0% de commission${until ? ` — actif jusqu'au ${until}` : ""}.`
-                : `Aucun abonnement — ${Math.round(FREE_COMMISSION_RATE * 100)}% de commission sur chaque vente.`}
+                : `Aucun abonnement — ${Math.round(FREE_COMMISSION_RATE * 100)}% de commission sur chaque vente, hors livraison.`}
             </p>
           </CardContent>
         </Card>

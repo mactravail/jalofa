@@ -10,6 +10,11 @@ import type { GarmentModel } from "@/lib/types";
 // mots-clés du nom, puis par catégorie, pour les créations de tailleurs que
 // cette table ne connaît pas encore.
 
+/** Un tissu est disponible tant que son pro ne l'a pas déclaré épuisé. */
+export function isFabricAvailable(fabric: { in_stock?: boolean }): boolean {
+  return fabric.in_stock !== false;
+}
+
 /** Pas de coupe : un vendeur taille au demi-mètre, jamais au centimètre. */
 export const METERS_STEP = 0.5;
 /** Garde-fou haut : au-delà, c'est un rouleau, il se commande auprès du vendeur. */
@@ -121,6 +126,13 @@ export const DEFAULT_METRAGE = m(3, 2);
 /** Le métrage conseillé pour ce vêtement. */
 export function metrageFor(model: GarmentModel | null): Metrage {
   if (!model) return DEFAULT_METRAGE;
+
+  // Le tailleur a indiqué son métrage : il prime sur tout le reste. Tant que le
+  // client n'a rien désigné, on part d'un corps et d'une taille moyens. C'est le
+  // tissu qu'il faut pour coudre la pièce, donc aussi le minimum.
+  const meters = model.body_fits?.find((f) => f.body === "moyen")?.meters?.moyenne;
+  if (meters) return m(meters, meters);
+
   if (model.slug && BY_SLUG[model.slug]) return BY_SLUG[model.slug];
 
   const haystack = `${model.slug ?? ""} ${model.name}`.toLowerCase();

@@ -2,6 +2,8 @@
 
 import { Mail, Phone, Ruler } from "lucide-react";
 
+import { FabricComesFrom, FabricShipTo } from "@/components/dashboard/fabric-ship-to";
+import { usePipeline } from "@/components/dashboard/pipeline-store";
 import { OrderStatusBadge } from "@/components/order/order-status";
 import {
   Sheet,
@@ -20,12 +22,15 @@ import {
   formatPrice,
 } from "@/lib/constants";
 import type { OrderListItem, OrderMeasurement } from "@/lib/orders-data";
+import { clientNameOf } from "@/lib/clients";
+import { pipelineType } from "@/lib/pipeline";
 
 /**
  * La fiche complète d'une commande, en panneau latéral. Quand une nouvelle
  * commande tombe, le tailleur doit tout voir d'un coup : le tissu et le nombre
- * de mètres, le relevé de mesures, la livraison, le contact et le détail des
- * prix. Le vendeur y lit la même fiche, centrée sur le tissu à préparer.
+ * de mètres, le relevé de mesures, l'adresse de livraison et le détail des prix.
+ * Le client n'y figure que par son code, jusqu'à ce qu'il paie : son nom, son
+ * téléphone et son e-mail n'arrivent qu'à ce moment-là. Le vendeur y lit la même fiche, centrée sur le tissu à préparer.
  *
  * `children` est le contenu de la ligne cliquable (vignette + résumé) : on
  * l'enveloppe dans le déclencheur pour que toute la ligne ouvre la fiche.
@@ -37,17 +42,15 @@ export function OrderDetailSheet({
   order: OrderListItem;
   children: React.ReactNode;
 }) {
+  const { role } = usePipeline();
+  const fabricTravels = pipelineType(order) === "full" && Boolean(order.vendor_id);
+  // Le vendeur envoie à l'atelier : la livraison au client ne le concerne pas.
+  const sendsToAtelier = role === "vendor" && order.type === "full";
   const created = new Date(order.created_at).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
-  const contactName =
-    [order.contact_first_name, order.contact_last_name]
-      .filter(Boolean)
-      .join(" ") ||
-    order.client?.full_name ||
-    "Client";
 
   return (
     <Sheet>
@@ -88,44 +91,73 @@ export function OrderDetailSheet({
 
           <FabricSection order={order} />
 
+          {fabricTravels &&
+            (sendsToAtelier ? (
+              <FabricShipTo order={order} />
+            ) : (
+              <FabricComesFrom order={order} />
+            ))}
+
           <MeasurementSection measurement={order.measurement} />
 
-          <Section title="Livraison & contact">
-            <Row label="Client" value={contactName} />
-            {order.contact_phone && (
-              <Row
-                label="Téléphone"
-                value={
-                  <a
-                    href={`tel:${order.contact_phone}`}
-                    className="inline-flex items-center gap-1.5 hover:underline"
-                  >
-                    <Phone className="size-3.5" /> {order.contact_phone}
-                  </a>
-                }
-              />
+          {!sendsToAtelier && (
+          <>
+          <Section title="Client">
+            {order.contact_first_name || order.contact_last_name || order.contact_phone ? (
+              <>
+                <Row label="Nom" value={clientNameOf(order)} />
+                {order.contact_phone && (
+                  <Row
+                    label="Téléphone"
+                    value={
+                      <a
+                        href={`tel:${order.contact_phone}`}
+                        className="inline-flex items-center gap-1.5 hover:underline"
+                      >
+                        <Phone className="size-3.5" /> {order.contact_phone}
+                      </a>
+                    }
+                  />
+                )}
+                {order.contact_email && (
+                  <Row
+                    label="E-mail"
+                    value={
+                      <a
+                        href={`mailto:${order.contact_email}`}
+                        className="inline-flex items-center gap-1.5 hover:underline"
+                      >
+                        <Mail className="size-3.5" /> {order.contact_email}
+                      </a>
+                    }
+                  />
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Le nom, le téléphone et l&apos;e-mail du client s&apos;affichent ici quand
+                il a payé.
+              </p>
             )}
-            {order.contact_email && (
-              <Row
-                label="E-mail"
-                value={
-                  <a
-                    href={`mailto:${order.contact_email}`}
-                    className="inline-flex items-center gap-1.5 hover:underline"
-                  >
-                    <Mail className="size-3.5" /> {order.contact_email}
-                  </a>
-                }
-              />
-            )}
+          </Section>
+
+          <Section title="Livraison">
             <Row
               label="Mode"
               value={DELIVERY_METHOD_LABELS[order.delivery_method]}
             />
+            {order.delivery_address && (
+              <Row label="Adresse" value={order.delivery_address} />
+            )}
             {order.delivery_city && (
               <Row label="Ville" value={order.delivery_city} />
             )}
+            {order.delivery_country && (
+              <Row label="Pays" value={order.delivery_country} />
+            )}
           </Section>
+          </>
+          )}
 
           {order.notes && (
             <Section title="Note du client">
@@ -154,9 +186,9 @@ export function OrderDetailSheet({
               value={
                 order.delivery_fee > 0
                   ? formatPrice(order.delivery_fee)
-                  : order.delivery_method === "home"
-                    ? "Offerte"
-                    : "Gratuit"
+                  : order.delivery_method === "pickup" || order.is_quote
+                    ? "Gratuite"
+                    : "Selon votre fiche"
               }
             />
             <div className="bg-border my-2 h-px" />

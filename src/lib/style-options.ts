@@ -1,5 +1,6 @@
 import type { BoubouDetailIconName } from "@/components/order/boubou-detail-icons";
 import type { StyleIconName } from "@/components/order/style-icons";
+import { formatPrice } from "@/lib/constants";
 import type { GarmentModel } from "@/lib/types";
 
 // Garment personalisation shown in the configurator "Style" step, modelled on
@@ -24,15 +25,15 @@ import type { GarmentModel } from "@/lib/types";
  *  · `art`   — une planche dédiée, dessinée pour CE détail-là
  *    (`boubou-detail-icons.tsx`), quand le vêtement se choisit finition par
  *    finition et qu'aucune composition paramétrique ne suffit ;
- *  · `photo` — un visuel de planche fourni par l'atelier (`/public`), qui
- *    remplace le dessin quand il existe.
+ *  · `photo` — une vraie photo : la planche d'un modèle JALOFA (`/public`), ou
+ *    celle qu'un tailleur a publiée avec son modèle (avec son éventuel `extra`).
  */
 export type StyleGroupOption =
-  | { slug: string; name: string; icon: StyleIconName; art?: never; photo?: never }
-  | { slug: string; name: string; art: BoubouDetailIconName; icon?: never; photo?: never }
-  // `photo` est un chemin absolu dans `/public` — le type le dit, ce qui permet
-  // aussi de distinguer les trois variantes par simple test de vérité.
-  | { slug: string; name: string; photo: `/${string}`; icon?: never; art?: never };
+  | { slug: string; name: string; icon: StyleIconName; art?: never; photo?: never; extra?: never }
+  | { slug: string; name: string; art: BoubouDetailIconName; icon?: never; photo?: never; extra?: never }
+  // Un chemin ou une URL n'est jamais vide — le type le dit, ce qui permet de
+  // distinguer les trois variantes par simple test de vérité.
+  | { slug: string; name: string; photo: `${string}/${string}`; extra?: number; icon?: never; art?: never };
 
 export type StyleGroup = {
   slug: string;
@@ -773,8 +774,28 @@ export function garmentStyleKey(model: GarmentModel | null | undefined): string 
   return BY_KEYWORD.find(([re]) => re.test(haystack))?.[1] ?? null;
 }
 
-/** The groups offered for one garment. Unknown garment → generic finishings. */
+/**
+ * Les détails qu'un tailleur a publiés avec son modèle. Seuls les choix qui ont
+ * leur photo sont proposés.
+ */
+function tailorStyleGroups(model: GarmentModel): StyleGroup[] {
+  return (model.style_groups ?? []).flatMap((group) => {
+    const options = group.options.flatMap((o): StyleGroupOption[] =>
+      o.photo
+        ? [{ slug: o.slug, name: o.name, photo: o.photo as `${string}/${string}`, extra: o.extra }]
+        : [],
+    );
+    return options.length > 0 ? [{ slug: group.slug, name: group.name, options }] : [];
+  });
+}
+
+/**
+ * The groups offered for one garment. Un modèle de tailleur n'a que les détails
+ * que son tailleur a publiés : on ne lui invente jamais de col ou de manches.
+ * Catalogue JALOFA : unknown garment → generic finishings.
+ */
 export function styleGroupsFor(model: GarmentModel | null | undefined): StyleGroup[] {
+  if (model?.tailor_id) return tailorStyleGroups(model);
   const key = garmentStyleKey(model);
   if (!key) return FALLBACK_GROUPS;
   return STYLE_GROUPS_BY_SLUG[key] ?? FALLBACK_GROUPS;
@@ -795,9 +816,24 @@ export function styleDetailDefaults(
 export function styleDetailSummary(
   model: GarmentModel | null | undefined,
   details: Record<string, string>,
-): { group: string; option: string }[] {
+): { group: string; option: string; photo?: string }[] {
   return styleGroupsFor(model).flatMap((g) => {
     const opt = g.options.find((o) => o.slug === details[g.slug]);
-    return opt ? [{ group: g.name, option: opt.name }] : [];
+    if (!opt) return [];
+    // Le supplément reste dans le texte : c'est lui que lit le tailleur dans la
+    // demande de devis.
+    const option = opt.extra ? `${opt.name} (+${formatPrice(opt.extra)})` : opt.name;
+    return [{ group: g.name, option, photo: opt.photo }];
   });
+}
+
+/** Le total des suppléments des choix retenus sur un modèle de tailleur. */
+export function styleExtraTotal(
+  model: GarmentModel | null | undefined,
+  details: Record<string, string>,
+): number {
+  return styleGroupsFor(model).reduce(
+    (sum, g) => sum + (g.options.find((o) => o.slug === details[g.slug])?.extra ?? 0),
+    0,
+  );
 }

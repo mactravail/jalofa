@@ -36,9 +36,12 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 export function OrderTimeline({
   status,
   history,
+  timeline = ORDER_TIMELINE,
 }: {
   status: OrderStatus;
   history: OrderStatusHistory[];
+  /** Les étapes propres à cette commande (cf. `timelineFor`). */
+  timeline?: OrderStatus[];
 }) {
   if (status === "rejected" || status === "cancelled") {
     return (
@@ -48,14 +51,14 @@ export function OrderTimeline({
     );
   }
 
-  const currentIndex = ORDER_TIMELINE.indexOf(status);
+  const currentIndex = timeline.indexOf(status);
   const timeByStatus = new Map(
     history.map((h) => [h.status, h.created_at]),
   );
 
   return (
     <ol className="relative ml-3 space-y-6 border-l pl-6">
-      {ORDER_TIMELINE.map((s, i) => {
+      {timeline.map((s, i) => {
         const done = i <= currentIndex;
         const isCurrent = i === currentIndex;
         const at = timeByStatus.get(s);

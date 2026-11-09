@@ -1,28 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Ruler, Store, Truck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { type AsIsPreset } from "@/components/catalog/garment-as-is";
 import { GarmentBuyBox } from "@/components/catalog/garment-buy-box";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
-import { GarmentReviews } from "@/components/catalog/garment-reviews";
+import {
+  GarmentDetails,
+  GarmentFooter,
+  GarmentHeading,
+} from "@/components/catalog/garment-summary";
 import { GarmentTypeSwitcher } from "@/components/catalog/garment-type-switcher";
 import { DemoBanner } from "@/components/demo-banner";
-import { Badge } from "@/components/ui/badge";
 import {
+  BOUBOU_AS_IS_DETAILS,
   BOUBOU_BASE_PRICE,
-  BOUBOU_DETAIL_DEFAULTS,
   BOUBOU_FABRIC_METERS,
   boubouDetailSummary,
   boubouOptionsSurcharge,
-  type BoubouDetails,
 } from "@/lib/boubou-options";
 import { modelPhotos } from "@/lib/constants";
-import { getFabrics, getModelBySlug, getTailorById, getTailors } from "@/lib/data";
+import {
+  getFabrics,
+  getModelBySlug,
+  getModelReviews,
+  getTailorById,
+  getTailors,
+} from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { GRAND_BOUBOU_TYPES } from "@/lib/garment-routes";
-import { garmentSocialProof } from "@/lib/garment-social-proof";
+import { getRelatedGarments } from "@/lib/related-models";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -39,23 +47,8 @@ export const metadata: Metadata = {
 // règle « un configurateur = un vêtement »).
 const BOUBOU_SLUG = "grand-boubou";
 
-// La configuration figée du modèle de référence : les coupes par défaut de
-// l'atelier, mais avec la broderie visible sur la photo (sfifa riche sur le
-// boubou, col brodé sur le kaftan). C'est ce que le client accepte « tel quel »
-// pour CE type précis — les autres types de la famille n'ont pas cette
-// tarification bespoke en trois pièces et retombent sur le calcul générique.
-const AS_IS_DETAILS: BoubouDetails = {
-  boubou: { ...BOUBOU_DETAIL_DEFAULTS.boubou, broderie: "riche" },
-  interieur: { ...BOUBOU_DETAIL_DEFAULTS.interieur, broderie: "col" },
-  pantalon: { ...BOUBOU_DETAIL_DEFAULTS.pantalon },
-};
-
-const DIFFICULTY_LABEL: Record<string, string> = {
-  facile: "Facile",
-  moyen: "Intermédiaire",
-  difficile: "Avancé",
-};
-
+// Seul le grand boubou a la tarification bespoke en trois pièces : les autres
+// types de la famille retombent sur le calcul générique.
 function presetFor(
   model: GarmentModel,
   fabrics: Fabric[],
@@ -67,10 +60,10 @@ function presetFor(
 
   if (model.slug === BOUBOU_SLUG) {
     const fabricPrice = (fabric?.price_per_meter ?? 0) * BOUBOU_FABRIC_METERS;
-    const tailoringPrice = BOUBOU_BASE_PRICE + boubouOptionsSurcharge(AS_IS_DETAILS);
+    const tailoringPrice = BOUBOU_BASE_PRICE + boubouOptionsSurcharge(BOUBOU_AS_IS_DETAILS);
     const notesSpec = [
       "Grand boubou pris tel quel (modèle présenté).",
-      ...boubouDetailSummary(AS_IS_DETAILS).map((d) => `${d.group} : ${d.option}`),
+      ...boubouDetailSummary(BOUBOU_AS_IS_DETAILS).map((d) => `${d.group} : ${d.option}`),
     ].join("\n");
     return {
       type: "full",
@@ -142,12 +135,17 @@ export default async function GrandBoubouPage({
     fromPrice: presets[i].total,
   }));
 
-  // Les avis de CE type précis : ils suivent le switcher, comme le reste de la
-  // page. L'auteur du modèle passe en tête des ateliers cités.
-  const reviewTailors = author
-    ? [author, ...tailors.filter((t) => t.id !== author.id)]
-    : tailors;
-  const proof = garmentSocialProof(model, reviewTailors);
+  // Les avis de CE type précis et les modèles proches : ils suivent le switcher,
+  // comme le reste de la page. Les autres types sont déjà dans le switcher.
+  const [reviews, related] = await Promise.all([
+    getModelReviews(model.id),
+    getRelatedGarments({
+      model,
+      excludeIds: models.map((m) => m.id),
+      fabric: fabrics.find((f) => f.id === GENERIC_AS_IS_FABRIC_ID) ?? fabrics[0] ?? null,
+      tailor: tailors[0] ?? null,
+    }),
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -181,46 +179,13 @@ export default async function GrandBoubouPage({
         />
 
         <div>
-          <p className="text-primary text-xs font-medium tracking-wide uppercase">
-            Homme · Tenue traditionnelle
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">{model.name}</h1>
-          <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-3 text-sm">
-            <span className="flex items-center gap-1.5">
-              <Clock className="size-4" /> ~{model.avg_days} jours de confection
-            </span>
-            {model.slug === BOUBOU_SLUG ? (
-              <Badge variant="outline">3 pièces</Badge>
-            ) : (
-              model.difficulty && (
-                <Badge variant="outline">
-                  {DIFFICULTY_LABEL[model.difficulty] ?? model.difficulty}
-                </Badge>
-              )
-            )}
-          </div>
-
-          {author && (
-            <Link
-              href={`/tailleurs/${author.id}`}
-              className="bg-muted/50 hover:bg-muted mt-4 flex items-center gap-3 rounded-xl border p-3 transition-colors"
-            >
-              <Store className="text-primary size-5 shrink-0" />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">
-                  Création de {author.shop_name}
-                </span>
-                <span className="text-muted-foreground block text-xs">
-                  Ce modèle est confectionné par son créateur
-                  {author.city ? ` · ${author.city}` : ""}
-                </span>
-              </span>
-            </Link>
-          )}
-
-          {model.description && (
-            <p className="text-muted-foreground mt-4">{model.description}</p>
-          )}
+          <GarmentHeading
+            model={model}
+            author={author}
+            reviews={reviews}
+            eyebrow="Homme · Tenue traditionnelle"
+            badge={model.slug === BOUBOU_SLUG ? "3 pièces" : undefined}
+          />
 
           {/* Deux chemins pour ce type précis. */}
           <div className="mt-6">
@@ -234,27 +199,11 @@ export default async function GrandBoubouPage({
             />
           </div>
 
-          <div className="text-muted-foreground mt-6 space-y-1.5 border-t pt-4 text-sm">
-            <p className="flex items-center gap-2">
-              <Ruler className="size-4" /> Tailles standard XS → XXXL, ajustées par le
-              tailleur.
-            </p>
-            <p className="flex items-center gap-2">
-              <Truck className="size-4" /> Livraison à domicile · paiement à la caisse.
-            </p>
-          </div>
+          <GarmentDetails model={model} />
         </div>
       </div>
 
-      {/* Les avis, juste sous la fiche — là où on les cherche. */}
-      <div className="mt-16 border-t pt-12">
-        <GarmentReviews
-          proof={proof}
-          garmentName={model.name}
-          storageKey={model.slug ?? model.id}
-          tailors={reviewTailors}
-        />
-      </div>
+      <GarmentFooter reviews={reviews} related={related} />
     </div>
   );
 }

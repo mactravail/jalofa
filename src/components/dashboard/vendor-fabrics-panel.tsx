@@ -22,10 +22,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/constants";
-import { deleteFabric } from "@/lib/actions/fabrics";
+import { deleteFabric, setFabricInStock } from "@/lib/actions/fabrics";
+import { isFabricAvailable } from "@/lib/fabric-metrage";
 import type { Fabric, FabricCategory } from "@/lib/types";
-
-const LOW_STOCK_THRESHOLD = 20; // metres
+import { cn } from "@/lib/utils";
 
 // Selling cloth is the vendor's whole shop, but only a sideline for a tailor —
 // who lands here with nothing listed and no reason to guess why the panel is
@@ -55,6 +55,23 @@ export function VendorFabricsPanel({
   const [editing, setEditing] = useState<Fabric | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Fabric | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  const [stockChangingId, setStockChangingId] = useState<string | null>(null);
+  const [, startStockChange] = useTransition();
+
+  function toggleStock(fabric: Fabric) {
+    const next = !isFabricAvailable(fabric);
+    setStockChangingId(fabric.id);
+    startStockChange(async () => {
+      try {
+        await setFabricInStock(fabric.id, next);
+        toast.success(next ? "Tissu disponible." : "Tissu marqué épuisé.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur, réessayez.");
+      } finally {
+        setStockChangingId(null);
+      }
+    });
+  }
 
   function openNew() {
     setEditing(null);
@@ -109,6 +126,12 @@ export function VendorFabricsPanel({
         </Button>
       </div>
 
+      {fabrics.length > 0 && (
+        <p className="text-muted-foreground mb-3 text-sm">
+          Un tissu fini ? Touchez « Disponible » pour le marquer « Épuisé ».
+        </p>
+      )}
+
       {fabrics.length === 0 ? (
         <button
           type="button"
@@ -131,7 +154,7 @@ export function VendorFabricsPanel({
       ) : (
         <div className="divide-y rounded-xl border">
           {fabrics.map((fabric) => {
-            const low = fabric.stock_meters < LOW_STOCK_THRESHOLD;
+            const available = isFabricAvailable(fabric);
             return (
               <div key={fabric.id} className="flex items-center gap-4 p-3">
                 <div className="bg-muted size-12 shrink-0 overflow-hidden rounded-lg">
@@ -167,18 +190,23 @@ export function VendorFabricsPanel({
                   <p className="text-muted-foreground text-xs">le mètre</p>
                 </div>
 
-                <div className="w-20 text-right">
-                  {low ? (
-                    <Badge className="border-0 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                      {fabric.stock_meters} m
-                    </Badge>
-                  ) : (
-                    <span className="text-sm font-medium">
-                      {fabric.stock_meters} m
-                    </span>
+                <Button
+                  size="sm"
+                  onClick={() => toggleStock(fabric)}
+                  disabled={stockChangingId === fabric.id}
+                  aria-pressed={available}
+                  className={cn(
+                    "shrink-0 text-white",
+                    available
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-red-600 hover:bg-red-700",
                   )}
-                  <p className="text-muted-foreground text-xs">en stock</p>
-                </div>
+                >
+                  {stockChangingId === fabric.id && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  {available ? "Disponible" : "Épuisé"}
+                </Button>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger

@@ -34,6 +34,39 @@ function avgDays(value: FormDataEntryValue | null): number {
 }
 
 /**
+ * Enregistre l'adresse privée de l'atelier du tailleur connecté : c'est là que
+ * les vendeurs envoient les tissus achetés par ses clients.
+ */
+export async function saveTailorAtelier(
+  _prev: TailorProfileState,
+  formData: FormData,
+): Promise<TailorProfileState> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+
+  const address = text(formData.get("atelier_address"));
+  const phone = text(formData.get("atelier_phone"));
+  if (!address) return { ok: false, error: "Indiquez l'adresse de votre atelier." };
+  if (!phone) return { ok: false, error: "Indiquez le téléphone de votre atelier." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Vous devez être connecté." };
+
+  const { error } = await supabase.from("tailor_ateliers").upsert({
+    tailor_id: user.id,
+    address,
+    phone,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/tailleur/espace", "layout");
+  return { ok: true };
+}
+
+/**
  * Enregistre le profil public de la boutique du tailleur connecté.
  *
  * La ligne `tailors` existe déjà (créée à l'inscription) ; on met simplement à
@@ -85,7 +118,6 @@ export async function saveTailorProfile(
       city: text(formData.get("city")),
       base_price: price(formData.get("base_price")),
       avg_delivery_days: avgDays(formData.get("avg_delivery_days")),
-      free_delivery: formData.get("free_delivery") === "on",
       cover_url,
       is_active: formData.get("is_active") === "on",
     })

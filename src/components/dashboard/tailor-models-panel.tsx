@@ -34,7 +34,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteModel, setModelPublished } from "@/lib/actions/models";
-import type { GarmentModel, ModelCategory } from "@/lib/types";
+import type {
+  Fabric,
+  FabricCategory,
+  GarmentModel,
+  ModelCategory,
+  TailorAtelier,
+} from "@/lib/types";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -51,11 +57,27 @@ export function TailorModelsPanel({
   models,
   suggestions,
   categories,
+  fabrics,
+  fabricCategories,
+  fabricLinks,
+  atelier,
 }: {
   models: GarmentModel[];
   suggestions: GarmentModel[];
   categories: ModelCategory[];
+  /** Les tissus du tailleur, y compris ceux en brouillon. */
+  fabrics: Fabric[];
+  fabricCategories: FabricCategory[];
+  /** Les tissus cochés pour chaque modèle. */
+  fabricLinks: Record<string, string[]>;
+  atelier: TailorAtelier | null;
 }) {
+  const activeFabricIds = new Set(fabrics.filter((f) => f.is_active).map((f) => f.id));
+  const lacksFabric = (model: GarmentModel) =>
+    !(fabricLinks[model.id] ?? []).some((id) => activeFabricIds.has(id));
+  const needsSetup =
+    !atelier || models.some((m) => m.is_active && lacksFabric(m));
+
   const [pickerOpen, setPickerOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<GarmentModel | null>(null);
@@ -184,6 +206,14 @@ export function TailorModelsPanel({
         </Button>
       </div>
 
+      {models.length > 0 && needsSetup && (
+        <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          {!atelier
+            ? "Indiquez l'adresse de votre atelier : les vendeurs y envoient les tissus de vos clients. Touchez « Modifier » sur un modèle."
+            : "Certains modèles n'ont pas de tissu. Sans tissu, le client ne peut pas les acheter « Tel quel ». Touchez « Modifier » pour en ajouter."}
+        </p>
+      )}
+
       {models.length === 0 ? (
         <button
           type="button"
@@ -225,6 +255,11 @@ export function TailorModelsPanel({
                   {!model.is_active && (
                     <Badge className="bg-muted text-muted-foreground border-0">
                       Brouillon
+                    </Badge>
+                  )}
+                  {lacksFabric(model) && (
+                    <Badge className="border-0 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                      Sans tissu
                     </Badge>
                   )}
                 </div>
@@ -310,6 +345,10 @@ export function TailorModelsPanel({
         model={editing}
         suggestion={suggestion}
         categories={categories}
+        fabrics={fabrics}
+        fabricCategories={fabricCategories}
+        linkedFabricIds={editing ? (fabricLinks[editing.id] ?? []) : []}
+        atelier={atelier}
       />
 
       <Dialog

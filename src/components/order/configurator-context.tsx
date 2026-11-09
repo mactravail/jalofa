@@ -15,15 +15,17 @@ import {
   Ruler,
   Sparkles,
   Store,
+  User,
 } from "lucide-react";
 
 import type { CartMeasurement, NewCartItem } from "@/components/cart/cart-context";
+import { bodyTypeLabel, heightBandLabel, type BodyType } from "@/lib/body-types";
 import { MEASUREMENT_FIELDS, type MeasurementMode, type OrderType } from "@/lib/constants";
 import { DEFAULT_METRAGE, metrageFor } from "@/lib/fabric-metrage";
 import { computePrice, type PriceBreakdown } from "@/lib/pricing";
-import { styleDetailDefaults, styleDetailSummary } from "@/lib/style-options";
+import { styleDetailDefaults, styleDetailSummary, styleExtraTotal } from "@/lib/style-options";
 import type { StyleRef } from "@/lib/style-refs";
-import type { Fabric, GarmentModel, Style, Tailor } from "@/lib/types";
+import type { Fabric, GarmentModel, HeightBand, Style, Tailor } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Catalogue data injected by the (server) layout.
@@ -64,6 +66,7 @@ export type ConfiguratorData = {
 
 export type StepKey =
   | "style"
+  | "body"
   | "meters"
   | "tailor"
   | "measurements"
@@ -73,6 +76,7 @@ export const BASE_PATH = "/commande/nouvelle";
 
 export const STEP_LABELS: Record<StepKey, string> = {
   style: "Style",
+  body: "Silhouette",
   meters: "Quantité",
   tailor: "Tailleur",
   measurements: "Mesures",
@@ -81,8 +85,9 @@ export const STEP_LABELS: Record<StepKey, string> = {
 
 /** Ce qu'on demande à l'étape, en une phrase — affiché sous le titre. */
 export const STEP_HELP: Record<StepKey, string> = {
-  style: "Choisissez l'occasion, puis la coupe et les finitions.",
-  meters: "Combien de tissu faut-il couper pour votre tenue ?",
+  style: "Choisissez la coupe et les finitions.",
+  body: "Touchez le corps qui vous ressemble, puis indiquez votre taille.",
+  meters:"Combien de tissu faut-il couper pour votre tenue ?",
   tailor: "L'atelier qui va coudre votre tenue.",
   measurements: "Une taille standard suffit — les mesures détaillées affinent la coupe.",
   review: "Vérifiez votre tenue avant de l'ajouter au panier.",
@@ -93,7 +98,8 @@ export const STEP_HELP: Record<StepKey, string> = {
  * bouton grisé ne dit pas ce qu'on attend du client.
  */
 export const STEP_REQUIREMENT: Record<StepKey, string | null> = {
-  style: "Choisissez une occasion pour continuer",
+  style: null,
+  body: "Choisissez votre silhouette et votre taille pour continuer",
   meters: null,
   tailor: "Choisissez un tailleur pour continuer",
   measurements: "Renseignez au moins une mesure pour continuer",
@@ -102,6 +108,7 @@ export const STEP_REQUIREMENT: Record<StepKey, string | null> = {
 
 export const STEP_ICONS: Record<StepKey, React.ComponentType<{ className?: string }>> = {
   style: Sparkles,
+  body: User,
   meters: Ruler,
   tailor: Store,
   measurements: PersonStanding,
@@ -111,6 +118,7 @@ export const STEP_ICONS: Record<StepKey, React.ComponentType<{ className?: strin
 /** StepKey → URL slug (French, matches the folder names under {BASE_PATH}). */
 export const SLUG_BY_STEP: Record<StepKey, string> = {
   style: "style",
+  body: "silhouette",
   meters: "quantite",
   tailor: "tailleur",
   measurements: "mesures",
@@ -122,7 +130,9 @@ export const STEP_BY_SLUG: Record<string, StepKey> = Object.fromEntries(
 ) as Record<string, StepKey>;
 
 export const STEPS_BY_TYPE: Record<OrderType, StepKey[]> = {
-  full: ["style", "meters", "tailor", "measurements", "review"],
+  // La silhouette précède la quantité, qu'elle détermine : sans tissu à couper
+  // (`own_fabric`, `fabric_only` sans vêtement), elle n'a pas lieu d'être.
+  full: ["style", "body", "meters", "tailor", "measurements", "review"],
   fabric_only: ["meters", "review"],
   own_fabric: ["style", "tailor", "measurements", "review"],
 };
@@ -156,24 +166,41 @@ export type ConfiguratorState = {
   styleDetails: Record<string, string>;
   /** Photos d'inspiration jointes par le client (max MAX_STYLE_REFS). */
   styleRefs: StyleRef[];
+  /** Le corps désigné par le client. Avec sa taille, il décide du métrage conseillé. */
+  bodyType: BodyType | null;
+  /** La taille estimée du client, sans lien avec son corps. */
+  heightBand: HeightBand | null;
   fabricId: string | null;
   /**
    * Métrage de tissu. Posé dès l'amorçage au métrage que l'atelier taille pour
    * ce vêtement (`metrageFor`) — un grand boubou n'a jamais tenu dans les 3 m
-   * du brouillon vierge —, puis arbitré par le client à l'étape Quantité.
+   * du brouillon vierge —, recalé sur la personne en arrivant à l'étape Quantité,
+   * où le client l'arbitre.
    */
   fabricMeters: number;
+  /**
+   * Le corps et la taille sur lesquels `fabricMeters` a été recalé. Revenir à
+   * Quantité sans en changer ne doit pas écraser un métrage ajusté à la main.
+   */
+  metersPersonKey: string | null;
   tailorId: string | null;
   measurementMode: MeasurementMode;
   standardSize: string;
   manual: Record<string, string>;
   notes: string;
+  /** Le tailleur les voit dès le devis, pour le prix de la livraison. */
+  deliveryAddress: string;
+  deliveryCity: string;
+  deliveryCountry: string;
   /** Coordonnées saisies au récap (cf. `ConfiguratorData.contactMode`). */
   contactName: string;
   contactPhone: string;
   contactEmail: string;
   /** Jamais écrit dans le brouillon (sessionStorage) — cf. la persistance. */
   contactPassword: string;
+  contactPasswordConfirm: string;
+  /** Un accord se donne à chaque fois : pas gardé dans le brouillon non plus. */
+  contactAcceptTerms: boolean;
 };
 
 function defaultState(): ConfiguratorState {
@@ -183,17 +210,25 @@ function defaultState(): ConfiguratorState {
     styleSlug: null,
     styleDetails: styleDetailDefaults(null),
     styleRefs: [],
+    bodyType: null,
+    heightBand: null,
     fabricId: null,
     fabricMeters: DEFAULT_METRAGE.recommended,
+    metersPersonKey: null,
     tailorId: null,
     measurementMode: "standard",
     standardSize: "M",
     manual: {},
     notes: "",
+    deliveryAddress: "",
+    deliveryCity: "",
+    deliveryCountry: "Sénégal",
     contactName: "",
     contactPhone: "",
     contactEmail: "",
     contactPassword: "",
+    contactPasswordConfirm: "",
+    contactAcceptTerms: false,
   };
 }
 
@@ -211,8 +246,8 @@ export type ConfiguratorSeed = {
 
 export function stepCanProceed(step: StepKey, s: ConfiguratorState): boolean {
   switch (step) {
-    case "style":
-      return Boolean(s.styleSlug);
+    case "body":
+      return Boolean(s.bodyType && s.heightBand);
     case "meters":
       return s.fabricMeters > 0;
     case "tailor":
@@ -224,6 +259,29 @@ export function stepCanProceed(step: StepKey, s: ConfiguratorState): boolean {
     default:
       return true;
   }
+}
+
+/**
+ * La note transmise au tailleur : personnalisation, silhouette, taille, puis le
+ * mot du client. Aucun n'a de colonne dédiée.
+ */
+export function tailorNotes(
+  s: ConfiguratorState,
+  personalisationText: string,
+  model: GarmentModel | null,
+): string | null {
+  const body = bodyTypeLabel(s.bodyType);
+  const height = heightBandLabel(model?.category_slug, s.heightBand);
+  return (
+    [
+      personalisationText ? `Personnalisation — ${personalisationText}` : null,
+      body ? `Silhouette — ${body}` : null,
+      height ? `Taille estimée — ${height}` : null,
+      s.notes.trim() || null,
+    ]
+      .filter(Boolean)
+      .join("\n\n") || null
+  );
 }
 
 /**
@@ -249,13 +307,7 @@ export function buildCartItem(
   const personalisationText = personalisation
     .map((d) => `${d.group} : ${d.option}`)
     .join(" · ");
-  const notes =
-    [
-      personalisationText ? `Personnalisation — ${personalisationText}` : null,
-      s.notes.trim() || null,
-    ]
-      .filter(Boolean)
-      .join("\n\n") || null;
+  const notes = tailorNotes(s, personalisationText, model);
 
   const measurement: CartMeasurement | null = isFabricOnly
     ? null
@@ -281,6 +333,9 @@ export function buildCartItem(
             : "Sur mesure";
         })();
 
+  const deliveryZone =
+    (isFabricOnly ? fabric?.delivery_zone : model?.delivery_zone) ?? "none";
+
   return {
     type: s.type,
     modelId: isFabricOnly ? null : s.modelId,
@@ -301,7 +356,9 @@ export function buildCartItem(
       : model?.image_url ?? fabric?.image_url ?? null,
     styleName: isFabricOnly ? null : styleName,
     tailorName: isFabricOnly ? null : tailor?.shop_name ?? null,
-    freeDelivery: isFabricOnly ? false : tailor?.free_delivery ?? false,
+    // Le pro le décide produit par produit (cf. basketHasFreeDelivery).
+    freeDelivery: deliveryZone !== "none",
+    freeDeliveryZone: deliveryZone,
     personalisation,
     measurementLabel,
 
@@ -326,6 +383,8 @@ type ConfiguratorContextValue = {
   fabric: Fabric | null;
   tailor: Tailor | null;
   price: PriceBreakdown;
+  previewPhoto: string | null;
+  setPreviewPhoto: (photo: string | null) => void;
 };
 
 const ConfiguratorContext = createContext<ConfiguratorContextValue | null>(null);
@@ -384,7 +443,12 @@ export function ConfiguratorProvider({
         // Le mot de passe ne quitte jamais la mémoire de la page.
         sessionStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ ...state, contactPassword: "" }),
+          JSON.stringify({
+            ...state,
+            contactPassword: "",
+            contactPasswordConfirm: "",
+            contactAcceptTerms: false,
+          }),
         );
       } catch {
         // Private mode / quota — the draft just stays in memory.
@@ -438,19 +502,26 @@ export function ConfiguratorProvider({
     [data.tailors, state.tailorId],
   );
 
+  // La photo du dernier choix touché, montrée en grand à l'étape Style.
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+
   // Delivery is priced once at the caisse, not per garment — exclude it here.
-  const price = useMemo(
-    () =>
-      computePrice({
-        type: state.type,
-        fabric,
-        fabricMeters: state.fabricMeters,
-        tailor,
-        model,
-        deliveryMethod: "pickup",
-      }),
-    [state.type, state.fabricMeters, fabric, tailor, model],
-  );
+  // Les suppléments du tailleur s'ajoutent à la confection, en direct.
+  const price = useMemo(() => {
+    const base = computePrice({
+      type: state.type,
+      fabric,
+      fabricMeters: state.fabricMeters,
+      tailor,
+      model,
+    });
+    const extra = state.type === "fabric_only" ? 0 : styleExtraTotal(model, state.styleDetails);
+    return {
+      ...base,
+      tailoringPrice: base.tailoringPrice + extra,
+      total: base.total + extra,
+    };
+  }, [state.type, state.fabricMeters, state.styleDetails, fabric, tailor, model]);
 
   const value = useMemo<ConfiguratorContextValue>(
     () => ({
@@ -463,8 +534,10 @@ export function ConfiguratorProvider({
       fabric,
       tailor,
       price,
+      previewPhoto,
+      setPreviewPhoto,
     }),
-    [data, state, update, seed, model, fabric, tailor, price],
+    [data, state, update, seed, model, fabric, tailor, price, previewPhoto],
   );
 
   return (

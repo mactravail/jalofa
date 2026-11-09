@@ -147,8 +147,8 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
       ],
     },
     {
-      // Le tailleur vend ses créations, le vendeur ses tissus : un métier ne
-      // déborde jamais sur l'autre.
+      // Le tailleur vend ses modèles et les tissus qu'il a en atelier ; le
+      // vendeur vend ses tissus.
       label: "Ma boutique",
       items: [
         ...(role === "tailor"
@@ -158,6 +158,12 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 href: `${root}/creations`,
                 label: "Mes modèles",
                 icon: Shirt,
+              },
+              {
+                id: "fabrics" as const,
+                href: `${root}/tissus`,
+                label: "Mes tissus",
+                icon: Layers,
               },
             ]
           : [

@@ -34,6 +34,7 @@ import {
   STEP_REQUIREMENT,
   stepCanProceed,
   stepUrl,
+  tailorNotes,
   useConfigurator,
   type StepKey,
 } from "@/components/order/configurator-context";
@@ -74,13 +75,12 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     const personalisationText = personalisation
       .map((d) => `${d.group} : ${d.option}`)
       .join(" · ");
-    const notes =
-      [
-        personalisationText ? `Personnalisation — ${personalisationText}` : null,
-        state.notes.trim() || null,
-      ]
-        .filter(Boolean)
-        .join("\n\n") || null;
+    const notes = tailorNotes(state, personalisationText, model);
+
+    if (!state.deliveryAddress.trim() || !state.deliveryCity.trim()) {
+      toast.error("Indiquez votre adresse de livraison et votre ville.");
+      return;
+    }
 
     const mode = cfg.data.contactMode;
     if (mode && !(state.contactName.trim() && state.contactPhone.trim())) {
@@ -89,6 +89,14 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     }
     if (mode === "account" && !(state.contactEmail.trim() && state.contactPassword)) {
       toast.error("Indiquez votre e-mail et choisissez un mot de passe.");
+      return;
+    }
+    if (mode === "account" && state.contactPassword !== state.contactPasswordConfirm) {
+      toast.error("Les deux mots de passe ne sont pas identiques.");
+      return;
+    }
+    if (mode === "account" && !state.contactAcceptTerms) {
+      toast.error("Acceptez les conditions d'utilisation pour continuer.");
       return;
     }
 
@@ -114,14 +122,22 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
                 )
               : {},
         },
-        city: null,
+        delivery: {
+          address: state.deliveryAddress,
+          city: state.deliveryCity,
+          country: state.deliveryCountry,
+        },
         notes,
         contact: mode
           ? {
               name: state.contactName,
               phone: state.contactPhone,
               ...(mode === "account"
-                ? { email: state.contactEmail, password: state.contactPassword }
+                ? {
+                    email: state.contactEmail,
+                    password: state.contactPassword,
+                    acceptTerms: state.contactAcceptTerms,
+                  }
                 : {}),
             }
           : null,
@@ -183,6 +199,13 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     : boltImage
       ? [boltImage]
       : [];
+
+  // Sur le Style, le choix touché passe en grand : le client voit la vraie
+  // photo du tailleur, puis peut revenir aux photos du modèle.
+  const previewPhoto = step === "style" ? cfg.previewPhoto : null;
+  const galleryPhotos = previewPhoto
+    ? [previewPhoto, ...photos.filter((p) => p !== previewPhoto)]
+    : photos;
 
   // Ce qui est déjà choisi, en une ligne — sur téléphone c'est le seul rappel
   // de la tenue, le grand bandeau photo n'y tient pas.
@@ -413,7 +436,8 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
             </div>
 
             <GarmentGallery
-              photos={photos}
+              key={previewPhoto ?? "model"}
+              photos={galleryPhotos}
               alt={wearsGarment ? model?.name ?? "Votre tenue" : panelTitle}
               emptyLabel={wearsGarment ? undefined : "Sélectionnez pour visualiser"}
               sizes="(max-width: 1024px) 40vw, 45vw"

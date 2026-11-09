@@ -5,7 +5,6 @@ import {
   CreditCard,
   HandCoins,
   Repeat,
-  Truck,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -59,7 +58,7 @@ export default async function AdminFinancePage() {
           icon={Wallet}
           label="Revenus JALOFA"
           value={formatPrice(finance.platformTotal)}
-          hint="Commissions + abonnements + livraison"
+          hint="Commissions + abonnements"
         />
         <StatCard
           icon={Clock}
@@ -84,7 +83,7 @@ export default async function AdminFinancePage() {
           <SourceRow
             icon={HandCoins}
             label="Commissions"
-            hint="5% sur les ventes des pros au plan Gratuit"
+            hint="5% sur les ventes des pros au plan Gratuit, hors livraison"
             value={finance.commission}
             total={finance.platformTotal}
           />
@@ -93,13 +92,6 @@ export default async function AdminFinancePage() {
             label="Abonnements"
             hint="Standard & Premium — 100% JALOFA"
             value={finance.subscriptions}
-            total={finance.platformTotal}
-          />
-          <SourceRow
-            icon={Truck}
-            label="Frais de livraison"
-            hint="Encaissés puis gardés par la plateforme"
-            value={finance.delivery}
             total={finance.platformTotal}
           />
         </CardContent>
@@ -127,13 +119,13 @@ export default async function AdminFinancePage() {
       </h2>
       <p className="text-muted-foreground -mt-2 mb-4 text-sm">
         Où va l’argent payé par les clients : la part des tissus revient aux
-        vendeurs, la confection aux tailleurs, la livraison à JALOFA.
+        vendeurs, la confection aux tailleurs, la livraison à celui qui livre.
       </p>
       <Card>
         <CardContent className="divide-y p-0">
           <BreakdownRow label="Tissus (part vendeurs)" value={finance.fabricRevenue} total={finance.gmv} />
           <BreakdownRow label="Confection (part tailleurs)" value={finance.tailoringRevenue} total={finance.gmv} />
-          <BreakdownRow label="Frais de livraison" value={finance.delivery} total={finance.gmv} />
+          <BreakdownRow label="Livraison (part de celui qui livre)" value={finance.delivery} total={finance.gmv} />
         </CardContent>
       </Card>
 

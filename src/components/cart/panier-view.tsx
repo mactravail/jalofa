@@ -6,7 +6,7 @@ import { Minus, Plus, Scissors, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart, type CartItem } from "@/components/cart/cart-context";
 import { Price } from "@/components/cart/price";
 import { buttonVariants } from "@/components/ui/button";
-import { DELIVERY_FEE, basketHasFreeDelivery } from "@/lib/pricing";
+import { basketHasFreeDelivery } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 export function PanierView() {
@@ -85,21 +85,20 @@ export function PanierView() {
                   )}
                 >
                   {freeDelivery ? (
-                    "Offerte"
+                    "Gratuite"
                   ) : (
-                    <>
-                      dès <Price amount={DELIVERY_FEE} />
-                    </>
+                    "Selon le pro"
                   )}
                 </dd>
               </div>
             </dl>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t pt-4">
-              <span className="font-semibold">Total estimé</span>
+              <span className="font-semibold">Total</span>
               <Price amount={subtotal} className="text-primary ml-auto text-xl font-bold" />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              Frais de livraison calculés à la caisse.
+              JALOFA n&apos;ajoute aucun frais de livraison. Si elle n&apos;est pas gratuite,
+              vous payez directement le GP ou le livreur.
             </p>
 
             <Link

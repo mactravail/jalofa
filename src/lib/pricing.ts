@@ -1,5 +1,10 @@
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 import type { OrderType } from "@/lib/constants";
+import {
+  tailorDeliversFree,
+  type DeliveryDestination,
+  type FreeDeliveryZone,
+} from "@/lib/delivery";
 
 /**
  * Le prix de confection facturé pour un modèle par un tailleur : le `price` de
@@ -17,9 +22,6 @@ export function tailoringPriceFor(
   return tailor.base_price;
 }
 
-/** Flat home-delivery fee, in FCFA. */
-export const DELIVERY_FEE = 2000;
-
 /**
  * Un panier livré à domicile n'est offert que si CHAQUE ligne vient d'un pro qui
  * prend la livraison à sa charge : le tailleur pour une tenue cousue, le vendeur
@@ -29,15 +31,26 @@ export const DELIVERY_FEE = 2000;
  * actions de commande.
  */
 export function basketHasFreeDelivery(
-  items: { type: OrderType; freeDelivery: boolean }[],
+  items: {
+    type: OrderType;
+    freeDelivery: boolean;
+    freeDeliveryZone?: FreeDeliveryZone;
+  }[],
+  destination: DeliveryDestination | null = null,
 ): boolean {
-  return items.length > 0 && items.every((it) => it.freeDelivery);
+  return (
+    items.length > 0 &&
+    items.every((it) =>
+      it.freeDeliveryZone
+        ? tailorDeliversFree(it.freeDeliveryZone, destination)
+        : it.freeDelivery,
+    )
+  );
 }
 
 export type PriceBreakdown = {
   fabricPrice: number;
   tailoringPrice: number;
-  deliveryFee: number;
   total: number;
 };
 
@@ -48,7 +61,6 @@ export function computePrice(input: {
   tailor: Tailor | null;
   /** Le modèle choisi, pour facturer son prix propre chez son auteur. */
   model?: GarmentModel | null;
-  deliveryMethod: "home" | "pickup";
 }): PriceBreakdown {
   const fabricPrice =
     input.type !== "own_fabric" && input.fabric
@@ -60,12 +72,9 @@ export function computePrice(input: {
       ? tailoringPriceFor(input.tailor, input.model ?? null)
       : 0;
 
-  const deliveryFee = input.deliveryMethod === "home" ? DELIVERY_FEE : 0;
-
   return {
     fabricPrice,
     tailoringPrice,
-    deliveryFee,
-    total: fabricPrice + tailoringPrice + deliveryFee,
+    total: fabricPrice + tailoringPrice,
   };
 }

@@ -5,12 +5,14 @@ import { MapPin, PackageOpen } from "lucide-react";
 import { OrderDetailSheet } from "@/components/dashboard/order-detail-sheet";
 import { usePipeline } from "@/components/dashboard/pipeline-store";
 import { OrderStatusBadge } from "@/components/order/order-status";
+import { clientNameOf } from "@/lib/clients";
 import { ORDER_TYPE_LABELS } from "@/lib/constants";
 import type { OrderListItem } from "@/lib/orders-data";
 import {
   deliversToClient,
   groupByCity,
   isTerminal,
+  pipelineType,
   timelineFor,
 } from "@/lib/pipeline";
 
@@ -64,8 +66,8 @@ function CityGroupCard({
   // tête du lot, celles qui se font encore attendent en dessous.
   const sorted = [...orders].sort(
     (a, b) =>
-      timelineFor(b.type).indexOf(b.status) -
-      timelineFor(a.type).indexOf(a.status),
+      timelineFor(pipelineType(b)).indexOf(b.status) -
+      timelineFor(pipelineType(a)).indexOf(a.status),
   );
   const count = sorted.length;
 
@@ -92,12 +94,6 @@ function CityGroupCard({
 function ShippingRow({ order }: { order: OrderListItem }) {
   const title =
     order.model?.name ?? order.fabric?.name ?? ORDER_TYPE_LABELS[order.type];
-  const client =
-    [order.contact_first_name, order.contact_last_name]
-      .filter(Boolean)
-      .join(" ") ||
-    order.client?.full_name ||
-    "Client";
 
   return (
     <OrderDetailSheet order={order}>
@@ -114,15 +110,20 @@ function ShippingRow({ order }: { order: OrderListItem }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-muted-foreground font-mono text-xs">
-            {order.order_number}
+            Code {order.order_number}
           </span>
           <OrderStatusBadge status={order.status} />
         </div>
         <p className="mt-0.5 truncate text-sm font-medium">{title}</p>
-        <p className="text-muted-foreground truncate text-xs">
-          {client}
-          {order.contact_phone ? ` · ${order.contact_phone}` : ""}
-        </p>
+        {order.delivery_address && (
+          <p className="text-muted-foreground truncate text-xs">{order.delivery_address}</p>
+        )}
+        {(order.contact_first_name || order.contact_phone) && (
+          <p className="text-muted-foreground truncate text-xs">
+            {clientNameOf(order)}
+            {order.contact_phone ? ` · ${order.contact_phone}` : ""}
+          </p>
+        )}
       </div>
     </OrderDetailSheet>
   );

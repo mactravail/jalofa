@@ -12,7 +12,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
 import { getFabricById, getFabricReviews, getFabrics, getVendorById } from "@/lib/data";
-import { formatMeters } from "@/lib/fabric-metrage";
+import { formatMeters, isFabricAvailable } from "@/lib/fabric-metrage";
 import { fabricSocialProof } from "@/lib/fabric-social-proof";
 import { AUDIENCE_LABELS, audiencesOf, fabricProfile, pricedUse } from "@/lib/fabric-usage";
 
@@ -124,7 +124,7 @@ export default async function FabricDetailPage({
           uses={uses.map(({ use, meters }) => ({ label: use.label, meters }))}
           vendorName={shop?.shop_name ?? vendor?.shop_name ?? null}
           vendorHref={shop ? `/vendeurs/${shop.id}` : null}
-          vendorFreeDelivery={vendor?.free_delivery ?? false}
+          deliveryZone={fabric.delivery_zone ?? "none"}
           rating={proof.rating}
           reviewCount={proof.reviewCount}
           orders={proof.orders}
@@ -214,7 +214,7 @@ export default async function FabricDetailPage({
             {
               icon: BadgeCheck,
               term: "Disponibilité",
-              desc: `${formatMeters(fabric.stock_meters)} en stock${
+              desc: `${isFabricAvailable(fabric) ? "Disponible" : "Épuisé"}${
                 fabric.color ? ` · ${fabric.color}` : ""
               }`,
             },

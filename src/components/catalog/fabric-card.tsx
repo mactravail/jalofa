@@ -40,6 +40,11 @@ export function FabricCard({
             {fabric.color}
           </Badge>
         )}
+        {fabric.in_stock === false && (
+          <span className="absolute inset-0 grid place-items-center bg-black/60 font-semibold text-white">
+            Épuisé
+          </span>
+        )}
       </div>
       <div className="p-3">
         <h3 className="line-clamp-1 font-medium">{fabric.name}</h3>

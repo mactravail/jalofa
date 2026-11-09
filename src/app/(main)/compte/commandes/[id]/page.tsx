@@ -2,9 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import {
+  AlterationPanel,
+  CancelOrderPanel,
+  FabricReturnPanel,
+} from "@/components/order/after-sale-panels";
+import { ConfirmFabricReceived } from "@/components/order/confirm-fabric-received";
 import { OrderStatusBadge, OrderTimeline } from "@/components/order/order-status";
+import { pipelineType, timelineFor } from "@/lib/pipeline";
 import { QuotePayPanel } from "@/components/order/quote-pay-panel";
 import { ReassignTailorPanel } from "@/components/order/reassign-tailor-panel";
+import { ReviseQuotePanel } from "@/components/order/revise-quote-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DELIVERY_METHOD_LABELS,
@@ -13,8 +21,17 @@ import {
   PAYMENT_STATUS_LABELS,
   formatPrice,
 } from "@/lib/constants";
-import { getTailors } from "@/lib/data";
-import { getOrderDetail } from "@/lib/orders-data";
+import { getFabrics, getTailors } from "@/lib/data";
+import { isFabricAvailable } from "@/lib/fabric-metrage";
+import {
+  canAskAlteration,
+  canCancelOrder,
+  canReturnFabric,
+  cancelDeadline,
+  formatDeadline,
+  returnDeadline,
+} from "@/lib/after-sale";
+import { getFabricReturnAddress, getOrderDetail } from "@/lib/orders-data";
 import { isSupabaseConfigured } from "@/lib/queries";
 
 export default async function OrderTrackingPage({
@@ -32,6 +49,17 @@ export default async function OrderTrackingPage({
     ? (await getTailors()).filter((t) => t.id !== order?.tailor_id)
     : [];
 
+  // Tant que rien n'est payé, le client peut changer sa demande et redemander un
+  // devis. Le tissu n'est à choisir que s'il ne vient pas du client.
+  const canRevise =
+    order?.is_quote && order.status === "received" && order.payment_status === "pending";
+  const revisableFabrics =
+    canRevise && order?.type !== "own_fabric"
+      ? (await getFabrics()).filter(
+          (f) => isFabricAvailable(f) && f.vendor_id,
+        )
+      : [];
+
   if (!order) {
     if (isSupabaseConfigured()) notFound();
     return (
@@ -42,6 +70,11 @@ export default async function OrderTrackingPage({
       </div>
     );
   }
+
+  const cancelEnd = cancelDeadline(order, order.history);
+  const returnEnd = returnDeadline(order, order.history);
+  const returnAddress =
+    order.fabric_return?.status === "requested" ? await getFabricReturnAddress(order) : null;
 
   return (
     <div className="space-y-6">
@@ -75,8 +108,73 @@ export default async function OrderTrackingPage({
       )}
 
       {/* Devis en privé : en attente du prix, ou prêt à accepter et payer. */}
-      {order.is_quote && order.payment_status === "pending" && (
-        <QuotePayPanel orderId={order.id} tailoringPrice={order.tailoring_price} />
+      {canRevise && (
+        <QuotePayPanel
+          orderId={order.id}
+          revision={order.quote_revision ?? 0}
+          tailoringPrice={order.tailoring_price}
+          fabricPrice={order.fabric_price}
+          deliveryFee={order.delivery_fee}
+          totalAmount={order.total_amount}
+          deliveryPlace={[order.delivery_address, order.delivery_city, order.delivery_country]
+            .filter(Boolean)
+            .join(", ")}
+          hasAddress={Boolean(order.delivery_address && order.delivery_city)}
+        />
+      )}
+
+      {canRevise && (
+        <ReviseQuotePanel
+          orderId={order.id}
+          fabrics={revisableFabrics}
+          tailorId={order.tailor_id}
+          tailorName={order.tailor?.shop_name ?? null}
+          fabricId={order.fabric_id}
+          fabricMeters={order.fabric_meters}
+          address={order.delivery_address}
+          city={order.delivery_city}
+          country={order.delivery_country}
+          notes={order.notes}
+          ownFabric={order.type === "own_fabric"}
+          hasPrice={order.tailoring_price > 0}
+        />
+      )}
+
+      {order.type === "fabric_only" && order.status === "fabric_shipped" && (
+        <ConfirmFabricReceived orderId={order.id} />
+      )}
+
+      {canCancelOrder(order, order.history) && (
+        <CancelOrderPanel
+          orderId={order.id}
+          paid={order.payment_status === "paid"}
+          deadlineLabel={
+            order.status !== "rejected" && cancelEnd !== null ? formatDeadline(cancelEnd) : null
+          }
+        />
+      )}
+
+      {(order.fabric_return || canReturnFabric(order, order.history)) && (
+        <FabricReturnPanel
+          orderId={order.id}
+          status={order.fabric_return?.status ?? null}
+          deadlineLabel={returnEnd !== null ? formatDeadline(returnEnd) : null}
+          returnAddress={returnAddress}
+        />
+      )}
+
+      {order.type !== "fabric_only" &&
+        order.status === "delivered" &&
+        order.payment_status === "paid" && (
+          <AlterationPanel
+            orderId={order.id}
+            canAsk={canAskAlteration(order)}
+            alterations={order.alterations ?? []}
+          />
+        )}
+
+      {order.payment_status === "refunded" && (
+        <p className="rounded-xl border p-4 font-semibold">Vous avez été remboursé.</p>
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -85,7 +183,11 @@ export default async function OrderTrackingPage({
             <CardTitle className="text-base">Suivi</CardTitle>
           </CardHeader>
           <CardContent>
-            <OrderTimeline status={order.status} history={order.history} />
+            <OrderTimeline
+              status={order.status}
+              history={order.history}
+              timeline={timelineFor(pipelineType(order))}
+            />
           </CardContent>
         </Card>
 
@@ -105,28 +207,34 @@ export default async function OrderTrackingPage({
               label="Livraison"
               value={DELIVERY_METHOD_LABELS[order.delivery_method]}
             />
-            <div className="my-3 h-px bg-border" />
-            {order.fabric_price > 0 && (
-              <Row label="Tissu" value={formatPrice(order.fabric_price)} />
+            {order.delivery_city && <Row label="Ville" value={order.delivery_city} />}
+            {/* Sans prix du tailleur, il n'y a pas encore de montant à annoncer. */}
+            {!(canRevise && order.tailoring_price <= 0) && (
+              <>
+                <div className="my-3 h-px bg-border" />
+                {order.fabric_price > 0 && (
+                  <Row label="Tissu" value={formatPrice(order.fabric_price)} />
+                )}
+                {order.tailoring_price > 0 && (
+                  <Row label="Tailleur" value={formatPrice(order.tailoring_price)} />
+                )}
+                <Row
+                  label="Livraison"
+                  value={
+                    order.delivery_fee > 0
+                      ? formatPrice(order.delivery_fee)
+                      : order.delivery_method === "pickup" || order.is_quote
+                        ? "Gratuite"
+                        : "Selon le pro"
+                  }
+                />
+                <div className="my-3 h-px bg-border" />
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Total</span>
+                  <span className="text-primary">{formatPrice(order.total_amount)}</span>
+                </div>
+              </>
             )}
-            {order.tailoring_price > 0 && (
-              <Row label="Confection" value={formatPrice(order.tailoring_price)} />
-            )}
-            <Row
-              label="Livraison"
-              value={
-                order.delivery_fee > 0
-                  ? formatPrice(order.delivery_fee)
-                  : order.delivery_method === "home"
-                    ? "Offerte"
-                    : "Gratuit"
-              }
-            />
-            <div className="my-3 h-px bg-border" />
-            <div className="flex items-center justify-between font-semibold">
-              <span>Total</span>
-              <span className="text-primary">{formatPrice(order.total_amount)}</span>
-            </div>
             <Row
               label="Paiement"
               value={`${order.payment_method ? PAYMENT_METHOD_LABELS[order.payment_method] : "—"} · ${PAYMENT_STATUS_LABELS[order.payment_status]}`}

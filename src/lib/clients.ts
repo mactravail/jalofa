@@ -8,7 +8,8 @@ import { amountFor } from "@/lib/pipeline";
  * La plateforme n'a pas de fichier clients à part : ce sont les gens qui ont
  * commandé. On les reconstruit donc à partir des commandes — un même client
  * regroupe toutes les siennes — pour que le tailleur reconnaisse ses habitués,
- * les rappelle d'un geste, et voie combien chacun lui a rapporté.
+ * les rappelle d'un geste, et voie combien chacun lui a rapporté. Seuls ceux qui
+ * ont payé y figurent : avant, le pro n'a qu'un code.
  */
 export type ClientSummary = {
   id: string;
@@ -24,10 +25,8 @@ export type ClientSummary = {
 };
 
 /**
- * Le nom du client sur une commande. On privilégie son profil, mais on retombe
- * sur les coordonnées saisies à la caisse (`contact_*`, dénormalisées sur la
- * commande) : le vendeur, lui, ne peut pas lire le profil du client via la RLS,
- * ces colonnes sont donc sa seule source pour l'identifier.
+ * Le nom du client sur une commande. L'admin lit son profil ; le pro n'a que les
+ * coordonnées reçues une fois la commande payée (`contact_*`, cf. `forPro`).
  */
 export function clientNameOf(order: OrderListItem): string {
   const contact = [order.contact_first_name, order.contact_last_name]
@@ -49,6 +48,9 @@ export function groupClients(
   const byClient = new Map<string, ClientSummary>();
 
   for (const order of orders) {
+    if (!order.contact_first_name && !order.contact_last_name && !order.contact_phone) {
+      continue;
+    }
     const name = clientNameOf(order);
     const key = order.client_id || name.toLowerCase();
     const paid = order.payment_status === "paid";

@@ -34,7 +34,6 @@ function seed(): FabricSale[] {
             fabric_image: o.fabric.image_url,
             fabric_meters: o.fabric_meters,
             fabric_price: o.fabric_price,
-            client_name: o.client?.full_name ?? null,
           },
         ]
       : [],

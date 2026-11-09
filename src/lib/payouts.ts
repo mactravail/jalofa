@@ -1,6 +1,11 @@
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
-import { amountFor } from "@/lib/pipeline";
+import {
+  amountFor,
+  deliveryShareFor,
+  moneyHeldForReceipt,
+  moneyReleased,
+} from "@/lib/pipeline";
 import {
   planCommission,
   planMonthlyPrice,
@@ -12,8 +17,10 @@ import {
  *
  * Toutes les commandes sont encaissées par la plateforme puis redistribuées :
  * la part « tissu » (`fabric_price`) revient au vendeur, la part « confection »
- * (`tailoring_price`) au tailleur. Sur le plan **Gratuit**, JALOFA prélève sa
- * commission (`planCommission`) ; sur les plans payants, le pro touche 100%.
+ * (`tailoring_price`) au tailleur, et la livraison à celui qui livre le client. Sur
+ * le plan **Gratuit**, JALOFA prélève sa commission (`planCommission`) sur le tissu
+ * et la confection, jamais sur la livraison ; sur les plans payants, le pro touche
+ * 100%.
  *
  * Ces fonctions sont pures : elles prennent des commandes déjà chargées et un
  * annuaire des pros (nom, ville, plan), pour tourner aussi bien sur les données
@@ -36,14 +43,18 @@ export type Payout = {
   plan: SubscriptionPlanId;
   /** Commandes payées qui alimentent ce reversement. */
   paidOrders: number;
-  /** Part brute du pro sur les commandes payées (tissu ou confection). */
+  /** Part brute du pro sur les commandes payées (tissu ou confection, et livraison). */
   gross: number;
+  /** Ce qui, dans `gross`, vient de la livraison : sans commission. */
+  delivery: number;
   /** La commission gardée par JALOFA (0 hors plan Gratuit), arrondie. */
   commission: number;
   /** Ce que JALOFA doit reverser : `gross − commission`. */
   net: number;
   /** Part du pro sur des commandes pas encore réglées — à reverser plus tard. */
   pending: number;
+  /** Vendeur : payé par le client, retenu jusqu'à la réception du tissu. */
+  held: number;
 };
 
 /** Cumul d'une liste de reversements, pour les totaux d'en-tête. */
@@ -52,6 +63,7 @@ export type PayoutTotals = {
   commission: number;
   net: number;
   pending: number;
+  held: number;
 };
 
 /**
@@ -109,14 +121,19 @@ export function buildPayouts(
         plan: info?.plan ?? "free",
         paidOrders: 0,
         gross: 0,
+        delivery: 0,
         commission: 0,
         net: 0,
         pending: 0,
+        held: 0,
       } satisfies Payout);
 
-    if (order.payment_status === "paid") {
+    if (moneyReleased(role, order)) {
       row.paidOrders += 1;
       row.gross += share;
+      row.delivery += deliveryShareFor(role, order);
+    } else if (moneyHeldForReceipt(role, order)) {
+      row.held += share;
     } else if (order.payment_status === "pending") {
       row.pending += share;
     }
@@ -125,7 +142,8 @@ export function buildPayouts(
   }
 
   for (const row of rows.values()) {
-    row.commission = Math.round(row.gross * planCommission(row.plan));
+    // Pas de commission sur la livraison : elle revient entière à celui qui livre.
+    row.commission = Math.round((row.gross - row.delivery) * planCommission(row.plan));
     row.net = row.gross - row.commission;
   }
 
@@ -140,8 +158,9 @@ export function sumPayouts(rows: Payout[]): PayoutTotals {
       commission: total.commission + row.commission,
       net: total.net + row.net,
       pending: total.pending + row.pending,
+      held: total.held + row.held,
     }),
-    { gross: 0, commission: 0, net: 0, pending: 0 },
+    { gross: 0, commission: 0, net: 0, pending: 0, held: 0 },
   );
 }
 

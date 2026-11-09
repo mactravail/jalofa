@@ -19,8 +19,15 @@ import { useCart } from "@/components/cart/cart-context";
 import { ReviewStars } from "@/components/catalog/review-stars";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatPrice } from "@/lib/constants";
-import { clampMeters, formatMeters, METERS_STEP, MIN_CUT_METERS } from "@/lib/fabric-metrage";
-import { DELIVERY_FEE } from "@/lib/pricing";
+import {
+  clampMeters,
+  formatMeters,
+  isFabricAvailable,
+  MAX_METERS,
+  METERS_STEP,
+  MIN_CUT_METERS,
+} from "@/lib/fabric-metrage";
+import { deliveryPolicy, type FreeDeliveryZone } from "@/lib/delivery";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +42,7 @@ export function FabricBuyPanel({
   uses,
   vendorName,
   vendorHref,
-  vendorFreeDelivery,
+  deliveryZone,
   rating,
   reviewCount,
   orders,
@@ -47,7 +54,8 @@ export function FabricBuyPanel({
   vendorName: string | null;
   vendorHref: string | null;
   /** Le vendeur prend la livraison à sa charge : elle n'est pas facturée. */
-  vendorFreeDelivery: boolean;
+  /** Où le pro offre la livraison de ce tissu. */
+  deliveryZone: FreeDeliveryZone;
   rating: number;
   reviewCount: number;
   orders: number;
@@ -55,7 +63,8 @@ export function FabricBuyPanel({
   const { addItem } = useCart();
   const [meters, setMeters] = useState(3);
 
-  const max = Math.max(MIN_CUT_METERS, Math.min(fabric.stock_meters || 30, 30));
+  const max = MAX_METERS;
+  const available = isFabricAvailable(fabric);
   const setSafe = (v: number) => setMeters(clampMeters(v, MIN_CUT_METERS, max));
   const total = fabric.price_per_meter * meters;
 
@@ -80,9 +89,9 @@ export function FabricBuyPanel({
       image: fabric.image_url,
       styleName: null,
       tailorName: null,
-      // Livraison offerte si le vendeur du tissu la prend à sa charge
-      // (cf. basketHasFreeDelivery).
-      freeDelivery: vendorFreeDelivery,
+      // Le vendeur le décide pour chacun de ses tissus (cf. basketHasFreeDelivery).
+      freeDelivery: deliveryZone !== "none",
+      freeDeliveryZone: deliveryZone,
       personalisation: [{ group: "Métrage", option: formatMeters(meters) }],
       measurementLabel: null,
       unitFabricPrice: total,
@@ -185,7 +194,7 @@ export function FabricBuyPanel({
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-medium">Métrage</p>
           <p className="text-muted-foreground text-xs">
-            Coupe au demi-mètre · {formatMeters(fabric.stock_meters)} en stock
+            Coupe au demi-mètre
           </p>
         </div>
 
@@ -243,20 +252,26 @@ export function FabricBuyPanel({
       </section>
 
       {/* Achat */}
-      <div className="mt-6 grid gap-2.5">
-        <Button type="button" size="lg" className="h-12 w-full text-base" onClick={addToCart}>
-          <Package className="size-4" /> Ajouter au panier
-        </Button>
-        <Link
-          href={`/modeles?fabric=${fabric.id}`}
-          className={cn(
-            buttonVariants({ size: "lg", variant: "outline" }),
-            "h-12 w-full text-base",
-          )}
-        >
-          <Scissors className="size-4" /> Faire coudre une tenue
-        </Link>
-      </div>
+      {available ? (
+        <div className="mt-6 grid gap-2.5">
+          <Button type="button" size="lg" className="h-12 w-full text-base" onClick={addToCart}>
+            <Package className="size-4" /> Ajouter au panier
+          </Button>
+          <Link
+            href={`/modeles?fabric=${fabric.id}`}
+            className={cn(
+              buttonVariants({ size: "lg", variant: "outline" }),
+              "h-12 w-full text-base",
+            )}
+          >
+            <Scissors className="size-4" /> Faire coudre une tenue
+          </Link>
+        </div>
+      ) : (
+        <p className="bg-muted mt-6 rounded-xl p-4 text-center font-semibold">
+          Ce tissu est épuisé
+        </p>
+      )}
 
       {/* Livraison — dite clairement, sans promesse que la caisse ne tiendrait pas */}
       <dl className="mt-6 grid gap-2.5 rounded-xl border p-4 text-sm">
@@ -264,18 +279,10 @@ export function FabricBuyPanel({
           <Truck className="mt-0.5 size-4 shrink-0" />
           <div>
             <dt className="font-medium">
-              {vendorFreeDelivery ? (
-                <>
-                  Livraison à domicile — <span className="text-primary">offerte</span>
-                </>
-              ) : (
-                <>Livraison à domicile — {formatPrice(DELIVERY_FEE)}</>
-              )}
+              Livraison
             </dt>
             <dd className="text-muted-foreground text-xs">
-              {vendorFreeDelivery
-                ? `${vendorName ? `${vendorName} prend ` : "Le vendeur prend "}la livraison à sa charge. Dakar sous 48 h, régions sous 3 à 5 jours.`
-                : "Dakar sous 48 h, régions sous 3 à 5 jours. Payable à la caisse."}
+              {deliveryPolicy(deliveryZone)}
             </dd>
           </div>
         </div>

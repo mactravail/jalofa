@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { Check, Minus, PackageCheck, Plus, Ruler, Scissors, ShieldCheck } from "lucide-react";
 
 import { useConfigurator } from "@/components/order/configurator-context";
+import {
+  bodyTypeLabel,
+  heightBandLabel,
+  metrageForModelBody,
+  tailorMeters,
+} from "@/lib/body-types";
 import { formatPrice } from "@/lib/constants";
 import {
   clampMeters,
@@ -14,22 +20,36 @@ import {
   MAX_METERS,
   METERS_STEP,
   MIN_CUT_METERS,
-  metrageFor,
 } from "@/lib/fabric-metrage";
 import { cn } from "@/lib/utils";
 
-/** En dessous, le rouleau touche à sa fin — on le dit. */
-const LOW_STOCK_METERS = 15;
-
 export default function MetersStep() {
-  const { state, update, fabric, model } = useConfigurator();
+  const { data, state, update, fabric, model } = useConfigurator();
 
   const isFabricOnly = state.type === "fabric_only";
-  const metrage = metrageFor(model);
-  const stock = fabric?.stock_meters ?? 0;
+  // Le métrage du vêtement, adapté au corps désigné à l'étape précédente.
+  const metrage = metrageForModelBody(model, state.bodyType, state.heightBand);
+  const bodyLabel = bodyTypeLabel(state.bodyType);
+  const heightLabel = heightBandLabel(model?.category_slug, state.heightBand);
+  // Le métrage écrit par le tailleur du modèle, s'il l'a donné pour cette personne.
+  const fitAuthor = tailorMeters(model, state.bodyType, state.heightBand)
+    ? data.tailors.find((t) => t.id === model?.tailor_id)
+    : null;
+
+  // C'est ici, et pas à l'étape Silhouette, que le corps et la taille changent le
+  // métrage et donc le prix. Effet de layout : le nouveau prix s'affiche dès le
+  // premier écran, sans laisser voir l'ancien.
+  const recommended = metrage.recommended;
+  const personKey =
+    state.bodyType && state.heightBand ? `${state.bodyType}:${state.heightBand}` : null;
+  useLayoutEffect(() => {
+    if (!isFabricOnly && personKey && state.metersPersonKey !== personKey) {
+      update({ fabricMeters: recommended, metersPersonKey: personKey });
+    }
+  }, [isFabricOnly, personKey, state.metersPersonKey, recommended, update]);
 
   const min = isFabricOnly ? MIN_CUT_METERS : metrage.minimum;
-  const max = Math.max(min, Math.min(stock > 0 ? stock : MAX_METERS, MAX_METERS));
+  const max = Math.max(min, MAX_METERS);
 
   const meters = state.fabricMeters;
   const pricePerMeter = fabric?.price_per_meter ?? 0;
@@ -69,20 +89,6 @@ export default function MetersStep() {
             </p>
             <p className="mt-0.5 text-xs font-medium">{formatPrice(pricePerMeter)} / m</p>
           </div>
-          {stock > 0 && (
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2 py-1 text-[11px] font-medium",
-                stock <= LOW_STOCK_METERS
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground",
-              )}
-            >
-              {stock <= LOW_STOCK_METERS
-                ? `Plus que ${formatMeters(stock)}`
-                : `${formatMeters(stock)} en stock`}
-            </span>
-          )}
         </section>
       )}
 
@@ -99,11 +105,16 @@ export default function MetersStep() {
             </>
           ) : (
             <>
-              Pour votre {model?.name ?? "tenue"}, l&apos;atelier taille dans{" "}
-              <span className="font-semibold">{formatMeters(metrage.recommended)}</span>.{" "}
-              <span className="text-muted-foreground">
-                Grande carrure ou coupe très ample : prévoyez un mètre de plus.
-              </span>
+              Pour votre {model?.name ?? "tenue"},{" "}
+              {fitAuthor?.shop_name ?? "l'atelier"} taille dans{" "}
+              <span className="font-semibold">{formatMeters(metrage.recommended)}</span>
+              {bodyLabel && heightLabel && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  (silhouette : {bodyLabel}, taille : {heightLabel})
+                </span>
+              )}
+              .
             </>
           )}
         </p>
@@ -162,7 +173,7 @@ export default function MetersStep() {
                     )}
                   </span>
                   <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">
-                    {unavailable ? "Stock insuffisant pour ce métrage." : p.desc}
+                    {unavailable ? "Métrage trop grand pour une commande en ligne." : p.desc}
                   </span>
                   {pricePerMeter > 0 && !unavailable && (
                     <span className="mt-1 block text-xs font-medium">

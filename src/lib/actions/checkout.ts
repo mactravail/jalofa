@@ -3,13 +3,16 @@
 import { revalidatePath } from "next/cache";
 
 import { getFabricById } from "@/lib/data";
+import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { recordDemoFabricSales, type DemoFabricSale } from "@/lib/notifications-demo";
+import { saveOrderContact } from "@/lib/order-contact";
 import { resolveTailoringPrice } from "@/lib/order-pricing";
-import { DELIVERY_FEE } from "@/lib/pricing";
+import { stripContactInfo } from "@/lib/privacy";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { ensureClientAccount } from "@/lib/supabase/guest";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderType, PaymentMethod } from "@/lib/constants";
+import type { Fabric } from "@/lib/types";
 
 // A single basket line handed over from the cart. `qty` bespoke garments are
 // produced from it — each becomes its own order row (there is no qty column on
@@ -47,6 +50,7 @@ export type CheckoutPayload = {
     address_line: string;
     city: string;
     region: string | null;
+    country?: string | null;
   } | null;
   payment_method: PaymentMethod | null;
 };
@@ -149,6 +153,14 @@ export async function placeOrders(
     return { ok: false, error: "Complétez l'adresse de livraison." };
   }
 
+  // Une tenue est livrée par le tailleur : l'adresse du client est obligatoire.
+  if (
+    payload.delivery_method === "pickup" &&
+    payload.items.some((it) => it.type !== "fabric_only")
+  ) {
+    return { ok: false, error: "Indiquez votre adresse pour la livraison de votre tenue." };
+  }
+
   // --- Demo mode -----------------------------------------------------------
   // No database yet: simulate a successful checkout so the full flow can be
   // demonstrated on the local catalogue fixtures. Fabric sales still reach the
@@ -177,7 +189,6 @@ export async function placeOrders(
           fabric_image: fabric.image_url,
           fabric_meters: meters,
           fabric_price: fabric.price_per_meter * meters,
-          client_name: `${contact.first_name} ${contact.last_name}`,
         });
       }
     }
@@ -201,80 +212,23 @@ export async function placeOrders(
   }
   const { user } = account;
 
-  // Livraison offerte : gratuite seulement si CHAQUE ligne vient d'un pro qui la
-  // prend à sa charge — le tailleur pour une tenue cousue, le vendeur du tissu
-  // pour une ligne « tissu seul ». Les lignes faisant foi (base) tranchent ici,
-  // quel que soit l'instantané côté client.
-  let deliveryFee = payload.delivery_method === "home" ? DELIVERY_FEE : 0;
-  if (deliveryFee > 0 && payload.items.length > 0) {
-    // Tailleurs des tenues cousues.
-    const tailorIds = [
-      ...new Set(
-        payload.items
-          .filter((it) => it.type !== "fabric_only")
-          .map((it) => it.tailor_id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    const tailorFree = new Map<string, boolean>();
-    if (tailorIds.length) {
-      const { data: rows } = await supabase
-        .from("tailors")
-        .select("id, free_delivery")
-        .in("id", tailorIds);
-      for (const t of rows ?? [])
-        tailorFree.set(t.id as string, Boolean(t.free_delivery));
+  // Un tissu a pu être déclaré épuisé depuis l'ajout au panier : on refuse avant
+  // d'écrire quoi que ce soit.
+  const basketFabricIds = payload.items
+    .filter((it) => it.fabric_id && it.type !== "own_fabric")
+    .map((it) => it.fabric_id as string);
+  if (basketFabricIds.length > 0) {
+    const { data: basketFabrics } = await supabase
+      .from("fabrics")
+      .select("*")
+      .in("id", basketFabricIds);
+    const soldOut = ((basketFabrics ?? []) as Fabric[]).find((f) => !isFabricAvailable(f));
+    if (soldOut) {
+      return {
+        ok: false,
+        error: `Le tissu « ${soldOut.name} » est épuisé. Retirez-le de votre panier.`,
+      };
     }
-
-    // Vendeurs des lignes « tissu seul », rejoints via le tissu qui porte le
-    // `vendor_id`.
-    const fabricIds = [
-      ...new Set(
-        payload.items
-          .filter((it) => it.type === "fabric_only")
-          .map((it) => it.fabric_id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    const vendorFreeByFabric = new Map<string, boolean>();
-    if (fabricIds.length) {
-      const { data: fabricRows } = await supabase
-        .from("fabrics")
-        .select("id, vendor_id")
-        .in("id", fabricIds);
-      const vendorIds = [
-        ...new Set(
-          (fabricRows ?? [])
-            .map((f) => f.vendor_id)
-            .filter((id): id is string => Boolean(id)),
-        ),
-      ];
-      const vendorFree = new Map<string, boolean>();
-      if (vendorIds.length) {
-        const { data: vendorRows } = await supabase
-          .from("vendors")
-          .select("id, free_delivery")
-          .in("id", vendorIds);
-        for (const v of vendorRows ?? [])
-          vendorFree.set(v.id as string, Boolean(v.free_delivery));
-      }
-      for (const f of fabricRows ?? [])
-        vendorFreeByFabric.set(
-          f.id as string,
-          f.vendor_id ? vendorFree.get(f.vendor_id as string) === true : false,
-        );
-    }
-
-    const allFree = payload.items.every((it) =>
-      it.type === "fabric_only"
-        ? it.fabric_id
-          ? vendorFreeByFabric.get(it.fabric_id) === true
-          : false
-        : it.tailor_id
-          ? tailorFree.get(it.tailor_id) === true
-          : false,
-    );
-    if (allFree) deliveryFee = 0;
   }
 
   // One shared address row for the whole basket.
@@ -289,6 +243,7 @@ export async function placeOrders(
         address_line: payload.address.address_line,
         city: payload.address.city,
         region: payload.address.region,
+        country: payload.address.country?.trim() || "Sénégal",
       })
       .select("id")
       .single();
@@ -297,7 +252,6 @@ export async function placeOrders(
   }
 
   const orderNumbers: string[] = [];
-  let firstOrder = true;
 
   for (const item of payload.items) {
     // Recompute prices from authoritative DB rows. The fabric also carries the
@@ -344,9 +298,9 @@ export async function placeOrders(
         measurementId = measurement.id as string;
       }
 
-      // Delivery is a basket-level fee — bill it once, on the first garment.
-      const lineDelivery = firstOrder ? deliveryFee : 0;
-      const total = fabricPrice + tailoringPrice + lineDelivery;
+      // JALOFA n'ajoute aucun frais de livraison à un achat direct : chaque pro a dit
+      // sur son produit si elle est gratuite ; sinon le client paie le GP ou le livreur.
+      const total = fabricPrice + tailoringPrice;
 
       const { data: order, error } = await supabase
         .from("orders")
@@ -363,24 +317,32 @@ export async function placeOrders(
           address_id: addressId,
           delivery_method: payload.delivery_method,
           delivery_city: deliveryCity,
-          contact_first_name: contact.first_name,
-          contact_last_name: contact.last_name,
-          contact_email: contact.email,
-          contact_phone: contact.phone,
+          delivery_address: payload.address?.address_line ?? null,
+          delivery_country: payload.address ? payload.address.country?.trim() || "Sénégal" : null,
           fabric_price: fabricPrice,
           tailoring_price: tailoringPrice,
-          delivery_fee: lineDelivery,
+          delivery_fee: 0,
           total_amount: total,
           payment_method: payload.payment_method,
           payment_status: "paid", // Payment gateway integration is stubbed for the MVP.
-          notes: item.notes,
+          notes: item.notes ? stripContactInfo(item.notes) : item.notes,
         })
-        .select("order_number")
+        .select("id, order_number")
         .single();
 
       if (error) return { ok: false, error: error.message };
+
+      const saved = await saveOrderContact(supabase, order.id as string, {
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        email: contact.email,
+        phone: contact.phone,
+      });
+      if (!saved) {
+        return { ok: false, error: "Votre commande n'a pas pu être enregistrée. Réessayez." };
+      }
+
       orderNumbers.push(String(order.order_number));
-      firstOrder = false;
     }
   }
 

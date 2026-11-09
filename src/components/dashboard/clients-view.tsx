@@ -45,7 +45,7 @@ export function ClientsList({ role }: { role: ProRole }) {
         </span>
         <p className="mt-4 font-semibold">Pas encore de client</p>
         <p className="text-muted-foreground mx-auto mt-1 max-w-xs text-sm">
-          Dès qu&apos;une personne commande, elle apparaît ici avec tout ce
+          Dès qu&apos;une personne a payé, elle apparaît ici avec tout ce
           qu&apos;elle vous a commandé.
         </p>
       </div>

@@ -98,8 +98,7 @@ function SaleRow({ sale }: { sale: FabricSale }) {
           <p className="truncate font-medium">{sale.fabric_name}</p>
         </div>
         <p className="text-muted-foreground mt-0.5 truncate text-sm">
-          {sale.client_name ?? "Un client"} a acheté{meters ? ` ${meters}` : ""} de ce
-          tissu
+          Payé par le client{meters ? ` : ${meters}` : ""}, à envoyer
         </p>
         <p className="text-muted-foreground mt-0.5 truncate text-xs">
           {sale.order_number && <span className="font-mono">{sale.order_number}</span>}

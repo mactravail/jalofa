@@ -1,4 +1,6 @@
 import type { AsIsPreset } from "@/components/catalog/garment-as-is";
+import { metrageFor } from "@/lib/fabric-metrage";
+import { tailoringPriceFor } from "@/lib/pricing";
 import { styleDetailDefaults, styleDetailSummary } from "@/lib/style-options";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 
@@ -28,18 +30,26 @@ export function buildGenericAsIsPreset({
   model: GarmentModel;
   photos: string[];
   fabric: Fabric | null;
-  tailor: Tailor | null;
+  tailor:
+    | Pick<Tailor, "id" | "shop_name" | "base_price" | "free_delivery" | "free_delivery_zone">
+    | null;
 }): AsIsPreset {
   const styleDefaults = styleDetailDefaults(model);
   const styleSummary = styleDetailSummary(model, styleDefaults);
 
-  const fabricPrice = (fabric?.price_per_meter ?? 0) * GENERIC_AS_IS_METERS;
-  const tailoringPrice = tailor?.base_price ?? 0;
+  // Modèle publié par son tailleur : le vrai métrage de la pièce. Les aperçus du
+  // catalogue gardent le métrage de référence.
+  const meters =
+    tailor && model.tailor_id === tailor.id
+      ? metrageFor(model).recommended
+      : GENERIC_AS_IS_METERS;
+  const fabricPrice = (fabric?.price_per_meter ?? 0) * meters;
+  const tailoringPrice = tailor ? tailoringPriceFor(tailor, model) : 0;
   const total = fabricPrice + tailoringPrice;
 
   const notesSpec = [
     `${model.name} pris tel quel (modèle présenté).`,
-    `Tissu : ${fabric?.name ?? "au choix de l'atelier"} (${GENERIC_AS_IS_METERS} m)`,
+    `Tissu : ${fabric?.name ?? "au choix de l'atelier"} (${meters} m)`,
     ...styleSummary.map((d) => `${d.group} : ${d.option}`),
   ].join("\n");
 
@@ -50,10 +60,12 @@ export function buildGenericAsIsPreset({
     image: model.image_url ?? photos[0] ?? null,
     styleDetails: styleDefaults,
     fabricId: fabric?.id ?? null,
-    fabricMeters: GENERIC_AS_IS_METERS,
+    fabricMeters: meters,
     tailorId: tailor?.id ?? null,
     tailorName: tailor?.shop_name ?? null,
-    freeDelivery: tailor?.free_delivery ?? false,
+    // Le pro le décide pour chacun de ses modèles.
+    freeDelivery: (model.delivery_zone ?? "none") !== "none",
+    freeDeliveryZone: model.delivery_zone ?? "none",
     fabricPrice,
     tailoringPrice,
     total,

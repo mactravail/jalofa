@@ -71,7 +71,7 @@ const SECTIONS: Clause[] = [
     title: "9. Partage de vos données",
     body: `${APP_NAME} ne vend pas vos données. Elles ne sont partagées qu'avec :`,
     list: [
-      "le tailleur ou le vendeur concerné par votre commande (mesures, adresse et détail utiles à sa réalisation) ;",
+      `le tailleur ou le vendeur concerné par votre commande. Pendant une demande de devis, il reçoit un code, vos mesures et votre adresse de livraison : votre nom, votre téléphone et votre e-mail ne sont connus que de ${APP_NAME}. Il les reçoit une fois la commande payée, pour vous livrer ;`,
       "nos prestataires techniques strictement nécessaires : hébergement, base de données, paiement, livraison ;",
       "les autorités compétentes, uniquement lorsque la loi l'exige.",
     ],

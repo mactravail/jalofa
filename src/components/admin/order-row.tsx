@@ -5,7 +5,7 @@ import { Badge, badgeVariants } from "@/components/ui/badge";
 import { clientNameOf } from "@/lib/clients";
 import { ORDER_TYPE_LABELS, formatPrice } from "@/lib/constants";
 import type { OrderListItem } from "@/lib/orders-data";
-import { legStage, type LegStage } from "@/lib/pipeline";
+import { legStage, pipelineType, type LegStage } from "@/lib/pipeline";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -75,20 +75,47 @@ export function OrderRow({ order }: { order: OrderListItem }) {
   const garment =
     order.model?.name ?? order.fabric?.name ?? ORDER_TYPE_LABELS[order.type];
 
-  const vendorStage = legStage("vendor", order.status, order.type);
-  const tailorStage = legStage("tailor", order.status, order.type);
+  const flow = pipelineType(order);
+  const vendorStage = legStage("vendor", order.status, flow);
+  const tailorStage = legStage("tailor", order.status, flow);
+
+  // L'admin relie le code au client dès la demande ; le pro, seulement au paiement.
+  const phone = order.contact_phone ?? order.client?.phone ?? null;
+  const email = order.contact_email ?? null;
+  const address = [order.delivery_address, order.delivery_city, order.delivery_country]
+    .filter(Boolean)
+    .join(", ");
+  const quotePending = order.is_quote && order.payment_status === "pending";
 
   return (
     <div className="p-4">
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-muted-foreground font-mono text-xs">
-              {order.order_number}
-            </p>
+            <p className="font-mono text-xs font-semibold">{order.order_number}</p>
             <OrderStatusBadge status={order.status} />
+            {quotePending && (
+              <Badge variant="outline">
+                {order.tailoring_price > 0 ? "Devis envoyé" : "Devis à chiffrer"}
+              </Badge>
+            )}
           </div>
           <p className="mt-0.5 truncate font-medium">{clientNameOf(order)}</p>
+          {(phone || email) && (
+            <p className="flex flex-wrap gap-x-3 text-xs">
+              {phone && (
+                <a href={`tel:${phone}`} className="hover:underline">
+                  {phone}
+                </a>
+              )}
+              {email && (
+                <a href={`mailto:${email}`} className="break-all hover:underline">
+                  {email}
+                </a>
+              )}
+            </p>
+          )}
+          {address && <p className="text-xs break-words">{address}</p>}
           <p className="text-muted-foreground truncate text-xs">
             {garment} · {ORDER_TYPE_LABELS[order.type]} ·{" "}
             {DATE_FORMAT.format(new Date(order.created_at))}
@@ -100,6 +127,15 @@ export function OrderRow({ order }: { order: OrderListItem }) {
           <div className="mt-1 flex justify-end">
             <PaymentBadge status={order.payment_status} />
           </div>
+          <dl className="text-muted-foreground mt-1 text-xs">
+            {order.fabric_price > 0 && <dd>Tissu {formatPrice(order.fabric_price)}</dd>}
+            {order.tailoring_price > 0 && (
+              <dd>Tailleur {formatPrice(order.tailoring_price)}</dd>
+            )}
+            {order.delivery_fee > 0 && (
+              <dd>Livraison {formatPrice(order.delivery_fee)}</dd>
+            )}
+          </dl>
         </div>
       </div>
 

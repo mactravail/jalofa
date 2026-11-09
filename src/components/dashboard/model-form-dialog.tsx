@@ -1,12 +1,30 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ImagePlus, Loader2, Star, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, MapPin, Plus, Star, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { saveModel } from "@/lib/actions/models";
+import { AtelierFields } from "@/components/dashboard/atelier-form";
+import { FabricFormDialog } from "@/components/dashboard/fabric-form-dialog";
+import {
+  draftBodyFitsToModel,
+  ModelBodyFitEditor,
+  rebaseDraftBodyFits,
+  toDraftBodyFits,
+  type DraftBodyFit,
+} from "@/components/dashboard/model-body-fit-editor";
+import {
+  ModelStyleEditor,
+  toDraftStyleGroups,
+  type DraftStyleGroup,
+} from "@/components/dashboard/model-style-editor";
+import { saveModel, uploadModelStylePhoto } from "@/lib/actions/models";
 import { modelPhotos } from "@/lib/constants";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
+import { modelBodyFitProblem } from "@/lib/model-body-fit";
+import { careTipLines, MAX_CARE_TIPS_LENGTH, modelStyleProblem } from "@/lib/model-style";
+import { CARE_TIP_SUGGESTIONS } from "@/lib/style-presets";
+import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,7 +44,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { GarmentModel, ModelCategory } from "@/lib/types";
+import type {
+  Fabric,
+  FabricCategory,
+  GarmentModel,
+  ModelCategory,
+  TailorAtelier,
+} from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const NONE = "__none__";
 const MAX_PHOTOS = 5;
@@ -57,6 +82,10 @@ export function ModelFormDialog({
   model,
   suggestion = null,
   categories,
+  fabrics,
+  fabricCategories,
+  linkedFabricIds,
+  atelier,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -69,8 +98,27 @@ export function ModelFormDialog({
    */
   suggestion?: GarmentModel | null;
   categories: ModelCategory[];
+  /** Les tissus du tailleur : ceux qu'il peut proposer sur ce modèle. */
+  fabrics: Fabric[];
+  fabricCategories: FabricCategory[];
+  /** Les tissus déjà cochés sur ce modèle. */
+  linkedFabricIds: string[];
+  /** Null : l'atelier n'est pas encore renseigné, le formulaire le demande. */
+  atelier: TailorAtelier | null;
 }) {
   const isEdit = Boolean(model);
+  const [selectedFabrics, setSelectedFabrics] = useState<string[]>(linkedFabricIds);
+  // Ajout d'un tissu sans quitter le modèle en cours. La clé remet à zéro le
+  // formulaire du tissu à chaque ouverture.
+  const [fabricFormOpen, setFabricFormOpen] = useState(false);
+  const [fabricFormSeq, setFabricFormSeq] = useState(0);
+
+  function toggleFabric(id: string) {
+    setSelectedFabrics((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
+    );
+  }
+
   // Édition : la fiche du tailleur. Création : soit vierge, soit pré-remplie
   // depuis une suggestion. Dans les deux cas de création, aucun `id` n'est posé.
   const source = model ?? suggestion ?? null;
@@ -81,6 +129,18 @@ export function ModelFormDialog({
     source?.difficulty ?? NONE,
   );
   const [photos, setPhotos] = useState<Photo[]>(() => initialPhotos(source));
+  // Le nom décide des détails proposés : pas de col pour un thiaya.
+  const [modelName, setModelName] = useState(source?.name ?? "");
+  // Le style est propre à chaque tailleur : une suggestion n'en apporte aucun.
+  const [styleGroups, setStyleGroups] = useState<DraftStyleGroup[]>(() =>
+    toDraftStyleGroups(model?.style_groups),
+  );
+  // Idem pour le métrage : une suggestion n'apporte que les intervalles de départ.
+  const [bodyFits, setBodyFits] = useState<DraftBodyFit[]>(() =>
+    toDraftBodyFits(model?.body_fits, source?.category_slug),
+  );
+  const [careTips, setCareTips] = useState(model?.care_tips ?? "");
+  const [styleUpload, setStyleUpload] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -136,6 +196,56 @@ export function ModelFormDialog({
     );
   }
 
+  /**
+   * Envoie les photos de style encore sur le téléphone, une à une. Chaque photo
+   * envoyée est retenue : après une coupure de réseau, on repart de là où on était.
+   * `null` : un envoi a échoué et l'erreur est affichée.
+   */
+  async function uploadStylePhotos(): Promise<DraftStyleGroup[] | null> {
+    const total = styleGroups.flatMap((g) => g.options).filter((o) => o.file).length;
+    let done = 0;
+    if (total > 0) setStyleUpload({ done, total });
+
+    try {
+      const uploaded: DraftStyleGroup[] = [];
+      for (const group of styleGroups) {
+        const options = [];
+        for (const option of group.options) {
+          if (!option.file) {
+            options.push(option);
+            continue;
+          }
+          const image = await resizeImage(option.file);
+          const body = new FormData();
+          body.set("photo", image);
+          const res = await uploadModelStylePhoto(body);
+          if (!res.ok) {
+            const message = `« ${option.name || group.name} » : ${res.error}`;
+            setError(message);
+            toast.error(message);
+            return null;
+          }
+          if (option.preview) URL.revokeObjectURL(option.preview);
+          const saved = { ...option, photo: res.url, file: undefined, preview: undefined };
+          options.push(saved);
+          setStyleGroups((prev) =>
+            prev.map((g) =>
+              g.slug === group.slug
+                ? { ...g, options: g.options.map((o) => (o.slug === option.slug ? saved : o)) }
+                : g,
+            ),
+          );
+          done += 1;
+          setStyleUpload({ done, total });
+        }
+        uploaded.push({ ...group, options });
+      }
+      return uploaded;
+    } finally {
+      setStyleUpload(null);
+    }
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -148,9 +258,57 @@ export function ModelFormDialog({
     const formData = new FormData(e.currentTarget);
     formData.set("category_slug", category === NONE ? "" : category);
     formData.set("difficulty", difficulty === NONE ? "" : difficulty);
+    for (const id of selectedFabrics) formData.append("fabric_id", id);
     const items = photos;
 
+    // Avant d'envoyer quoi que ce soit : une photo de style manque-t-elle ?
+    if (formData.get("is_active") === "on") {
+      const problem = modelStyleProblem(
+        styleGroups.map((g) => ({
+          slug: g.slug,
+          name: g.name,
+          options: g.options.map((o) => ({
+            slug: o.slug,
+            name: o.name,
+            photo: o.preview ?? o.photo,
+            extra: 0,
+          })),
+        })),
+      );
+      const fitProblem = modelBodyFitProblem(
+        draftBodyFitsToModel(bodyFits),
+        category === NONE ? null : category,
+      );
+      const firstProblem = problem ?? fitProblem;
+      if (firstProblem) {
+        // Le formulaire est long : l'erreur en haut peut être hors de vue.
+        setError(firstProblem);
+        toast.error(firstProblem);
+        return;
+      }
+    }
+
+    formData.set("body_fits", JSON.stringify(draftBodyFitsToModel(bodyFits)));
+
     startTransition(async () => {
+      const uploadedStyle = await uploadStylePhotos();
+      if (!uploadedStyle) return;
+      formData.set(
+        "style_groups",
+        JSON.stringify(
+          uploadedStyle.map((g) => ({
+            slug: g.slug,
+            name: g.name,
+            options: g.options.map((o) => ({
+              slug: o.slug,
+              name: o.name,
+              photo: o.photo,
+              extra: Number(o.extra) || 0,
+            })),
+          })),
+        ),
+      );
+
       // Photos travel in gallery order under a single repeated field: existing
       // ones as their URL, new ones as the resized file. A raw phone shot
       // exceeds the Server Action body limit, so shrink before upload.
@@ -187,6 +345,7 @@ export function ModelFormDialog({
         onOpenChange(false);
       } else if (res) {
         setError(res.error);
+        toast.error(res.error);
       }
     });
   }
@@ -293,13 +452,86 @@ export function ModelFormDialog({
             </p>
           </div>
 
+          {/* Les tissus que le tailleur a pour ce modèle : ce que le client choisit
+              en « Tel quel ». Une grande photo à toucher, pas une liste à lire. */}
+          <div className="space-y-2">
+            <Label>Tissus disponibles pour ce modèle</Label>
+            <p className="text-muted-foreground text-xs">
+              Touchez les tissus et les couleurs que vous avez. Il en faut au moins
+              un pour publier.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {fabrics.map((f) => {
+                const active = selectedFabrics.includes(f.id);
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => toggleFabric(f.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "min-w-0 overflow-hidden rounded-lg border-2 text-left transition-colors",
+                      active ? "border-primary" : "border-border hover:border-primary/50",
+                    )}
+                  >
+                    <span className="bg-muted relative block aspect-square">
+                      {f.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={f.image_url} alt="" className="size-full object-cover" />
+                      )}
+                      {active && (
+                        <span className="bg-primary text-primary-foreground absolute top-1 right-1 grid size-5 place-items-center rounded-full">
+                          <Check className="size-3" strokeWidth={3} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="block truncate px-1.5 py-1 text-xs font-medium">
+                      {f.name}
+                    </span>
+                    {(!f.is_active || f.in_stock === false) && (
+                      <span className="text-muted-foreground block truncate px-1.5 pb-1 text-[11px]">
+                        {f.in_stock === false ? "Épuisé" : "Brouillon"}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => {
+                  setFabricFormSeq((n) => n + 1);
+                  setFabricFormOpen(true);
+                }}
+                className="text-muted-foreground hover:bg-muted flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-1 text-center text-xs font-medium"
+              >
+                <Plus className="size-5" />
+                Ajouter un tissu
+              </button>
+            </div>
+          </div>
+
+          {!atelier && (
+            <div className="space-y-3 rounded-xl border p-3">
+              <p className="flex items-start gap-2 text-sm font-medium">
+                <MapPin className="mt-0.5 size-4 shrink-0" />
+                Où recevez-vous les tissus de vos clients ?
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Les vendeurs y envoient les tissus achetés ailleurs. Cette adresse
+                reste privée.
+              </p>
+              <AtelierFields />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="model-name">Nom du modèle</Label>
             <Input
               id="model-name"
               name="name"
               required
-              defaultValue={source?.name ?? ""}
+              value={modelName}
+              onChange={(e) => setModelName(e.target.value)}
               placeholder="Ex. Boubou brodé Dakar"
             />
           </div>
@@ -309,7 +541,12 @@ export function ModelFormDialog({
               <Label>Catégorie</Label>
               <Select
                 value={category}
-                onValueChange={(v) => setCategory(v as string)}
+                onValueChange={(v) => {
+                  setCategory(v as string);
+                  setBodyFits((prev) =>
+                    rebaseDraftBodyFits(prev, v === NONE ? null : (v as string)),
+                  );
+                }}
                 items={categoryItems}
               >
                 <SelectTrigger className="w-full">
@@ -379,6 +616,8 @@ export function ModelFormDialog({
             </Select>
           </div>
 
+          <DeliveryZoneField defaultValue={model?.delivery_zone} />
+
           <div className="space-y-2">
             <Label htmlFor="model-description">Description</Label>
             <Textarea
@@ -388,6 +627,51 @@ export function ModelFormDialog({
               defaultValue={source?.description ?? ""}
               placeholder="Coupe, finitions, occasion…"
             />
+          </div>
+
+          <ModelStyleEditor
+            modelName={modelName}
+            groups={styleGroups}
+            onChange={setStyleGroups}
+          />
+
+          <ModelBodyFitEditor
+            categorySlug={category === NONE ? null : category}
+            fits={bodyFits}
+            onChange={setBodyFits}
+          />
+
+          <div className="space-y-2">
+            <Label htmlFor="model-care-tips">Vos recommandations</Label>
+            <p className="text-muted-foreground text-xs">
+              Comment le laver, ce qu&apos;il faut éviter… Une recommandation par ligne.
+            </p>
+            <Textarea
+              id="model-care-tips"
+              name="care_tips"
+              rows={3}
+              maxLength={MAX_CARE_TIPS_LENGTH}
+              value={careTips}
+              onChange={(e) => setCareTips(e.target.value)}
+              placeholder="Ex. Ne pas mettre de parfum directement sur le tissu"
+            />
+            <div className="flex flex-wrap gap-2">
+              {CARE_TIP_SUGGESTIONS.filter((tip) => !careTipLines(careTips).includes(tip)).map(
+                (tip) => (
+                  <button
+                    key={tip}
+                    type="button"
+                    onClick={() =>
+                      setCareTips((prev) => [...careTipLines(prev), tip].join("\n"))
+                    }
+                    className="hover:bg-muted flex items-center gap-1 rounded-full border px-3 py-1.5 text-left text-xs font-medium"
+                  >
+                    <Plus className="size-3 shrink-0" />
+                    {tip}
+                  </button>
+                ),
+              )}
+            </div>
           </div>
 
           <label className="flex items-start gap-2 text-sm">
@@ -418,10 +702,25 @@ export function ModelFormDialog({
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              {isEdit ? "Enregistrer" : "Ajouter le modèle"}
+              {styleUpload
+                ? `Photos ${styleUpload.done}/${styleUpload.total}…`
+                : isEdit
+                  ? "Enregistrer"
+                  : "Ajouter le modèle"}
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Hors du <form> : un submit du tissu remonterait sinon jusqu'au modèle
+            à travers le portail (les événements React suivent l'arbre React). */}
+        <FabricFormDialog
+          key={fabricFormSeq}
+          open={fabricFormOpen}
+          onOpenChange={setFabricFormOpen}
+          fabric={null}
+          categories={fabricCategories}
+          onSaved={(id) => setSelectedFabrics((prev) => [...prev, id])}
+        />
       </DialogContent>
     </Dialog>
   );

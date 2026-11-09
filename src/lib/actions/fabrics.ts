@@ -2,13 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
+import { parseDeliveryZone } from "@/lib/delivery";
+
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-export type FabricFormState = { ok: true } | { ok: false; error: string } | null;
+export type FabricFormState =
+  | { ok: true; id: string | null }
+  | { ok: false; error: string }
+  | null;
 
 const NOT_CONNECTED =
   "La base de données n'est pas encore connectée. La gestion des tissus sera possible une fois Supabase configuré.";
@@ -91,12 +96,13 @@ export async function saveFabric(
     color: text(formData.get("color")),
     material: text(formData.get("material")),
     price_per_meter: toNumber(formData.get("price_per_meter")),
-    stock_meters: toNumber(formData.get("stock_meters")),
     description: text(formData.get("description")),
+    delivery_zone: parseDeliveryZone(formData.get("delivery_zone")),
     image_url: imageUrl,
     is_active: formData.get("is_active") === "on",
   };
 
+  let savedId = id;
   if (id) {
     // Update — RLS also enforces ownership, but scope the query explicitly.
     const { error } = await supabase
@@ -117,19 +123,48 @@ export async function saveFabric(
       if (file) await removeImage(supabase, BUCKET, imageUrl);
       return { ok: false, error: shop.error };
     }
-    const { error } = await supabase
+    const { data: created, error } = await supabase
       .from("fabrics")
-      .insert({ ...payload, vendor_id: user.id });
-    if (error) {
+      .insert({ ...payload, vendor_id: user.id })
+      .select("id")
+      .single();
+    if (error || !created) {
       if (file) await removeImage(supabase, BUCKET, imageUrl);
-      return { ok: false, error: error.message };
+      return { ok: false, error: error?.message ?? "Ajout impossible." };
     }
+    savedId = (created as { id: string }).id;
   }
 
   revalidatePath("/vendeur/espace", "layout");
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/tissus");
-  return { ok: true };
+  return { ok: true, id: savedId };
+}
+
+/** Le pro indique si son tissu est disponible ou épuisé. */
+export async function setFabricInStock(id: string, inStock: boolean): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Vous devez être connecté.");
+
+  const { data, error } = await supabase
+    .from("fabrics")
+    .update({ in_stock: inStock })
+    .eq("id", id)
+    .eq("vendor_id", user.id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error("Tissu introuvable.");
+
+  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/tissus");
+  revalidatePath(`/tissus/${id}`);
+  revalidatePath("/modeles", "layout");
 }
 
 /** Delete a fabric owned by the signed-in seller. */

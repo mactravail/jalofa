@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Layers, MapPin, Star, Store, Truck } from "lucide-react";
+import { ArrowLeft, Layers, MapPin, Star, Store } from "lucide-react";
 
 import {
   CertifiedBadge,
@@ -84,11 +84,6 @@ export default async function VendorProfilePage({
                 <Layers className="size-4" /> {fabrics.length} tissu
                 {fabrics.length > 1 ? "s" : ""}
               </span>
-              {vendor.free_delivery && (
-                <span className="text-primary flex items-center gap-1 font-medium">
-                  <Truck className="size-4" /> Livraison offerte
-                </span>
-              )}
             </div>
           </div>
         </div>

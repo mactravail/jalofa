@@ -195,12 +195,20 @@ function ReviewCard({ review }: { review: TailorReview }) {
 export function CustomerReviews({
   data,
   headingClassName = COLLECTION_HEADING,
+  className,
 }: {
   data: LatestReviews;
   headingClassName?: string;
+  className?: string;
 }) {
   return (
-    <section id="avis" className="mx-auto max-w-7xl scroll-mt-16 px-4 pt-16 md:px-8 md:pt-28">
+    <section
+      id="avis"
+      className={cn(
+        "mx-auto max-w-7xl scroll-mt-16 px-4 pt-16 md:px-8 md:pt-28",
+        className,
+      )}
+    >
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-10">
         <h2 className={headingClassName}>Avis clients</h2>
         {data.count > 0 && (
