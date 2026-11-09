@@ -623,10 +623,14 @@ export function ModelFormDialog({
             <Textarea
               id="model-description"
               name="description"
-              rows={2}
+              rows={4}
+              maxLength={2000}
               defaultValue={source?.description ?? ""}
               placeholder="Coupe, finitions, occasion…"
             />
+            <p className="text-muted-foreground text-xs">
+              Le client lit ce texte tel quel sur la fiche du modèle.
+            </p>
           </div>
 
           <ModelStyleEditor

@@ -160,16 +160,25 @@ function SeeMore({ title, children }: { title: string; children: ReactNode }) {
 export function GarmentDetails({
   model,
 }: {
-  model: Pick<GarmentModel, "description" | "avg_days" | "care_tips" | "delivery_zone">;
+  model: Pick<
+    GarmentModel,
+    "description" | "avg_days" | "care_tips" | "delivery_zone" | "tailor_id"
+  >;
 }) {
   const tips = careTipLines(model.care_tips);
+  const description = model.description?.trim() || null;
+  // La description d'une création est celle de son tailleur, mot pour mot :
+  // JALOFA n'y ajoute rien, et sans texte du pro la rubrique n'apparaît pas.
+  const isTailorModel = Boolean(model.tailor_id);
 
   return (
     <div className="mt-6 border-t">
-      <SeeMore title="Description">
-        {model.description && <p>{model.description}</p>}
-        <p>Tailles standard XS → XXXL, ajustées par le tailleur.</p>
-      </SeeMore>
+      {(description || !isTailorModel) && (
+        <SeeMore title="Description">
+          {description && <p className="whitespace-pre-line">{description}</p>}
+          {!isTailorModel && <p>Tailles standard XS → XXXL, ajustées par le tailleur.</p>}
+        </SeeMore>
+      )}
 
       <SeeMore title="Livraison et remboursement">
         <p>{deliveryPolicy(model.delivery_zone)}</p>
