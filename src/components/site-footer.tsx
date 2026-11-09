@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PaymentLogos } from "@/components/payment-logos";
 import { Wordmark } from "@/components/wordmark";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { FOOTER_LEGAL_LINKS, FOOTER_LINKS } from "@/lib/nav";
@@ -83,6 +84,9 @@ export function SiteFooter() {
               </Link>
             ))}
           </nav>
+        </div>
+        <div className="mx-auto max-w-6xl px-4 pb-6">
+          <PaymentLogos />
         </div>
       </div>
     </footer>
