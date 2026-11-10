@@ -33,6 +33,12 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   );
 }
 
+/**
+ * Étapes internes que le tailleur ne déclare pas (il passe directement de
+ * « couture » à « envoyée ») : on ne les promet pas au client.
+ */
+const CLIENT_HIDDEN: OrderStatus[] = ["in_production", "quality_check"];
+
 export function OrderTimeline({
   status,
   history,
@@ -51,14 +57,21 @@ export function OrderTimeline({
     );
   }
 
-  const currentIndex = timeline.indexOf(status);
+  // Le client ne voit que les étapes que le tailleur annonce vraiment. Une
+  // commande arrêtée sur une étape masquée s'affiche à l'étape visible d'avant.
+  const visible = timeline.filter((s) => !CLIENT_HIDDEN.includes(s));
+  const reached = timeline.indexOf(status);
+  const currentIndex = visible.reduce(
+    (cur, s, i) => (timeline.indexOf(s) <= reached ? i : cur),
+    -1,
+  );
   const timeByStatus = new Map(
     history.map((h) => [h.status, h.created_at]),
   );
 
   return (
     <ol className="relative ml-3 space-y-6 border-l pl-6">
-      {timeline.map((s, i) => {
+      {visible.map((s, i) => {
         const done = i <= currentIndex;
         const isCurrent = i === currentIndex;
         const at = timeByStatus.get(s);

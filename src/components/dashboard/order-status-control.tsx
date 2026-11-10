@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Hourglass, Loader2, PackageCheck, Tag, Truck, X } from "lucide-react";
+import {
+  Check,
+  Hourglass,
+  Loader2,
+  PackageCheck,
+  Scissors,
+  Tag,
+  Truck,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { usePipeline } from "@/components/dashboard/pipeline-store";
@@ -33,6 +42,25 @@ import { cn } from "@/lib/utils";
 const BIG = "h-12 flex-1 rounded-xl px-5 text-base font-semibold sm:flex-none";
 /** Oui = vert, non = rouge : on comprend sans lire. */
 const YES = "bg-emerald-600 text-white hover:bg-emerald-700";
+
+/**
+ * Le prochain geste du tailleur à l'atelier. Trois étapes que le client voit
+ * dans sa frise et dont il reçoit la notification.
+ */
+function workshopStep(status: OrderStatus): {
+  next: OrderStatus;
+  label: string;
+  icon: typeof Truck;
+} {
+  if (status === "sewing" || status === "in_production" || status === "quality_check") {
+    return { next: "shipped", label: "Tenue prête, en route", icon: Truck };
+  }
+  if (status === "shipped") {
+    return { next: "delivered", label: "Livrée au client", icon: PackageCheck };
+  }
+  // Tissu reçu (ou tissu du client) : la couture peut commencer.
+  return { next: "sewing", label: "Je commence la couture", icon: Scissors };
+}
 
 /**
  * Inline pipeline control for a pro (tailor or vendor). Shows the actions the
@@ -267,17 +295,36 @@ export function OrderStatusControl({
       );
     }
 
-    // Le tissu est en main : un seul geste pour clôturer, prêt et livré.
+    // Le tissu est en main : une étape à la fois, chacune prévient le client
+    // (couture commencée → en route → livrée). « Déjà livrée » reste possible
+    // pour qui remet la tenue en main propre.
     if (tailorInWorkshop(status, type)) {
+      const step = workshopStep(status);
       return (
-        <Button className={cn(BIG, YES)} onClick={() => run("delivered")} disabled={isPending}>
-          {isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Truck className="size-4" />
+        <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
+          <Button
+            className={cn(BIG, YES)}
+            onClick={() => run(step.next)}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <step.icon className="size-4" />
+            )}
+            {step.label}
+          </Button>
+          {step.next !== "delivered" && (
+            <button
+              type="button"
+              onClick={() => run("delivered")}
+              disabled={isPending}
+              className="text-muted-foreground hover:text-foreground text-center text-xs underline underline-offset-2 sm:text-right"
+            >
+              Déjà remise au client ? Marquer livrée
+            </button>
           )}
-          Livré
-        </Button>
+        </div>
       );
     }
   }
