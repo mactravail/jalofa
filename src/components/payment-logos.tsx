@@ -108,6 +108,37 @@ const LOGOS: Logo[] = [
   },
 ];
 
+const BY_NAME = Object.fromEntries(LOGOS.map((l) => [l.name, l.svg]));
+
+/** Logo(s) d'un moyen de paiement : la carte = Visa + Mastercard. */
+const METHOD_LOGOS: Record<string, string[]> = {
+  orange_money: ["Orange Money"],
+  wave: ["Wave"],
+  free_money: ["Free Money"],
+  card: ["Visa", "Mastercard"],
+};
+
+export function PaymentMethodLogo({
+  method,
+  className,
+}: {
+  method: string;
+  className?: string;
+}) {
+  return (
+    <span aria-hidden="true" className={cn("flex items-center justify-center gap-1", className)}>
+      {(METHOD_LOGOS[method] ?? []).map((name) => (
+        <span
+          key={name}
+          className="h-7 w-11 overflow-hidden rounded-[4px] ring-1 ring-white/10"
+        >
+          {BY_NAME[name]}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function PaymentLogos({ className }: { className?: string }) {
   return (
     <ul

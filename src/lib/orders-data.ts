@@ -34,7 +34,7 @@ export type OrderMeasurement = Pick<
 
 export type OrderRelations = {
   /** `delivery_zone` : ce que le pro a choisi pour la livraison de ce modèle. */
-  model?: { name: string; delivery_zone?: FreeDeliveryZone } | null;
+  model?: { name: string; image_url?: string | null; delivery_zone?: FreeDeliveryZone } | null;
   fabric?: {
     name: string;
     image_url: string | null;
@@ -83,7 +83,7 @@ export type OrderDetail = OrderListItem & {
 };
 
 const RELATIONS =
-  "*, model:models(name), fabric:fabrics(name, image_url), tailor:tailors(shop_name), style:styles(name)";
+  "*, model:models(name, image_url), fabric:fabrics(name, image_url), tailor:tailors(shop_name), style:styles(name)";
 
 // Colonnes du relevé de mesures reprises sur la fiche de commande du pro.
 const MEASUREMENT_COLS =

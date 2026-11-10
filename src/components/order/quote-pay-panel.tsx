@@ -1,13 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CalendarClock, Loader2, MapPin, MessageSquareQuote } from "lucide-react";
+import {
+  CalendarClock,
+  Loader2,
+  Lock,
+  MapPin,
+  MessageSquareQuote,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { acceptQuote } from "@/lib/actions/orders";
 import { CANCEL_WINDOW_HOURS } from "@/lib/after-sale";
 import { Button } from "@/components/ui/button";
+import { PaymentMethodLogo } from "@/components/payment-logos";
 import {
   PAYMENT_METHOD_LABELS,
   formatPrice,
@@ -55,6 +64,7 @@ export function QuotePayPanel({
 }) {
   const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [accepted, setAccepted] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // En attente du chiffrage : le tailleur n'a pas encore répondu.
@@ -78,6 +88,10 @@ export function QuotePayPanel({
   const pay = () => {
     if (!method) {
       toast.error("Choisissez un moyen de paiement");
+      return;
+    }
+    if (!accepted) {
+      toast.error("Acceptez les conditions pour payer");
       return;
     }
     startTransition(async () => {
@@ -151,26 +165,52 @@ export function QuotePayPanel({
             onClick={() => setMethod(m)}
             aria-pressed={method === m}
             className={cn(
-              "rounded-lg border p-2.5 text-sm font-medium transition-colors",
+              "flex flex-col items-center gap-1.5 rounded-lg border p-2.5 transition-colors",
               method === m
                 ? "border-primary ring-primary/30 ring-2"
                 : "hover:bg-muted",
             )}
           >
-            {PAYMENT_METHOD_LABELS[m]}
+            <PaymentMethodLogo method={m} />
+            <span className="text-muted-foreground text-[11px] leading-tight">
+              {PAYMENT_METHOD_LABELS[m]}
+            </span>
           </button>
         ))}
       </div>
 
+      <label className="mt-4 flex cursor-pointer items-start gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={accepted}
+          onChange={(e) => setAccepted(e.target.checked)}
+          className="accent-primary mt-0.5 size-4 shrink-0"
+        />
+        <span>
+          J&apos;accepte les{" "}
+          <Link href="/conditions" target="_blank" className="underline underline-offset-2">
+            conditions d&apos;utilisation
+          </Link>
+        </span>
+      </label>
+
       <Button
-        size="lg"
-        className="mt-4 h-auto min-h-11 w-full flex-wrap text-base"
+        className="mt-3 h-auto min-h-10 w-full flex-wrap gap-x-1.5 gap-y-0 bg-emerald-600 px-3 py-2 text-center text-[13px] leading-tight font-semibold whitespace-normal text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-500 disabled:bg-emerald-600/40 sm:text-sm"
         onClick={pay}
-        disabled={isPending || !hasAddress}
+        disabled={isPending || !hasAddress || !accepted}
       >
-        {isPending && <Loader2 className="size-4 animate-spin" />}
-        Accepter et payer {formatPrice(totalAmount)}
+        {isPending ? (
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <Lock className="size-4 shrink-0" />
+        )}
+        <span>Accepter et payer</span>
+        <span className="whitespace-nowrap">{formatPrice(totalAmount)}</span>
       </Button>
+      <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-emerald-500">
+        <ShieldCheck className="size-3.5" />
+        Paiement sécurisé · argent protégé par JALOFA
+      </p>
       <p className="text-muted-foreground mt-2 text-xs">
         Une fois payé, le tailleur reçoit votre nom, votre téléphone et votre e-mail pour
         vous livrer.

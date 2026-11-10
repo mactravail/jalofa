@@ -66,7 +66,7 @@ export function UserMenu({ fullName, role }: Props) {
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link href="/compte" />}>
+          <DropdownMenuItem render={<Link href="/compte/parametres" />}>
             <User className="size-4" /> Mon compte
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/compte/commandes" />}>

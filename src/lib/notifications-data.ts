@@ -19,13 +19,15 @@ export async function getMyNotifications(limit = 20): Promise<Notification[]> {
 
   const { data } = await supabase
     .from("notifications")
-    .select("*")
+    .select(
+      "*, order:orders(order_number, model:models(name, image_url), fabric:fabrics(name, image_url))",
+    )
     .eq("user_id", user.id)
     .neq("type", "fabric_sale")
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  return (data as Notification[]) ?? [];
+  return (data as unknown as Notification[]) ?? [];
 }
 
 /** Combien de notifications non lues (la pastille rouge de la cloche). */

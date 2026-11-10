@@ -1,27 +1,37 @@
 import Link from "next/link";
-import { ChevronRight, LayoutDashboard, UserCog } from "lucide-react";
+import { ChevronRight, LayoutDashboard } from "lucide-react";
 
-import { NotificationsCard } from "@/components/account/notifications-card";
+import { ClientOrdersBoard, ClientOrdersEmpty } from "@/components/account/client-orders-board";
+import { NotificationsBell } from "@/components/account/notifications-bell";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ROLE_LABELS, type UserRole } from "@/lib/constants";
 import { DASHBOARD_ROOT, DASHBOARD_TITLE, type ProRole } from "@/lib/dashboard-nav";
-import { getMyNotifications } from "@/lib/notifications-data";
-import { getCurrentProfile } from "@/lib/queries";
+import { getMyUnreadNotificationCount } from "@/lib/notifications-data";
+import { getMyOrders } from "@/lib/orders-data";
+import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const isPro = (role: string): role is ProRole =>
   role === "tailor" || role === "vendor";
 
+/**
+ * L'accueil de l'espace client = ses commandes. C'est là qu'on atterrit après
+ * la connexion : on voit d'abord ce qu'il faut faire et où en sont les tenues.
+ * Le profil se réduit à un lien « Mon compte » (nom, téléphone, mot de passe).
+ */
 export default async function AccountPage() {
-  const profile = await getCurrentProfile();
+  const [profile, orders, unread] = await Promise.all([
+    getCurrentProfile(),
+    getMyOrders(),
+    getMyUnreadNotificationCount(),
+  ]);
 
-  if (!profile) {
+  if (!profile && isSupabaseConfigured()) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
           <p className="text-muted-foreground">
-            Connectez-vous pour accéder à votre profil.
+            Connectez-vous pour voir vos commandes.
           </p>
           <Link href="/connexion" className={cn(buttonVariants(), "mt-4")}>
             Se connecter
@@ -31,20 +41,11 @@ export default async function AccountPage() {
     );
   }
 
-  const initials = (profile.full_name ?? "?")
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  const pro = isPro(profile.role) ? profile.role : null;
-  const notifications = await getMyNotifications();
+  const pro = profile && isPro(profile.role) ? profile.role : null;
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] ?? null;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
-
+    <div className="space-y-8">
       {/* Pour un pro, c'est LE bouton de la page : gros, en tête, impossible à rater. */}
       {pro && (
         <Link
@@ -61,31 +62,21 @@ export default async function AccountPage() {
         </Link>
       )}
 
-      <NotificationsCard notifications={notifications} />
+      {/* Du nouveau sur une commande : c'est la première chose qu'on voit. */}
+      <NotificationsBell unread={unread} />
 
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-4 p-6">
-          <span className="bg-primary/10 text-primary flex size-16 items-center justify-center rounded-full text-xl font-semibold">
-            {initials}
-          </span>
-          <div className="min-w-0">
-            <p className="text-lg font-semibold">{profile.full_name ?? "—"}</p>
-            <p className="text-muted-foreground text-sm">{ROLE_LABELS[profile.role as UserRole]}</p>
-            {profile.phone && (
-              <p className="text-muted-foreground text-sm">{profile.phone}</p>
-            )}
-          </div>
-          <Link
-            href="/compte/parametres"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "ml-auto gap-2",
-            )}
-          >
-            <UserCog className="size-4" /> Modifier mon compte
-          </Link>
-        </CardContent>
-      </Card>
+      {orders.length === 0 ? (
+        <ClientOrdersEmpty
+          firstName={firstName}
+          message={
+            isSupabaseConfigured()
+              ? "Vous n'avez pas encore de commande."
+              : "Vos commandes s'afficheront ici une fois la base de données connectée."
+          }
+        />
+      ) : (
+        <ClientOrdersBoard orders={orders} firstName={firstName} />
+      )}
     </div>
   );
 }

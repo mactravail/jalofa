@@ -5,7 +5,9 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Bell,
+  CheckCircle2,
   PackageCheck,
+  Scissors,
   Pencil,
   ShoppingBag,
   Tag,
@@ -26,7 +28,7 @@ import { bucketOf, pipelineType, type OrderBucket } from "@/lib/pipeline";
 import type { Notification } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Event = {
+export type TimelineEvent = {
   id: string;
   at: string;
   title: string;
@@ -36,6 +38,8 @@ type Event = {
   tone: string;
   /** Lu côté serveur (notification) — les commandes se jugent à la dernière visite. */
   read?: boolean;
+  /** De quelle commande il s'agit : photo, nom de la tenue, code. */
+  subject?: { name: string; code: string; image: string | null } | null;
 };
 
 const TONES: Record<string, { icon: LucideIcon; tone: string }> = {
@@ -46,6 +50,11 @@ const TONES: Record<string, { icon: LucideIcon; tone: string }> = {
   fabric_shipped: { icon: Truck, tone: "bg-violet-500/15 text-violet-400" },
   fabric_received: { icon: PackageCheck, tone: "bg-emerald-500/15 text-emerald-400" },
   order_rejected: { icon: AlertTriangle, tone: "bg-rose-500/15 text-rose-400" },
+  quote_ready: { icon: Tag, tone: "bg-amber-500/15 text-amber-400" },
+  order_accepted: { icon: CheckCircle2, tone: "bg-emerald-500/15 text-emerald-400" },
+  order_sewing: { icon: Scissors, tone: "bg-sky-500/15 text-sky-400" },
+  order_shipped: { icon: Truck, tone: "bg-violet-500/15 text-violet-400" },
+  order_delivered: { icon: PackageCheck, tone: "bg-emerald-500/15 text-emerald-400" },
 };
 const DEFAULT_TONE = { icon: Bell, tone: "bg-muted text-muted-foreground" };
 
@@ -99,20 +108,8 @@ export function NotificationsTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const events: Event[] = [
-    ...notifications.map((n) => {
-      const t = TONES[n.type] ?? DEFAULT_TONE;
-      return {
-        id: n.id,
-        at: n.created_at,
-        title: n.title,
-        body: n.body,
-        href: n.link,
-        icon: t.icon,
-        tone: t.tone,
-        read: n.is_read,
-      };
-    }),
+  const events: TimelineEvent[] = [
+    ...notifications.map(notificationEvent),
     // Les devis ont déjà leur notification « Nouvelle demande de devis ».
     ...orders
       .filter((o) => !o.is_quote)
@@ -130,6 +127,39 @@ export function NotificationsTimeline({
       }),
   ].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 
+  return <TimelineDays events={events} prevSeen={prevSeen} />;
+}
+
+/** Une notification de la base, prête pour la chronologie. */
+export function notificationEvent(n: Notification): TimelineEvent {
+  const t = TONES[n.type] ?? DEFAULT_TONE;
+  return {
+    id: n.id,
+    at: n.created_at,
+    title: n.title,
+    body: n.body,
+    href: n.link,
+    icon: t.icon,
+    tone: t.tone,
+    read: n.is_read,
+    subject: n.order
+      ? {
+          name: n.order.model?.name ?? n.order.fabric?.name ?? "Commande",
+          code: n.order.order_number,
+          image: n.order.model?.image_url ?? n.order.fabric?.image_url ?? null,
+        }
+      : null,
+  };
+}
+
+/** L'affichage seul : les évènements (déjà triés) rangés par jour. */
+export function TimelineDays({
+  events,
+  prevSeen = null,
+}: {
+  events: TimelineEvent[];
+  prevSeen?: number | null;
+}) {
   if (events.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
@@ -139,13 +169,13 @@ export function NotificationsTimeline({
     );
   }
 
-  const isNew = (e: Event) =>
+  const isNew = (e: TimelineEvent) =>
     e.read !== undefined
       ? !e.read
       : prevSeen !== null && Date.parse(e.at) > prevSeen;
 
   // Regroupement par jour, l'ordre est déjà le bon.
-  const days: { label: string; items: Event[] }[] = [];
+  const days: { label: string; items: TimelineEvent[] }[] = [];
   for (const e of events) {
     const label = dayLabel(e.at);
     const last = days.at(-1);
@@ -196,8 +226,28 @@ export function NotificationsTimeline({
                         />
                       )}
                     </div>
+                    {e.subject && (
+                      <div className="bg-muted/50 mt-1.5 flex items-center gap-2 rounded-lg border p-1.5 pr-3">
+                        {e.subject.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={e.subject.image}
+                            alt=""
+                            className="size-10 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span className="bg-muted size-10 shrink-0 rounded-md" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{e.subject.name}</p>
+                          <p className="text-muted-foreground font-mono text-xs">
+                            Code {e.subject.code}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {e.body && (
-                      <p className="text-muted-foreground mt-0.5 text-sm break-words">
+                      <p className="text-muted-foreground mt-1 text-sm break-words">
                         {e.body}
                       </p>
                     )}

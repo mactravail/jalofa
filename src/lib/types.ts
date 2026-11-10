@@ -460,4 +460,10 @@ export interface Notification {
   link: string | null;
   is_read: boolean;
   created_at: string;
+  /** La commande concernée, pour savoir de quel devis / quelle tenue on parle. */
+  order?: {
+    order_number: string;
+    model: { name: string; image_url: string | null } | null;
+    fabric: { name: string; image_url: string | null } | null;
+  } | null;
 }
