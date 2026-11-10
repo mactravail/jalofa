@@ -6,6 +6,7 @@ import {
 } from "@/components/admin/status-badges";
 import { computeTrustScore, type TrustPro, type TrustTier } from "@/lib/trust-score";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
 
 // Tons par palier — le score est une info fonctionnelle, la couleur est donc
 // permise même sur le site monochrome. Du gris (nouveau) au vert (excellent).
@@ -48,10 +49,10 @@ export function TrustScoreBadge({
       {score !== null ? (
         <>
           <span className="tabular-nums">{score}</span>
-          <span className="opacity-70">· {tier.label}</span>
+          <span className="opacity-70">· <T>{tier.label}</T></span>
         </>
       ) : (
-        "Nouveau"
+        <T>Nouveau</T>
       )}
     </span>
   );
@@ -88,10 +89,9 @@ export function TrustScorePanel({ pro }: { pro: Partial<TrustPro> }) {
 
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-sm font-medium">
-            <ShieldCheck className="text-primary size-4" aria-hidden /> Score de
-            confiance
+            <ShieldCheck className="text-primary size-4" aria-hidden /> <T>Score de confiance</T>
           </p>
-          <p className="mt-0.5 text-lg font-semibold">{tier.label}</p>
+          <p className="mt-0.5 text-lg font-semibold"><T>{tier.label}</T></p>
           {(badges.founding || badges.certified) && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {badges.certified && <CertifiedBadge />}
@@ -108,9 +108,9 @@ export function TrustScorePanel({ pro }: { pro: Partial<TrustPro> }) {
             <div key={c.key}>
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <dt className="text-muted-foreground">
-                  <span aria-hidden>{c.emoji}</span> {c.label}
+                  <span aria-hidden>{c.emoji}</span> <T>{c.label}</T>
                 </dt>
-                <dd className="font-medium">{c.display}</dd>
+                <dd className="font-medium"><T>{c.display}</T></dd>
               </div>
               <div className="bg-muted mt-1.5 h-1.5 overflow-hidden rounded-full">
                 <div
@@ -127,8 +127,7 @@ export function TrustScorePanel({ pro }: { pro: Partial<TrustPro> }) {
       </dl>
 
       <p className="text-muted-foreground mt-4 text-xs">
-        Le score s&apos;appuie sur les avis, les commandes réalisées, le respect
-        des délais, le taux d&apos;acceptation et les photos vérifiées.
+        <T>{"Le score s'appuie sur les avis, les commandes réalisées, le respect des délais, le taux d'acceptation et les photos vérifiées."}</T>
       </p>
     </section>
   );

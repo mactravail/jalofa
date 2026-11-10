@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
@@ -32,12 +32,17 @@ import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-p
 import { GRAND_BOUBOU_TYPES } from "@/lib/garment-routes";
 import { getRelatedGarments } from "@/lib/related-models";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Grand boubou sur mesure",
-  description:
-    "Le grand boubou traditionnel, dans ses différents types — Agbada, Baye Lahat, cérémonie... Prenez-le tel qu'il est présenté ou personnalisez chaque détail.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Grand boubou sur mesure"),
+    description: t(
+      "Le grand boubou traditionnel, dans ses différents types — Agbada, Baye Lahat, cérémonie... Prenez-le tel qu'il est présenté ou personnalisez chaque détail.",
+    ),
+  };
+}
 
 // Cette page est la page d'accueil de TOUTE la famille « grand boubou » —
 // /modeles/[id] y redirige chacun de ses membres (cf. garment-routes.ts). On
@@ -99,6 +104,7 @@ export default async function GrandBoubouPage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const { type } = await searchParams;
+  const t = await getT();
   const selectedSlug = type && GRAND_BOUBOU_TYPES.includes(type) ? type : BOUBOU_SLUG;
 
   const [fabrics, tailors, familyModelsRaw] = await Promise.all([
@@ -155,12 +161,12 @@ export default async function GrandBoubouPage({
         href="/"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
       >
-        <ArrowLeft className="size-4" /> Retour à l&apos;accueil
+        <ArrowLeft className="size-4" /> {t("Retour à l'accueil")}
       </Link>
 
       <GarmentTypeSwitcher
         basePath="/homme/grand-boubou-sur-mesure"
-        label="Choisissez le type de grand boubou"
+        label={t("Choisissez le type de grand boubou")}
         types={switcherTypes}
         activeId={model.slug ?? model.id}
       />

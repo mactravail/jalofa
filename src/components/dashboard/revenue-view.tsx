@@ -14,6 +14,9 @@ import {
   moneyReleased,
   revenueOf,
 } from "@/lib/pipeline";
+import { getT } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
 
 const COPY: Record<ProRole, { subtitle: string; earned: string; chart: string }> = {
   tailor: {
@@ -29,11 +32,11 @@ const COPY: Record<ProRole, { subtitle: string; earned: string; chart: string }>
   },
 };
 
-const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "short",
   year: "numeric",
-});
+};
 
 /** « Mon argent » : encaissé, en attente, et le détail par commande. */
 export async function RevenueView({ role }: { role: ProRole }) {
@@ -42,6 +45,8 @@ export async function RevenueView({ role }: { role: ProRole }) {
     getRevenueSeries(role),
   ]);
   const copy = COPY[role];
+  const t = await getT();
+  const locale = intlLocale(await getLocale());
 
   // La part qui revient à ce métier — la livraison et l'autre métier sont
   // exclus, d'où l'écart avec le total payé par le client.
@@ -58,14 +63,13 @@ export async function RevenueView({ role }: { role: ProRole }) {
         <Card className="border-0 bg-emerald-500 text-white">
           <CardContent className="p-5">
             <p className="flex items-center gap-2 text-sm opacity-90">
-              <Wallet className="size-4" /> {copy.earned}
+              <Wallet className="size-4" /> {t(copy.earned)}
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight">
               {formatPrice(revenueOf(role, paid))}
             </p>
             <p className="mt-1 text-xs opacity-80">
-              {paid.length} commande{paid.length > 1 ? "s" : ""} payée
-              {paid.length > 1 ? "s" : ""}
+              {paid.length > 1 ? t("{n} commandes payées", { n: paid.length }) : t("{n} commande payée", { n: paid.length })}
             </p>
           </CardContent>
         </Card>
@@ -74,16 +78,15 @@ export async function RevenueView({ role }: { role: ProRole }) {
           <CardContent className="p-5">
             <p className="text-muted-foreground flex items-center gap-2 text-sm">
               <Clock className="size-4" />{" "}
-              {role === "vendor" ? "En attente de réception du tissu" : "En attente de paiement"}
+              {role === "vendor" ? t("En attente de réception du tissu") : t("En attente de paiement")}
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight">
               {formatPrice(revenueOf(role, pending))}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              {pending.length} commande{pending.length > 1 ? "s" : ""}
               {role === "vendor"
-                ? ""
-                : ` non réglée${pending.length > 1 ? "s" : ""}`}
+                ? pending.length > 1 ? t("{n} commandes", { n: pending.length }) : t("{n} commande", { n: pending.length })
+                : pending.length > 1 ? t("{n} commandes non réglées", { n: pending.length }) : t("{n} commande non réglée", { n: pending.length })}
             </p>
           </CardContent>
         </Card>
@@ -92,23 +95,23 @@ export async function RevenueView({ role }: { role: ProRole }) {
       <div className="mt-4">
         <RevenueChart
           series={series}
-          title={copy.chart}
-          subtitle="Vos ventes payées, par jour, par semaine ou par mois."
+          title={t(copy.chart)}
+          subtitle={t("Vos ventes payées, par jour, par semaine ou par mois.")}
           accent="#10b981"
         />
       </div>
 
-      <h2 className="mt-10 mb-4 text-lg font-semibold">Détail par commande</h2>
+      <h2 className="mt-10 mb-4 text-lg font-semibold">{t("Détail par commande")}</h2>
       {orders.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
           <p className="text-muted-foreground text-sm">
-            Aucun revenu pour le moment.
+            {t("Aucun revenu pour le moment.")}
           </p>
         </div>
       ) : (
         <div className="divide-y rounded-xl border">
           {orders.map((order) => (
-            <RevenueRow key={order.id} order={order} role={role} />
+            <RevenueRow key={order.id} order={order} role={role} t={t} locale={locale} />
           ))}
         </div>
       )}
@@ -116,7 +119,17 @@ export async function RevenueView({ role }: { role: ProRole }) {
   );
 }
 
-function RevenueRow({ order, role }: { order: OrderListItem; role: ProRole }) {
+function RevenueRow({
+  order,
+  role,
+  t,
+  locale,
+}: {
+  order: OrderListItem;
+  role: ProRole;
+  t: (text: string) => string;
+  locale: string;
+}) {
   const paid = moneyReleased(role, order);
   const held = moneyHeldForReceipt(role, order);
 
@@ -127,11 +140,11 @@ function RevenueRow({ order, role }: { order: OrderListItem; role: ProRole }) {
           {order.order_number}
         </p>
         <p className="mt-0.5 truncate font-medium">
-          {order.model?.name ?? order.fabric?.name ?? "Commande"}
+          {order.model?.name ?? order.fabric?.name ?? t("Commande")}
         </p>
         <p className="text-muted-foreground truncate text-xs">
-          {DATE_FORMAT.format(new Date(order.created_at))}
-          {order.payment_method && ` · ${PAYMENT_METHOD_LABELS[order.payment_method]}`}
+          {new Date(order.created_at).toLocaleDateString(locale, DATE_OPTIONS)}
+          {order.payment_method && ` · ${t(PAYMENT_METHOD_LABELS[order.payment_method])}`}
         </p>
       </div>
 
@@ -141,12 +154,12 @@ function RevenueRow({ order, role }: { order: OrderListItem; role: ProRole }) {
         </p>
         <p className="text-muted-foreground text-xs">
           {paid
-            ? "Encaissé"
+            ? t("Encaissé")
             : held
               ? order.fabric_return
-                ? "Retour en cours"
-                : "Tissu pas encore reçu"
-              : "En attente"}
+                ? t("Retour en cours")
+                : t("Tissu pas encore reçu")
+              : t("En attente")}
         </p>
       </div>
     </div>

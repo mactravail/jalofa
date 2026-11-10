@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname } from "@/lib/i18n/navigation";
 
 import { CartButton } from "@/components/cart/cart-button";
 import { useCart } from "@/components/cart/cart-context";
@@ -10,6 +10,8 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Wordmark } from "@/components/wordmark";
 import { display } from "@/lib/display-font";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 const TEXT_LINK =
   "text-sm tracking-[0.1em] whitespace-nowrap uppercase transition-opacity hover:opacity-70";
@@ -30,6 +32,7 @@ function Header({
 }) {
   const [heroInView, setHeroInView] = useState(true);
   const { count, hydrated } = useCart();
+  const t = useT();
 
   useEffect(() => {
     if (!overVideo) return;
@@ -57,7 +60,7 @@ function Header({
           "flex h-9 items-center bg-neutral-800 px-4 text-xs tracking-[0.06em] text-white uppercase md:px-6 md:text-sm",
         )}
       >
-        <span className="truncate">Tailleurs et vendeurs : inscription gratuite</span>
+        <span className="truncate">{t("Tailleurs et vendeurs : inscription gratuite")}</span>
       </Link>
 
       {/* Sur la home, marge négative de la hauteur du header (bordure comprise) : le hero remonte dessous. */}
@@ -79,7 +82,7 @@ function Header({
             />
           </div>
 
-          <Link href="/" aria-label="JALOFA — accueil" className="flex items-center">
+          <Link href="/" aria-label={t("JALOFA — accueil")} className="flex items-center">
             <Wordmark />
           </Link>
 
@@ -87,12 +90,13 @@ function Header({
             {userMenu ??
               (!isAuthenticated && (
                 <Link href="/connexion" className={cn(TEXT_LINK, "hidden md:inline")}>
-                  Connexion
+                  {t("Connexion")}
                 </Link>
               ))}
             <Link href="/panier" className={cn(TEXT_LINK, "hidden md:inline")}>
-              Panier [{hydrated ? count : 0}]
+              {t("Panier")} [{hydrated ? count : 0}]
             </Link>
+            <LanguageSwitcher className="hidden md:flex" />
             <CartButton className={cn("md:hidden", iconClass)} />
           </div>
         </div>

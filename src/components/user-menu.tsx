@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import {
   LayoutDashboard,
   LogOut,
@@ -26,6 +26,7 @@ import {
 import { ADMIN_ROOT, ADMIN_TITLE } from "@/lib/admin-nav";
 import { ROLE_LABELS, type UserRole } from "@/lib/constants";
 import { DASHBOARD_ROOT, DASHBOARD_TITLE, type ProRole } from "@/lib/dashboard-nav";
+import { useT } from "@/components/i18n/locale-provider";
 
 type Props = {
   fullName: string | null;
@@ -36,6 +37,7 @@ const isPro = (role: UserRole): role is ProRole =>
   role === "tailor" || role === "vendor";
 
 export function UserMenu({ fullName, role }: Props) {
+  const t = useT();
   const initials = (fullName ?? "?")
     .split(" ")
     .map((p) => p[0])
@@ -54,36 +56,36 @@ export function UserMenu({ fullName, role }: Props) {
           </AvatarFallback>
         </Avatar>
         <span className="hidden max-w-28 truncate text-sm sm:inline">
-          {fullName ?? "Mon compte"}
+          {fullName ?? t("Mon compte")}
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col">
-            <span className="truncate text-sm">{fullName ?? "Mon compte"}</span>
+            <span className="truncate text-sm">{fullName ?? t("Mon compte")}</span>
             <span className="text-muted-foreground text-xs font-normal">
-              {ROLE_LABELS[role]}
+              {t(ROLE_LABELS[role])}
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem render={<Link href="/compte/parametres" />}>
-            <User className="size-4" /> Mon compte
+            <User className="size-4" /> {t("Mon compte")}
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/compte/commandes" />}>
-            <Package className="size-4" /> Mes commandes
+            <Package className="size-4" /> {t("Mes commandes")}
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/compte/inspiration" />}>
-            <Sparkles className="size-4" /> Inspiration
+            <Sparkles className="size-4" /> {t("Inspiration")}
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/compte/adresses" />}>
-            <MapPin className="size-4" /> Mes adresses
+            <MapPin className="size-4" /> {t("Mes adresses")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         {isPro(role) && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href={DASHBOARD_ROOT[role]} />}>
-              <LayoutDashboard className="size-4" /> {DASHBOARD_TITLE[role]}
+              <LayoutDashboard className="size-4" /> {t(DASHBOARD_TITLE[role])}
             </DropdownMenuItem>
           </>
         )}
@@ -91,7 +93,7 @@ export function UserMenu({ fullName, role }: Props) {
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href={ADMIN_ROOT} />}>
-              <ShieldCheck className="size-4" /> {ADMIN_TITLE}
+              <ShieldCheck className="size-4" /> {t(ADMIN_TITLE)}
             </DropdownMenuItem>
           </>
         )}
@@ -104,7 +106,7 @@ export function UserMenu({ fullName, role }: Props) {
             render={<button type="submit" />}
             className="w-full"
           >
-            <LogOut className="size-4" /> Se déconnecter
+            <LogOut className="size-4" /> {t("Se déconnecter")}
           </DropdownMenuItem>
         </form>
       </DropdownMenuContent>

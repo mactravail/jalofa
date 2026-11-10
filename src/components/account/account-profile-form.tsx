@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Profile } from "@/lib/types";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * L'identité du compte : nom, téléphone, ville. Le même formulaire sert au
@@ -26,6 +27,7 @@ export function AccountProfileForm({
   email: string | null;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -36,7 +38,7 @@ export function AccountProfileForm({
     startTransition(async () => {
       const res = await saveAccountProfile(null, formData);
       if (res?.ok) {
-        toast.success("Vos informations ont été enregistrées.");
+        toast.success(t("Vos informations ont été enregistrées."));
       } else if (res) {
         setError(res.error);
       }
@@ -47,12 +49,12 @@ export function AccountProfileForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
-          {error}
+          {t(error)}
         </p>
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="account_full_name">Nom complet</Label>
+        <Label htmlFor="account_full_name">{t("Nom complet")}</Label>
         <Input
           id="account_full_name"
           name="full_name"
@@ -60,13 +62,13 @@ export function AccountProfileForm({
           required
           maxLength={120}
           defaultValue={profile.full_name ?? ""}
-          placeholder="Ex. Fatou Ndiaye"
+          placeholder={t("Ex. Fatou Ndiaye")}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="account_phone">Téléphone</Label>
+          <Label htmlFor="account_phone">{t("Téléphone")}</Label>
           <Input
             id="account_phone"
             name="phone"
@@ -77,29 +79,28 @@ export function AccountProfileForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="account_city">Ville</Label>
+          <Label htmlFor="account_city">{t("Ville")}</Label>
           <Input
             id="account_city"
             name="city"
             defaultValue={profile.city ?? ""}
-            placeholder="Ex. Dakar"
+            placeholder={t("Ex. Dakar")}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="account_email">E-mail</Label>
+        <Label htmlFor="account_email">{t("E-mail")}</Label>
         <Input id="account_email" value={email ?? "—"} disabled readOnly />
         <p className="text-muted-foreground text-xs">
-          L&apos;adresse e-mail sert à vous connecter et ne peut pas être
-          modifiée ici. Écrivez-nous pour la changer.
+          {t("L'adresse e-mail sert à vous connecter et ne peut pas être modifiée ici. Écrivez-nous pour la changer.")}
         </p>
       </div>
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer
+          {t("Enregistrer")}
         </Button>
       </div>
     </form>

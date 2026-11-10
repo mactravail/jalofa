@@ -22,9 +22,11 @@ import {
   MIN_CUT_METERS,
 } from "@/lib/fabric-metrage";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 export default function MetersStep() {
   const { data, state, update, fabric, model } = useConfigurator();
+  const t = useT();
 
   const isFabricOnly = state.type === "fabric_only";
   // Le métrage du vêtement, adapté au corps désigné à l'étape précédente.
@@ -85,7 +87,7 @@ export default function MetersStep() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{fabric.name}</p>
             <p className="text-muted-foreground truncate text-xs">
-              {[fabric.material, fabric.color].filter(Boolean).join(" · ") || "Tissu"}
+              {[fabric.material, fabric.color].filter(Boolean).join(" · ") || t("Tissu")}
             </p>
             <p className="mt-0.5 text-xs font-medium">{formatPrice(pricePerMeter)} / m</p>
           </div>
@@ -98,20 +100,19 @@ export default function MetersStep() {
         <p className="text-sm leading-snug">
           {isFabricOnly ? (
             <>
-              Le tissu est coupé au demi-mètre.{" "}
+              {t("Le tissu est coupé au demi-mètre.")}{" "}
               <span className="text-muted-foreground">
-                Comptez 3 m pour une pièce simple, 6 m pour une grande tenue.
+                {t("Comptez 3 m pour une pièce simple, 6 m pour une grande tenue.")}
               </span>
             </>
           ) : (
             <>
-              Pour votre {model?.name ?? "tenue"},{" "}
-              {fitAuthor?.shop_name ?? "l'atelier"} taille dans{" "}
+              {t("Pour votre {garment}, {who} taille dans", { garment: model?.name ?? t("tenue"), who: fitAuthor?.shop_name ?? t("l'atelier") })}{" "}
               <span className="font-semibold">{formatMeters(metrage.recommended)}</span>
               {bodyLabel && heightLabel && (
                 <span className="text-muted-foreground">
                   {" "}
-                  (silhouette : {bodyLabel}, taille : {heightLabel})
+                  ({t("silhouette : {body}, taille : {height}", { body: t(bodyLabel), height: t(heightLabel) })})
                 </span>
               )}
               .
@@ -122,7 +123,7 @@ export default function MetersStep() {
 
       {/* Trois intentions d'achat, pas trois nombres. */}
       <section>
-        <h3 className="mb-3 text-base font-semibold tracking-tight">Métrage</h3>
+        <h3 className="mb-3 text-base font-semibold tracking-tight">{t("Métrage")}</h3>
         <div className="grid gap-2.5">
           {presets.map((p) => {
             const active = meters === p.meters;
@@ -152,13 +153,13 @@ export default function MetersStep() {
                     {p.meters.toLocaleString("fr-FR")}
                   </span>
                   <span className="text-[10px] uppercase tracking-wide opacity-70">
-                    mètres
+                    {t("mètres")}
                   </span>
                 </span>
 
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-sm font-medium">{p.title}</span>
+                    <span className="text-sm font-medium">{t(p.title)}</span>
                     {p.badge && !unavailable && (
                       <span
                         className={cn(
@@ -168,16 +169,16 @@ export default function MetersStep() {
                             : "bg-muted text-muted-foreground",
                         )}
                       >
-                        {p.badge}
+                        {t(p.badge)}
                       </span>
                     )}
                   </span>
                   <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">
-                    {unavailable ? "Métrage trop grand pour une commande en ligne." : p.desc}
+                    {unavailable ? t("Métrage trop grand pour une commande en ligne.") : t(p.desc)}
                   </span>
                   {pricePerMeter > 0 && !unavailable && (
                     <span className="mt-1 block text-xs font-medium">
-                      {metersPrice(p.meters)} de tissu
+                      {metersPrice(p.meters)} {t("de tissu")}
                     </span>
                   )}
                 </span>
@@ -190,13 +191,13 @@ export default function MetersStep() {
       {/* Ajustement fin — pour qui sait déjà, sans quitter la page. */}
       <section>
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold tracking-tight">Ajuster</h3>
+          <h3 className="text-base font-semibold tracking-tight">{t("Ajuster")}</h3>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setMeters(meters - METERS_STEP)}
               disabled={meters <= min}
-              aria-label="Retirer un demi-mètre"
+              aria-label={t("Retirer un demi-mètre")}
               className="hover:bg-muted flex size-9 items-center justify-center rounded-lg border transition-colors disabled:opacity-40"
             >
               <Minus className="size-4" />
@@ -208,7 +209,7 @@ export default function MetersStep() {
               type="button"
               onClick={() => setMeters(meters + METERS_STEP)}
               disabled={meters >= max}
-              aria-label="Ajouter un demi-mètre"
+              aria-label={t("Ajouter un demi-mètre")}
               className="hover:bg-muted flex size-9 items-center justify-center rounded-lg border transition-colors disabled:opacity-40"
             >
               <Plus className="size-4" />
@@ -223,14 +224,14 @@ export default function MetersStep() {
           step={METERS_STEP}
           value={meters}
           onChange={(e) => setMeters(Number(e.target.value))}
-          aria-label="Nombre de mètres"
+          aria-label={t("Nombre de mètres")}
           className="accent-primary mt-4 h-1.5 w-full cursor-pointer"
         />
         <div className="text-muted-foreground mt-1.5 flex justify-between text-[11px]">
           <span>
             {isFabricOnly
-              ? `Coupe minimale ${formatMeters(min)}`
-              : `Minimum ${formatMeters(min)} pour cette pièce`}
+              ? t("Coupe minimale {m}", { m: formatMeters(min) })
+              : t("Minimum {m} pour cette pièce", { m: formatMeters(min) })}
           </span>
           <span>{formatMeters(max)}</span>
         </div>
@@ -239,7 +240,7 @@ export default function MetersStep() {
       {/* Ce que le métrage couvre — le palier suivant se prend en un clic. */}
       <section>
         <h3 className="mb-3 text-base font-semibold tracking-tight">
-          Ce que couvre votre métrage
+          {t("Ce que couvre votre métrage")}
         </h3>
         <ul className="grid gap-1.5">
           {coverage.map((c) => {
@@ -272,11 +273,11 @@ export default function MetersStep() {
                     <span
                       className={cn("block leading-snug", !covered && "text-muted-foreground")}
                     >
-                      {c.label}
+                      {t(c.label)}
                     </span>
                     {!covered && reachable && (
                       <span className="mt-0.5 block text-xs font-medium underline underline-offset-2">
-                        Passer à {formatMeters(c.at)}
+                        {t("Passer à {m}", { m: formatMeters(c.at) })}
                         {pricePerMeter > 0 &&
                           ` · +${formatPrice(pricePerMeter * (c.at - meters))}`}
                       </span>
@@ -300,8 +301,8 @@ export default function MetersStep() {
           </div>
           <p className="text-muted-foreground mt-1 text-xs">
             {isFabricOnly
-              ? "Prix du tissu, hors livraison."
-              : "Tissu seul — la confection du tailleur s'ajoute à l'étape suivante."}
+              ? t("Prix du tissu, hors livraison.")
+              : t("Tissu seul — la confection du tailleur s'ajoute à l'étape suivante.")}
           </p>
         </section>
       )}
@@ -310,19 +311,19 @@ export default function MetersStep() {
       <ul className="text-muted-foreground grid gap-2.5 text-xs">
         <li className="flex items-start gap-2">
           <Scissors className="mt-0.5 size-3.5 shrink-0" />
-          <span>Coupé d&apos;un seul tenant, dans le même bain de teinture.</span>
+          <span>{t("Coupé d'un seul tenant, dans le même bain de teinture.")}</span>
         </li>
         <li className="flex items-start gap-2">
           <PackageCheck className="mt-0.5 size-3.5 shrink-0" />
           <span>
             {isFabricOnly
-              ? "Métré et contrôlé par le vendeur avant expédition."
-              : "Les chutes vous sont rendues avec la tenue."}
+              ? t("Métré et contrôlé par le vendeur avant expédition.")
+              : t("Les chutes vous sont rendues avec la tenue.")}
           </span>
         </li>
         <li className="flex items-start gap-2">
           <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
-          <span>Métrage insuffisant repéré à l&apos;atelier : on vous appelle avant de couper.</span>
+          <span>{t("Métrage insuffisant repéré à l'atelier : on vous appelle avant de couper.")}</span>
         </li>
       </ul>
     </div>

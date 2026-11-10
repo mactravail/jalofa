@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import type { FilmUse } from "@/components/catalog/remotion/fabric-film";
 import { canPlayFilm } from "@/lib/motion-capability";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // Le moteur Remotion est lourd : il n'entre jamais dans le bundle de la fiche,
 // il est cherché à la demande, et seulement quand l'appareil peut le porter.
@@ -43,6 +44,7 @@ export function FabricShowcase({
   uses: FilmUse[];
 }) {
   const [view, setView] = useState<View>("piece");
+  const t = useT();
   const [filmReady, setFilmReady] = useState(false);
   const [visible, setVisible] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -114,7 +116,7 @@ export function FabricShowcase({
             >
               <Image
                 src={image}
-                alt={`Gros plan sur le tissage — ${fabricName}`}
+                alt={`${t("Gros plan sur le tissage")} — ${fabricName}`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 45vw"
                 className="scale-[2.6] object-cover"
@@ -161,7 +163,7 @@ export function FabricShowcase({
 
         {/* Étiquette de la vue courante */}
         <span className="bg-background/85 absolute left-4 top-4 rounded-full px-3 py-1 text-[11px] font-medium backdrop-blur">
-          {LABELS[view]}
+          {t(LABELS[view])}
           {colorLabel && view === "piece" && (
             <span className="text-muted-foreground"> · {colorLabel}</span>
           )}
@@ -170,7 +172,7 @@ export function FabricShowcase({
         <button
           type="button"
           onClick={() => step(-1)}
-          aria-label="Vue précédente"
+          aria-label={t("Vue précédente")}
           className="text-foreground/70 hover:bg-background/80 hover:text-foreground absolute left-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors"
         >
           <ChevronLeft className="size-6" />
@@ -178,7 +180,7 @@ export function FabricShowcase({
         <button
           type="button"
           onClick={() => step(1)}
-          aria-label="Vue suivante"
+          aria-label={t("Vue suivante")}
           className="text-foreground/70 hover:bg-background/80 hover:text-foreground absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors"
         >
           <ChevronRight className="size-6" />
@@ -193,8 +195,8 @@ export function FabricShowcase({
             key={v}
             onClick={() => setView(v)}
             aria-pressed={view === v}
-            aria-label={LABELS[v]}
-            title={LABELS[v]}
+            aria-label={t(LABELS[v])}
+            title={t(LABELS[v])}
             className={cn(
               "bg-muted/50 relative aspect-square overflow-hidden rounded-xl border transition-colors",
               view === v ? "border-primary ring-primary/30 ring-2" : "hover:border-border",

@@ -12,8 +12,12 @@ import {
   getProAccess,
   isSupabaseConfigured,
 } from "@/lib/queries";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Espace tailleur" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Espace tailleur") };
+}
 
 export default async function TailorDashboardLayout({
   children,

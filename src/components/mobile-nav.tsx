@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ShoppingBag } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-context";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/sheet";
 import { NAV_LINKS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 export function MobileNav({
   isAuthenticated,
@@ -28,6 +30,7 @@ export function MobileNav({
 }) {
   const [open, setOpen] = useState(false);
   const { count } = useCart();
+  const t = useT();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -37,7 +40,7 @@ export function MobileNav({
             variant="ghost"
             size="icon"
             className={cn("md:hidden", triggerClassName)}
-            aria-label="Menu"
+            aria-label={t("Menu")}
           />
         }
       >
@@ -60,14 +63,14 @@ export function MobileNav({
                 onClick={() => setOpen(false)}
                 className={buttonVariants({ size: "sm" })}
               >
-                Se connecter
+                {t("Se connecter")}
               </Link>
               <Link
                 href="/inscription"
                 onClick={() => setOpen(false)}
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
-                Créer un compte
+                {t("Créer un compte")}
               </Link>
               <div className="mt-1 h-px bg-border" />
             </div>
@@ -79,7 +82,7 @@ export function MobileNav({
               onClick={() => setOpen(false)}
               className="rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent"
             >
-              {link.label}
+              {t(link.label)}
             </Link>
           ))}
           <div className="my-2 h-px bg-border" />
@@ -89,7 +92,7 @@ export function MobileNav({
             className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent"
           >
             <span className="flex items-center gap-2">
-              <ShoppingBag className="size-4" /> Panier
+              <ShoppingBag className="size-4" /> {t("Panier")}
             </span>
             {count > 0 && (
               <span className="bg-primary text-primary-foreground flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-xs font-semibold">
@@ -97,6 +100,8 @@ export function MobileNav({
               </span>
             )}
           </Link>
+          <div className="my-2 h-px bg-border" />
+          <LanguageSwitcher className="px-3 py-2 text-sm" />
         </nav>
       </SheetContent>
     </Sheet>

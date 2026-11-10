@@ -39,6 +39,8 @@ import {
   tailorInWorkshop,
 } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
+import { translateNow } from "@/lib/i18n/translate";
 
 /** Faits pour le pouce : on ne doit pas pouvoir les rater. */
 const BIG = "h-12 flex-1 rounded-xl px-5 text-base font-semibold sm:flex-none";
@@ -116,9 +118,9 @@ export function OrderStatusControl({
         if (demo) await move(orderId, "shipped");
         else await handOverToCourier(orderId, courier);
         setCourierOpen(false);
-        toast.success("Le client est prévenu : la tenue est en route.");
+        toast.success(translateNow("Le client est prévenu : la tenue est en route."));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur lors de l'envoi"));
       }
     });
   };
@@ -132,11 +134,11 @@ export function OrderStatusControl({
         const to = bucketOf(role, next, type);
         toast.success(
           to === bucketOf(role, status, type)
-            ? `Statut mis à jour : ${ORDER_STATUS_LABELS[next]}`
-            : `${ORDER_STATUS_LABELS[next]} — voir « ${BUCKET_LABELS[role][to]} »`,
+            ? translateNow("Statut mis à jour : {status}", { status: translateNow(ORDER_STATUS_LABELS[next]) })
+            : translateNow("{status} — voir « {bucket} »", { status: translateNow(ORDER_STATUS_LABELS[next]), bucket: translateNow(BUCKET_LABELS[role][to]) }),
         );
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur de mise à jour");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur de mise à jour"));
       }
     });
   };
@@ -146,9 +148,9 @@ export function OrderStatusControl({
       try {
         await reject(orderId, reason);
         setRejectOpen(false);
-        toast.success("Commande refusée — le client va être prévenu.");
+        toast.success(translateNow("Commande refusée — le client va être prévenu."));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur lors du refus");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur lors du refus"));
       }
     });
   };
@@ -164,10 +166,10 @@ export function OrderStatusControl({
         await quote(orderId, price, deliveryFee, fabricPrice, readyDays, note);
         setQuoteOpen(false);
         toast.success(
-          `Devis envoyé : ${formatPrice(price + deliveryFee + fabricPrice)}. Le client doit répondre.`,
+          translateNow("Devis envoyé : {price}. Le client doit répondre.", { price: formatPrice(price + deliveryFee + fabricPrice) }),
         );
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur lors de l'envoi"));
       }
     });
   };
@@ -187,10 +189,10 @@ export function OrderStatusControl({
         <div className="flex w-full items-center gap-3 rounded-lg bg-amber-500/10 px-3 py-2.5">
           <Hourglass className="size-5 shrink-0 text-amber-500" />
           <div className="min-w-0 text-sm leading-snug">
-            <p className="font-semibold text-amber-500">Devis envoyé</p>
+            <p className="font-semibold text-amber-500"><T>Devis envoyé</T></p>
             <p className="text-muted-foreground">
-              {readyDays ? `Prête en ${readyDays} jour${readyDays > 1 ? "s" : ""} · ` : ""}
-              En attente de la réponse du client.
+              {readyDays ? <><T vars={{ n: readyDays }}>{readyDays > 1 ? "Prête en {n} jours" : "Prête en {n} jour"}</T>{" · "}</> : ""}
+              <T>En attente de la réponse du client.</T>
             </p>
           </div>
         </div>
@@ -205,7 +207,7 @@ export function OrderStatusControl({
             ) : (
               <Tag className="size-4" />
             )}
-            Donner mon prix
+            <T>Donner mon prix</T>
           </Button>
           <Button
             className={BIG}
@@ -213,7 +215,7 @@ export function OrderStatusControl({
             onClick={() => setRejectOpen(true)}
             disabled={isPending}
           >
-            <X className="size-4" /> Refuser
+            <X className="size-4" /> <T>Refuser</T>
           </Button>
         </div>
         <QuoteOrderDialog
@@ -240,7 +242,7 @@ export function OrderStatusControl({
   if (isTerminal(status)) {
     return (
       <span className="text-muted-foreground text-sm font-medium">
-        {ORDER_STATUS_LABELS[status]}
+        <T>{ORDER_STATUS_LABELS[status]}</T>
       </span>
     );
   }
@@ -261,7 +263,7 @@ export function OrderStatusControl({
             ) : (
               <Check className="size-4" />
             )}
-            Accepter
+            <T>Accepter</T>
           </Button>
           <Button
             className={BIG}
@@ -269,7 +271,7 @@ export function OrderStatusControl({
             onClick={() => setRejectOpen(true)}
             disabled={isPending}
           >
-            <X className="size-4" /> Refuser
+            <X className="size-4" /> <T>Refuser</T>
           </Button>
         </div>
         <RejectOrderDialog
@@ -293,7 +295,7 @@ export function OrderStatusControl({
         <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
           {waiting && (
             <span className="text-muted-foreground text-sm">
-              En attente du fournisseur
+              <T>En attente du fournisseur</T>
             </span>
           )}
           <Button
@@ -307,7 +309,7 @@ export function OrderStatusControl({
             ) : (
               <PackageCheck className="size-4" />
             )}
-            J&apos;ai reçu le tissu
+            <T>{"J'ai reçu le tissu"}</T>
           </Button>
         </div>
       );
@@ -322,10 +324,10 @@ export function OrderStatusControl({
         <div className="flex w-full items-center gap-3 rounded-lg bg-violet-500/10 px-3 py-2.5 sm:w-auto">
           <Truck className="size-5 shrink-0 text-violet-400" />
           <div className="min-w-0 text-sm leading-snug">
-            <p className="font-semibold text-violet-400">En route</p>
+            <p className="font-semibold text-violet-400"><T>En route</T></p>
             <p className="text-muted-foreground">
               {courierName ? `${courierName} · ${courierPhone ?? ""} · ` : ""}
-              En attente de la confirmation du client.
+              <T>En attente de la confirmation du client.</T>
             </p>
           </div>
         </div>
@@ -346,7 +348,7 @@ export function OrderStatusControl({
             ) : (
               <step.icon className="size-4" />
             )}
-            {step.label}
+            <T>{step.label}</T>
           </Button>
           <CourierDialog
             open={courierOpen}
@@ -377,7 +379,7 @@ export function OrderStatusControl({
         ) : (
           <Truck className="size-4" />
         )}
-        Tissu envoyé
+        <T>Tissu envoyé</T>
       </Button>
     );
   }
@@ -386,7 +388,7 @@ export function OrderStatusControl({
   if (role === "vendor" && type === "fabric_only" && status === "fabric_shipped") {
     return (
       <span className="text-muted-foreground text-sm">
-        Tissu envoyé. JALOFA confirme la réception avec le client.
+        <T>Tissu envoyé. JALOFA confirme la réception avec le client.</T>
       </span>
     );
   }
@@ -397,7 +399,7 @@ export function OrderStatusControl({
     const owner = ownerOf(status, type);
     const waiting =
       owner === "vendor" ? "En attente du fournisseur" : "En attente du tailleur";
-    return <span className="text-muted-foreground text-sm">{waiting}</span>;
+    return <span className="text-muted-foreground text-sm"><T>{waiting}</T></span>;
   }
 
   const next = nextStatus(status, type);
@@ -411,7 +413,7 @@ export function OrderStatusControl({
       disabled={isPending}
     >
       {isPending && <Loader2 className="size-4 animate-spin" />}
-      {ORDER_STATUS_LABELS[next]}
+      <T>{ORDER_STATUS_LABELS[next]}</T>
     </Button>
   );
 }

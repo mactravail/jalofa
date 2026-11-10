@@ -83,43 +83,103 @@ export async function startProCheckout(buyer: ProBuyer): Promise<string | null> 
 }
 
 /**
- * « Payer à ma première vente » : l'offre Pro s'active tout de suite (un mois),
- * et son prix est enregistré comme frais différé (`provider = 'sale'`,
- * `status = 'deferred'`), retenu sur le reversement de la première vente
- * (cf. `applyDeferredFees`). Un seul frais différé ouvert par pro : si un autre
- * existe déjà, on ne réactive rien.
+ * Ajoute un mois d'offre Pro au frais différé du pro (`provider = 'sale'`,
+ * `status = 'deferred'`), retenu sur ses reversements (cf. `applyDeferredFees`).
+ * Une seule ligne différée ouverte par pro (index unique) : on la grossit.
  */
-export async function startDeferredProOffer(proId: string): Promise<void> {
+async function addDeferredMonth(admin: SupabaseClient, proId: string): Promise<void> {
   const plan = getPlan(PAID_PLAN_ID);
   if (!plan) throw new Error("Offre Pro introuvable");
-  const admin = db();
 
   const { data: open } = await admin
     .from("subscription_payments")
-    .select("id")
+    .select("id, months, amount")
     .eq("pro_id", proId)
     .eq("status", "deferred")
-    .limit(1);
-  if (open?.length) return;
+    .maybeSingle();
 
-  const { error } = await admin.from("subscription_payments").insert({
-    pro_id: proId,
-    plan: plan.id,
-    months: 1,
-    amount: plan.monthlyPrice,
-    provider: "sale",
-    status: "deferred",
-  });
+  const { error } = open
+    ? await admin
+        .from("subscription_payments")
+        .update({
+          months: (Number(open.months) || 0) + 1,
+          amount: Number(open.amount ?? 0) + plan.monthlyPrice,
+        })
+        .eq("id", open.id)
+    : await admin.from("subscription_payments").insert({
+        pro_id: proId,
+        plan: plan.id,
+        months: 1,
+        amount: plan.monthlyPrice,
+        provider: "sale",
+        status: "deferred",
+      });
   if (error) throw new Error(`Frais différé non enregistré : ${error.message}`);
+}
 
-  const patch = {
-    plan: plan.id,
-    plan_expires_at: addMonths(new Date(), 1).toISOString(),
-  };
-  await Promise.all([
-    admin.from("tailors").update(patch).eq("id", proId),
-    admin.from("vendors").update(patch).eq("id", proId),
+/**
+ * Renouvellement de l'offre Pro sur les ventes : le 1er mois a été payé à
+ * l'inscription ; ensuite, quand un mois Pro est échu, la première commande
+ * payée du pro ouvre un nouveau mois (à partir d'aujourd'hui) et son prix est
+ * retenu sur le reversement — sauf s'il l'a déjà payé en mobile money (son
+ * échéance est alors dans le futur). Rien ne se
+ * passe si le pro a arrêté son offre (`plan_auto_renew = false`).
+ *
+ * Appelé après chaque paiement de commande ; ne lève jamais — une erreur ici ne
+ * doit pas faire échouer l'achat du client.
+ */
+export async function renewProFromSale(
+  proIds: (string | null | undefined)[],
+): Promise<void> {
+  const ids = [...new Set(proIds.filter((id): id is string => !!id))];
+  if (!ids.length) return;
+  let admin: SupabaseClient;
+  try {
+    admin = db();
+  } catch {
+    return; // pas de clé de service (démo) : rien à renouveler
+  }
+
+  for (const proId of ids) {
+    try {
+      const row = await currentPlanRow(admin, proId);
+      if (row.plan !== PAID_PLAN_ID || !row.autoRenew || !row.table) continue;
+      // Sans échéance = offre accordée sans limite (admin) : rien à facturer.
+      if (!row.expiresAt || new Date(row.expiresAt).getTime() > Date.now()) continue;
+
+      // Verrou : seule la commande qui fait bouger l'échéance facture le mois
+      // (deux paiements simultanés n'en facturent qu'un).
+      const expires = addMonths(new Date(), 1).toISOString();
+      const { data: claimed } = await admin
+        .from(row.table)
+        .update({ plan_expires_at: expires })
+        .eq("id", proId)
+        .eq("plan", PAID_PLAN_ID)
+        .eq("plan_expires_at", row.expiresAt)
+        .select("id");
+      if (!claimed?.length) continue;
+
+      const other = row.table === "tailors" ? "vendors" : "tailors";
+      await admin
+        .from(other)
+        .update({ plan: PAID_PLAN_ID, plan_expires_at: expires })
+        .eq("id", proId);
+      await addDeferredMonth(admin, proId);
+    } catch (err) {
+      console.error("[pro renew from sale]", err);
+    }
+  }
+}
+
+/** « Sans engagement » : arrêter (ou reprendre) le renouvellement de l'offre Pro. */
+export async function setProAutoRenew(proId: string, on: boolean): Promise<void> {
+  const admin = db();
+  const results = await Promise.all([
+    admin.from("tailors").update({ plan_auto_renew: on }).eq("id", proId),
+    admin.from("vendors").update({ plan_auto_renew: on }).eq("id", proId),
   ]);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
 }
 
 /** Le frais d'offre Pro encore dû par un pro (0 s'il n'a rien à payer). */
@@ -147,22 +207,40 @@ export async function readDeferredFees(): Promise<Map<string, number>> {
   return dues;
 }
 
+type PlanRow = {
+  plan: string;
+  expiresAt: string | null;
+  /** Le pro n'a pas arrêté son offre (vrai tant que la colonne n'existe pas). */
+  autoRenew: boolean;
+  table: "tailors" | "vendors" | null;
+};
+
 /** Le plan en cours du pro — lu sur l'atelier, sinon sur la boutique de tissus. */
-async function currentPlanRow(admin: SupabaseClient, proId: string) {
-  for (const table of ["tailors", "vendors"]) {
-    const { data } = await admin
+async function currentPlanRow(admin: SupabaseClient, proId: string): Promise<PlanRow> {
+  for (const table of ["tailors", "vendors"] as const) {
+    let { data, error } = await admin
       .from(table)
-      .select("plan, plan_expires_at")
+      .select("plan, plan_expires_at, plan_auto_renew")
       .eq("id", proId)
       .maybeSingle();
+    // Migration 20260815000001 pas encore appliquée : sans la colonne.
+    if (error?.code === "42703") {
+      ({ data, error } = await admin
+        .from(table)
+        .select("plan, plan_expires_at")
+        .eq("id", proId)
+        .maybeSingle());
+    }
     if (data) {
       return {
         plan: (data.plan as string) ?? "free",
         expiresAt: (data.plan_expires_at as string | null) ?? null,
+        autoRenew: (data as { plan_auto_renew?: boolean }).plan_auto_renew !== false,
+        table,
       };
     }
   }
-  return { plan: "free", expiresAt: null };
+  return { plan: "free", expiresAt: null, autoRenew: true, table: null };
 }
 
 function addMonths(from: Date, months: number): Date {
@@ -226,19 +304,33 @@ export async function settleProPayment(
     .select("id");
   if (!claimed?.length) return "completed";
 
-  // Payé en ligne : plus rien à retenir sur la première vente. Ce paiement
-  // règle alors le mois déjà ouvert par le frais différé — il ne s'y ajoute pas.
-  const { data: settledDeferred } = await admin
+  // Un frais différé ouvert (mois déjà accordés, pas encore retenus sur une
+  // vente) est réglé en priorité : ces mois-là sont déjà actifs, le paiement
+  // les solde au lieu d'en ajouter.
+  const paidMonths = Number(payment.months) || 1;
+  let alreadyGranted = 0;
+  const { data: open } = await admin
     .from("subscription_payments")
-    .update({ status: "cancelled" })
+    .select("id, months, amount")
     .eq("pro_id", payment.pro_id)
     .eq("status", "deferred")
-    .select("months");
-  const alreadyGranted = (settledDeferred ?? []).reduce(
-    (sum, r) => sum + (Number(r.months) || 0),
-    0,
-  );
-  const extraMonths = Math.max(0, (Number(payment.months) || 1) - alreadyGranted);
+    .maybeSingle();
+  if (open) {
+    const owedMonths = Number(open.months) || 1;
+    alreadyGranted = Math.min(paidMonths, owedMonths);
+    const leftMonths = owedMonths - alreadyGranted;
+    const perMonth = Number(open.amount ?? 0) / owedMonths;
+    await admin
+      .from("subscription_payments")
+      .update(
+        leftMonths > 0
+          ? { months: leftMonths, amount: Math.round(perMonth * leftMonths) }
+          : { status: "cancelled" },
+      )
+      .eq("id", open.id)
+      .eq("status", "deferred");
+  }
+  const extraMonths = Math.max(0, paidMonths - alreadyGranted);
 
   // Prolonge l'abonnement à partir de l'échéance en cours (si encore active).
   const shop = await currentPlanRow(admin, payment.pro_id as string);
@@ -260,10 +352,16 @@ export async function settleProPayment(
 export type ProSubscription = {
   plan: "free" | "premium" | "standard";
   expiresAt: string | null;
+  /** Le pro n'a pas arrêté son offre : elle repart sur sa prochaine vente. */
+  autoRenew: boolean;
+  /** Mois Pro échu, en attente de la prochaine vente pour repartir. */
+  waitingForSale: boolean;
 };
 
 /**
- * L'abonnement d'un pro, échéance appliquée : un Pro échu repasse sur l'offre
+ * L'abonnement d'un pro, échéance appliquée. Un Pro échu qui n'a pas arrêté son
+ * offre reste Pro « en attente de vente » : sa prochaine commande payée rouvre
+ * un mois (cf. `renewProFromSale`). S'il l'a arrêtée, il repasse sur l'offre
  * Gratuit (écrit en base pour que commissions et reversements suivent).
  */
 export async function readProSubscription(proId: string): Promise<ProSubscription> {
@@ -271,14 +369,19 @@ export async function readProSubscription(proId: string): Promise<ProSubscriptio
   const row = await currentPlanRow(admin, proId);
   const plan = row.plan as ProSubscription["plan"];
   const expiresAt = row.expiresAt;
+  const expired = !!expiresAt && new Date(expiresAt).getTime() < Date.now();
 
-  if (plan !== "free" && expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+  if (plan === PAID_PLAN_ID && expired && row.autoRenew) {
+    return { plan, expiresAt, autoRenew: true, waitingForSale: true };
+  }
+
+  if (plan !== "free" && expired) {
     const patch = { plan: "free", plan_expires_at: null };
     await Promise.all([
       admin.from("tailors").update(patch).eq("id", proId),
       admin.from("vendors").update(patch).eq("id", proId),
     ]);
-    return { plan: "free", expiresAt: null };
+    return { plan: "free", expiresAt: null, autoRenew: row.autoRenew, waitingForSale: false };
   }
-  return { plan, expiresAt };
+  return { plan, expiresAt, autoRenew: row.autoRenew, waitingForSale: false };
 }

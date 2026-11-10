@@ -5,11 +5,15 @@ import { CollectionHero } from "@/components/catalog/collection-hero";
 import { DemoBanner } from "@/components/demo-banner";
 import { FabricCard } from "@/components/catalog/fabric-card";
 import { getFabricCategories, getFabrics } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Tissus",
-  description: "Parcourez et achetez des tissus au mètre : laine, coton, lin et plus.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Tissus"),
+    description: t("Parcourez et achetez des tissus au mètre : laine, coton, lin et plus."),
+  };
+}
 
 export default async function FabricsPage({
   searchParams,
@@ -17,6 +21,7 @@ export default async function FabricsPage({
   searchParams: Promise<{ category?: string; q?: string; color?: string }>;
 }) {
   const { category, q, color } = await searchParams;
+  const t = await getT();
   const [fabrics, categories] = await Promise.all([
     getFabrics({ category, q, color }),
     getFabricCategories(),
@@ -42,13 +47,13 @@ export default async function FabricsPage({
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         {!showHero && (
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tissus</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("Tissus")}</h1>
             <p className="text-muted-foreground mt-1">
-              Achetez au mètre et faites-vous livrer, ou utilisez-les pour votre tenue.
+              {t("Achetez au mètre et faites-vous livrer, ou utilisez-les pour votre tenue.")}
             </p>
           </div>
         )}
-        <SearchInput placeholder="Rechercher un tissu..." />
+        <SearchInput placeholder={t("Rechercher un tissu...")} />
       </div>
 
       <div className="mb-8">
@@ -57,7 +62,7 @@ export default async function FabricsPage({
 
       {fabrics.length === 0 ? (
         <p className="text-muted-foreground py-16 text-center">
-          Aucun tissu ne correspond à votre recherche.
+          {t("Aucun tissu ne correspond à votre recherche.")}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

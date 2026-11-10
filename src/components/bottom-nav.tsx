@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname } from "@/lib/i18n/navigation";
 import {
   CircleUserRound,
   Home,
@@ -13,6 +13,7 @@ import {
 
 import { useCart } from "@/components/cart/cart-context";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 type Tab = {
   href: string;
@@ -52,6 +53,7 @@ const TABS: Tab[] = [
 export function BottomNav() {
   const pathname = usePathname();
   const { count } = useCart();
+  const t = useT();
 
   const isActive = (tab: Tab) =>
     tab.href === "/"
@@ -60,7 +62,7 @@ export function BottomNav() {
 
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label={t("Navigation principale")}
       className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <div className="grid h-16 grid-cols-5">
@@ -90,7 +92,7 @@ export function BottomNav() {
                   </span>
                 )}
               </span>
-              {tab.label}
+              {t(tab.label)}
             </Link>
           );
         })}

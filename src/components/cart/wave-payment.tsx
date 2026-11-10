@@ -5,6 +5,7 @@ import { ScanLine } from "lucide-react";
 
 import { formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // Couleur de marque Wave (bleu cyan).
 const WAVE_BLUE = "#1DC4FF";
@@ -95,6 +96,7 @@ function buildQrMatrix(seed: number, size: number): boolean[][] {
 function QrCode({ seed, className }: { seed: number; className?: string }) {
   const size = 25;
   const matrix = useMemo(() => buildQrMatrix(seed, size), [seed]);
+  const t = useT();
 
   return (
     <svg
@@ -102,7 +104,7 @@ function QrCode({ seed, className }: { seed: number; className?: string }) {
       className={className}
       shapeRendering="crispEdges"
       role="img"
-      aria-label="QR code de paiement Wave"
+      aria-label={t("QR code de paiement Wave")}
     >
       <rect x={-2} y={-2} width={size + 4} height={size + 4} fill="#fff" />
       {matrix.flatMap((row, r) =>
@@ -121,11 +123,12 @@ function QrCode({ seed, className }: { seed: number; className?: string }) {
 // ---------------------------------------------------------------------------
 
 export function WaveQrPayment({ total }: { total: number }) {
+  const t = useT();
   return (
     <div className="bg-muted/30 mt-3 rounded-xl border p-4">
       <div className="flex items-center gap-2">
         <WaveMark className="size-6" />
-        <p className="text-sm font-medium">Payer avec Wave</p>
+        <p className="text-sm font-medium">{t("Payer avec Wave")}</p>
       </div>
 
       <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-5">
@@ -136,23 +139,23 @@ export function WaveQrPayment({ total }: { total: number }) {
         <div className="text-center sm:text-left">
           <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-xs sm:justify-start">
             <ScanLine className="size-3.5" />
-            Scannez pour payer
+            {t("Scannez pour payer")}
           </p>
           <p className="mt-1 text-sm">
-            Ouvrez l&apos;application{" "}
+            {t("Ouvrez l'application")}{" "}
             <span className="font-semibold" style={{ color: WAVE_BLUE }}>
               Wave
             </span>{" "}
-            et scannez ce code pour régler
+            {t("et scannez ce code pour régler")}
           </p>
           <p className="mt-1 text-2xl font-bold" style={{ color: WAVE_BLUE }}>
             {formatPrice(total)}
           </p>
 
           <ol className="text-muted-foreground mt-3 list-inside list-decimal space-y-1 text-xs">
-            <li>Ouvrez Wave et appuyez sur « Payer ».</li>
-            <li>Scannez ce QR code.</li>
-            <li>Validez le montant pour confirmer.</li>
+            <li>{t("Ouvrez Wave et appuyez sur « Payer ».")}</li>
+            <li>{t("Scannez ce QR code.")}</li>
+            <li>{t("Validez le montant pour confirmer.")}</li>
           </ol>
         </div>
       </div>

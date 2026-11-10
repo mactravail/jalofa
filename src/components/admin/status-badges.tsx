@@ -11,6 +11,7 @@ import {
 } from "@/lib/constants";
 import { getPlan, type SubscriptionPlanId } from "@/lib/subscriptions";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
 
 type Variant = NonNullable<Parameters<typeof badgeVariants>[0]>["variant"];
 
@@ -95,7 +96,7 @@ export function CertifiedBadge({ className }: { className?: string }) {
       )}
     >
       <BadgeCheck className="fill-blue-600 text-white dark:fill-blue-400 dark:text-blue-950" />
-      Certifié
+      <T>Certifié</T>
     </Badge>
   );
 }
@@ -114,7 +115,7 @@ export function FoundingMemberBadge({ className }: { className?: string }) {
       )}
     >
       <Award className="size-3.5" />
-      Membre Fondateur
+      <T>Membre Fondateur</T>
     </Badge>
   );
 }

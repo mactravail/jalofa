@@ -22,6 +22,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /** Invite du message, adaptée à la catégorie choisie. */
 const MESSAGE_PLACEHOLDER: Record<FeedbackCategory, string> = {
@@ -47,6 +48,7 @@ export function FeedbackButton({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
   const [category, setCategory] = useState<FeedbackCategory>("amelioration");
   const [isPending, startTransition] = useTransition();
 
@@ -57,12 +59,12 @@ export function FeedbackButton({
     startTransition(async () => {
       const res = await submitFeedback(null, formData);
       if (res?.ok) {
-        toast.success("Merci ! Votre retour nous est bien parvenu.");
+        toast.success(t("Merci ! Votre retour nous est bien parvenu."));
         form.reset();
         setCategory("amelioration");
         setOpen(false);
       } else {
-        toast.error(res?.error ?? "Une erreur est survenue. Réessayez.");
+        toast.error(t(res?.error ?? "Une erreur est survenue. Réessayez."));
       }
     });
   }
@@ -79,17 +81,16 @@ export function FeedbackButton({
         )}
       >
         <MessageSquarePlus className="text-primary size-4 shrink-0" />
-        Une idée ? Un problème ?
+        {t("Une idée ? Un problème ?")}
       </Button>
 
       <Dialog open={open} onOpenChange={(o) => !isPending && setOpen(o)}>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Aidez-nous à améliorer JALOFA</DialogTitle>
+              <DialogTitle>{t("Aidez-nous à améliorer JALOFA")}</DialogTitle>
               <DialogDescription>
-                Une idée, un problème, une remarque ? Dites-nous tout — nous lisons
-                chaque message.
+                {t("Une idée, un problème, une remarque ? Dites-nous tout — nous lisons chaque message.")}
               </DialogDescription>
             </DialogHeader>
 
@@ -99,7 +100,7 @@ export function FeedbackButton({
 
             <div className="mt-4 space-y-4">
               <div className="space-y-2">
-                <Label>De quoi s&apos;agit-il ?</Label>
+                <Label>{t("De quoi s'agit-il ?")}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {FEEDBACK_CATEGORIES.map((c) => {
                     const active = c === category;
@@ -116,7 +117,7 @@ export function FeedbackButton({
                             : "text-muted-foreground hover:bg-muted",
                         )}
                       >
-                        {FEEDBACK_CATEGORY_LABELS[c]}
+                        {t(FEEDBACK_CATEGORY_LABELS[c])}
                       </button>
                     );
                   })}
@@ -124,7 +125,7 @@ export function FeedbackButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="feedback-message">Votre message</Label>
+                <Label htmlFor="feedback-message">{t("Votre message")}</Label>
                 <Textarea
                   id="feedback-message"
                   name="message"
@@ -132,7 +133,7 @@ export function FeedbackButton({
                   required
                   maxLength={2000}
                   autoFocus
-                  placeholder={MESSAGE_PLACEHOLDER[category]}
+                  placeholder={t(MESSAGE_PLACEHOLDER[category])}
                 />
               </div>
             </div>
@@ -144,7 +145,7 @@ export function FeedbackButton({
                 onClick={() => setOpen(false)}
                 disabled={isPending}
               >
-                Annuler
+                {t("Annuler")}
               </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (
@@ -152,7 +153,7 @@ export function FeedbackButton({
                 ) : (
                   <Send className="size-4" />
                 )}
-                Envoyer
+                {t("Envoyer")}
               </Button>
             </DialogFooter>
           </form>

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Clock, Home, LogOut, Scissors, Store } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -8,11 +8,7 @@ import { formatPrice, WAVE_PAYMENT } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import { getPlan, type SubscriptionPlanId } from "@/lib/subscriptions";
 import { cn } from "@/lib/utils";
-
-const KIND_LABEL: Record<ProRole, string> = {
-  tailor: "tailleur",
-  vendor: "vendeur",
-};
+import { T } from "@/components/i18n/t";
 
 /**
  * Écran d'attente d'un pro dont l'espace n'est pas encore ouvert par
@@ -41,26 +37,24 @@ export function ProPending({
         </span>
 
         <h1 className="mt-5 text-xl font-bold tracking-tight">
-          {fullName ? `${fullName}, votre` : "Votre"} espace {KIND_LABEL[kind]} est
-          en attente d&apos;activation
+          {fullName ? `${fullName}, ` : ""}
+          <T>{kind === "tailor" ? "votre espace tailleur est en attente d'activation" : "votre espace vendeur est en attente d'activation"}</T>
         </h1>
 
         <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1.5 text-sm">
           <Icon className="size-4 shrink-0" />
-          Abonnement {details?.name ?? plan}
+          <T>Abonnement</T> {details?.name ?? plan}
         </p>
 
         {paid ? (
           <>
             <p className="text-muted-foreground mt-4 text-sm">
-              Pour ouvrir votre espace, réglez votre abonnement par{" "}
-              <span className="font-semibold">Wave</span> au numéro ci-dessous.
-              Dès réception, l&apos;équipe JALOFA active votre compte.
+              <T>{"Pour ouvrir votre espace, réglez votre abonnement par Wave au numéro ci-dessous. Dès réception, l'équipe JALOFA active votre compte."}</T>
             </p>
 
             <div className="bg-muted/60 mt-4 rounded-xl border p-4">
               <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                Paiement Wave
+                <T>Paiement Wave</T>
               </p>
 
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-xl border bg-white p-2">
@@ -73,7 +67,7 @@ export function ProPending({
                 />
               </div>
               <p className="text-muted-foreground mt-2 text-xs">
-                Scannez ce QR depuis l&apos;application Wave, ou payez au numéro :
+                <T>{"Scannez ce QR depuis l'application Wave, ou payez au numéro :"}</T>
               </p>
 
               <p className="mt-1 text-lg font-bold tracking-tight tabular-nums">
@@ -84,20 +78,17 @@ export function ProPending({
                 <span className="text-foreground font-semibold">
                   {formatPrice(details?.monthlyPrice ?? 0)}
                 </span>{" "}
-                / mois
+                / <T>mois</T>
               </p>
             </div>
 
             <p className="text-muted-foreground mt-3 text-xs">
-              Indiquez votre nom lors du paiement pour qu&apos;on retrouve votre
-              compte.
+              <T>{"Indiquez votre nom lors du paiement pour qu'on retrouve votre compte."}</T>
             </p>
           </>
         ) : (
           <p className="text-muted-foreground mt-4 text-sm">
-            Votre inscription est en cours de validation par l&apos;équipe JALOFA.
-            Votre espace s&apos;ouvrira très bientôt — revenez vous connecter d&apos;ici
-            peu.
+            <T>{"Votre inscription est en cours de validation par l'équipe JALOFA. Votre espace s'ouvrira très bientôt — revenez vous connecter d'ici peu."}</T>
           </p>
         )}
 
@@ -106,14 +97,14 @@ export function ProPending({
             href="/"
             className={cn(buttonVariants({ variant: "outline" }), "w-full gap-2")}
           >
-            <Home className="size-4" /> Retour au site
+            <Home className="size-4" /> <T>Retour au site</T>
           </Link>
           <form action={signOut}>
             <button
               type="submit"
               className="text-muted-foreground hover:text-foreground inline-flex w-full items-center justify-center gap-2 py-2 text-sm font-medium"
             >
-              <LogOut className="size-4" /> Se déconnecter
+              <LogOut className="size-4" /> <T>Se déconnecter</T>
             </button>
           </form>
         </div>

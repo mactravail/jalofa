@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ArrowRight, Check, Package, Scissors, Shirt, Truck, UserCog } from "lucide-react";
 
 import { Price } from "@/components/cart/price";
@@ -7,6 +7,7 @@ import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, type OrderStatus } from "@/lib/
 import type { OrderListItem } from "@/lib/orders-data";
 import { pipelineType } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
+import { LocalDate, T } from "@/components/i18n/t";
 
 /**
  * L'espace « Mes commandes » du client, pensé pour se lire en une seconde :
@@ -126,8 +127,9 @@ const titleOf = (o: OrderListItem) =>
 
 const imageOf = (o: OrderListItem) => o.model?.image_url ?? o.fabric?.image_url ?? null;
 
-const dateOf = (iso: string) =>
-  new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+const dateOf = (iso: string) => (
+  <LocalDate iso={iso} options={{ day: "numeric", month: "long" }} />
+);
 
 const hrefOf = (o: OrderListItem) => `/compte/commandes/${o.id}`;
 
@@ -150,9 +152,9 @@ export function ClientOrdersBoard({
       <header>
         <OrdersHeading firstName={firstName} />
         <div className="mt-6 grid grid-cols-3 gap-2 sm:max-w-md">
-          <Counter value={todo.length} label="À faire" accent={todo.length > 0} href="#a-faire" />
-          <Counter value={ongoing.length} label="En cours" href="#en-cours" />
-          <Counter value={done.length} label="Terminées" href="#terminees" />
+          <Counter value={todo.length} label={<T>À faire</T>} accent={todo.length > 0} href="#a-faire" />
+          <Counter value={ongoing.length} label={<T>En cours</T>} href="#en-cours" />
+          <Counter value={done.length} label={<T>Terminées</T>} href="#terminees" />
         </div>
       </header>
 
@@ -199,8 +201,8 @@ export function ClientOrdersBoard({
         className="group bg-card hover:bg-muted/60 flex items-center justify-between gap-4 rounded-2xl border p-6 transition-colors"
       >
         <span>
-          <span className="block text-xl font-bold">Une nouvelle tenue ?</span>
-          <span className="text-muted-foreground text-sm">Choisissez un modèle, on s’occupe du reste.</span>
+          <span className="block text-xl font-bold"><T>Une nouvelle tenue ?</T></span>
+          <span className="text-muted-foreground text-sm"><T>Choisissez un modèle, on s’occupe du reste.</T></span>
         </span>
         <span className="bg-foreground text-background flex size-12 shrink-0 items-center justify-center rounded-full transition-transform group-hover:translate-x-1">
           <ArrowRight className="size-5" />
@@ -219,17 +221,17 @@ function OrdersHeading({ firstName }: { firstName: string | null }) {
     <>
       <div className="flex items-center justify-between gap-3">
         <p className="text-muted-foreground min-w-0 truncate text-xs font-medium tracking-[0.3em] uppercase">
-          {firstName ? `${firstName} · ` : ""}Mon espace
+          {firstName ? `${firstName} · ` : ""}<T>Mon espace</T>
         </p>
         <Link
           href="/compte/parametres"
           className="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1.5 text-xs font-medium"
         >
-          <UserCog className="size-4" /> Mon compte
+          <UserCog className="size-4" /> <T>Mon compte</T>
         </Link>
       </div>
       <h1 className="mt-2 text-4xl font-black tracking-tight uppercase sm:text-6xl">
-        Mes commandes
+        <T>Mes commandes</T>
       </h1>
     </>
   );
@@ -253,13 +255,13 @@ export function ClientOrdersEmpty({
         <Scissors className="text-muted-foreground/20 absolute -right-6 -bottom-6 size-48 -rotate-12" />
         <p className="relative max-w-sm text-2xl font-bold">{message}</p>
         <p className="text-muted-foreground relative mt-2">
-          Votre première tenue sur mesure vous attend.
+          <T>Votre première tenue sur mesure vous attend.</T>
         </p>
         <Link
           href="/modeles"
           className={cn(buttonVariants({ size: "lg" }), "relative mt-6 h-14 gap-2 px-8 text-base")}
         >
-          Créer une tenue <ArrowRight className="size-5" />
+          <T>Créer une tenue</T> <ArrowRight className="size-5" />
         </Link>
       </div>
       {children}
@@ -274,7 +276,7 @@ function Counter({
   accent,
 }: {
   value: number;
-  label: string;
+  label: React.ReactNode;
   href: string;
   accent?: boolean;
 }) {
@@ -299,7 +301,7 @@ function SectionTitle({ index, title }: { index: string; title: string }) {
   return (
     <h2 className="flex items-baseline gap-3 border-b pb-3">
       <span className="text-muted-foreground font-mono text-xs">{index} /</span>
-      <span className="text-sm font-bold tracking-[0.2em] uppercase">{title}</span>
+      <span className="text-sm font-bold tracking-[0.2em] uppercase"><T>{title}</T></span>
     </h2>
   );
 }
@@ -332,12 +334,12 @@ function TodoCard({ order, action }: { order: OrderListItem; action: Action }) {
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-orange-500 opacity-75" />
             <span className="relative inline-flex size-2.5 rounded-full bg-orange-500" />
           </span>
-          <span className="text-xs font-bold tracking-[0.2em] uppercase">Action requise</span>
+          <span className="text-xs font-bold tracking-[0.2em] uppercase"><T>Action requise</T></span>
         </div>
         <div>
-          <p className="text-2xl leading-tight font-black sm:text-3xl">{action.title}</p>
+          <p className="text-2xl leading-tight font-black sm:text-3xl"><T>{action.title}</T></p>
           <p className="mt-1 text-sm opacity-60">
-            {titleOf(order)}
+            <T>{titleOf(order)}</T>
             {order.tailor?.shop_name ? ` · ${order.tailor.shop_name}` : ""}
           </p>
         </div>
@@ -348,7 +350,7 @@ function TodoCard({ order, action }: { order: OrderListItem; action: Action }) {
             <span />
           )}
           <span className="bg-background text-foreground inline-flex h-14 items-center gap-2 rounded-lg px-7 text-base font-bold transition-transform group-hover:translate-x-1">
-            {action.label} <ArrowRight className="size-5" />
+            <T>{action.label}</T> <ArrowRight className="size-5" />
           </span>
         </div>
       </div>
@@ -373,9 +375,9 @@ function OngoingCard({ order }: { order: OrderListItem }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-5 text-white">
           <p className="text-xs font-medium tracking-[0.2em] uppercase opacity-70">
-            {titleOf(order)}
+            <T>{titleOf(order)}</T>
           </p>
-          <p className="mt-1 text-2xl leading-tight font-black">{headline(order)}</p>
+          <p className="mt-1 text-2xl leading-tight font-black"><T>{headline(order)}</T></p>
         </div>
       </div>
 
@@ -413,7 +415,7 @@ function OngoingCard({ order }: { order: OrderListItem }) {
                     isCurrent ? "text-foreground font-bold" : "text-muted-foreground",
                   )}
                 >
-                  {p.label}
+                  <T>{p.label}</T>
                 </span>
               </li>
             );
@@ -422,10 +424,10 @@ function OngoingCard({ order }: { order: OrderListItem }) {
 
         <div className="flex items-center justify-between gap-3 border-t pt-4 text-sm">
           <span className="text-muted-foreground min-w-0 truncate">
-            {order.tailor?.shop_name ?? ORDER_TYPE_LABELS[order.type]} · {dateOf(order.created_at)}
+            {order.tailor?.shop_name ?? <T>{ORDER_TYPE_LABELS[order.type]}</T>} · {dateOf(order.created_at)}
           </span>
           <span className="inline-flex shrink-0 items-center gap-1 font-semibold">
-            Suivre <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            <T>Suivre</T> <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
           </span>
         </div>
       </div>
@@ -440,16 +442,16 @@ function DoneRow({ order }: { order: OrderListItem }) {
       <Link href={hrefOf(order)} className="hover:bg-muted/40 flex items-center gap-4 p-4 transition-colors">
         <Thumb order={order} className="size-14 rounded-xl" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{titleOf(order)}</p>
+          <p className="truncate font-semibold"><T>{titleOf(order)}</T></p>
           <p className="text-muted-foreground text-sm">
-            {delivered ? "Livré" : ORDER_STATUS_LABELS[order.status]} · {dateOf(order.created_at)}
+            <T>{delivered ? "Livré" : ORDER_STATUS_LABELS[order.status]}</T> · {dateOf(order.created_at)}
           </p>
         </div>
         <div className="shrink-0 text-right">
           {order.total_amount > 0 && <Price amount={order.total_amount} className="font-semibold" />}
           {delivered && (
             <span className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
-              <Check className="size-3" /> Reçue
+              <Check className="size-3" /> <T>Reçue</T>
             </span>
           )}
         </div>

@@ -3,8 +3,12 @@ import type { Metadata } from "next";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { FabricSalesPanel } from "@/components/dashboard/fabric-sales-panel";
 import { getProFabricSales } from "@/lib/dashboard-data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Ventes de tissus" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Ventes de tissus") };
+}
 
 export default async function VendorSalesPage() {
   const sales = await getProFabricSales();

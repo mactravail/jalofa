@@ -28,6 +28,8 @@ import type { StyleRef } from "@/lib/style-refs";
 export type CartMeasurement = {
   mode: "manual" | "standard";
   standard_size: string | null;
+  /** Photo de silhouette (data URL JPEG compressée), avec une taille standard. */
+  photo?: string | null;
   values: Record<string, number | null>;
 };
 

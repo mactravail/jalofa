@@ -1,5 +1,6 @@
 import { JALOFA_WHATSAPP, JALOFA_WHATSAPP_DISPLAY, whatsappHref } from "@/lib/after-sale";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -43,7 +44,7 @@ export function JalofaWhatsApp({
     >
       <WhatsAppIcon className="size-5 shrink-0" />
       <span className="flex flex-col items-start leading-tight">
-        <span>{label}</span>
+        <span><T>{label}</T></span>
         <span className="text-[11px] font-medium opacity-75">
           WhatsApp · {JALOFA_WHATSAPP_DISPLAY}
         </span>

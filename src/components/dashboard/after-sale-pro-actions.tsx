@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useTransition } from "react";
 import { Loader2, PackageCheck, Scissors, Undo2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,8 @@ import {
 import { ALTERATION_REASON_LABELS } from "@/lib/after-sale";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
+import { T } from "@/components/i18n/t";
+import { translateNow } from "@/lib/i18n/translate";
 
 function useProAction(done: string) {
   const router = useRouter();
@@ -22,10 +24,10 @@ function useProAction(done: string) {
     startTransition(async () => {
       const res = await action();
       if (res.ok) {
-        toast.success(done);
+        toast.success(translateNow(done));
         router.refresh();
       } else {
-        toast.error(res.error);
+        toast.error(translateNow(res.error));
       }
     });
   return { run, isPending };
@@ -45,10 +47,10 @@ export function AfterSaleProActions({
     return (
       <div className="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
         <p className="flex items-center gap-2 text-sm font-semibold">
-          <Undo2 className="size-4 shrink-0" /> Le client vous renvoie ce tissu
+          <Undo2 className="size-4 shrink-0" /> <T>Le client vous renvoie ce tissu</T>
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          Touchez le bouton seulement quand vous l&apos;avez reçu : JALOFA remboursera alors le client.
+          <T>{"Touchez le bouton seulement quand vous l'avez reçu : JALOFA remboursera alors le client."}</T>
         </p>
         <Button
           className="mt-3 h-11 w-full sm:w-auto"
@@ -56,7 +58,7 @@ export function AfterSaleProActions({
           onClick={() => run(() => confirmFabricReturnReceived(order.id))}
         >
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <PackageCheck className="size-4" />}
-          J&apos;ai reçu le tissu retourné
+          <T>{"J'ai reçu le tissu retourné"}</T>
         </Button>
       </div>
     );
@@ -74,8 +76,8 @@ export function AfterSaleProActions({
           className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3"
         >
           <p className="flex items-center gap-2 text-sm font-semibold">
-            <Scissors className="size-4 shrink-0" /> Retouche demandée :{" "}
-            {ALTERATION_REASON_LABELS[alteration.reason]}
+            <Scissors className="size-4 shrink-0" /> <T>Retouche demandée :</T>{" "}
+            <T>{ALTERATION_REASON_LABELS[alteration.reason]}</T>
           </p>
           {alteration.note && (
             <p className="text-muted-foreground mt-1 break-words text-sm">{alteration.note}</p>
@@ -86,7 +88,7 @@ export function AfterSaleProActions({
             onClick={() => run(() => markAlterationDone(order.id, alteration.id))}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            Retouche faite
+            <T>Retouche faite</T>
           </Button>
         </div>
       ))}

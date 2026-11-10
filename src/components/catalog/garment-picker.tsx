@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Clock } from "lucide-react";
 
 import { Price } from "@/components/cart/price";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 export type PickerItem = {
   id: string;
@@ -29,13 +30,15 @@ export function GarmentPicker({
   occasions: { id: string; title: string; intro: string }[];
 }) {
   const [active, setActive] = useState(ALL);
+  const t = useT();
   const visible = active === ALL ? items : items.filter((item) => item.occasion === active);
   const intro = occasions.find((o) => o.id === active)?.intro;
-  const filters = [{ id: ALL, title: "Tout" }, ...occasions];
+  const filters = [{ id: ALL, title: t("Tout") }, ...occasions.map((o) => ({ ...o, title: t(o.title) }))];
 
   return (
     <>
-      <div className="mt-6 flex flex-wrap gap-2 md:mt-8">
+      <p className="mt-8 text-lg font-medium md:mt-10">{t("Pour quelle occasion ?")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
         {filters.map((filter) => (
           <button
             key={filter.id}
@@ -55,7 +58,7 @@ export function GarmentPicker({
       </div>
 
       <p aria-live="polite" className="text-muted-foreground mt-4 min-h-6 text-base">
-        {intro ?? "Choisissez une occasion, ou regardez tout."}
+        {intro ? t(intro) : t("Tous nos habits. Touchez celui qui vous plaît.")}
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-x-2 gap-y-8 md:grid-cols-3 md:gap-x-3 lg:grid-cols-4 lg:gap-y-10">
@@ -72,22 +75,25 @@ export function GarmentPicker({
                 />
               )}
             </div>
-            <h3 className="mt-3 text-base font-medium tracking-tight md:text-lg">{item.name}</h3>
-            <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
+            <h3 className="mt-2.5 text-sm font-medium tracking-tight md:text-base">{item.name}</h3>
+            <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs md:text-sm">
               {item.avgDays != null && (
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock className="size-3.5" aria-hidden />
-                  Environ {item.avgDays} jours
+                  <Clock className="size-3" aria-hidden />
+                  {t("Environ {n} jours", { n: item.avgDays })}
                 </span>
               )}
-              {item.price != null && (
+              {/* Un prix absent inquiète : on dit qui le fixe. */}
+              {item.price != null ? (
                 <span className="text-foreground font-medium">
-                  Dès <Price amount={item.price} />
+                  {t("Dès")} <Price amount={item.price} />
                 </span>
+              ) : (
+                <span>{t("Prix fixé par le tailleur")}</span>
               )}
             </p>
-            <span className="mt-3 flex h-11 items-center justify-center rounded-lg border border-white/25 text-sm font-medium transition-colors group-hover:border-white group-hover:bg-white group-hover:text-black">
-              Faire coudre
+            <span className="mt-2.5 flex h-10 items-center justify-center rounded-lg border border-white/25 text-xs font-medium md:text-sm transition-colors group-hover:border-white group-hover:bg-white group-hover:text-black">
+              {t("Faire coudre")}
             </span>
           </Link>
         ))}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { APP_NAME } from "@/lib/constants";
 
@@ -65,7 +65,7 @@ const SECTIONS: Clause[] = [
   },
   {
     title: "8. Fonds en attente et lutte contre la fraude",
-    body: `Pour protéger clients et professionnels, la somme d'une commande est conservée en fonds en attente puis reversée au professionnel 5 jours après la livraison, en l'absence de réclamation. À ce titre, nous conservons les informations nécessaires au suivi des paiements, des réclamations et des reversements, et à la détection des comportements frauduleux.`,
+    body: `Pour protéger clients et professionnels, la somme d'une commande est conservée en fonds en attente puis reversée au professionnel 3 jours après la livraison, en l'absence de réclamation. À ce titre, nous conservons les informations nécessaires au suivi des paiements, des réclamations et des reversements, et à la détection des comportements frauduleux.`,
   },
   {
     title: "9. Partage de vos données",

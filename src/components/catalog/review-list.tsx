@@ -2,6 +2,8 @@ import Image from "next/image";
 
 import { ReviewStars } from "@/components/catalog/review-stars";
 import { formatTimeAgo } from "@/lib/constants";
+import { getT } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
 
 /** Forme minimale d'un avis affichable — satisfaite par les avis tailleur & vendeur. */
 export type ReviewListItem = {
@@ -14,19 +16,21 @@ export type ReviewListItem = {
 };
 
 /** Liste d'avis clients : auteur, note, commentaire et photos jointes. */
-export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
+export async function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
+  const t = await getT();
+  const locale = await getLocale();
   return (
     <ul className="mt-4 space-y-4">
       {reviews.map((review) => (
         <li key={review.id} className="rounded-xl border p-4">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-medium">{review.author_name ?? "Client"}</span>
+            <span className="font-medium">{review.author_name ?? t("Client")}</span>
             <time
               className="text-muted-foreground text-xs"
               dateTime={review.created_at}
               suppressHydrationWarning
             >
-              {formatTimeAgo(review.created_at)}
+              {formatTimeAgo(review.created_at, locale)}
             </time>
           </div>
           <ReviewStars value={review.rating} className="mt-1.5" />
@@ -45,7 +49,7 @@ export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
                   >
                     <Image
                       src={url}
-                      alt="Photo de l'avis"
+                      alt={t("Photo de l'avis")}
                       width={80}
                       height={80}
                       className="size-full object-cover transition-transform hover:scale-105"

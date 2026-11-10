@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ExternalLink } from "lucide-react";
 
 import { AtelierForm } from "@/components/dashboard/atelier-form";
@@ -7,8 +7,13 @@ import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { TailorProfileForm } from "@/components/dashboard/tailor-profile-form";
 import { getCurrentTailor, getMyAtelier } from "@/lib/data";
 import type { Tailor } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/t";
 
-export const metadata: Metadata = { title: "Ma page publique" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Ma page publique") };
+}
 
 // Boutique vide de repli : le formulaire a toujours une ligne à éditer, même
 // avant que le tailleur n'ait rien renseigné.
@@ -47,7 +52,7 @@ export default async function TailorProfilePage() {
           target="_blank"
           className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
         >
-          <ExternalLink className="size-4" /> Voir ma fiche publique
+          <ExternalLink className="size-4" /> <T>Voir ma fiche publique</T>
         </Link>
       )}
       <TailorProfileForm tailor={tailor} />

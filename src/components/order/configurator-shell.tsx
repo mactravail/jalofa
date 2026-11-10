@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname, useRouter } from "@/lib/i18n/navigation";
 import { useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -39,12 +39,14 @@ import {
   type StepKey,
 } from "@/components/order/configurator-context";
 import { PriceRow, SelectionChip } from "@/components/order/configurator-ui";
+import { useT } from "@/components/i18n/locale-provider";
 
 export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const cfg = useConfigurator();
   const { addItem } = useCart();
+  const t = useT();
   const { state, steps, model, fabric, tailor, price } = cfg;
 
   const slug = pathname.split("/").filter(Boolean).pop() ?? "";
@@ -63,7 +65,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
 
   const addToCart = () => {
     addItem(buildCartItem(state, { model, fabric, tailor, styleName, price }));
-    toast.success("Ajouté au panier");
+    toast.success(t("Ajouté au panier"));
     router.push("/panier");
   };
 
@@ -78,25 +80,25 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     const notes = tailorNotes(state, personalisationText, model);
 
     if (!state.deliveryAddress.trim() || !state.deliveryCity.trim()) {
-      toast.error("Indiquez votre adresse de livraison et votre ville.");
+      toast.error(t("Indiquez votre adresse de livraison et votre ville."));
       return;
     }
 
     const mode = cfg.data.contactMode;
     if (mode && !(state.contactName.trim() && state.contactPhone.trim())) {
-      toast.error("Indiquez votre nom et votre téléphone.");
+      toast.error(t("Indiquez votre nom et votre téléphone."));
       return;
     }
     if (mode === "account" && !(state.contactEmail.trim() && state.contactPassword)) {
-      toast.error("Indiquez votre e-mail et choisissez un mot de passe.");
+      toast.error(t("Indiquez votre e-mail et choisissez un mot de passe."));
       return;
     }
     if (mode === "account" && state.contactPassword !== state.contactPasswordConfirm) {
-      toast.error("Les deux mots de passe ne sont pas identiques.");
+      toast.error(t("Les deux mots de passe ne sont pas identiques."));
       return;
     }
     if (mode === "account" && !state.contactAcceptTerms) {
-      toast.error("Acceptez les conditions d'utilisation pour continuer.");
+      toast.error(t("Acceptez les conditions d'utilisation pour continuer."));
       return;
     }
 
@@ -150,10 +152,10 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         } catch {
           // Stockage indisponible — sans effet.
         }
-        toast.success("Demande de devis envoyée", {
+        toast.success(t("Demande de devis envoyée"), {
           description: res.demo
-            ? "Démo — le tailleur vous répondrait avec un prix."
-            : `${tailor?.shop_name ?? "Le tailleur"} vous répondra avec un prix.`,
+            ? t("Démo — le tailleur vous répondrait avec un prix.")
+            : t("{name} vous répondra avec un prix.", { name: tailor?.shop_name ?? t("Le tailleur") }),
         });
         // Le compte vient peut-être d'être créé : on ouvre directement sa page.
         router.push(
@@ -162,7 +164,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         router.refresh();
         return;
       }
-      toast.error(res.error);
+      toast.error(t(res.error));
     });
   };
 
@@ -184,9 +186,10 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   const weeks = Math.max(1, Math.round(deliveryDays / 7));
 
   const panelTitle =
-    state.type === "fabric_only" ? fabric?.name ?? "Tissu" : model?.name ?? "Votre tenue";
-  const panelSubtitle = state.type === "fabric_only" ? "Au mètre" : "Sur mesure";
-  const requirement = canProceed ? null : STEP_REQUIREMENT[step];
+    state.type === "fabric_only" ? fabric?.name ?? t("Tissu") : model?.name ?? t("Votre tenue");
+  const panelSubtitle = state.type === "fabric_only" ? t("Au mètre") : t("Sur mesure");
+  const requirementKey = canProceed ? null : STEP_REQUIREMENT[step];
+  const requirement = requirementKey ? t(requirementKey) : null;
 
   // Buying fabric by the meter → show the bolt swatch; otherwise the garment
   // gallery: le vêtement seul d'abord, puis porté (devant, dos) et les détails.
@@ -230,7 +233,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         disabled={!canProceed}
         data-cta={idSuffix}
       >
-        Continuer <ChevronRight className="size-4" />
+        {t("Continuer")} <ChevronRight className="size-4" />
       </Button>
     ) : isFabricOnly ? (
       <Button
@@ -240,7 +243,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         onClick={addToCart}
         data-cta={idSuffix}
       >
-        <ShoppingBag className="size-4" /> Ajouter au panier
+        <ShoppingBag className="size-4" /> {t("Ajouter au panier")}
       </Button>
     ) : (
       <Button
@@ -256,7 +259,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         ) : (
           <MessageSquareQuote className="size-4" />
         )}
-        Demander un devis
+        {t("Demander un devis")}
       </Button>
     );
 
@@ -264,16 +267,16 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     <div className="bg-background flex h-full flex-col">
       {/* Slim top bar — brand + close */}
       <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-        <Link href="/" aria-label="JALOFA — accueil" className="flex items-center">
+        <Link href="/" aria-label={t("JALOFA — accueil")} className="flex items-center">
           <Wordmark size="sm" />
         </Link>
         <span className="bg-muted text-muted-foreground ml-1 hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline">
-          Démo
+          {t("Démo")}
         </span>
 
         <Link
           href="/"
-          aria-label="Fermer"
+          aria-label={t("Fermer")}
           className="text-muted-foreground hover:bg-muted hover:text-foreground ml-auto flex size-9 items-center justify-center rounded-full transition-colors"
         >
           <X className="size-5" />
@@ -302,7 +305,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               {reachable && !active ? (
                 <Link
                   href={stepUrl(s)}
-                  aria-label={`Revenir à l'étape ${i + 1} — ${STEP_LABELS[s]}`}
+                  aria-label={`${t("Revenir à l'étape {n}", { n: i + 1 })} — ${t(STEP_LABELS[s])}`}
                   className="block py-2.5"
                 >
                   {bar}
@@ -310,7 +313,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <span
                   aria-current={active ? "step" : undefined}
-                  aria-label={`Étape ${i + 1} — ${STEP_LABELS[s]}`}
+                  aria-label={`${t("Étape {n}", { n: i + 1 })} — ${t(STEP_LABELS[s])}`}
                   className="block py-2.5"
                 >
                   {bar}
@@ -329,7 +332,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,40%)_1fr] lg:grid-cols-[80px_minmax(300px,380px)_1fr] lg:grid-rows-1">
         {/* Col A — vertical step rail (bureau) */}
         <nav
-          aria-label="Étapes"
+          aria-label={t("Étapes")}
           className="bg-card hidden lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:shrink-0 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:border-r lg:py-6"
         >
           {steps.map((s, i) => {
@@ -351,7 +354,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
                 >
                   {done ? <Check className="size-4" /> : <Icon className="size-4" />}
                 </span>
-                <span className="whitespace-nowrap">{STEP_LABELS[s]}</span>
+                <span className="whitespace-nowrap">{t(STEP_LABELS[s])}</span>
               </>
             );
             const classes = cn(
@@ -399,7 +402,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-sm font-semibold">{panelTitle}</p>
               <p className="text-muted-foreground truncate text-xs">{summaryLine}</p>
               <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[11px]">
-                <Clock className="size-3" /> Livré en {weeks} semaine{weeks > 1 ? "s" : ""}
+                <Clock className="size-3" /> {weeks > 1 ? t("Livré en {n} semaines", { n: weeks }) : t("Livré en {n} semaine", { n: weeks })}
               </p>
             </div>
             {wearsGarment && fabric?.image_url && (
@@ -414,10 +417,10 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
 
           <div className="mb-5">
             <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-              Étape {stepIndex + 1} sur {steps.length}
+              {t("Étape {n} sur {total}", { n: stepIndex + 1, total: steps.length })}
             </p>
-            <h2 className="mt-0.5 text-2xl font-semibold tracking-tight">{STEP_LABELS[step]}</h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-snug">{STEP_HELP[step]}</p>
+            <h2 className="mt-0.5 text-2xl font-semibold tracking-tight">{t(STEP_LABELS[step])}</h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-snug">{t(STEP_HELP[step])}</p>
           </div>
           {children}
         </section>
@@ -438,8 +441,8 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
             <GarmentGallery
               key={previewPhoto ?? "model"}
               photos={galleryPhotos}
-              alt={wearsGarment ? model?.name ?? "Votre tenue" : panelTitle}
-              emptyLabel={wearsGarment ? undefined : "Sélectionnez pour visualiser"}
+              alt={wearsGarment ? model?.name ?? t("Votre tenue") : panelTitle}
+              emptyLabel={wearsGarment ? undefined : t("Sélectionnez pour visualiser")}
               sizes="(max-width: 1024px) 40vw, 45vw"
               className="h-full w-full"
             />
@@ -448,7 +451,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
           {/* Floating panel — desktop only */}
           <div className="bg-card absolute right-6 top-6 hidden w-[300px] rounded-2xl border p-6 shadow-lg lg:block">
             <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-              {ORDER_TYPE_LABELS[state.type]}
+              {t(ORDER_TYPE_LABELS[state.type])}
             </p>
             <h1 className="mt-1 text-2xl font-semibold leading-tight tracking-tight">
               {panelTitle}
@@ -457,7 +460,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
 
             {!isFabricOnly && (
               <p className="text-muted-foreground mt-4 text-xs font-medium">
-                À partir de
+                {t("À partir de")}
               </p>
             )}
             <div className={cn("flex items-end gap-2", isFabricOnly && "mt-4")}>
@@ -465,8 +468,8 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
             </div>
             <p className="text-muted-foreground text-xs">
               {isFabricOnly
-                ? "TVA incluse · hors livraison"
-                : "Prix indicatif — le tailleur confirme par devis"}
+                ? t("TVA incluse · hors livraison")
+                : t("Prix indicatif — le tailleur confirme par devis")}
             </p>
 
             <div className="mt-5">{cta("desktop")}</div>
@@ -479,24 +482,24 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
                 href={stepUrl(prevStep)}
                 className="text-muted-foreground hover:text-foreground mt-3 flex w-full items-center justify-center gap-1 text-sm"
               >
-                <ArrowLeft className="size-3.5" /> Étape précédente
+                <ArrowLeft className="size-3.5" /> {t("Étape précédente")}
               </Link>
             )}
 
             <div className="text-muted-foreground mt-5 space-y-1.5 border-t pt-4 text-sm">
               <p>
-                Commandez aujourd&apos;hui, recevez en{" "}
+                {t("Commandez aujourd'hui, recevez en")}{" "}
                 <span className="text-foreground font-medium">
-                  {weeks} semaine{weeks > 1 ? "s" : ""}
+                  {weeks > 1 ? t("{n} semaines", { n: weeks }) : t("{n} semaine", { n: weeks })}
                 </span>
               </p>
-              <p className="font-medium">Livraison choisie à la caisse</p>
+              <p className="font-medium">{t("Livraison choisie à la caisse")}</p>
             </div>
 
             <dl className="mt-4 space-y-1.5 border-t pt-4 text-sm">
-              {price.fabricPrice > 0 && <PriceRow label="Tissu" value={formatPrice(price.fabricPrice)} />}
+              {price.fabricPrice > 0 && <PriceRow label={t("Tissu")} value={formatPrice(price.fabricPrice)} />}
               {price.tailoringPrice > 0 && (
-                <PriceRow label="Confection" value={formatPrice(price.tailoringPrice)} />
+                <PriceRow label={t("Confection")} value={formatPrice(price.tailoringPrice)} />
               )}
             </dl>
           </div>
@@ -523,7 +526,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
             {prevStep && (
               <Link
                 href={stepUrl(prevStep)}
-                aria-label={`Retour — ${STEP_LABELS[prevStep]}`}
+                aria-label={`${t("Retour")} — ${t(STEP_LABELS[prevStep])}`}
                 className="text-muted-foreground hover:bg-muted flex size-12 shrink-0 items-center justify-center rounded-lg border"
               >
                 <ArrowLeft className="size-4" />

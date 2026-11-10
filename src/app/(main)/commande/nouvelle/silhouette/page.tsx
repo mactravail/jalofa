@@ -12,9 +12,11 @@ import {
 } from "@/lib/body-types";
 import { BODY_RANGE_FIELDS } from "@/lib/model-body-fit";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 export default function BodyStep() {
   const { data, state, update, model } = useConfigurator();
+  const t = useT();
 
   const kind = bodyFigureKindFor(model?.category_slug);
   const options = bodyOptionsFor(model);
@@ -72,7 +74,7 @@ export default function BodyStep() {
                     active ? "text-foreground font-semibold" : "text-muted-foreground",
                   )}
                 >
-                  {b.label}
+                  {t(b.label)}
                 </span>
               </button>
             );
@@ -87,9 +89,9 @@ export default function BodyStep() {
                 const range = chosen.fit?.ranges[f.key];
                 return (
                   <div key={f.key} className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">{f.label}</dt>
+                    <dt className="text-muted-foreground">{t(f.label)}</dt>
                     <dd className="font-medium whitespace-nowrap">
-                      {range?.min} à {range?.max} cm
+                      {t("{min} à {max} cm", { min: range?.min ?? "", max: range?.max ?? "" })}
                     </dd>
                   </div>
                 );
@@ -97,7 +99,7 @@ export default function BodyStep() {
             </dl>
             {author?.shop_name && (
               <p className="text-muted-foreground mt-2 text-xs">
-                Mesures indiquées par {author.shop_name}.
+                {t("Mesures indiquées par {name}.", { name: author.shop_name })}
               </p>
             )}
           </div>
@@ -106,7 +108,7 @@ export default function BodyStep() {
 
       {/* Sans lien avec le corps : on peut être mince et faire 1,30 m comme 2 m. */}
       <section>
-        <h3 className="mb-3 text-base font-semibold tracking-tight">Votre taille estimée</h3>
+        <h3 className="mb-3 text-base font-semibold tracking-tight">{t("Votre taille estimée")}</h3>
         <div className="grid grid-cols-2 gap-2">
           {heights.map((h) => {
             const active = state.heightBand === h.slug;
@@ -123,7 +125,7 @@ export default function BodyStep() {
                     : "hover:bg-muted",
                 )}
               >
-                {h.label}
+                {t(h.label)}
               </button>
             );
           })}

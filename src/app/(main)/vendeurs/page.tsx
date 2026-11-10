@@ -5,12 +5,15 @@ import { DemoBanner } from "@/components/demo-banner";
 import { VendorCard } from "@/components/catalog/vendor-card";
 import { ProJoinCta } from "@/components/pro-join-cta";
 import { getVendors } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Vendeurs de tissu",
-  description:
-    "Découvrez les boutiques de tissu d'Afrique : bazin, wax, lin et plus.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Vendeurs de tissu"),
+    description: t("Découvrez les boutiques de tissu d'Afrique : bazin, wax, lin et plus."),
+  };
+}
 
 export default async function VendorsPage({
   searchParams,
@@ -19,6 +22,7 @@ export default async function VendorsPage({
 }) {
   const { city, q } = await searchParams;
   const all = await getVendors();
+  const t = await getT();
 
   const cities = Array.from(
     new Set(all.map((v) => v.city).filter((c): c is string => Boolean(c))),
@@ -39,14 +43,13 @@ export default async function VendorsPage({
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Vendeurs de tissu
+              {t("Vendeurs de tissu")}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Des boutiques de confiance pour vos bazins, wax et étoffes sur
-              mesure.
+              {t("Des boutiques de confiance pour vos bazins, wax et étoffes sur mesure.")}
             </p>
           </div>
-          <SearchInput placeholder="Rechercher une boutique..." />
+          <SearchInput placeholder={t("Rechercher une boutique...")} />
         </div>
 
         <div className="mb-8">
@@ -55,7 +58,7 @@ export default async function VendorsPage({
 
         {vendors.length === 0 ? (
           <p className="text-muted-foreground py-16 text-center">
-            Aucun vendeur ne correspond à votre recherche.
+            {t("Aucun vendeur ne correspond à votre recherche.")}
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

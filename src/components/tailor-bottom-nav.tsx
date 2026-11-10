@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname } from "@/lib/i18n/navigation";
 import { Bell, ClipboardList, Home, Plus, Store, type LucideIcon } from "lucide-react";
 
 import { useUnreadCount } from "@/components/dashboard/notifications-seen";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
+import { T } from "@/components/i18n/t";
 
 const ROOT = "/tailleur/espace";
 const CREATIONS = `${ROOT}/creations`;
@@ -72,6 +74,7 @@ export function TailorBottomNav({
   className?: string;
 }) {
   const pathname = usePathname();
+  const t = useT();
   const unseen = useUnreadCount(unread, orderDates);
 
   const isActive = (tab: Tab) =>
@@ -99,14 +102,14 @@ export function TailorBottomNav({
             </span>
           )}
         </span>
-        {tab.label}
+        <T>{tab.label}</T>
       </Link>
     );
   };
 
   return (
     <nav
-      aria-label="Navigation tailleur"
+      aria-label={t("Navigation tailleur")}
       className={cn(
         "bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur",
         className,
@@ -118,7 +121,7 @@ export function TailorBottomNav({
         <div className="flex items-center justify-center">
           <Link
             href={`${CREATIONS}?nouveau=1`}
-            aria-label="Ajouter un modèle"
+            aria-label={t("Ajouter un modèle")}
             onClick={(e) => {
               // Déjà sur « Mes créations » : la page ne se recharge pas, on
               // demande au panneau d'ouvrir l'ajout directement.

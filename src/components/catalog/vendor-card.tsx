@@ -1,10 +1,11 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { BadgeCheck, MapPin, Store } from "lucide-react";
 
 import { TrustScoreBadge } from "@/components/catalog/trust-score";
 import { Badge } from "@/components/ui/badge";
 import type { Vendor } from "@/lib/types";
+import { T } from "@/components/i18n/t";
 
 export function VendorCard({ vendor }: { vendor: Vendor }) {
   return (
@@ -16,7 +17,7 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
         {vendor.cover_url ? (
           <Image
             src={vendor.cover_url}
-            alt={vendor.shop_name ?? "Vendeur de tissu"}
+            alt={vendor.shop_name ?? ""}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -29,7 +30,7 @@ export function VendorCard({ vendor }: { vendor: Vendor }) {
         {vendor.is_certified && (
           <Badge className="absolute left-2 top-2 gap-1 bg-white/90 text-blue-700">
             <BadgeCheck className="size-3 fill-blue-600 text-white" />
-            Certifié
+            <T>Certifié</T>
           </Badge>
         )}
       </div>

@@ -6,6 +6,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // Choix du tissu pour la version personnalisée : il se fait ICI, sur la fiche du
 // modèle, puis voyage dans le configurateur via `?fabric=`. Le configurateur est
@@ -27,6 +28,7 @@ export function FabricPicker({
   // du vêtement : partir vers /tissus, c'est perdre le modèle en cours de
   // choix. Le dépliant reste ouvert quand on change de pastille — on compare.
   const [details, setDetails] = useState(false);
+  const t = useT();
   const detailsId = useId();
   const selected = fabrics.find((f) => f.id === value) ?? null;
 
@@ -36,7 +38,7 @@ export function FabricPicker({
 
   return (
     <div>
-      <p className="text-sm font-medium">Choisissez votre tissu</p>
+      <p className="text-sm font-medium">{t("Choisissez votre tissu")}</p>
       {rows.map((row) => (
         <div key={row.label} className="mt-2">
           {row.label && (
@@ -88,7 +90,7 @@ export function FabricPicker({
             aria-controls={details ? detailsId : undefined}
             className="text-muted-foreground hover:text-foreground mt-1 inline-flex items-center gap-1 text-sm font-medium underline-offset-2 hover:underline"
           >
-            {details ? "Voir moins" : "Voir plus"}
+            {details ? t("Voir moins") : t("Voir plus")}
             <ChevronDown
               className={cn("size-3.5 transition-transform", details && "rotate-180")}
               aria-hidden
@@ -98,15 +100,15 @@ export function FabricPicker({
           {details && (
             <div id={detailsId} className="bg-muted/40 mt-2 rounded-xl border p-3.5">
               <p className="text-muted-foreground text-sm leading-relaxed">
-                {selected.description ?? "Le vendeur n'a pas encore détaillé cette matière."}
+                {selected.description ?? t("Le vendeur n'a pas encore détaillé cette matière.")}
               </p>
               <dl className="mt-3 space-y-1.5 text-sm">
                 <div className="flex gap-3">
-                  <dt className="text-muted-foreground w-24 shrink-0">Matière</dt>
+                  <dt className="text-muted-foreground w-24 shrink-0">{t("Matière")}</dt>
                   <dd>{selected.material ?? "—"}</dd>
                 </div>
                 <div className="flex gap-3">
-                  <dt className="text-muted-foreground w-24 shrink-0">Coloris</dt>
+                  <dt className="text-muted-foreground w-24 shrink-0">{t("Coloris")}</dt>
                   <dd>{selected.color ?? "—"}</dd>
                 </div>
               </dl>

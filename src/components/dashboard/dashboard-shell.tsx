@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname } from "@/lib/i18n/navigation";
 import { Bell, Home, LogOut, Menu, Scissors, Store } from "lucide-react";
 
 import { useBucket } from "@/components/dashboard/pipeline-store";
@@ -31,6 +31,8 @@ import {
 } from "@/lib/dashboard-nav";
 import { NAV_TONE, TONE } from "@/lib/dashboard-tone";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
+import { T } from "@/components/i18n/t";
 
 /**
  * Le châssis de l'espace pro : menu latéral à demeure sur grand écran, tiroir
@@ -59,6 +61,7 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const groups = dashboardNav(role);
 
@@ -93,7 +96,7 @@ export function DashboardShell({
       <header className="bg-card sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 lg:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
-            render={<Button variant="ghost" size="icon" aria-label="Menu" />}
+            render={<Button variant="ghost" size="icon" aria-label={t("Menu")} />}
           >
             <Menu className="size-5" />
           </SheetTrigger>
@@ -116,13 +119,13 @@ export function DashboardShell({
         </Sheet>
         <Link
           href="/"
-          aria-label="JALOFA — accueil"
+          aria-label={t("JALOFA — accueil")}
           className="flex shrink-0 items-center"
         >
           <Wordmark size="sm" />
         </Link>
         <span className="text-muted-foreground truncate border-l pl-2 text-sm font-medium">
-          {current?.label ?? DASHBOARD_TITLE[role]}
+          {t(current?.label ?? DASHBOARD_TITLE[role])}
         </span>
         {/* Le tailleur a sa cloche dans la barre du bas. */}
         {!tailor && (
@@ -130,8 +133,10 @@ export function DashboardShell({
             href={root}
             aria-label={
               todo > 0
-                ? `${todo} nouvelle${todo > 1 ? "s" : ""} commande${todo > 1 ? "s" : ""}`
-                : "Aucune nouvelle commande"
+                ? todo > 1
+                  ? t("{n} nouvelles commandes", { n: todo })
+                  : t("{n} nouvelle commande", { n: todo })
+                : t("Aucune nouvelle commande")
             }
             className="hover:bg-accent relative ml-auto flex size-10 shrink-0 items-center justify-center rounded-full"
           >
@@ -180,7 +185,7 @@ function Brand({
       <div className="flex h-10 items-center gap-2">
         <Link
           href="/"
-          aria-label="JALOFA — accueil"
+          aria-label="JALOFA"
           className="flex min-w-0 shrink-0 items-center"
         >
           <Wordmark size="sm" />
@@ -191,7 +196,7 @@ function Brand({
           ) : (
             <Store className="size-3" />
           )}
-          {DASHBOARD_TITLE_SHORT[role]}
+          <T>{DASHBOARD_TITLE_SHORT[role]}</T>
         </span>
       </div>
       {capabilities.length > 1 && (
@@ -215,7 +220,7 @@ function SpaceSwitcher({
   return (
     <div
       role="tablist"
-      aria-label="Changer d'espace"
+      aria-label="JALOFA"
       className="bg-muted flex items-center gap-1 rounded-lg p-1"
     >
       {spaces.map((r) => {
@@ -238,7 +243,7 @@ function SpaceSwitcher({
             ) : (
               <Store className="size-3.5" />
             )}
-            {DASHBOARD_TITLE_SHORT[r]}
+            <T>{DASHBOARD_TITLE_SHORT[r]}</T>
           </Link>
         );
       })}
@@ -265,7 +270,7 @@ function Nav({
         <div key={group.label ?? i} className={cn(i > 0 && "mt-5")}>
           {group.label && (
             <p className="text-muted-foreground px-3 pb-1.5 text-xs font-semibold tracking-wide uppercase">
-              {group.label}
+              <T>{group.label}</T>
             </p>
           )}
           <ul className="space-y-1">
@@ -289,7 +294,7 @@ function Nav({
                     )}
                   >
                     <item.icon className={cn("size-5 shrink-0", tone.text)} />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate"><T>{item.label}</T></span>
                     {count > 0 && (
                       <span className="ml-auto flex min-w-5 shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">
                         {count}
@@ -332,7 +337,7 @@ function Account({
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">
-            {fullName ?? "Mon compte"}
+            {fullName ?? <T>Mon compte</T>}
           </p>
           <p className="text-muted-foreground truncate text-xs">
             {ROLE_LABELS[role]}
@@ -344,14 +349,14 @@ function Account({
           href="/"
           className="text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
         >
-          <Home className="size-4 shrink-0" /> Retour au site
+          <Home className="size-4 shrink-0" /> <T>Retour au site</T>
         </Link>
         <button
           type="button"
           onClick={() => signOut()}
           className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
         >
-          <LogOut className="size-4 shrink-0" /> Se déconnecter
+          <LogOut className="size-4 shrink-0" /> <T>Se déconnecter</T>
         </button>
       </div>
     </div>

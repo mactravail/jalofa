@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import {
   AlertTriangle,
   Bell,
@@ -27,6 +27,10 @@ import { DASHBOARD_ROOT } from "@/lib/dashboard-nav";
 import { bucketOf, pipelineType, type OrderBucket } from "@/lib/pipeline";
 import type { Notification } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { intlLocale } from "@/lib/i18n/config";
+import type { Translate } from "@/lib/i18n/translate";
 
 export type TimelineEvent = {
   id: string;
@@ -64,21 +68,21 @@ const BUCKET_PATH: Record<OrderBucket, string> = {
   done: "terminees",
 };
 
-const DAY_LONG = new Intl.DateTimeFormat("fr-FR", {
+const DAY_OPTIONS: Intl.DateTimeFormatOptions = {
   weekday: "long",
   day: "numeric",
   month: "long",
-});
-const CLOCK = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
+};
+const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
 
-function dayLabel(iso: string): string {
+function dayLabel(iso: string, t: Translate, locale: string): string {
   const d = new Date(iso);
   const now = new Date();
   const start = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((start(now) - start(d)) / 86_400_000);
-  if (days <= 0) return "Aujourd'hui";
-  if (days === 1) return "Hier";
-  const label = DAY_LONG.format(d);
+  if (days <= 0) return t("Aujourd'hui");
+  if (days === 1) return t("Hier");
+  const label = new Intl.DateTimeFormat(locale, DAY_OPTIONS).format(d);
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -160,11 +164,14 @@ export function TimelineDays({
   events: TimelineEvent[];
   prevSeen?: number | null;
 }) {
+  const t = useT();
+  const locale = intlLocale(useLocale());
+  const clock = new Intl.DateTimeFormat(locale, CLOCK_OPTIONS);
   if (events.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
         <Bell className="text-muted-foreground mx-auto size-7" />
-        <p className="text-muted-foreground mt-3 text-sm">Aucune notification pour l&apos;instant.</p>
+        <p className="text-muted-foreground mt-3 text-sm">{t("Aucune notification pour l'instant.")}</p>
       </div>
     );
   }
@@ -177,7 +184,7 @@ export function TimelineDays({
   // Regroupement par jour, l'ordre est déjà le bon.
   const days: { label: string; items: TimelineEvent[] }[] = [];
   for (const e of events) {
-    const label = dayLabel(e.at);
+    const label = dayLabel(e.at, t, locale);
     const last = days.at(-1);
     if (last?.label === label) last.items.push(e);
     else days.push({ label, items: [e] });
@@ -214,15 +221,15 @@ export function TimelineDays({
                   <div className="min-w-0 flex-1 pb-3">
                     <div className="flex items-start gap-2">
                       <p className="min-w-0 flex-1 text-sm leading-snug font-semibold">
-                        {e.title}
+                        {t(e.title)}
                       </p>
                       <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                        {CLOCK.format(new Date(e.at)).replace(":", " h ")}
+                        {locale === "fr-FR" ? clock.format(new Date(e.at)).replace(":", " h ") : clock.format(new Date(e.at))}
                       </span>
                       {isNew(e) && (
                         <span
                           className="mt-1.5 size-2 shrink-0 rounded-full bg-rose-500"
-                          aria-label="Nouveau"
+                          aria-label={t("Nouveau")}
                         />
                       )}
                     </div>
@@ -239,16 +246,16 @@ export function TimelineDays({
                           <span className="bg-muted size-10 shrink-0 rounded-md" />
                         )}
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{e.subject.name}</p>
+                          <p className="truncate text-sm font-medium">{t(e.subject.name)}</p>
                           <p className="text-muted-foreground font-mono text-xs">
-                            Code {e.subject.code}
+                            {t("Code")} {e.subject.code}
                           </p>
                         </div>
                       </div>
                     )}
                     {e.body && (
                       <p className="text-muted-foreground mt-1 text-sm break-words">
-                        {e.body}
+                        {t(e.body)}
                       </p>
                     )}
                   </div>

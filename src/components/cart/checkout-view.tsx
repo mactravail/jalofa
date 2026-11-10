@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { useRouter } from "@/lib/i18n/navigation";
 import { toast } from "sonner";
 
 import { PasswordField } from "@/components/auth/password-field";
@@ -41,6 +41,7 @@ import { CANCEL_WINDOW_HOURS, RETURN_WINDOW_DAYS } from "@/lib/after-sale";
 import { deliveryPolicy } from "@/lib/delivery";
 import { basketHasFreeDelivery } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // Always collected — a pickup order still needs someone to hand the piece to.
 const EMPTY_CONTACT = {
@@ -92,6 +93,7 @@ export function CheckoutView({
 }) {
   const router = useRouter();
   const { items, subtotal, count, hydrated, clear } = useCart();
+  const t = useT();
 
   const [chosenDelivery, setDeliveryMethod] = useState<DeliveryMethod>("home");
   // Une tenue est livrée par le tailleur à l'adresse du client : pas de retrait.
@@ -118,15 +120,15 @@ export function CheckoutView({
     if (!result?.ok) return;
     clear();
     if (!result.demo) {
-      toast.success("Commande confirmée", {
+      toast.success(t("Commande confirmée"), {
         description: needsPassword
-          ? "Votre compte est prêt. La prochaine fois, connectez-vous avec votre e-mail et ce mot de passe."
-          : "Suivez sa confection ici.",
+          ? t("Votre compte est prêt. La prochaine fois, connectez-vous avec votre e-mail et ce mot de passe.")
+          : t("Suivez sa confection ici."),
       });
       router.replace("/compte/commandes");
       router.refresh();
     }
-  }, [result, clear, router, needsPassword]);
+  }, [result, clear, router, needsPassword, t]);
 
   // JALOFA n'ajoute aucun frais : chaque pro a dit, sur son produit, si la livraison
   // est gratuite. Hors de sa zone, le client règle directement le GP ou le livreur.
@@ -199,12 +201,12 @@ export function CheckoutView({
         <div className="bg-muted text-muted-foreground mx-auto flex size-16 items-center justify-center rounded-full">
           <ShoppingBag className="size-7" />
         </div>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">Votre panier est vide</h1>
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t("Votre panier est vide")}</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Ajoutez une tenue avant de passer à la caisse.
+          {t("Ajoutez une tenue avant de passer à la caisse.")}
         </p>
         <Link href="/modeles" className={cn(buttonVariants({}), "mt-6")}>
-          Voir les modèles
+          {t("Voir les modèles")}
         </Link>
       </div>
     );
@@ -212,7 +214,7 @@ export function CheckoutView({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 lg:py-12">
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Caisse</h1>
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("Caisse")}</h1>
 
       <form action={formAction} className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
         <input type="hidden" name="payload" value={payload} />
@@ -220,31 +222,31 @@ export function CheckoutView({
         <div className="space-y-8">
           {/* Contact */}
           <section>
-            <h2 className="mb-1 text-lg font-semibold">Vos coordonnées</h2>
+            <h2 className="mb-1 text-lg font-semibold">{t("Vos coordonnées")}</h2>
             <p className="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs">
               <User className="size-3.5" />
-              Nécessaires pour vous joindre au sujet de votre commande.
+              {t("Nécessaires pour vous joindre au sujet de votre commande.")}
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label="Prénom"
+                label={t("Prénom")}
                 value={contact.first_name}
                 onChange={(v) => setContact((c) => ({ ...c, first_name: v }))}
               />
               <Field
-                label="Nom"
+                label={t("Nom")}
                 value={contact.last_name}
                 onChange={(v) => setContact((c) => ({ ...c, last_name: v }))}
               />
               <Field
-                label="Email"
+                label={t("Email")}
                 type="email"
-                placeholder="vous@exemple.com"
+                placeholder={t("vous@exemple.com")}
                 value={contact.email}
                 onChange={(v) => setContact((c) => ({ ...c, email: v }))}
               />
               <Field
-                label="Téléphone"
+                label={t("Téléphone")}
                 type="tel"
                 placeholder="77 000 00 00"
                 value={contact.phone}
@@ -257,16 +259,16 @@ export function CheckoutView({
             {needsPassword && (
               <div className="bg-muted/40 mt-4 rounded-xl border p-4">
                 <p className="mb-3 text-sm font-medium">
-                  Créez votre mot de passe pour suivre votre commande
+                  {t("Créez votre mot de passe pour suivre votre commande")}
                 </p>
                 <PasswordField value={password} onChange={setPassword} />
                 <p className="text-muted-foreground mt-2 text-xs">
-                  Déjà client ? Entrez votre mot de passe habituel, ou{" "}
+                  {t("Déjà client ? Entrez votre mot de passe habituel, ou")}{" "}
                   <Link
                     href="/connexion?redirect=/caisse"
                     className="text-foreground underline underline-offset-2"
                   >
-                    connectez-vous
+                    {t("connectez-vous")}
                   </Link>
                   .
                 </p>
@@ -276,22 +278,22 @@ export function CheckoutView({
 
           {/* Delivery */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Livraison</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("Livraison")}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <OptionCard
                 active={deliveryMethod === "home"}
                 onClick={() => setDeliveryMethod("home")}
                 icon={MapPin}
-                title="Livraison à domicile"
-                desc={freeHomeDelivery ? "Gratuite" : "Selon le pro"}
+                title={t("Livraison à domicile")}
+                desc={freeHomeDelivery ? t("Gratuite") : t("Selon le pro")}
               />
               {!hasGarment && (
                 <OptionCard
                   active={deliveryMethod === "pickup"}
                   onClick={() => setDeliveryMethod("pickup")}
                   icon={Store}
-                  title="Retrait en boutique"
-                  desc="Gratuit"
+                  title={t("Retrait en boutique")}
+                  desc={t("Gratuit")}
                 />
               )}
             </div>
@@ -303,7 +305,7 @@ export function CheckoutView({
                     <Truck className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                     <span className="min-w-0">
                       <span className="font-medium">{item.title} : </span>
-                      {deliveryPolicy(item.freeDeliveryZone)}
+                      {t(deliveryPolicy(item.freeDeliveryZone))}
                     </span>
                   </li>
                 ))}
@@ -314,7 +316,7 @@ export function CheckoutView({
               {deliveryMethod === "home" && (
                 <div className="sm:col-span-2">
                   <Field
-                    label="Adresse"
+                    label={t("Adresse")}
                     value={address.address_line}
                     onChange={(v) => setAddress((a) => ({ ...a, address_line: v }))}
                   />
@@ -325,40 +327,38 @@ export function CheckoutView({
                   ensemble, même pour un retrait en boutique. */}
               <div className={deliveryMethod === "home" ? undefined : "sm:col-span-2"}>
                 <Field
-                  label="Ville"
-                  placeholder="Ex : Mbour, Thiès, Dakar, Paris…"
+                  label={t("Ville")}
+                  placeholder={t("Ex : Mbour, Thiès, Dakar, Paris…")}
                   value={address.city}
                   onChange={(v) => setAddress((a) => ({ ...a, city: v }))}
                 />
               </div>
               {deliveryMethod === "home" && (
                 <Field
-                  label="Région"
+                  label={t("Région")}
                   value={address.region}
                   onChange={(v) => setAddress((a) => ({ ...a, region: v }))}
                 />
               )}
               {deliveryMethod === "home" && (
                 <Field
-                  label="Pays"
+                  label={t("Pays")}
                   value={address.country}
                   onChange={(v) => setAddress((a) => ({ ...a, country: v }))}
                 />
               )}
             </div>
             <p className="text-muted-foreground mt-2 text-xs">
-              La ville nous aide à regrouper et accélérer les livraisons.
+              {t("La ville nous aide à regrouper et accélérer les livraisons.")}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              Annulation possible pendant {CANCEL_WINDOW_HOURS} h. Un tissu peut être
-              rendu pendant {RETURN_WINDOW_DAYS} jours, envoi à votre charge. Une tenue
-              cousue ne se rend pas, mais votre tailleur peut la retoucher.
+              {t("Annulation possible pendant {h} h. Un tissu peut être rendu pendant {d} jours, envoi à votre charge. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { h: CANCEL_WINDOW_HOURS, d: RETURN_WINDOW_DAYS })}
             </p>
           </section>
 
           {/* Payment */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Paiement</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("Paiement")}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {VISIBLE_PAYMENT_METHODS.map((pm) => (
                 <OptionCard
@@ -366,8 +366,8 @@ export function CheckoutView({
                   active={paymentMethod === pm}
                   onClick={() => setPaymentMethod(pm)}
                   icon={PAYMENT_METHOD_ICONS[pm]}
-                  title={PAYMENT_METHOD_LABELS[pm]}
-                  desc={PAYMENT_METHOD_DESCS[pm]}
+                  title={t(PAYMENT_METHOD_LABELS[pm])}
+                  desc={PAYMENT_METHOD_DESCS[pm] && t(PAYMENT_METHOD_DESCS[pm])}
                 />
               ))}
             </div>
@@ -383,7 +383,7 @@ export function CheckoutView({
         {/* Summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="bg-card rounded-2xl border p-6">
-            <h2 className="text-lg font-semibold">Votre commande</h2>
+            <h2 className="text-lg font-semibold">{t("Votre commande")}</h2>
 
             <ul className="mt-4 space-y-3 border-b pb-4">
               {items.map((it) => (
@@ -399,7 +399,7 @@ export function CheckoutView({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{it.title}</p>
-                    <p className="text-muted-foreground truncate text-xs">{it.subtitle}</p>
+                    <p className="text-muted-foreground truncate text-xs">{it.subtitle ? t(it.subtitle) : null}</p>
                   </div>
                   <Price
                     amount={it.unitPrice * it.qty}
@@ -412,7 +412,7 @@ export function CheckoutView({
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">
-                  Sous-total ({count} article{count > 1 ? "s" : ""})
+                  {t("Sous-total")} ({count > 1 ? t("{n} articles", { n: count }) : t("{n} article", { n: count })})
                 </dt>
                 <dd>
                   <Price amount={subtotal} className="font-medium" />
@@ -420,23 +420,23 @@ export function CheckoutView({
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">
-                  {DELIVERY_METHOD_LABELS[deliveryMethod]}
+                  {t(DELIVERY_METHOD_LABELS[deliveryMethod])}
                 </dt>
                 <dd className="font-medium whitespace-nowrap">
-                  {deliveryMethod === "pickup" || freeHomeDelivery ? "Gratuite" : "Selon le pro"}
+                  {deliveryMethod === "pickup" || freeHomeDelivery ? t("Gratuite") : t("Selon le pro")}
                 </dd>
               </div>
             </dl>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t pt-4">
-              <span className="font-semibold">Total</span>
+              <span className="font-semibold">{t("Total")}</span>
               <Price amount={total} className="text-primary ml-auto text-xl font-bold" />
             </div>
-            <p className="text-muted-foreground mt-1 text-xs">TVA incluse</p>
+            <p className="text-muted-foreground mt-1 text-xs">{t("TVA incluse")}</p>
 
             {result && !result.ok && (
               <div className="bg-destructive/10 mt-3 rounded-md px-3 py-2">
-                <p className="text-destructive text-sm">{result.error}</p>
+                <p className="text-destructive text-sm">{t(result.error)}</p>
               </div>
             )}
 
@@ -447,19 +447,21 @@ export function CheckoutView({
               disabled={!canSubmit || isPending}
             >
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              Confirmer et payer
+              {t("Confirmer et payer")}
             </Button>
             {!canSubmit && (
               <p className="text-muted-foreground mt-2 text-center text-xs">
-                {!contactComplete
-                  ? "Complétez vos coordonnées."
-                  : !cityComplete
-                    ? "Indiquez la ville de livraison."
-                    : !addressComplete
-                      ? "Complétez l'adresse de livraison."
-                      : !paymentMethod
-                        ? "Choisissez un moyen de paiement."
-                        : "Complétez les détails de votre carte."}
+                {t(
+                  !contactComplete
+                    ? "Complétez vos coordonnées."
+                    : !cityComplete
+                      ? "Indiquez la ville de livraison."
+                      : !addressComplete
+                        ? "Complétez l'adresse de livraison."
+                        : !paymentMethod
+                          ? "Choisissez un moyen de paiement."
+                          : "Complétez les détails de votre carte.",
+                )}
               </p>
             )}
           </div>
@@ -477,22 +479,23 @@ function Confirmation({
   demo: boolean;
 }) {
   const count = orderNumbers.length;
+  const t = useT();
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
       <div className="bg-primary/10 text-primary mx-auto flex size-16 items-center justify-center rounded-full">
         <CheckCircle2 className="size-8" />
       </div>
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight">Commande confirmée</h1>
+      <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t("Commande confirmée")}</h1>
       <p className="text-muted-foreground mt-2 text-sm">
-        Merci ! {count > 1 ? `${count} pièces ont` : "Votre pièce a"} bien été
-        {count > 1 ? " " : " "}commandée{count > 1 ? "s" : ""}. Vous recevrez le suivi de
-        production dans votre espace.
+        {count > 1
+          ? t("Merci ! {n} pièces ont bien été commandées. Vous recevrez le suivi de production dans votre espace.", { n: count })
+          : t("Merci ! Votre pièce a bien été commandée. Vous recevrez le suivi de production dans votre espace.")}
       </p>
 
       {orderNumbers.length > 0 && (
         <div className="bg-card mt-6 rounded-xl border p-4 text-left">
           <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            Référence{count > 1 ? "s" : ""}
+            {count > 1 ? t("Références") : t("Référence")}
           </p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {orderNumbers.map((n) => (
@@ -506,16 +509,16 @@ function Confirmation({
 
       {demo && (
         <p className="text-muted-foreground mt-4 text-xs">
-          Mode démonstration — aucune commande n&apos;a été réellement enregistrée.
+          {t("Mode démonstration — aucune commande n'a été réellement enregistrée.")}
         </p>
       )}
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link href="/compte/commandes" className={buttonVariants({})}>
-          Voir mes commandes
+          {t("Voir mes commandes")}
         </Link>
         <Link href="/" className={buttonVariants({ variant: "outline" })}>
-          Retour à l&apos;accueil
+          {t("Retour à l'accueil")}
         </Link>
       </div>
     </div>

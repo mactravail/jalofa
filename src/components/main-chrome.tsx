@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 
 // Wraps the shared site chrome (header + footer + bottom nav mobile) but hides
 // it on the immersive configurator route, so "Créer une tenue" fills the whole

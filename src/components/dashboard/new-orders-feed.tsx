@@ -12,6 +12,8 @@ import { ORDER_TYPE_LABELS, formatReceivedAt } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
 import { amountFor } from "@/lib/pipeline";
+import { T } from "@/components/i18n/t";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 /**
  * Le fil des nouvelles commandes : qui, quoi, quand, combien — puis les deux
@@ -25,7 +27,7 @@ export function NewOrdersFeed({ max }: { max?: number }) {
   if (todo.length === 0) {
     return (
       <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-base">
-        Aucune nouvelle commande.
+        <T>Aucune nouvelle commande.</T>
       </p>
     );
   }
@@ -54,6 +56,7 @@ function NewOrderCard({
     order.model?.name ?? order.fabric?.name ?? ORDER_TYPE_LABELS[order.type];
   // Un devis pas encore payé n'a pas de prix ferme : c'est au tailleur de le donner.
   const quotePending = order.is_quote && order.payment_status === "pending";
+  const locale = useLocale();
   // Devis chiffré : on montre le total que voit le client (tissu et livraison compris).
   const amount = quotePending
     ? order.tailoring_price > 0
@@ -75,19 +78,19 @@ function NewOrderCard({
           )}
 
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="line-clamp-2 text-base leading-snug font-semibold">{title}</p>
+            <p className="line-clamp-2 text-base leading-snug font-semibold"><T>{title}</T></p>
             {(order.contact_first_name || order.contact_last_name) && (
               <p className="text-muted-foreground truncate text-sm">{clientNameOf(order)}</p>
             )}
             <p className="text-muted-foreground text-xs break-all">
-              Code <span className="font-mono">{order.order_number}</span>
+              <T>Code</T> <span className="font-mono">{order.order_number}</span>
             </p>
             <p
               className="text-muted-foreground flex items-center gap-1.5 text-xs"
               suppressHydrationWarning
             >
               <Clock className="size-3 shrink-0" />
-              Reçue {formatReceivedAt(order.created_at)}
+              <T>Reçue</T> {formatReceivedAt(order.created_at, locale)}
             </p>
             {amount > 0 && (
               <p className="pt-1 text-lg font-bold">

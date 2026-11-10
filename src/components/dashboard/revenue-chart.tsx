@@ -10,6 +10,7 @@ import {
   type RevenueSeries,
 } from "@/lib/revenue-series";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 type TabDef = {
   id: Granularity;
@@ -73,6 +74,8 @@ export function RevenueChart({
   accent?: string;
 }) {
   const [gran, setGran] = useState<Granularity>(defaultGranularity);
+  const tr = useT();
+  const units = (n: number) => tr(n > 1 ? `{n} ${unit}s` : `{n} ${unit}`, { n });
   const [active, setActive] = useState<number | null>(null);
   const [width, setWidth] = useState(640);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -135,15 +138,14 @@ export function RevenueChart({
               {formatPrice(summary.total)}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              {tab.window} · {summary.orders} {unit}
-              {summary.orders > 1 ? "s" : ""} · moyenne {formatPrice(summary.average)}/
-              {tab.per}
+              {tr(tab.window)} · {units(summary.orders)} · {tr("moyenne")} {formatPrice(summary.average)}/
+              {tr(tab.per)}
             </p>
           </div>
 
           <div
             role="tablist"
-            aria-label="Granularité"
+            aria-label={tr("Granularité")}
             className="bg-muted inline-flex shrink-0 items-center rounded-lg p-[3px]"
           >
             {TABS.map((t) => {
@@ -165,7 +167,7 @@ export function RevenueChart({
                       : "text-foreground/60 hover:text-foreground",
                   )}
                 >
-                  {t.label}
+                  {tr(t.label)}
                 </button>
               );
             })}
@@ -283,7 +285,7 @@ export function RevenueChart({
                 dominantBaseline="middle"
                 className="fill-muted-foreground text-xs"
               >
-                Aucune vente sur cette période.
+                {tr("Aucune vente sur cette période.")}
               </text>
             )}
           </svg>
@@ -306,8 +308,7 @@ export function RevenueChart({
                 {formatPrice(activePoint.revenue)}
               </p>
               <p className="text-muted-foreground whitespace-nowrap">
-                {activePoint.orders} {unit}
-                {activePoint.orders > 1 ? "s" : ""}
+                {units(activePoint.orders)}
               </p>
             </div>
           )}
@@ -319,13 +320,13 @@ export function RevenueChart({
         <div className="sr-only">
           <table>
             <caption>
-              {title} par {tab.per}
+              {title} / {tr(tab.per)}
             </caption>
             <thead>
               <tr>
-                <th>Période</th>
-                <th>Revenu</th>
-                <th>{unit}s</th>
+                <th>{tr("Période")}</th>
+                <th>{tr("Revenu")}</th>
+                <th>{tr(`${unit}s`)}</th>
               </tr>
             </thead>
             <tbody>

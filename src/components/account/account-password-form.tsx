@@ -8,6 +8,7 @@ import { PasswordField } from "@/components/auth/password-field";
 import { changePassword } from "@/lib/actions/account";
 import { Button } from "@/components/ui/button";
 import { checkPassword } from "@/lib/password";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Changement de mot de passe, disponible dans les quatre espaces. L'ancien mot
@@ -16,6 +17,7 @@ import { checkPassword } from "@/lib/password";
  */
 export function AccountPasswordForm() {
   const [current, setCurrent] = useState("");
+  const t = useT();
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export function AccountPasswordForm() {
     startTransition(async () => {
       const res = await changePassword(null, formData);
       if (res?.ok) {
-        toast.success("Votre mot de passe a été changé.");
+        toast.success(t("Votre mot de passe a été changé."));
         setCurrent("");
         setNext("");
         setConfirm("");
@@ -48,13 +50,13 @@ export function AccountPasswordForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
-          {error}
+          {t(error)}
         </p>
       )}
 
       <PasswordField
         name="current_password"
-        label="Mot de passe actuel"
+        label={t("Mot de passe actuel")}
         autoComplete="current-password"
         requirements={false}
         value={current}
@@ -63,14 +65,14 @@ export function AccountPasswordForm() {
 
       <PasswordField
         name="new_password"
-        label="Nouveau mot de passe"
+        label={t("Nouveau mot de passe")}
         value={next}
         onChange={setNext}
       />
 
       <PasswordField
         name="confirm_password"
-        label="Confirmer le nouveau mot de passe"
+        label={t("Confirmer le nouveau mot de passe")}
         autoComplete="new-password"
         requirements={false}
         value={confirm}
@@ -78,14 +80,14 @@ export function AccountPasswordForm() {
       />
       {mismatch && (
         <p className="text-destructive text-xs">
-          Les deux mots de passe ne sont pas identiques.
+          {t("Les deux mots de passe ne sont pas identiques.")}
         </p>
       )}
 
       <div className="flex justify-end">
         <Button type="submit" disabled={!canSubmit}>
           {isPending && <Loader2 className="size-4 animate-spin" />}
-          Changer mon mot de passe
+          {t("Changer mon mot de passe")}
         </Button>
       </div>
     </form>

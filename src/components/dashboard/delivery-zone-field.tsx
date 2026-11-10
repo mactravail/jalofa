@@ -4,6 +4,7 @@ import {
   RECOMMENDED_DELIVERY_ZONE,
   type FreeDeliveryZone,
 } from "@/lib/delivery";
+import { T } from "@/components/i18n/t";
 
 /**
  * JALOFA ne livre rien : le pro dit, pour chacun de ses tissus et de ses modèles,
@@ -17,7 +18,7 @@ export function DeliveryZoneField({
 }) {
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium">Livraison</legend>
+      <legend className="text-sm font-medium"><T>Livraison</T></legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {FREE_DELIVERY_ZONES.map((zone) => (
           <label
@@ -31,11 +32,11 @@ export function DeliveryZoneField({
               defaultChecked={defaultValue === zone.value}
               className="accent-primary size-4"
             />
-            {zone.label}
+            <T>{zone.label}</T>
           </label>
         ))}
       </div>
-      <p className="text-muted-foreground text-xs">{DELIVERY_ADVICE}</p>
+      <p className="text-muted-foreground text-xs"><T>{DELIVERY_ADVICE}</T></p>
     </fieldset>
   );
 }

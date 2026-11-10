@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   ALTERATION_REASON_LABELS,
   canAskAlteration,
+  canCancelForLateness,
   canCancelOrder,
   canReturnFabric,
   isSatisfactionIssue,
@@ -33,6 +34,7 @@ type OrderRow = {
   payment_status: string;
   is_quote: boolean;
   created_at: string;
+  quote_ready_days: number | null;
   fabric_return: { status: string } | null;
   alterations: { status: string }[] | null;
 };
@@ -48,7 +50,7 @@ async function loadOrder(orderId: string) {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, order_number, client_id, tailor_id, vendor_id, type, status, payment_status, is_quote, created_at, fabric_return:fabric_returns(status), alterations:order_alterations(status)",
+      "id, order_number, client_id, tailor_id, vendor_id, type, status, payment_status, is_quote, created_at, quote_ready_days, fabric_return:fabric_returns(status), alterations:order_alterations(status)",
     )
     .eq("id", orderId)
     .single();
@@ -105,7 +107,9 @@ export async function cancelOrder(orderId: string): Promise<AfterSaleResult> {
     return { ok: false, error: "Commande introuvable." };
   }
   const { supabase, order, history } = loaded;
-  if (!canCancelOrder(order, history)) {
+  // Deux portes : le délai de 24 h après paiement, ou plus d'une semaine de retard.
+  const late = !canCancelOrder(order, history) && canCancelForLateness(order, history);
+  if (!late && !canCancelOrder(order, history)) {
     return { ok: false, error: "Le délai pour annuler cette commande est passé." };
   }
 
@@ -119,8 +123,10 @@ export async function cancelOrder(orderId: string): Promise<AfterSaleResult> {
 
   const message = {
     type: "order_cancelled",
-    title: "Commande annulée par le client",
-    body: `Ne travaillez plus sur la commande ${order.order_number}.`,
+    title: late ? "Commande annulée pour retard" : "Commande annulée par le client",
+    body: late
+      ? `Plus d'une semaine de retard : le client a annulé la commande ${order.order_number} et sera remboursé.`
+      : `Ne travaillez plus sur la commande ${order.order_number}.`,
     order_id: orderId,
   };
   const pros = [

@@ -1,12 +1,14 @@
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Bell, ChevronRight } from "lucide-react";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * En tête de l'espace client, seulement s'il y a du nouveau : une grosse
  * cloche avec le nombre de notifications non lues, qui mène à la chronologie.
  */
-export function NotificationsBell({ unread }: { unread: number }) {
+export async function NotificationsBell({ unread }: { unread: number }) {
   if (unread <= 0) return null;
+  const t = await getT();
 
   return (
     <Link
@@ -20,7 +22,7 @@ export function NotificationsBell({ unread }: { unread: number }) {
         </span>
       </span>
       <span className="min-w-0 flex-1 text-sm font-semibold">
-        {unread > 1 ? `${unread} nouvelles notifications` : "1 nouvelle notification"}
+        {unread > 1 ? t("{n} nouvelles notifications", { n: unread }) : t("1 nouvelle notification")}
       </span>
       <ChevronRight className="text-muted-foreground size-5 shrink-0" />
     </Link>

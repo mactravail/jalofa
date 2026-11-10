@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Layers, MapPin, Star, Store } from "lucide-react";
 
@@ -14,6 +14,7 @@ import { ReviewStars } from "@/components/catalog/review-stars";
 import { TrustScorePanel } from "@/components/catalog/trust-score";
 import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
 import { getFabricsByVendor, getVendorById, getVendorReviews } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
 export default async function VendorProfilePage({
   params,
@@ -24,6 +25,7 @@ export default async function VendorProfilePage({
   const vendor = await getVendorById(id);
   // Une boutique suspendue par la plateforme n'a plus de fiche publique.
   if (!vendor || vendor.is_suspended) notFound();
+  const t = await getT();
 
   const [fabrics, reviews] = await Promise.all([
     getFabricsByVendor(id),
@@ -37,7 +39,7 @@ export default async function VendorProfilePage({
         href="/vendeurs"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
       >
-        <ArrowLeft className="size-4" /> Retour aux vendeurs
+        <ArrowLeft className="size-4" /> {t("Retour aux vendeurs")}
       </Link>
 
       <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
@@ -45,7 +47,7 @@ export default async function VendorProfilePage({
           {vendor.cover_url ? (
             <Image
               src={vendor.cover_url}
-              alt={vendor.shop_name ?? "Vendeur de tissu"}
+              alt={vendor.shop_name ?? t("Vendeur de tissu")}
               fill
               sizes="144px"
               className="object-cover"
@@ -74,15 +76,14 @@ export default async function VendorProfilePage({
                   <span className="text-foreground font-medium">
                     {vendor.rating.toFixed(1)}
                   </span>
-                  ({vendor.rating_count} avis)
+                  ({t("{n} avis", { n: vendor.rating_count })})
                 </span>
               )}
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" /> {vendor.city}
               </span>
               <span className="flex items-center gap-1">
-                <Layers className="size-4" /> {fabrics.length} tissu
-                {fabrics.length > 1 ? "s" : ""}
+                <Layers className="size-4" /> {fabrics.length > 1 ? t("{n} tissus", { n: fabrics.length }) : t("{n} tissu", { n: fabrics.length })}
               </span>
             </div>
           </div>
@@ -102,7 +103,7 @@ export default async function VendorProfilePage({
 
       <section className="mt-12">
         <h2 className="text-xl font-bold tracking-tight">
-          Les tissus de la boutique
+          {t("Les tissus de la boutique")}
           <span className="text-muted-foreground ml-2 text-base font-normal">
             ({fabrics.length})
           </span>
@@ -110,7 +111,7 @@ export default async function VendorProfilePage({
 
         {fabrics.length === 0 ? (
           <p className="text-muted-foreground mt-4 text-sm">
-            Cette boutique n&apos;a pas encore mis de tissu en ligne.
+            {t("Cette boutique n'a pas encore mis de tissu en ligne.")}
           </p>
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -124,7 +125,7 @@ export default async function VendorProfilePage({
       <section id="avis" className="mt-12">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">
-            Avis clients
+            {t("Avis clients")}
             <span className="text-muted-foreground ml-2 text-base font-normal">
               ({vendor.rating_count})
             </span>
@@ -139,8 +140,7 @@ export default async function VendorProfilePage({
 
         {reviews.length === 0 ? (
           <p className="text-muted-foreground mt-4 text-sm">
-            Aucun avis pour le moment. Soyez le premier à partager votre
-            expérience après une commande de tissu.
+            {t("Aucun avis pour le moment. Soyez le premier à partager votre expérience après une commande de tissu.")}
           </p>
         ) : (
           <ReviewList reviews={reviews} />

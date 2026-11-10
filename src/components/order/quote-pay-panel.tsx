@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useState, useTransition } from "react";
 import {
   CalendarClock,
@@ -23,6 +23,7 @@ import {
   type PaymentMethod,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 const METHODS = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[];
 
@@ -63,6 +64,7 @@ export function QuotePayPanel({
   note?: string | null;
 }) {
   const router = useRouter();
+  const t = useT();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -74,11 +76,10 @@ export function QuotePayPanel({
         <MessageSquareQuote className="text-primary mt-0.5 size-5 shrink-0" />
         <div className="text-sm">
           <p className="font-semibold">
-            {revision > 0 ? "Nouveau devis demandé" : "Devis demandé"}
+            {revision > 0 ? t("Nouveau devis demandé") : t("Devis demandé")}
           </p>
           <p className="text-muted-foreground mt-0.5">
-            Le tailleur a bien reçu votre demande. Vous recevrez son prix ici, avec
-            le détail. C&apos;est gratuit et sans engagement.
+            {t("Le tailleur a bien reçu votre demande. Vous recevrez son prix ici, avec le détail. C'est gratuit et sans engagement.")}
           </p>
         </div>
       </div>
@@ -87,21 +88,21 @@ export function QuotePayPanel({
 
   const pay = () => {
     if (!method) {
-      toast.error("Choisissez un moyen de paiement");
+      toast.error(t("Choisissez un moyen de paiement"));
       return;
     }
     if (!accepted) {
-      toast.error("Acceptez les conditions pour payer");
+      toast.error(t("Acceptez les conditions pour payer"));
       return;
     }
     startTransition(async () => {
       const res = await acceptQuote(orderId, method);
       if (res.ok) {
-        toast.success("Devis accepté et payé. Le tailleur est prévenu.");
+        toast.success(t("Devis accepté et payé. Le tailleur est prévenu."));
         router.refresh();
         return;
       }
-      toast.error(res.error);
+      toast.error(t(res.error));
     });
   };
 
@@ -110,20 +111,20 @@ export function QuotePayPanel({
       <div className="flex items-start gap-3">
         <MessageSquareQuote className="text-primary mt-0.5 size-5 shrink-0" />
         <p className="font-semibold">
-          Votre devis est prêt{revision > 0 ? ` (n° ${revision + 1})` : ""}
+          {t("Votre devis est prêt")}{revision > 0 ? ` (n° ${revision + 1})` : ""}
         </p>
       </div>
 
       {/* Où va l'argent, ligne par ligne. */}
       <dl className="bg-background mt-3 space-y-2 rounded-lg border p-3 text-sm">
-        {fabricPrice > 0 && <Line label="Tissu" amount={formatPrice(fabricPrice)} />}
+        {fabricPrice > 0 && <Line label={t("Tissu")} amount={formatPrice(fabricPrice)} />}
         <Line
-          label="Livraison"
-          amount={deliveryFee > 0 ? formatPrice(deliveryFee) : "Gratuite"}
+          label={t("Livraison")}
+          amount={deliveryFee > 0 ? formatPrice(deliveryFee) : t("Gratuite")}
         />
-        <Line label="Tailleur" amount={formatPrice(tailoringPrice)} />
+        <Line label={t("Tailleur")} amount={formatPrice(tailoringPrice)} />
         <div className="flex items-center justify-between gap-3 border-t pt-2 text-base font-bold">
-          <dt>Total</dt>
+          <dt>{t("Total")}</dt>
           <dd className="text-primary whitespace-nowrap">{formatPrice(totalAmount)}</dd>
         </div>
       </dl>
@@ -132,15 +133,16 @@ export function QuotePayPanel({
         <p className="mt-3 flex items-center gap-1.5 text-sm">
           <CalendarClock className="text-muted-foreground size-4 shrink-0" />
           <span>
-            Prête en <strong>{readyDays} jour{readyDays > 1 ? "s" : ""}</strong> après
-            le paiement
+            {t("Prête en")}{" "}
+            <strong>{readyDays > 1 ? t("{n} jours", { n: readyDays }) : t("{n} jour", { n: readyDays })}</strong>{" "}
+            {t("après le paiement")}
           </span>
         </p>
       ) : null}
 
       {note && (
         <blockquote className="bg-background mt-3 rounded-lg border p-3 text-sm">
-          <p className="text-muted-foreground text-xs font-medium">Le mot du tailleur</p>
+          <p className="text-muted-foreground text-xs font-medium">{t("Le mot du tailleur")}</p>
           <p className="mt-1 break-words whitespace-pre-line">{note}</p>
         </blockquote>
       )}
@@ -148,15 +150,15 @@ export function QuotePayPanel({
       {hasAddress ? (
         <p className="mt-3 flex items-start gap-1.5 text-sm">
           <MapPin className="text-muted-foreground mt-0.5 size-4 shrink-0" />
-          <span className="min-w-0 break-words">Livraison à : {deliveryPlace}</span>
+          <span className="min-w-0 break-words">{t("Livraison à : {place}", { place: deliveryPlace })}</span>
         </p>
       ) : (
         <p className="text-destructive mt-3 text-sm">
-          Ajoutez votre adresse avec « Modifier ma demande » avant de payer.
+          {t("Ajoutez votre adresse avec « Modifier ma demande » avant de payer.")}
         </p>
       )}
 
-      <p className="mt-4 text-sm font-medium">Moyen de paiement</p>
+      <p className="mt-4 text-sm font-medium">{t("Moyen de paiement")}</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         {METHODS.map((m) => (
           <button
@@ -173,7 +175,7 @@ export function QuotePayPanel({
           >
             <PaymentMethodLogo method={m} />
             <span className="text-muted-foreground text-[11px] leading-tight">
-              {PAYMENT_METHOD_LABELS[m]}
+              {t(PAYMENT_METHOD_LABELS[m])}
             </span>
           </button>
         ))}
@@ -187,9 +189,9 @@ export function QuotePayPanel({
           className="accent-primary mt-0.5 size-4 shrink-0"
         />
         <span>
-          J&apos;accepte les{" "}
+          {t("J'accepte les")}{" "}
           <Link href="/conditions" target="_blank" className="underline underline-offset-2">
-            conditions d&apos;utilisation
+            {t("conditions d'utilisation")}
           </Link>
         </span>
       </label>
@@ -204,24 +206,21 @@ export function QuotePayPanel({
         ) : (
           <Lock className="size-4 shrink-0" />
         )}
-        <span>Accepter et payer</span>
+        <span>{t("Accepter et payer")}</span>
         <span className="whitespace-nowrap">{formatPrice(totalAmount)}</span>
       </Button>
       <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-emerald-500">
         <ShieldCheck className="size-3.5" />
-        Paiement sécurisé · argent protégé par JALOFA
+        {t("Paiement sécurisé · argent protégé par JALOFA")}
       </p>
       <p className="text-muted-foreground mt-2 text-xs">
-        Une fois payé, le tailleur reçoit votre nom, votre téléphone et votre e-mail pour
-        vous livrer.
+        {t("Une fois payé, le tailleur reçoit votre nom, votre téléphone et votre e-mail pour vous livrer.")}
       </p>
       <p className="text-muted-foreground mt-1 text-xs">
-        Payez uniquement ici. En dehors du site, JALOFA ne peut ni vous protéger ni vous
-        rembourser.
+        {t("Payez uniquement ici. En dehors du site, JALOFA ne peut ni vous protéger ni vous rembourser.")}
       </p>
       <p className="text-muted-foreground mt-1 text-xs">
-        Annulation possible pendant {CANCEL_WINDOW_HOURS} h. Une tenue cousue ne se rend
-        pas, mais votre tailleur peut la retoucher.
+        {t("Annulation possible pendant {h} h. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { h: CANCEL_WINDOW_HOURS })}
       </p>
     </div>
   );

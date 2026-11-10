@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 
 import { FABRIC_COLORS, parseFabricColors } from "@/lib/fabric-colors";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Pastilles de couleur à cocher (plusieurs possibles). La valeur part dans le
@@ -20,6 +21,8 @@ export function FabricColorPicker({
   const [selected, setSelected] = useState<string[]>(() =>
     parseFabricColors(defaultValue),
   );
+
+  const t = useT();
 
   function toggle(color: string) {
     setSelected((s) =>
@@ -64,7 +67,7 @@ export function FabricColorPicker({
                   active ? "text-foreground font-medium" : "text-muted-foreground",
                 )}
               >
-                {c.name}
+                {t(c.name)}
               </span>
             </button>
           );
@@ -86,8 +89,8 @@ export function FabricColorPicker({
       )}
       <p className="text-muted-foreground text-xs">
         {selected.length
-          ? `Choisi : ${selected.join(", ")}`
-          : "Touchez les couleurs de votre tissu (plusieurs possibles)."}
+          ? `${t("Choisi :")} ${selected.map((c) => t(c)).join(", ")}`
+          : t("Touchez les couleurs de votre tissu (plusieurs possibles).")}
       </p>
     </div>
   );

@@ -15,6 +15,7 @@ import {
 import { BODY_RANGE_FIELDS, defaultBodyRanges } from "@/lib/model-body-fit";
 import type { BodyRangeKey, HeightBand, ModelBodyFit } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /** Le tableau en cours de saisie : des textes, le temps que le tailleur écrive. */
 export type DraftBodyFit = {
@@ -105,8 +106,9 @@ export function ModelBodyFitEditor({
   onChange: (fits: DraftBodyFit[]) => void;
 }) {
   const [openBody, setOpenBody] = useState<BodyType | null>(null);
+  const t = useT();
   const kind = bodyFigureKindFor(categorySlug);
-  const labels = Object.fromEntries(bodyTypesFor(categorySlug).map((b) => [b.slug, b.label]));
+  const labels = Object.fromEntries(bodyTypesFor(categorySlug).map((b) => [b.slug, t(b.label)]));
   const bands = heightBandsFor(categorySlug);
 
   const patch = (body: BodyType, change: Partial<DraftBodyFit>) =>
@@ -114,10 +116,9 @@ export function ModelBodyFitEditor({
 
   return (
     <div className="space-y-2">
-      <Label>Mètres de tissu nécessaires</Label>
+      <Label>{t("Mètres de tissu nécessaires")}</Label>
       <p className="text-muted-foreground text-xs">
-        Pour chaque corps, écrivez les mètres de tissu qu&apos;il vous faut selon la taille
-        de la personne. Le client verra ce métrage.
+        {t("Pour chaque corps, écrivez les mètres de tissu qu'il vous faut selon la taille de la personne. Le client verra ce métrage.")}
       </p>
 
       <div className="space-y-2">
@@ -139,7 +140,7 @@ export function ModelBodyFitEditor({
                   aria-expanded={open}
                   className="text-muted-foreground flex min-h-9 shrink-0 items-center gap-1 text-xs"
                 >
-                  Mesures du corps
+                  {t("Mesures du corps")}
                   <ChevronDown
                     className={cn("size-4 transition-transform", open && "rotate-180")}
                   />
@@ -163,7 +164,7 @@ export function ModelBodyFitEditor({
                           meters: { ...fit.meters, [band.slug]: e.target.value },
                         })
                       }
-                      aria-label={`Mètres de tissu, silhouette ${label}, taille ${band.label}`}
+                      aria-label={`${t("Mètres de tissu")}, ${label}, ${t(band.label)}`}
                       placeholder="m"
                       className="px-1.5 text-center"
                     />
@@ -174,7 +175,7 @@ export function ModelBodyFitEditor({
               {open && (
                 <div className="mt-3 space-y-2 border-t pt-3">
                   <p className="text-muted-foreground text-xs">
-                    Proposées au départ : corrigez-les selon votre coupe.
+                    {t("Proposées au départ : corrigez-les selon votre coupe.")}
                   </p>
                   {BODY_RANGE_FIELDS.map((field) => {
                     const range = fit.ranges[field.key];
@@ -188,24 +189,24 @@ export function ModelBodyFitEditor({
                       });
                     return (
                       <div key={field.key} className="flex items-center gap-1.5">
-                        <span className="min-w-0 flex-1 truncate text-xs">{field.label}</span>
+                        <span className="min-w-0 flex-1 truncate text-xs">{t(field.label)}</span>
                         <Input
                           type="number"
                           inputMode="numeric"
                           min={1}
                           value={range.min}
                           onChange={(e) => setRange("min", e.target.value)}
-                          aria-label={`${field.label} minimum, silhouette ${label}`}
+                          aria-label={`${t(field.label)} min, ${label}`}
                           className="w-[4.5rem] text-right"
                         />
-                        <span className="text-muted-foreground text-xs">à</span>
+                        <span className="text-muted-foreground text-xs">{t("à")}</span>
                         <Input
                           type="number"
                           inputMode="numeric"
                           min={1}
                           value={range.max}
                           onChange={(e) => setRange("max", e.target.value)}
-                          aria-label={`${field.label} maximum, silhouette ${label}`}
+                          aria-label={`${t(field.label)} max, ${label}`}
                           className="w-[4.5rem] text-right"
                         />
                         <span className="text-muted-foreground text-xs">cm</span>

@@ -44,6 +44,7 @@ export const WAVE_PAYMENT = {
 // ---------------------------------------------------------------------------
 
 const RELATIVE_TIME = new Intl.RelativeTimeFormat("fr", { numeric: "auto" });
+const RELATIVE_TIME_IT = new Intl.RelativeTimeFormat("it", { numeric: "auto" });
 
 const TIME_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["year", 365 * 24 * 3600],
@@ -58,13 +59,14 @@ const TIME_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
  * Renders against the current clock, so a server/client pair can disagree by a
  * few seconds: mark the element `suppressHydrationWarning`.
  */
-export function formatTimeAgo(iso: string): string {
+export function formatTimeAgo(iso: string, locale: "fr" | "it" = "fr"): string {
+  const fmt = locale === "it" ? RELATIVE_TIME_IT : RELATIVE_TIME;
   const seconds = Math.round((Date.parse(iso) - Date.now()) / 1000);
   const magnitude = Math.abs(seconds);
   for (const [unit, size] of TIME_UNITS) {
-    if (magnitude >= size) return RELATIVE_TIME.format(Math.round(seconds / size), unit);
+    if (magnitude >= size) return fmt.format(Math.round(seconds / size), unit);
   }
-  return RELATIVE_TIME.format(seconds, "second");
+  return fmt.format(seconds, "second");
 }
 
 const CLOCK_FR = new Intl.DateTimeFormat("fr-FR", {
@@ -85,9 +87,17 @@ const DAY_FR = new Intl.DateTimeFormat("fr-FR", {
  * Rendu contre l'horloge locale (« aujourd'hui » dépend du fuseau du lecteur) :
  * marquer l'élément `suppressHydrationWarning`.
  */
-export function formatReceivedAt(iso: string): string {
+export function formatReceivedAt(iso: string, locale: "fr" | "it" = "fr"): string {
   const date = new Date(iso);
   const now = new Date();
+  if (locale === "it") {
+    const ora = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(date);
+    const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diff = Math.round((start(now) - start(date)) / 86_400_000);
+    if (diff <= 0) return `oggi alle ${ora}`;
+    if (diff === 1) return `ieri alle ${ora}`;
+    return `il ${new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" }).format(date)} alle ${ora}`;
+  }
   const heure = CLOCK_FR.format(date).replace(":", " h ");
 
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());

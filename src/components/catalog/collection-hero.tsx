@@ -2,12 +2,13 @@ import Image from "next/image";
 
 import { display } from "@/lib/display-font";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
 // Le hero commun aux pages Homme, Femme et Tissus : une photo plein écran, un
 // sur-titre numéroté, un seul mot énorme en bas à gauche. Le texte peut passer
 // sur le sujet de la photo : c'est voulu. Toute l'image mène à la collection.
 
-export function CollectionHero({
+export async function CollectionHero({
   number,
   eyebrow,
   title,
@@ -27,12 +28,13 @@ export function CollectionHero({
   /** Second lien à côté de « Découvrir », pour un autre public de la page. */
   secondaryLink?: { href: string; label: string };
 }) {
+  const t = await getT();
   return (
     <section className="relative h-[calc(100svh-6.25rem-var(--spacing-bottom-nav))] min-h-[28rem] overflow-hidden bg-black md:h-[calc(100svh-6.25rem)]">
-      <a href={`#${target}`} aria-label={`${title} — Découvrir`} className="absolute inset-0">
+      <a href={`#${target}`} aria-label={`${t(title)} — ${t("Découvrir")}`} className="absolute inset-0">
         <Image
           src={image.src}
-          alt={image.alt}
+          alt={t(image.alt)}
           fill
           preload
           sizes="100vw"
@@ -48,7 +50,7 @@ export function CollectionHero({
         )}
       >
         <p className="text-sm tracking-[0.15em] md:text-lg">
-          {number} / {eyebrow}
+          {number} / {t(eyebrow)}
         </p>
         <h1
           className={cn(
@@ -56,21 +58,21 @@ export function CollectionHero({
             titleClassName,
           )}
         >
-          {title}
+          {t(title)}
         </h1>
         <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 md:mt-6">
           <a
             href={`#${target}`}
             className="pointer-events-auto inline-block border-b border-white pb-1 text-sm tracking-[0.2em] transition-opacity hover:opacity-70"
           >
-            Découvrir
+            {t("Découvrir")}
           </a>
           {secondaryLink && (
             <a
               href={secondaryLink.href}
               className="pointer-events-auto inline-block border-b border-white pb-1 text-sm tracking-[0.2em] transition-opacity hover:opacity-70"
             >
-              {secondaryLink.label}
+              {t(secondaryLink.label)}
             </a>
           )}
         </div>

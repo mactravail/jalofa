@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Scissors, Sparkles } from "lucide-react";
 
@@ -13,12 +13,15 @@ import {
 } from "@/lib/constants";
 import { getInspirationPost } from "@/lib/inspiration-data";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
 
-const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "long",
   year: "numeric",
-});
+};
 
 export async function generateMetadata({
   params,
@@ -27,11 +30,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const post = await getInspirationPost(id);
-  if (!post) return { title: "Tenue introuvable" };
-  const title = post.garment_label ?? "Tenue partagée";
+  const t = await getT();
+  if (!post) return { title: t("Tenue introuvable") };
+  const title = post.garment_label ?? t("Tenue partagée");
   return {
     title,
-    description: post.caption ?? `${title} partagée sur JALOFA.`,
+    description: post.caption ?? t("{title} partagée sur JALOFA.", { title }),
     openGraph: post.photos[0] ? { images: [post.photos[0]] } : undefined,
   };
 }
@@ -44,19 +48,21 @@ export default async function InspirationDetailPage({
   const { id } = await params;
   const post = await getInspirationPost(id);
   if (!post) notFound();
+  const t = await getT();
+  const locale = intlLocale(await getLocale());
 
-  const title = post.garment_label ?? "Tenue partagée";
+  const title = post.garment_label ?? t("Tenue partagée");
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <DemoBanner />
 
       <nav
-        aria-label="Fil d'Ariane"
+        aria-label={t("Fil d'Ariane")}
         className="text-muted-foreground mb-6 flex items-center gap-1 text-sm"
       >
         <Link href="/inspiration" className="hover:text-foreground">
-          Inspiration
+          {t("Inspiration")}
         </Link>
         <ChevronRight className="size-3.5" />
         <span className="text-foreground truncate font-medium">{title}</span>
@@ -77,7 +83,7 @@ export default async function InspirationDetailPage({
               />
             )}
             <Badge variant="secondary" className="absolute left-3 top-3">
-              {INSPIRATION_MAKER_KIND_BADGES[post.maker_kind]}
+              {t(INSPIRATION_MAKER_KIND_BADGES[post.maker_kind])}
             </Badge>
           </div>
           {post.photos.length > 1 && (
@@ -105,8 +111,8 @@ export default async function InspirationDetailPage({
           <h1 className="font-serif text-3xl tracking-tight">{title}</h1>
           {post.author_name && (
             <p className="text-muted-foreground mt-1 text-sm">
-              Partagée par {post.author_name} ·{" "}
-              {DATE_FORMAT.format(new Date(post.created_at))}
+              {t("Partagée par {name}", { name: post.author_name })} ·{" "}
+              {new Date(post.created_at).toLocaleDateString(locale, DATE_OPTIONS)}
             </p>
           )}
 
@@ -117,10 +123,10 @@ export default async function InspirationDetailPage({
           <dl className="mt-6 space-y-4 border-t pt-6 text-sm">
             <div>
               <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                Provenance
+                {t("Provenance")}
               </dt>
               <dd className="mt-1">
-                {INSPIRATION_MAKER_KIND_LABELS[post.maker_kind]}
+                {t(INSPIRATION_MAKER_KIND_LABELS[post.maker_kind])}
                 {post.maker_name && (
                   <span className="text-muted-foreground"> · {post.maker_name}</span>
                 )}
@@ -130,7 +136,7 @@ export default async function InspirationDetailPage({
             {(post.fabric_note || post.fabric) && (
               <div>
                 <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                  Le tissu
+                  {t("Le tissu")}
                 </dt>
                 <dd className="mt-1 space-y-2">
                   {post.fabric_note && <p>{post.fabric_note}</p>}
@@ -155,7 +161,7 @@ export default async function InspirationDetailPage({
                           {post.fabric.name}
                         </span>
                         <span className="text-muted-foreground text-xs">
-                          Voir ce tissu au catalogue
+                          {t("Voir ce tissu au catalogue")}
                         </span>
                       </span>
                       <ChevronRight className="text-muted-foreground size-4 shrink-0" />
@@ -171,7 +177,7 @@ export default async function InspirationDetailPage({
               href="/tailleurs"
               className={cn(buttonVariants({ size: "lg" }), "w-full gap-2")}
             >
-              <Scissors className="size-4" /> Je veux la même — trouver un tailleur
+              <Scissors className="size-4" /> {t("Je veux la même — trouver un tailleur")}
             </Link>
             <Link
               href="/inspiration"
@@ -180,7 +186,7 @@ export default async function InspirationDetailPage({
                 "w-full gap-2",
               )}
             >
-              <Sparkles className="size-4" /> Voir d&apos;autres tenues
+              <Sparkles className="size-4" /> {t("Voir d'autres tenues")}
             </Link>
           </div>
         </div>

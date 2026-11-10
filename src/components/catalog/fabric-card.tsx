@@ -1,13 +1,14 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/constants";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
-export function FabricCard({
+export async function FabricCard({
   fabric,
   badge,
 }: {
@@ -16,6 +17,7 @@ export function FabricCard({
   badge?: string;
 }) {
   const colors = parseFabricColors(fabric.color);
+  const t = await getT();
   return (
     <Link
       href={`/tissus/${fabric.id}`}
@@ -32,7 +34,7 @@ export function FabricCard({
           />
         )}
         {badge && (
-          <Badge className="absolute left-2 top-2">{badge}</Badge>
+          <Badge className="absolute left-2 top-2">{t(badge)}</Badge>
         )}
         {colors.length > 0 && (
           <Badge
@@ -49,12 +51,12 @@ export function FabricCard({
                 />
               ) : null;
             })}
-            {colors.length === 1 ? colors[0] : `${colors.length} couleurs`}
+            {colors.length === 1 ? t(colors[0]) : t("{n} couleurs", { n: colors.length })}
           </Badge>
         )}
         {fabric.in_stock === false && (
           <span className="absolute inset-0 grid place-items-center bg-black/60 font-semibold text-white">
-            Épuisé
+            {t("Épuisé")}
           </span>
         )}
       </div>
@@ -63,7 +65,7 @@ export function FabricCard({
         <p className="text-muted-foreground text-xs">{fabric.material}</p>
         <p className="text-primary mt-1.5 font-semibold">
           {formatPrice(fabric.price_per_meter)}
-          <span className="text-muted-foreground text-xs font-normal"> / mètre</span>
+          <span className="text-muted-foreground text-xs font-normal"> / {t("mètre")}</span>
         </p>
       </div>
     </Link>

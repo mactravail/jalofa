@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Loader2, ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Case à cocher accessible pour l'acceptation des conditions. Le libellé peut
@@ -19,13 +20,14 @@ export function TermsCheckbox({
   onChange: (value: boolean) => void;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="flex items-start gap-2.5 text-sm">
       <button
         type="button"
         role="checkbox"
         aria-checked={checked}
-        aria-label="J'accepte les conditions"
+        aria-label={t("J'accepte les conditions")}
         onClick={() => onChange(!checked)}
         className={cn(
           "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border transition-colors",
@@ -54,6 +56,7 @@ export function NotARobot({
   onChange: (value: boolean) => void;
 }) {
   const [verifying, setVerifying] = useState(false);
+  const t = useT();
 
   function handleClick() {
     if (checked || verifying) return;
@@ -73,7 +76,7 @@ export function NotARobot({
           role="checkbox"
           aria-checked={checked}
           aria-busy={verifying}
-          aria-label="Je ne suis pas un robot"
+          aria-label={t("Je ne suis pas un robot")}
           disabled={verifying || checked}
           onClick={handleClick}
           className={cn(
@@ -89,11 +92,11 @@ export function NotARobot({
             <Check className="text-primary size-5" />
           ) : null}
         </button>
-        <span className="text-sm font-medium">Je ne suis pas un robot</span>
+        <span className="text-sm font-medium">{t("Je ne suis pas un robot")}</span>
       </div>
       <div className="text-muted-foreground flex flex-col items-center gap-0.5">
         <ShieldCheck className="size-5" />
-        <span className="text-[9px] leading-none">Sécurité</span>
+        <span className="text-[9px] leading-none">{t("Sécurité")}</span>
       </div>
     </div>
   );

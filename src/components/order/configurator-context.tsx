@@ -186,6 +186,11 @@ export type ConfiguratorState = {
   tailorId: string | null;
   measurementMode: MeasurementMode;
   standardSize: string;
+  /**
+   * Avec une taille standard : une photo du client, ou d'une personne qui a sa
+   * silhouette. Facultative. Le tailleur la voit une fois la commande payée.
+   */
+  bodyPhoto: StyleRef | null;
   manual: Record<string, string>;
   notes: string;
   /** Le tailleur les voit dès le devis, pour le prix de la livraison. */
@@ -218,6 +223,7 @@ function defaultState(): ConfiguratorState {
     tailorId: null,
     measurementMode: "standard",
     standardSize: "M",
+    bodyPhoto: null,
     manual: {},
     notes: "",
     deliveryAddress: "",
@@ -314,6 +320,7 @@ export function buildCartItem(
     : {
         mode: s.measurementMode,
         standard_size: s.measurementMode === "standard" ? s.standardSize : null,
+        photo: s.measurementMode === "standard" ? (s.bodyPhoto?.dataUrl ?? null) : null,
         values:
           s.measurementMode === "manual"
             ? Object.fromEntries(

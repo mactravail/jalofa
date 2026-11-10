@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 const MAX_PHOTOS = 3;
 
@@ -43,6 +44,7 @@ export function ReviewForm({
     null,
   );
   const [rating, setRating] = useState(0);
+  const t = useT();
   const [hover, setHover] = useState(0);
   const [photos, setPhotos] = useState<Picked[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,8 +54,8 @@ export function ReviewForm({
   const submitted = state?.ok === true;
 
   useEffect(() => {
-    if (state?.ok) toast.success("Merci ! Votre avis a été publié.");
-  }, [state]);
+    if (state?.ok) toast.success(t("Merci ! Votre avis a été publié."));
+  }, [state, t]);
 
   useEffect(() => {
     photosRef.current = photos;
@@ -97,7 +99,7 @@ export function ReviewForm({
   if (submitted) {
     return (
       <div className="bg-primary/5 border-primary/30 rounded-xl border px-4 py-6 text-center text-sm">
-        Merci d&apos;avoir partagé votre expérience !
+        {t("Merci d'avoir partagé votre expérience !")}
       </div>
     );
   }
@@ -110,13 +112,13 @@ export function ReviewForm({
       className="bg-card space-y-4 rounded-xl border p-4"
     >
       <div>
-        <h3 className="font-semibold">Laisser un avis</h3>
-        <p className="text-muted-foreground text-sm">{description}</p>
+        <h3 className="font-semibold">{t("Laisser un avis")}</h3>
+        <p className="text-muted-foreground text-sm">{t(description)}</p>
       </div>
 
       {state && !state.ok && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
-          {state.error}
+          {t(state.error)}
         </p>
       )}
 
@@ -126,7 +128,7 @@ export function ReviewForm({
       <input type="hidden" name="rating" value={rating} />
 
       <div className="space-y-2">
-        <Label>Votre note</Label>
+        <Label>{t("Votre note")}</Label>
         <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
           {Array.from({ length: 5 }, (_, i) => {
             const value = i + 1;
@@ -134,7 +136,7 @@ export function ReviewForm({
               <button
                 key={value}
                 type="button"
-                aria-label={`${value} étoile${value > 1 ? "s" : ""}`}
+                aria-label={value > 1 ? t("{n} étoiles", { n: value }) : t("{n} étoile", { n: value })}
                 onMouseEnter={() => setHover(value)}
                 onClick={() => setRating(value)}
                 className="rounded-sm p-0.5 transition-transform hover:scale-110"
@@ -154,18 +156,18 @@ export function ReviewForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="review-comment">Votre commentaire (facultatif)</Label>
+        <Label htmlFor="review-comment">{t("Votre commentaire (facultatif)")}</Label>
         <Textarea
           id="review-comment"
           name="comment"
           rows={3}
           maxLength={1000}
-          placeholder={placeholder}
+          placeholder={t(placeholder)}
         />
       </div>
 
       <div className="space-y-2">
-        <Label>Vos photos (facultatif)</Label>
+        <Label>{t("Vos photos (facultatif)")}</Label>
         <div className="flex flex-wrap items-center gap-2">
           {photos.map((photo, i) => (
             <div
@@ -177,7 +179,7 @@ export function ReviewForm({
               <button
                 type="button"
                 onClick={() => removePhoto(i)}
-                aria-label="Retirer cette photo"
+                aria-label={t("Retirer cette photo")}
                 className="bg-foreground/70 text-background absolute right-1 top-1 flex size-5 items-center justify-center rounded-full transition-colors hover:bg-foreground"
               >
                 <X className="size-3" />
@@ -192,7 +194,7 @@ export function ReviewForm({
               className="text-muted-foreground hover:border-foreground/40 hover:text-foreground flex size-20 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed transition-colors"
             >
               <ImagePlus className="size-5" />
-              <span className="text-[10px]">Ajouter</span>
+              <span className="text-[10px]">{t("Ajouter")}</span>
             </button>
           )}
         </div>
@@ -205,14 +207,13 @@ export function ReviewForm({
           onChange={(e) => addFiles(e.target.files)}
         />
         <p className="text-muted-foreground text-xs">
-          Jusqu&apos;à {MAX_PHOTOS} photos. Elles sont redimensionnées
-          automatiquement.
+          {t("Jusqu'à {n} photos. Elles sont redimensionnées automatiquement.", { n: MAX_PHOTOS })}
         </p>
       </div>
 
       <Button type="submit" disabled={isPending || rating === 0}>
         {isPending && <Loader2 className="size-4 animate-spin" />}
-        Publier mon avis
+        {t("Publier mon avis")}
       </Button>
     </form>
   );

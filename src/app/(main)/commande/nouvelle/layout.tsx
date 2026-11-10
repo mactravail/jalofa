@@ -5,8 +5,12 @@ import { ConfiguratorShell } from "@/components/order/configurator-shell";
 import { getFabrics, getModels, getStyles, getTailors } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Créer une tenue" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Créer une tenue") };
+}
 
 /**
  * Personnaliser ne demande pas de s'inscrire avant. Au récap :

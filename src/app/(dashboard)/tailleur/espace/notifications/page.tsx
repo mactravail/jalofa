@@ -3,8 +3,13 @@ import type { Metadata } from "next";
 import { NewOrdersFeed } from "@/components/dashboard/new-orders-feed";
 import { NotificationsTimeline } from "@/components/dashboard/notifications-timeline";
 import { getMyNotifications } from "@/lib/notifications-data";
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/t";
 
-export const metadata: Metadata = { title: "Notifications" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Notifications") };
+}
 
 /**
  * La cloche de la barre du bas : d'abord les commandes qui attendent une
@@ -16,13 +21,13 @@ export default async function TailorNotificationsPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+      <h1 className="text-2xl font-bold tracking-tight"><T>Notifications</T></h1>
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">À répondre</h2>
+        <h2 className="text-lg font-semibold"><T>À répondre</T></h2>
         <NewOrdersFeed />
       </section>
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Chronologie</h2>
+        <h2 className="text-lg font-semibold"><T>Chronologie</T></h2>
         <NotificationsTimeline notifications={notifications} />
       </section>
     </div>

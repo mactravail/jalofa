@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { EyeOff } from "lucide-react";
 
 import { AdminPage } from "@/components/admin/admin-page";

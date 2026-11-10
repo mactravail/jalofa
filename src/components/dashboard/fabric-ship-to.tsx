@@ -1,6 +1,7 @@
 import { MapPin, Phone, Store } from "lucide-react";
 
 import type { OrderListItem } from "@/lib/orders-data";
+import { T } from "@/components/i18n/t";
 
 /**
  * Pour le vendeur : où envoyer le tissu d'une commande complète. L'adresse vient
@@ -13,7 +14,7 @@ export function FabricShipTo({ order }: { order: OrderListItem }) {
     <div className="bg-muted/50 rounded-lg border p-3 text-sm">
       <p className="flex items-center gap-2 font-semibold">
         <Store className="size-4 shrink-0" />
-        À envoyer à l&apos;atelier de {order.tailor?.shop_name ?? "ce tailleur"}
+        <T vars={{ name: order.tailor?.shop_name ?? "—" }}>{"À envoyer à l'atelier de {name}"}</T>
       </p>
       {atelier ? (
         <>
@@ -31,7 +32,7 @@ export function FabricShipTo({ order }: { order: OrderListItem }) {
         </>
       ) : (
         <p className="text-muted-foreground mt-1.5">
-          Le tailleur n&apos;a pas encore indiqué son adresse.
+          <T>{"Le tailleur n'a pas encore indiqué son adresse."}</T>
         </p>
       )}
     </div>
@@ -42,7 +43,7 @@ export function FabricShipTo({ order }: { order: OrderListItem }) {
 export function FabricComesFrom({ order }: { order: OrderListItem }) {
   return (
     <p className="text-muted-foreground text-sm">
-      Tissu envoyé par {order.vendor?.shop_name ?? "le vendeur"}
+      <T vars={{ name: order.vendor?.shop_name ?? "—" }}>{"Tissu envoyé par {name}"}</T>
     </p>
   );
 }

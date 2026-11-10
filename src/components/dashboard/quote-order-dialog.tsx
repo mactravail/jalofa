@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/constants";
 import { tailorDeliversFree, type FreeDeliveryZone } from "@/lib/delivery";
+import { T } from "@/components/i18n/t";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Le tailleur répond à une demande de devis : son prix et celui de la livraison
@@ -56,6 +58,7 @@ export function QuoteOrderDialog({
   const [deliveryValue, setDeliveryValue] = useState(suggestedDelivery);
   const [daysValue, setDaysValue] = useState("");
   const [note, setNote] = useState("");
+  const t = useT();
   const place = [address, city, country].filter(Boolean).join(", ");
 
   const price = Math.round(Number(value));
@@ -85,15 +88,15 @@ export function QuoteOrderDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Donner mon prix</DialogTitle>
+          <DialogTitle><T>Donner mon prix</T></DialogTitle>
           <DialogDescription>
-            Le client recevra le détail : tissu, livraison, votre travail et le délai.
+            <T>Le client recevra le détail : tissu, livraison, votre travail et le délai.</T>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="quote_price">Mon travail (FCFA)</Label>
+            <Label htmlFor="quote_price"><T>Mon travail (FCFA)</T></Label>
             <Input
               id="quote_price"
               type="number"
@@ -101,13 +104,13 @@ export function QuoteOrderDialog({
               step={1}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="Ex. 25000"
+              placeholder={t("Ex. 25000")}
               autoFocus
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="quote_delivery">Livraison (FCFA)</Label>
+            <Label htmlFor="quote_delivery"><T>Livraison (FCFA)</T></Label>
             {place && (
               <p className="text-muted-foreground flex items-start gap-1.5 text-sm">
                 <MapPin className="mt-0.5 size-4 shrink-0" />
@@ -121,13 +124,13 @@ export function QuoteOrderDialog({
               step={1}
               value={deliveryValue}
               onChange={(e) => setDeliveryValue(e.target.value)}
-              placeholder="Ex. 3000"
+              placeholder={t("Ex. 3000")}
             />
-            <p className="text-muted-foreground text-xs">0 = livraison gratuite.</p>
+            <p className="text-muted-foreground text-xs"><T>0 = livraison gratuite.</T></p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="quote_days">Prêt dans combien de jours ?</Label>
+            <Label htmlFor="quote_days"><T>Prêt dans combien de jours ?</T></Label>
             <div className="flex items-center gap-2">
               <Input
                 id="quote_days"
@@ -138,23 +141,23 @@ export function QuoteOrderDialog({
                 step={1}
                 value={daysValue}
                 onChange={(e) => setDaysValue(e.target.value)}
-                placeholder="Ex. 6"
+                placeholder={t("Ex. 6")}
                 className="w-24"
               />
-              <span className="text-muted-foreground text-sm">jours</span>
+              <span className="text-muted-foreground text-sm"><T>jours</T></span>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="quote_note">
-              Un mot pour le client{" "}
-              <span className="text-muted-foreground font-normal">(facultatif)</span>
+              <T>Un mot pour le client</T>{" "}
+              <span className="text-muted-foreground font-normal">(<T>facultatif</T>)</span>
             </Label>
             <Textarea
               id="quote_note"
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, 200))}
-              placeholder="Ex. Je peux ajouter une doublure si vous voulez."
+              placeholder={t("Ex. Je peux ajouter une doublure si vous voulez.")}
               rows={2}
               maxLength={200}
             />
@@ -168,12 +171,12 @@ export function QuoteOrderDialog({
               {fabricPrice > 0 && <Line label="Tissu" amount={formatPrice(fabricPrice)} />}
               <Line
                 label="Livraison"
-                amount={delivery > 0 ? formatPrice(delivery) : "Gratuite"}
+                amount={delivery > 0 ? formatPrice(delivery) : t("Gratuite")}
               />
               <Line label="Mon travail" amount={formatPrice(price)} />
-              <Line label="Prêt dans" amount={`${days} jour${days > 1 ? "s" : ""}`} />
+              <Line label="Prêt dans" amount={days > 1 ? t("{n} jours", { n: days }) : t("{n} jour", { n: days })} />
               <div className="flex justify-between gap-3 border-t pt-1 font-semibold">
-                <dt>Total pour le client</dt>
+                <dt><T>Total pour le client</T></dt>
                 <dd className="whitespace-nowrap">
                   {formatPrice(fabricPrice + delivery + price)}
                 </dd>
@@ -189,7 +192,7 @@ export function QuoteOrderDialog({
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
-            Annuler
+            <T>Annuler</T>
           </Button>
           <Button
             type="button"
@@ -197,7 +200,7 @@ export function QuoteOrderDialog({
             disabled={isPending || !valid}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            Envoyer le devis
+            <T>Envoyer le devis</T>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -208,7 +211,7 @@ export function QuoteOrderDialog({
 function Line({ label, amount }: { label: string; amount: string }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
+      <dt className="text-muted-foreground"><T>{label}</T></dt>
       <dd className="whitespace-nowrap">{amount}</dd>
     </div>
   );

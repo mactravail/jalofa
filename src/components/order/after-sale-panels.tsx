@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useState, useTransition } from "react";
 import { AlertTriangle, Loader2, ThumbsUp, Undo2 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,18 +21,20 @@ import {
   type SatisfactionVerdict,
 } from "@/lib/after-sale";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 function useAfterSaleAction(done: string) {
   const router = useRouter();
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const run = (action: () => Promise<AfterSaleResult>) =>
     startTransition(async () => {
       const res = await action();
       if (res.ok) {
-        toast.success(done);
+        toast.success(t(done));
         router.refresh();
       } else {
-        toast.error(res.error);
+        toast.error(t(res.error));
       }
     });
   return { run, isPending };
@@ -43,23 +45,31 @@ export function CancelOrderPanel({
   orderId,
   paid,
   deadlineLabel,
+  lateSince,
 }: {
   orderId: string;
   paid: boolean;
   /** « 12 novembre à 14:30 » ; absent quand aucun délai ne s'applique. */
   deadlineLabel: string | null;
+  /** Date promise dépassée de plus d'une semaine : l'annulation est due au retard. */
+  lateSince?: string | null;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const t = useT();
   const { run, isPending } = useAfterSaleAction("Commande annulée.");
 
   return (
-    <div className="rounded-xl border p-4">
-      <p className="font-semibold">Vous avez changé d&apos;avis ?</p>
+    <div className={cn("rounded-xl border p-4", lateSince && "border-red-500/60")}>
+      <p className="font-semibold">
+        {lateSince ? t("Plus d'une semaine de retard") : t("Vous avez changé d'avis ?")}
+      </p>
       <p className="text-muted-foreground mt-0.5 text-sm">
-        {paid
-          ? "Annulez et JALOFA vous rembourse."
-          : "Vous pouvez annuler cette demande."}
-        {deadlineLabel && ` Possible jusqu'au ${deadlineLabel}.`}
+        {lateSince
+          ? t("Votre habit devait être prêt le {date}. Vous pouvez annuler : JALOFA vous rembourse tout.", { date: lateSince })
+          : paid
+          ? t("Annulez et JALOFA vous rembourse.")
+          : t("Vous pouvez annuler cette demande.")}
+        {!lateSince && deadlineLabel && ` ${t("Possible jusqu'au {date}.", { date: deadlineLabel })}`}
       </p>
       {confirming ? (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -69,15 +79,15 @@ export function CancelOrderPanel({
             onClick={() => run(() => cancelOrder(orderId))}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            Oui, annuler
+            {t("Oui, annuler")}
           </Button>
           <Button variant="outline" disabled={isPending} onClick={() => setConfirming(false)}>
-            Non, garder
+            {t("Non, garder")}
           </Button>
         </div>
       ) : (
         <Button variant="outline" className="mt-3" onClick={() => setConfirming(true)}>
-          Annuler ma commande
+          {t("Annuler ma commande")}
         </Button>
       )}
     </div>
@@ -97,12 +107,13 @@ export function FabricReturnPanel({
   returnAddress: { address: string; phone: string } | null;
 }) {
   const { run, isPending } = useAfterSaleAction("Retour enregistré.");
+  const t = useT();
 
   if (status === "received") {
     return (
       <div className="rounded-xl border p-4">
-        <p className="font-semibold">Le vendeur a reçu votre tissu</p>
-        <p className="text-muted-foreground mt-0.5 text-sm">JALOFA va vous rembourser.</p>
+        <p className="font-semibold">{t("Le vendeur a reçu votre tissu")}</p>
+        <p className="text-muted-foreground mt-0.5 text-sm">{t("JALOFA va vous rembourser.")}</p>
       </div>
     );
   }
@@ -110,9 +121,9 @@ export function FabricReturnPanel({
   if (status === "requested") {
     return (
       <div className="rounded-xl border p-4">
-        <p className="font-semibold">Renvoyez le tissu au vendeur</p>
+        <p className="font-semibold">{t("Renvoyez le tissu au vendeur")}</p>
         <p className="text-muted-foreground mt-0.5 text-sm">
-          L&apos;envoi est à votre charge. Vous êtes remboursé quand le vendeur l&apos;a reçu.
+          {t("L'envoi est à votre charge. Vous êtes remboursé quand le vendeur l'a reçu.")}
         </p>
         {returnAddress ? (
           <div className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
@@ -123,7 +134,7 @@ export function FabricReturnPanel({
           </div>
         ) : (
           <p className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
-            JALOFA vous contacte sur WhatsApp pour vous donner l&apos;adresse.
+            {t("JALOFA vous contacte sur WhatsApp pour vous donner l'adresse.")}
           </p>
         )}
       </div>
@@ -132,11 +143,12 @@ export function FabricReturnPanel({
 
   return (
     <div className="rounded-xl border p-4">
-      <p className="font-semibold">Ce tissu ne vous convient pas ?</p>
+      <p className="font-semibold">{t("Ce tissu ne vous convient pas ?")}</p>
       <p className="text-muted-foreground mt-0.5 text-sm">
-        Vous pouvez le rendre
-        {deadlineLabel && ` jusqu'au ${deadlineLabel}`}. L&apos;envoi est à votre charge,
-        et vous êtes remboursé quand le vendeur l&apos;a reçu.
+        {deadlineLabel
+          ? t("Vous pouvez le rendre jusqu'au {date}.", { date: deadlineLabel })
+          : t("Vous pouvez le rendre.")}{" "}
+        {t("L'envoi est à votre charge, et vous êtes remboursé quand le vendeur l'a reçu.")}
       </p>
       <Button
         variant="outline"
@@ -145,7 +157,7 @@ export function FabricReturnPanel({
         onClick={() => run(() => requestFabricReturn(orderId))}
       >
         {isPending ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />}
-        Rendre ce tissu
+        {t("Rendre ce tissu")}
       </Button>
     </div>
   );
@@ -169,6 +181,7 @@ export function SatisfactionPanel({
   alterations: { id: string; reason: AlterationReason; status: "requested" | "done" }[];
 }) {
   const [verdict, setVerdict] = useState<SatisfactionVerdict | null>(null);
+  const t = useT();
   const [issues, setIssues] = useState<SatisfactionIssue[]>([]);
   const [comment, setComment] = useState("");
   const { run, isPending } = useAfterSaleAction("Merci ! Votre réponse est envoyée.");
@@ -182,11 +195,11 @@ export function SatisfactionPanel({
         <p className="flex items-center gap-2 font-semibold">
           {answer.verdict === "perfect" ? (
             <>
-              <ThumbsUp className="size-4 text-emerald-400" /> Vous trouvez la tenue parfaite
+              <ThumbsUp className="size-4 text-emerald-400" /> {t("Vous trouvez la tenue parfaite")}
             </>
           ) : (
             <>
-              <AlertTriangle className="size-4 text-amber-400" /> Vous avez signalé un problème
+              <AlertTriangle className="size-4 text-amber-400" /> {t("Vous avez signalé un problème")}
             </>
           )}
         </p>
@@ -194,16 +207,16 @@ export function SatisfactionPanel({
           <p className="text-muted-foreground mt-1 text-sm">
             {answer.issues
               .filter(isSatisfactionIssue)
-              .map((i) => SATISFACTION_ISSUES[i].label)
+              .map((i) => t(SATISFACTION_ISSUES[i].label))
               .join(", ")}
           </p>
         )}
         {answer.comment && <p className="mt-1 text-sm break-words">« {answer.comment} »</p>}
         {alterations.map((a) => (
           <p key={a.id} className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
-            Retouche :{" "}
+            {t("Retouche :")}{" "}
             <span className="font-medium">
-              {a.status === "done" ? "faite par le tailleur" : "demande envoyée au tailleur"}
+              {a.status === "done" ? t("faite par le tailleur") : t("demande envoyée au tailleur")}
             </span>
           </p>
         ))}
@@ -213,7 +226,7 @@ export function SatisfactionPanel({
 
   return (
     <div className="rounded-xl border p-4">
-      <p className="font-semibold">La tenue vous va ?</p>
+      <p className="font-semibold">{t("La tenue vous va ?")}</p>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
@@ -227,7 +240,7 @@ export function SatisfactionPanel({
               : "hover:bg-muted",
           )}
         >
-          <ThumbsUp className="size-6" /> Parfaite
+          <ThumbsUp className="size-6" /> {t("Parfaite")}
         </button>
         <button
           type="button"
@@ -240,14 +253,14 @@ export function SatisfactionPanel({
               : "hover:bg-muted",
           )}
         >
-          <AlertTriangle className="size-6" /> Un problème
+          <AlertTriangle className="size-6" /> {t("Un problème")}
         </button>
       </div>
 
       {verdict === "problem" && (
         <>
           <p className="text-muted-foreground mt-4 text-sm">
-            Qu&apos;est-ce qui ne va pas ? (plusieurs choix possibles)
+            {t("Qu'est-ce qui ne va pas ? (plusieurs choix possibles)")}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {ISSUES.map((i) => (
@@ -263,12 +276,12 @@ export function SatisfactionPanel({
                     : "hover:bg-muted",
                 )}
               >
-                {SATISFACTION_ISSUES[i].label}
+                {t(SATISFACTION_ISSUES[i].label)}
               </button>
             ))}
           </div>
           <p className="text-muted-foreground mt-3 text-xs">
-            Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.
+            {t("Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.")}
           </p>
         </>
       )}
@@ -283,8 +296,8 @@ export function SatisfactionPanel({
             maxLength={1000}
             placeholder={
               verdict === "perfect"
-                ? "Un mot pour le tailleur ? (facultatif)"
-                : "Expliquez en quelques mots (facultatif)"
+                ? t("Un mot pour le tailleur ? (facultatif)")
+                : t("Expliquez en quelques mots (facultatif)")
             }
           />
           <Button
@@ -293,7 +306,7 @@ export function SatisfactionPanel({
             onClick={() => run(() => submitSatisfaction(orderId, verdict, issues, comment))}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            Envoyer
+            {t("Envoyer")}
           </Button>
         </>
       )}

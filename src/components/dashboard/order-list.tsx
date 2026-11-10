@@ -21,6 +21,9 @@ import {
   tailorOwnsFabric,
   type OrderBucket,
 } from "@/lib/pipeline";
+import { T } from "@/components/i18n/t";
+import { useT } from "@/components/i18n/locale-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 /** Les commandes d'une pile du pipeline, avec le contrôle d'avancement. */
 export function OrderList({
@@ -40,7 +43,7 @@ export function OrderList({
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
         <PackageOpen className="text-muted-foreground mx-auto size-7" />
-        <p className="text-muted-foreground mt-3 text-sm">{empty}</p>
+        <p className="text-muted-foreground mt-3 text-sm"><T>{empty}</T></p>
       </div>
     );
   }
@@ -55,6 +58,8 @@ export function OrderList({
 }
 
 function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
+  const t = useT();
+  const locale = useLocale();
   const title =
     order.model?.name ?? order.fabric?.name ?? ORDER_TYPE_LABELS[order.type];
 
@@ -68,8 +73,8 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
   // Celui qui livre encaisse aussi la livraison.
   const amountLabel =
     order.delivery_fee > 0 && deliversToClient(role, order.type)
-      ? `${baseLabel} et livraison`
-      : baseLabel;
+      ? t("{label} et livraison", { label: t(baseLabel) })
+      : t(baseLabel);
   // Un devis pas encore accepté n'a pas de prix ferme à afficher.
   const quotePending = order.is_quote && order.payment_status === "pending";
   const flow = pipelineType(order);
@@ -106,11 +111,11 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground font-mono text-xs">
-              Code {order.order_number}
+              {t("Code")} {order.order_number}
             </span>
             <OrderStatusBadge status={order.status} />
           </div>
-          <p className="mt-1 truncate font-medium">{title}</p>
+          <p className="mt-1 truncate font-medium">{t(title)}</p>
           <p className="text-muted-foreground truncate text-sm">
             {(order.contact_first_name || order.contact_last_name) && (
               <>{clientNameOf(order)} · </>
@@ -118,8 +123,8 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
             <span className="text-foreground/70">
               {quotePending
                 ? order.tailoring_price > 0
-                  ? `Devis envoyé · ${formatPrice(order.tailoring_price + order.delivery_fee + order.fabric_price)}`
-                  : "Sans prix"
+                  ? `${t("Devis envoyé")} · ${formatPrice(order.tailoring_price + order.delivery_fee + order.fabric_price)}`
+                  : t("Sans prix")
                 : `${amountLabel} ${formatPrice(amountFor(role, order))}`}
             </span>
           </p>
@@ -128,7 +133,7 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
             suppressHydrationWarning
           >
             <Clock className="size-3 shrink-0" />
-            Reçue {formatReceivedAt(order.created_at)}
+            {t("Reçue")} {formatReceivedAt(order.created_at, locale)}
           </p>
         </div>
 

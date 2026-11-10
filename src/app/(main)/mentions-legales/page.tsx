@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { APP_NAME } from "@/lib/constants";
 

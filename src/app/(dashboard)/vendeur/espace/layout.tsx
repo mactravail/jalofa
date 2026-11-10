@@ -11,8 +11,12 @@ import {
   getProAccess,
   isSupabaseConfigured,
 } from "@/lib/queries";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Espace vendeur" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Espace vendeur") };
+}
 
 export default async function VendorDashboardLayout({
   children,

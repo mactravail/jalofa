@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Vendor } from "@/lib/types";
+import { T } from "@/components/i18n/t";
+import { useT } from "@/components/i18n/locale-provider";
 
 // La photo déjà enregistrée, ou un fichier fraîchement choisi portant l'URL
 // objet qui sert à le prévisualiser (révoquée quand la photo est remplacée).
@@ -24,6 +26,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
     vendor.cover_url ? { kind: "existing", url: vendor.cover_url } : null,
   );
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
   const [isPending, startTransition] = useTransition();
 
   function pickFile(files: FileList | null) {
@@ -59,7 +62,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
       } else if (current?.kind === "new") {
         const image = await resizeImage(current.file);
         if (image.size > MAX_UPLOAD_BYTES) {
-          setError("La photo est trop lourde. Choisissez-en une plus légère.");
+          setError(t("La photo est trop lourde. Choisissez-en une plus légère."));
           return;
         }
         formData.set("photo", image);
@@ -69,9 +72,9 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
 
       const res = await saveVendorProfile(null, formData);
       if (res?.ok) {
-        toast.success("Profil public mis à jour.");
+        toast.success(t("Profil public mis à jour."));
       } else if (res) {
-        setError(res.error);
+        setError(t(res.error));
       }
     });
   }
@@ -86,7 +89,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
 
       {/* Photo de profil — telle qu'elle apparaît sur la fiche publique. */}
       <div className="space-y-2">
-        <Label>Photo de profil</Label>
+        <Label><T>Photo de profil</T></Label>
         <div className="flex items-center gap-4">
           <div className="bg-muted relative size-24 shrink-0 overflow-hidden rounded-full border">
             {photo ? (
@@ -96,7 +99,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
                 <button
                   type="button"
                   onClick={removePhoto}
-                  aria-label="Retirer la photo"
+                  aria-label={t("Retirer la photo")}
                   className="bg-background/85 text-foreground hover:bg-background absolute top-1 right-1 grid size-5 place-items-center rounded-full shadow-sm"
                 >
                   <X className="size-3" />
@@ -112,7 +115,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
           <div className="space-y-1.5">
             <label className="border-input hover:bg-muted inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium">
               <ImagePlus className="size-4" />
-              {photo ? "Changer la photo" : "Ajouter une photo"}
+              {photo ? t("Changer la photo") : t("Ajouter une photo")}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/avif"
@@ -124,41 +127,41 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
               />
             </label>
             <p className="text-muted-foreground text-xs">
-              JPEG, PNG ou WebP — redimensionnée automatiquement.
+              <T>JPEG, PNG ou WebP — redimensionnée automatiquement.</T>
             </p>
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="shop_name">Nom de la boutique</Label>
+        <Label htmlFor="shop_name"><T>Nom de la boutique</T></Label>
         <Input
           id="shop_name"
           name="shop_name"
           required
           defaultValue={vendor.shop_name ?? ""}
-          placeholder="Ex. Tissus Marché HLM"
+          placeholder={t("Ex. Tissus Marché HLM")}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="city">Ville</Label>
+        <Label htmlFor="city"><T>Ville</T></Label>
         <Input
           id="city"
           name="city"
           defaultValue={vendor.city ?? ""}
-          placeholder="Ex. Dakar"
+          placeholder={t("Ex. Dakar")}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bio">Présentation</Label>
+        <Label htmlFor="bio"><T>Présentation</T></Label>
         <Textarea
           id="bio"
           name="bio"
           rows={3}
           defaultValue={vendor.bio ?? ""}
-          placeholder="Vos étoffes, votre spécialité, votre marché…"
+          placeholder={t("Vos étoffes, votre spécialité, votre marché…")}
         />
       </div>
 
@@ -170,10 +173,9 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
           className="accent-primary mt-0.5 size-4 rounded"
         />
         <span>
-          Afficher ma boutique dans l&apos;annuaire
+          <T>{"Afficher ma boutique dans l'annuaire"}</T>
           <span className="text-muted-foreground block text-xs">
-            Décochez pour retirer votre fiche publique le temps de la compléter.
-            Les clients ne pourront pas vous trouver tant qu&apos;elle est masquée.
+            <T>{"Décochez pour retirer votre fiche publique le temps de la compléter. Les clients ne pourront pas vous trouver tant qu'elle est masquée."}</T>
           </span>
         </span>
       </label>
@@ -181,7 +183,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer
+          <T>Enregistrer</T>
         </Button>
       </div>
     </form>

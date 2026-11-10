@@ -41,6 +41,8 @@ import type {
   ModelCategory,
   TailorAtelier,
 } from "@/lib/types";
+import { T } from "@/components/i18n/t";
+import { translateNow } from "@/lib/i18n/translate";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -99,11 +101,11 @@ export function TailorModelsPanel({
         await setModelPublished(model.id, next);
         toast.success(
           next
-            ? "Modèle publié dans le catalogue."
-            : "Modèle retiré du catalogue (brouillon).",
+            ? translateNow("Modèle publié dans le catalogue.")
+            : translateNow("Modèle retiré du catalogue (brouillon)."),
         );
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur, réessayez.");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur, réessayez."));
       } finally {
         setPublishingId(null);
       }
@@ -183,10 +185,10 @@ export function TailorModelsPanel({
     startDelete(async () => {
       try {
         await deleteModel(target.id);
-        toast.success("Modèle supprimé.");
+        toast.success(translateNow("Modèle supprimé."));
         setDeleteTarget(null);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur de suppression.");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur de suppression."));
       }
     });
   }
@@ -195,22 +197,22 @@ export function TailorModelsPanel({
     <section>
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-muted-foreground text-sm">
-          {models.length} modèle{models.length > 1 ? "s" : ""} au catalogue
+          <T vars={{ n: models.length }}>{models.length > 1 ? "{n} modèles au catalogue" : "{n} modèle au catalogue"}</T>
         </p>
         <Button
           size="sm"
           onClick={openNew}
           className="gap-1.5 bg-rose-500 text-white hover:bg-rose-600"
         >
-          <Plus className="size-4" /> Ajouter un modèle
+          <Plus className="size-4" /> <T>Ajouter un modèle</T>
         </Button>
       </div>
 
       {models.length > 0 && needsSetup && (
         <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          {!atelier
+          <T>{!atelier
             ? "Indiquez l'adresse de votre atelier : les vendeurs y envoient les tissus de vos clients. Touchez « Modifier » sur un modèle."
-            : "Certains modèles n'ont pas de tissu. Sans tissu, le client ne peut pas les acheter « Tel quel ». Touchez « Modifier » pour en ajouter."}
+            : "Certains modèles n'ont pas de tissu. Sans tissu, le client ne peut pas les acheter « Tel quel ». Touchez « Modifier » pour en ajouter."}</T>
         </p>
       )}
 
@@ -224,14 +226,13 @@ export function TailorModelsPanel({
             <Shirt className="size-7" />
           </span>
           <span className="mt-4 text-base font-semibold">
-            Ajoutez votre premier modèle
+            <T>Ajoutez votre premier modèle</T>
           </span>
           <span className="text-muted-foreground mt-1 max-w-sm text-sm">
-            Une photo, un nom, un prix — et les clients qui le choisissent vous
-            sont adressés directement.
+            <T>Une photo, un nom, un prix — et les clients qui le choisissent vous sont adressés directement.</T>
           </span>
           <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white">
-            <Plus className="size-4" /> Ajouter un modèle
+            <Plus className="size-4" /> <T>Ajouter un modèle</T>
           </span>
         </button>
       ) : (
@@ -254,24 +255,24 @@ export function TailorModelsPanel({
                   <p className="truncate font-medium">{model.name}</p>
                   {!model.is_active && (
                     <Badge className="bg-muted text-muted-foreground border-0">
-                      Brouillon
+                      <T>Brouillon</T>
                     </Badge>
                   )}
                   {lacksFabric(model) && (
                     <Badge className="border-0 bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                      Sans tissu
+                      <T>Sans tissu</T>
                     </Badge>
                   )}
                 </div>
                 <p className="text-muted-foreground truncate text-sm">
-                  {[categoryName(model.category_slug), model.difficulty && DIFFICULTY_LABEL[model.difficulty]]
+                  <T>{[categoryName(model.category_slug), model.difficulty && DIFFICULTY_LABEL[model.difficulty]]
                     .filter(Boolean)
-                    .join(" · ") || "—"}
+                    .join(" · ") || "—"}</T>
                 </p>
               </div>
 
               <div className="text-muted-foreground hidden items-center gap-1.5 text-sm sm:flex">
-                <Clock className="size-4" /> ~{model.avg_days} j
+                <Clock className="size-4" /> <T vars={{ n: model.avg_days }}>{"~{n} j"}</T>
               </div>
 
               {!model.is_active && (
@@ -286,7 +287,7 @@ export function TailorModelsPanel({
                   ) : (
                     <Send className="size-4" />
                   )}
-                  Publier
+                  <T>Publier</T>
                 </Button>
               )}
 
@@ -300,7 +301,7 @@ export function TailorModelsPanel({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => openEdit(model)}>
-                    <Pencil className="size-4" /> Modifier
+                    <Pencil className="size-4" /> <T>Modifier</T>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => togglePublished(model)}
@@ -308,11 +309,11 @@ export function TailorModelsPanel({
                   >
                     {model.is_active ? (
                       <>
-                        <EyeOff className="size-4" /> Retirer du catalogue
+                        <EyeOff className="size-4" /> <T>Retirer du catalogue</T>
                       </>
                     ) : (
                       <>
-                        <Send className="size-4" /> Publier
+                        <Send className="size-4" /> <T>Publier</T>
                       </>
                     )}
                   </DropdownMenuItem>
@@ -320,7 +321,7 @@ export function TailorModelsPanel({
                     variant="destructive"
                     onClick={() => setDeleteTarget(model)}
                   >
-                    <Trash2 className="size-4" /> Supprimer
+                    <Trash2 className="size-4" /> <T>Supprimer</T>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -357,10 +358,9 @@ export function TailorModelsPanel({
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Supprimer ce modèle ?</DialogTitle>
+            <DialogTitle><T>Supprimer ce modèle ?</T></DialogTitle>
             <DialogDescription>
-              {deleteTarget?.name} sera définitivement retiré du catalogue. Cette
-              action est irréversible.
+              {deleteTarget?.name} <T>sera définitivement retiré du catalogue. Cette action est irréversible.</T>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -369,7 +369,7 @@ export function TailorModelsPanel({
               onClick={() => setDeleteTarget(null)}
               disabled={isDeleting}
             >
-              Annuler
+              <T>Annuler</T>
             </Button>
             <Button
               variant="destructive"
@@ -377,7 +377,7 @@ export function TailorModelsPanel({
               disabled={isDeleting}
             >
               {isDeleting && <Loader2 className="size-4 animate-spin" />}
-              Supprimer
+              <T>Supprimer</T>
             </Button>
           </DialogFooter>
         </DialogContent>

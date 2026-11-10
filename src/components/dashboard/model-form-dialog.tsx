@@ -52,6 +52,7 @@ import type {
   TailorAtelier,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 const NONE = "__none__";
 const MAX_PHOTOS = 5;
@@ -107,6 +108,7 @@ export function ModelFormDialog({
   atelier: TailorAtelier | null;
 }) {
   const isEdit = Boolean(model);
+  const t = useT();
   const [selectedFabrics, setSelectedFabrics] = useState<string[]>(linkedFabricIds);
   // Ajout d'un tissu sans quitter le modèle en cours. La clé remet à zéro le
   // formulaire du tissu à chaque ouverture.
@@ -145,12 +147,12 @@ export function ModelFormDialog({
   const [isPending, startTransition] = useTransition();
 
   const categoryItems: Record<string, string> = {
-    [NONE]: "Aucune catégorie",
+    [NONE]: t("Aucune catégorie"),
     ...Object.fromEntries(categories.map((c) => [c.slug, c.name])),
   };
   const difficultyItems: Record<string, string> = {
-    [NONE]: "Non précisée",
-    ...Object.fromEntries(DIFFICULTIES.map((d) => [d.value, d.label])),
+    [NONE]: t("Non précisée"),
+    ...Object.fromEntries(DIFFICULTIES.map((d) => [d.value, t(d.label)])),
   };
 
   function revokeNew(list: Photo[]) {
@@ -168,7 +170,7 @@ export function ModelFormDialog({
       // who picks seven keeps five and is told why.
       const accepted = picked.slice(0, Math.max(0, room));
       if (picked.length > accepted.length) {
-        toast.info(`Maximum ${MAX_PHOTOS} photos — les suivantes ont été ignorées.`);
+        toast.info(t("Maximum {n} photos — les suivantes ont été ignorées.", { n: MAX_PHOTOS }));
       }
       return [
         ...prev,
@@ -251,7 +253,7 @@ export function ModelFormDialog({
     setError(null);
 
     if (photos.length === 0) {
-      setError("Ajoutez au moins une photo du modèle.");
+      setError(t("Ajoutez au moins une photo du modèle."));
       return;
     }
 
@@ -282,8 +284,8 @@ export function ModelFormDialog({
       const firstProblem = problem ?? fitProblem;
       if (firstProblem) {
         // Le formulaire est long : l'erreur en haut peut être hors de vue.
-        setError(firstProblem);
-        toast.error(firstProblem);
+        setError(t(firstProblem));
+        toast.error(t(firstProblem));
         return;
       }
     }
@@ -320,7 +322,7 @@ export function ModelFormDialog({
         }
         const image = await resizeImage(p.file);
         if (image.size > MAX_UPLOAD_BYTES) {
-          setError("Une photo est trop lourde. Choisissez-en une plus légère.");
+          setError(t("Une photo est trop lourde. Choisissez-en une plus légère."));
           return;
         }
         total += image.size;
@@ -328,7 +330,7 @@ export function ModelFormDialog({
       }
       if (total > TOTAL_BUDGET) {
         setError(
-          "Vos photos sont trop lourdes au total. Retirez-en une ou choisissez des images plus légères.",
+          t("Vos photos sont trop lourdes au total. Retirez-en une ou choisissez des images plus légères."),
         );
         return;
       }
@@ -337,15 +339,15 @@ export function ModelFormDialog({
       if (res?.ok) {
         toast.success(
           isEdit
-            ? "Modèle mis à jour."
+            ? t("Modèle mis à jour.")
             : formData.get("is_active") === "on"
-              ? "Modèle ajouté et publié dans le catalogue."
-              : "Modèle ajouté (brouillon, non visible au catalogue).",
+              ? t("Modèle ajouté et publié dans le catalogue.")
+              : t("Modèle ajouté (brouillon, non visible au catalogue)."),
         );
         onOpenChange(false);
       } else if (res) {
-        setError(res.error);
-        toast.error(res.error);
+        setError(t(res.error));
+        toast.error(t(res.error));
       }
     });
   }
@@ -370,14 +372,14 @@ export function ModelFormDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Modifier le modèle" : "Ajouter un modèle"}
+            {isEdit ? t("Modifier le modèle") : t("Ajouter un modèle")}
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Mettez à jour la fiche de votre création."
+              ? t("Mettez à jour la fiche de votre création.")
               : suggestion
-                ? `Vous partez de « ${suggestion.name} ». Ajustez la fiche, elle sera publiée à votre nom.`
-                : "Présentez une de vos créations. Les clients qui la choisissent vous sont adressés directement."}
+                ? t("Vous partez de « {name} ». Ajustez la fiche, elle sera publiée à votre nom.", { name: suggestion.name })
+                : t("Présentez une de vos créations. Les clients qui la choisissent vous sont adressés directement.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -391,7 +393,7 @@ export function ModelFormDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Photos du modèle</Label>
+            <Label>{t("Photos du modèle")}</Label>
             <div className="flex flex-wrap gap-2">
               {photos.map((p, i) => (
                 <div
@@ -404,7 +406,7 @@ export function ModelFormDialog({
                   <button
                     type="button"
                     onClick={() => removeAt(i)}
-                    aria-label="Retirer la photo"
+                    aria-label={t("Retirer la photo")}
                     className="bg-background/85 text-foreground hover:bg-background absolute top-1 right-1 grid size-5 place-items-center rounded-full shadow-sm"
                   >
                     <X className="size-3" />
@@ -412,14 +414,14 @@ export function ModelFormDialog({
 
                   {i === 0 ? (
                     <span className="absolute inset-x-0 bottom-0 bg-black/55 py-0.5 text-center text-[10px] font-medium text-white">
-                      Couverture
+                      {t("Couverture")}
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => makeCover(i)}
-                      aria-label="Définir comme couverture"
-                      title="Définir comme couverture"
+                      aria-label={t("Définir comme couverture")}
+                      title={t("Définir comme couverture")}
                       className="bg-background/85 text-foreground hover:bg-background absolute bottom-1 left-1 grid size-5 place-items-center rounded-full shadow-sm"
                     >
                       <Star className="size-3" />
@@ -431,7 +433,7 @@ export function ModelFormDialog({
               {photos.length < MAX_PHOTOS && (
                 <label className="text-muted-foreground hover:bg-muted flex size-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs">
                   <ImagePlus className="size-5" />
-                  Ajouter
+                  {t("Ajouter")}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/avif"
@@ -446,19 +448,16 @@ export function ModelFormDialog({
               )}
             </div>
             <p className="text-muted-foreground text-xs">
-              Jusqu&apos;à {MAX_PHOTOS} photos (JPEG, PNG ou WebP), redimensionnées
-              automatiquement. La première est la couverture affichée dans le
-              catalogue.
+              {t("Jusqu'à {n} photos (JPEG, PNG ou WebP), redimensionnées automatiquement. La première est la couverture affichée dans le catalogue.", { n: MAX_PHOTOS })}
             </p>
           </div>
 
           {/* Les tissus que le tailleur a pour ce modèle : ce que le client choisit
               en « Tel quel ». Une grande photo à toucher, pas une liste à lire. */}
           <div className="space-y-2">
-            <Label>Tissus disponibles pour ce modèle</Label>
+            <Label>{t("Tissus disponibles pour ce modèle")}</Label>
             <p className="text-muted-foreground text-xs">
-              Touchez les tissus et les couleurs que vous avez. Il en faut au moins
-              un pour publier.
+              {t("Touchez les tissus et les couleurs que vous avez. Il en faut au moins un pour publier.")}
             </p>
             <div className="grid grid-cols-3 gap-2">
               {fabrics.map((f) => {
@@ -490,7 +489,7 @@ export function ModelFormDialog({
                     </span>
                     {(!f.is_active || f.in_stock === false) && (
                       <span className="text-muted-foreground block truncate px-1.5 pb-1 text-[11px]">
-                        {f.in_stock === false ? "Épuisé" : "Brouillon"}
+                        {f.in_stock === false ? t("Épuisé") : t("Brouillon")}
                       </span>
                     )}
                   </button>
@@ -505,7 +504,7 @@ export function ModelFormDialog({
                 className="text-muted-foreground hover:bg-muted flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-1 text-center text-xs font-medium"
               >
                 <Plus className="size-5" />
-                Ajouter un tissu
+                {t("Ajouter un tissu")}
               </button>
             </div>
           </div>
@@ -514,31 +513,30 @@ export function ModelFormDialog({
             <div className="space-y-3 rounded-xl border p-3">
               <p className="flex items-start gap-2 text-sm font-medium">
                 <MapPin className="mt-0.5 size-4 shrink-0" />
-                Où recevez-vous les tissus de vos clients ?
+                {t("Où recevez-vous les tissus de vos clients ?")}
               </p>
               <p className="text-muted-foreground text-xs">
-                Les vendeurs y envoient les tissus achetés ailleurs. Cette adresse
-                reste privée.
+                {t("Les vendeurs y envoient les tissus achetés ailleurs. Cette adresse reste privée.")}
               </p>
               <AtelierFields />
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="model-name">Nom du modèle</Label>
+            <Label htmlFor="model-name">{t("Nom du modèle")}</Label>
             <Input
               id="model-name"
               name="name"
               required
               value={modelName}
               onChange={(e) => setModelName(e.target.value)}
-              placeholder="Ex. Boubou brodé Dakar"
+              placeholder={t("Ex. Boubou brodé Dakar")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Catégorie</Label>
+              <Label>{t("Catégorie")}</Label>
               <Select
                 value={category}
                 onValueChange={(v) => {
@@ -553,17 +551,17 @@ export function ModelFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>Aucune catégorie</SelectItem>
+                  <SelectItem value={NONE}>{t("Aucune catégorie")}</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c.slug} value={c.slug}>
-                      {c.name}
+                      {t(c.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="model-days">Confection (jours)</Label>
+              <Label htmlFor="model-days">{t("Confection (jours)")}</Label>
               <Input
                 id="model-days"
                 name="avg_days"
@@ -578,7 +576,7 @@ export function ModelFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="model-price">Prix « à partir de » (FCFA)</Label>
+            <Label htmlFor="model-price">{t("Prix « à partir de » (FCFA)")}</Label>
             <Input
               id="model-price"
               name="price"
@@ -589,14 +587,12 @@ export function ModelFormDialog({
               placeholder="25000"
             />
             <p className="text-muted-foreground text-xs">
-              Le prix de départ affiché aux clients. Pris tel quel, ils le paient ;
-              personnalisé, vous fixez le prix final par devis. Laissez vide pour
-              utiliser votre tarif « à partir de » par défaut.
+              {t("Le prix de départ affiché aux clients. Pris tel quel, ils le paient ; personnalisé, vous fixez le prix final par devis. Laissez vide pour utiliser votre tarif « à partir de » par défaut.")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Difficulté</Label>
+            <Label>{t("Difficulté")}</Label>
             <Select
               value={difficulty}
               onValueChange={(v) => setDifficulty(v as string)}
@@ -606,10 +602,10 @@ export function ModelFormDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Non précisée</SelectItem>
+                <SelectItem value={NONE}>{t("Non précisée")}</SelectItem>
                 {DIFFICULTIES.map((d) => (
                   <SelectItem key={d.value} value={d.value}>
-                    {d.label}
+                    {t(d.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -619,17 +615,17 @@ export function ModelFormDialog({
           <DeliveryZoneField defaultValue={model?.delivery_zone} />
 
           <div className="space-y-2">
-            <Label htmlFor="model-description">Description</Label>
+            <Label htmlFor="model-description">{t("Description")}</Label>
             <Textarea
               id="model-description"
               name="description"
               rows={4}
               maxLength={2000}
               defaultValue={source?.description ?? ""}
-              placeholder="Coupe, finitions, occasion…"
+              placeholder={t("Coupe, finitions, occasion…")}
             />
             <p className="text-muted-foreground text-xs">
-              Le client lit ce texte tel quel sur la fiche du modèle.
+              {t("Le client lit ce texte tel quel sur la fiche du modèle.")}
             </p>
           </div>
 
@@ -646,9 +642,9 @@ export function ModelFormDialog({
           />
 
           <div className="space-y-2">
-            <Label htmlFor="model-care-tips">Vos recommandations</Label>
+            <Label htmlFor="model-care-tips">{t("Vos recommandations")}</Label>
             <p className="text-muted-foreground text-xs">
-              Comment le laver, ce qu&apos;il faut éviter… Une recommandation par ligne.
+              {t("Comment le laver, ce qu'il faut éviter… Une recommandation par ligne.")}
             </p>
             <Textarea
               id="model-care-tips"
@@ -657,10 +653,10 @@ export function ModelFormDialog({
               maxLength={MAX_CARE_TIPS_LENGTH}
               value={careTips}
               onChange={(e) => setCareTips(e.target.value)}
-              placeholder="Ex. Ne pas mettre de parfum directement sur le tissu"
+              placeholder={t("Ex. Ne pas mettre de parfum directement sur le tissu")}
             />
             <div className="flex flex-wrap gap-2">
-              {CARE_TIP_SUGGESTIONS.filter((tip) => !careTipLines(careTips).includes(tip)).map(
+              {CARE_TIP_SUGGESTIONS.map((tip) => t(tip)).filter((tip) => !careTipLines(careTips).includes(tip)).map(
                 (tip) => (
                   <button
                     key={tip}
@@ -686,11 +682,9 @@ export function ModelFormDialog({
               className="accent-primary mt-0.5 size-4 rounded"
             />
             <span>
-              Publier dans le catalogue
+              {t("Publier dans le catalogue")}
               <span className="text-muted-foreground block text-xs">
-                Le modèle apparaît dans /modeles et vous êtes automatiquement le
-                tailleur des commandes passées dessus. Décochez pour le garder en
-                brouillon.
+                {t("Le modèle apparaît dans /modeles et vous êtes automatiquement le tailleur des commandes passées dessus. Décochez pour le garder en brouillon.")}
               </span>
             </span>
           </label>
@@ -702,15 +696,15 @@ export function ModelFormDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Annuler
+              {t("Annuler")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="size-4 animate-spin" />}
               {styleUpload
-                ? `Photos ${styleUpload.done}/${styleUpload.total}…`
+                ? `${t("Photos")} ${styleUpload.done}/${styleUpload.total}…`
                 : isEdit
-                  ? "Enregistrer"
-                  : "Ajouter le modèle"}
+                  ? t("Enregistrer")
+                  : t("Ajouter le modèle")}
             </Button>
           </DialogFooter>
         </form>

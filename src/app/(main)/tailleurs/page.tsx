@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
 import { CollectionHero } from "@/components/catalog/collection-hero";
@@ -12,11 +12,15 @@ import {
   WhyJalofa,
 } from "@/components/catalog/tailleurs-sections";
 import { getTailors } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Tailleurs",
-  description: "Trouvez un tailleur de confiance près de chez vous en Afrique.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Tailleurs"),
+    description: t("Trouvez un tailleur de confiance près de chez vous en Afrique."),
+  };
+}
 
 export default async function TailorsPage({
   searchParams,
@@ -25,6 +29,7 @@ export default async function TailorsPage({
 }) {
   const { city, q } = await searchParams;
   const all = await getTailors();
+  const tr = await getT();
 
   const cities = Array.from(
     new Set(all.map((t) => t.city).filter((c): c is string => Boolean(c))),
@@ -70,12 +75,12 @@ export default async function TailorsPage({
 
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-10">
           <div>
-            <Heading className={COLLECTION_HEADING}>Trouvez votre tailleur</Heading>
+            <Heading className={COLLECTION_HEADING}>{tr("Trouvez votre tailleur")}</Heading>
             <p className="mt-3 max-w-xl text-lg">
-              Des artisans qui cousent votre habit à vos mesures.
+              {tr("Des artisans qui cousent votre habit à vos mesures.")}
             </p>
           </div>
-          <SearchInput placeholder="Rechercher un tailleur..." />
+          <SearchInput placeholder={tr("Rechercher un tailleur...")} />
         </div>
 
         <div className="mt-6 md:mt-8">
@@ -84,12 +89,12 @@ export default async function TailorsPage({
 
         {tailors.length === 0 ? (
           <div className="mt-8 rounded-xl border border-white/15 p-6 text-center md:p-10">
-            <p className="text-lg">Aucun tailleur ne correspond à votre recherche.</p>
+            <p className="text-lg">{tr("Aucun tailleur ne correspond à votre recherche.")}</p>
             <Link
               href="/tailleurs"
               className="mt-3 inline-block underline underline-offset-4 hover:opacity-70"
             >
-              Voir tous les tailleurs
+              {tr("Voir tous les tailleurs")}
             </Link>
           </div>
         ) : (

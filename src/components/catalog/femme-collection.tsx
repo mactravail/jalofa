@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ArrowRight } from "lucide-react";
 
 import { CollectionHero } from "@/components/catalog/collection-hero";
@@ -10,11 +10,13 @@ import {
   HowItWorks,
 } from "@/components/catalog/collection-sections";
 import { modelHref } from "@/components/catalog/model-card";
+import { UpcomingEvent, type UpcomingEventContent } from "@/components/catalog/upcoming-event";
 import { FEMME_OCCASIONS, modelKey } from "@/lib/collection-occasions";
 import type { LatestReviews } from "@/lib/data";
 import { dream } from "@/lib/dream-font";
 import type { GarmentModel } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
 // La page /modeles?category=femme : on fait rêver d'abord, on explique ensuite.
 // Le noir sert d'écrin : la couleur ne vient que des robes.
@@ -24,8 +26,24 @@ import { cn } from "@/lib/utils";
 //   si cet habit n'existe pas dans le catalogue.
 // - Les « Inspirations » n'ont pas encore de fiche : elles ne mènent donc à aucun
 //   produit, et ne montrent pas de prix.
+//
+// Après le tableau, « Événement à venir ». Tant qu'aucun événement n'est daté,
+// la bannière l'annonce sans inventer de nom ni de date.
 
 const HEADING = cn(dream.className, "text-5xl leading-[1.05] text-balance md:text-7xl");
+
+// À remplacer par le vrai événement (nom, date, lieu) dès qu'il est fixé.
+const UPCOMING_EVENT: UpcomingEventContent = {
+  eyebrow: "Événement à venir",
+  title: "Bientôt",
+  text: "Défilés et rencontres avec nos tailleurs : les prochaines dates arrivent ici.",
+  image: {
+    src: "/collection%20femme/meilleur.jpg",
+    alt: "Mannequin sur un podium de défilé, haut à tournesols et jupe noire à franges",
+    // Le visage est en haut, un peu à gauche du centre : on ne le coupe jamais.
+    position: "object-[45%_15%]",
+  },
+};
 
 /** Les photos claires du catalogue, assombries pour se fondre dans le noir. */
 const PHOTO_ON_BLACK = "object-cover object-top brightness-[0.84] contrast-110";
@@ -46,19 +64,6 @@ const TABLEAUX = [
       alt: "La même robe vue de dos, cape de paillettes ouverte comme des ailes",
     },
   },
-  {
-    model: "boubou-femme",
-    line: "Un pas. Et tout le monde se retourne.",
-    text: "Une pièce qui bouge avec vous. Vous choisissez le tissu, le tailleur coud.",
-    main: {
-      src: "/collection%20femme/ceremonie/k2.avif",
-      alt: "Femme qui marche, tenue verte et longue étole à grandes feuilles",
-    },
-    second: {
-      src: "/collection%20femme/ceremonie/k.avif",
-      alt: "La même tenue vue de face",
-    },
-  },
 ];
 
 const INSPIRATIONS = [
@@ -69,21 +74,23 @@ const INSPIRATIONS = [
   { src: "/collection%20femme/jupe/x.avif", alt: "Robe blanche en dentelle" },
 ];
 
-function Opening() {
+async function Opening() {
+  const t = await getT();
   return (
     <section className="mx-auto max-w-4xl px-6 pt-20 text-center md:pt-36">
       <p className={cn(dream.className, "text-5xl leading-[1.1] text-balance md:text-8xl")}>
-        Il y a une robe que vous n&apos;avez vue qu&apos;en rêve.
+        {t("Il y a une robe que vous n'avez vue qu'en rêve.")}
       </p>
       <p className="text-muted-foreground mx-auto mt-6 max-w-md text-lg md:mt-8 md:text-xl">
-        Un tailleur la coud pour vous, à vos mesures.
+        {t("Un tailleur la coud pour vous, à vos mesures.")}
       </p>
       <div aria-hidden className="strass-line mx-auto mt-10 w-48 md:mt-14 md:w-72" />
     </section>
   );
 }
 
-function Tableaux({ models, context }: { models: GarmentModel[]; context?: string }) {
+async function Tableaux({ models, context }: { models: GarmentModel[]; context?: string }) {
+  const t = await getT();
   const platform = new Map(
     models.filter((m) => m.tailor_id === null).map((m) => [modelKey(m.name), m]),
   );
@@ -108,7 +115,7 @@ function Tableaux({ models, context }: { models: GarmentModel[]; context?: strin
           >
             <Image
               src={tableau.main.src}
-              alt={tableau.main.alt}
+              alt={t(tableau.main.alt)}
               fill
               sizes="(min-width: 768px) 55vw, 100vw"
               className={cn(
@@ -125,12 +132,12 @@ function Tableaux({ models, context }: { models: GarmentModel[]; context?: strin
               i % 2 === 1 && "md:order-1 md:col-span-5 md:col-start-1 md:row-start-1",
             )}
           >
-            <h2 className={HEADING}>{tableau.line}</h2>
-            <p className="text-muted-foreground mt-4 max-w-sm text-lg">{tableau.text}</p>
+            <h2 className={HEADING}>{t(tableau.line)}</h2>
+            <p className="text-muted-foreground mt-4 max-w-sm text-lg">{t(tableau.text)}</p>
             <div className="relative mt-8 hidden aspect-4/5 w-44 overflow-hidden rounded-xl md:block lg:w-56">
               <Image
                 src={tableau.second.src}
-                alt={tableau.second.alt}
+                alt={t(tableau.second.alt)}
                 fill
                 sizes="14rem"
                 className={PHOTO_ON_BLACK}
@@ -151,12 +158,13 @@ function Tableaux({ models, context }: { models: GarmentModel[]; context?: strin
   );
 }
 
-function Inspirations() {
+async function Inspirations() {
+  const t = await getT();
   return (
     <section className="mt-20 md:mt-36">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
-        <h2 className={HEADING}>Inspirations</h2>
-        <p className="text-muted-foreground mt-3 max-w-md text-lg">Regardez. Rêvez un peu.</p>
+        <h2 className={HEADING}>{t("Inspirations")}</h2>
+        <p className="text-muted-foreground mt-3 max-w-md text-lg">{t("Regardez. Rêvez un peu.")}</p>
       </div>
       {/* Sur téléphone, un rail qui défile au doigt, sans élargir la page. */}
       <ul className="mt-8 flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] md:mx-auto md:mt-12 md:grid md:max-w-7xl md:grid-cols-5 md:gap-3 md:overflow-visible md:px-8 md:pb-14">
@@ -170,7 +178,7 @@ function Inspirations() {
           >
             <Image
               src={photo.src}
-              alt={photo.alt}
+              alt={t(photo.alt)}
               fill
               sizes="(min-width: 768px) 20vw, 68vw"
               className={PHOTO_ON_BLACK}
@@ -183,25 +191,26 @@ function Inspirations() {
   );
 }
 
-function FinalCall() {
+async function FinalCall() {
+  const t = await getT();
   return (
     <section className="mx-auto mt-20 grid max-w-7xl px-4 md:mt-32 md:grid-cols-2 md:px-8">
       <div className="relative aspect-4/5 overflow-hidden rounded-xl md:aspect-auto md:min-h-[42rem]">
         <Image
           src="/collection%20femme/odobe.jpg"
-          alt="Portrait d'une femme de profil, voile sombre sur la tête, dans une lumière douce"
+          alt={t("Portrait d'une femme de profil, voile sombre sur la tête, dans une lumière douce")}
           fill
           sizes="(min-width: 768px) 50vw, 100vw"
           className="object-cover object-[50%_15%]"
         />
       </div>
       <div className="flex flex-col justify-center py-12 md:pl-16">
-        <h2 className={HEADING}>Votre grand jour approche&nbsp;?</h2>
+        <h2 className={HEADING}>{t("Votre grand jour approche ?")}</h2>
         <p className="text-muted-foreground mt-4 max-w-sm text-lg">
-          Commandez tôt. Votre tailleur a le temps de bien faire.
+          {t("Commandez tôt. Votre tailleur a le temps de bien faire.")}
         </p>
         <a href="#choisir" className={cn(COLLECTION_CTA, "mt-8 sm:self-start")}>
-          Choisir mon habit
+          {t("Choisir mon habit")}
           <ArrowRight className="size-5" aria-hidden />
         </a>
       </div>
@@ -236,6 +245,7 @@ export function FemmeCollection({
       <div id="reve" className="scroll-mt-16">
         <Opening />
         <Tableaux models={models} context={context} />
+        <UpcomingEvent event={UPCOMING_EVENT} />
         <Inspirations />
       </div>
       <GarmentChooser

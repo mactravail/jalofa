@@ -1,6 +1,6 @@
 import { Children } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { Price } from "@/components/cart/price";
 import {
@@ -12,6 +12,7 @@ import { HeroVideo } from "@/components/home/hero-video";
 import { getFabrics } from "@/lib/data";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
 // Accueil « éditorial » inspiré de la mise en page Dolly Noire : une suite de
 // grandes bannières pleine largeur (sur-titre, titre, « Découvrir »), chacune
@@ -19,15 +20,16 @@ import { cn } from "@/lib/utils";
 // passe par l'image.
 
 /** Lien texte souligné, en capitales — le « Scopri » de la référence. */
-function DiscoverLink({
+async function DiscoverLink({
   href,
-  children = "Découvrir",
+  children,
   light,
 }: {
   href: string;
   children?: React.ReactNode;
   light?: boolean;
 }) {
+  const t = await getT();
   return (
     <Link
       href={href}
@@ -36,7 +38,7 @@ function DiscoverLink({
         light ? "border-white text-white" : "border-foreground text-foreground",
       )}
     >
-      {children}
+      {children ?? t("Découvrir")}
     </Link>
   );
 }
@@ -75,21 +77,22 @@ function BannerCaption({
  * film est clair, d'où les deux dégradés qui gardent le texte blanc lisible. Sur
  * mobile, la barre du bas (fixe) est déduite pour que le texte reste visible.
  */
-function VideoHero() {
+async function VideoHero() {
+  const t = await getT();
   const href = "/modeles";
-  const title = "Créer ma tenue";
-  const cta = "Découvrir";
+  const title = t("Créer ma tenue");
+  const cta = t("Découvrir");
   return (
     <section className="relative h-[calc(100svh-2.25rem-var(--spacing-bottom-nav))] min-h-[28rem] w-full overflow-hidden bg-neutral-900 md:h-[calc(100svh-2.25rem)]">
       <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0">
         <HeroVideo
           poster="/videos/hero-poster.jpg"
-          alt="Deux mannequins en tenue, pendant une séance photo en studio"
+          alt={t("Deux mannequins en tenue, pendant une séance photo en studio")}
         />
       </Link>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-      <BannerCaption as="h1" eyebrow="Sur mesure · Sénégal" title={title} href={href} cta={cta} />
+      <BannerCaption as="h1" eyebrow={t("Sur mesure · Sénégal")} title={title} href={href} cta={cta} />
     </section>
   );
 }
@@ -99,12 +102,12 @@ function VideoHero() {
  * sur ordinateur, seule la première sur mobile (comme les visuels desktop /
  * mobile séparés de la référence).
  */
-function Banner({
+async function Banner({
   images,
   eyebrow,
   title,
   href,
-  cta = "Découvrir",
+  cta: ctaProp,
 }: {
   images: { src: string; alt: string; position?: string }[];
   eyebrow: string;
@@ -112,6 +115,8 @@ function Banner({
   href: string;
   cta?: string;
 }) {
+  const t = await getT();
+  const cta = ctaProp ?? t("Découvrir");
   return (
     <section className="relative aspect-4/5 w-full overflow-hidden bg-neutral-900 md:aspect-16/7">
       <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0 flex">
@@ -140,20 +145,21 @@ function Banner({
 const CARD_SIZES = "(min-width: 1024px) 18rem, (min-width: 640px) 15rem, 12rem";
 
 /** Carte produit sobre : image 4/5, nom puis précision, sans cadre. */
-function GarmentCard({ tile }: { tile: CollectionTile }) {
+async function GarmentCard({ tile }: { tile: CollectionTile }) {
+  const t = await getT();
   return (
     <Link href={tile.href} className="group block">
       <div className="bg-muted relative aspect-4/5 overflow-hidden">
         <Image
           src={tile.src}
-          alt={tile.alt}
+          alt={t(tile.alt)}
           fill
           sizes={CARD_SIZES}
           className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
         />
       </div>
-      <h3 className="mt-3 text-sm font-medium">{tile.name}</h3>
-      <p className="text-muted-foreground text-xs">Sur mesure</p>
+      <h3 className="mt-3 text-sm font-medium">{t(tile.name)}</h3>
+      <p className="text-muted-foreground text-xs">{t("Sur mesure")}</p>
     </Link>
   );
 }
@@ -185,7 +191,7 @@ function FabricCard({ fabric }: { fabric: Fabric }) {
  * ligne : deux pistes identiques translatées en boucle (`animate-marquee`,
  * globals.css), pause au survol, figée si `prefers-reduced-motion`. Sans JS.
  */
-function Grid({
+async function Grid({
   label,
   href,
   children,
@@ -194,6 +200,7 @@ function Grid({
   href: string;
   children: React.ReactNode;
 }) {
+  const t = await getT();
   const items = Children.toArray(children);
   return (
     <section className="py-10 md:py-14">
@@ -219,7 +226,7 @@ function Grid({
         ))}
       </div>
       <div className="mt-10 text-center">
-        <DiscoverLink href={href}>Tout voir</DiscoverLink>
+        <DiscoverLink href={href}>{t("Tout voir")}</DiscoverLink>
       </div>
     </section>
   );
@@ -227,6 +234,7 @@ function Grid({
 
 export default async function HomePage() {
   const fabrics = (await getFabrics()).slice(0, 8);
+  const t = await getT();
 
   return (
     <div>
@@ -236,28 +244,28 @@ export default async function HomePage() {
         images={[
           {
             src: "/collection homme/mallem.jpg",
-            alt: "Silhouette d'un homme en costume devant une porte éclairée",
+            alt: t("Silhouette d'un homme en costume devant une porte éclairée"),
             // Sur mobile, l'homme passe à droite : la porte claire ne gêne pas le titre.
             position: "object-[40%_center] md:object-center",
           },
         ]}
-        eyebrow="Collection"
-        title="Homme"
+        eyebrow={t("Collection")}
+        title={t("Homme")}
         href="/modeles?category=homme"
       />
-      <Grid label="Grand boubou, kaftan, costume" href="/modeles?category=homme">
+      <Grid label={t("Grand boubou, kaftan, costume")} href="/modeles?category=homme">
         {HOMME.slice(0, 8).map((tile) => (
           <GarmentCard key={tile.name} tile={tile} />
         ))}
       </Grid>
 
       <Banner
-        images={[{ src: "/collection femme/bgcolfem.jpg", alt: "Deux femmes en manteau devant une porte sombre" }]}
-        eyebrow="Collection"
-        title="Femme"
+        images={[{ src: "/collection femme/bgcolfem.jpg", alt: t("Deux femmes en manteau devant une porte sombre") }]}
+        eyebrow={t("Collection")}
+        title={t("Femme")}
         href="/modeles?category=femme"
       />
-      <Grid label="Robe, boubou, cérémonie" href="/modeles?category=femme">
+      <Grid label={t("Robe, boubou, cérémonie")} href="/modeles?category=femme">
         {FEMME.slice(0, 8).map((tile) => (
           <GarmentCard key={tile.name} tile={tile} />
         ))}
@@ -266,12 +274,12 @@ export default async function HomePage() {
       {fabrics.length > 0 && (
         <>
           <Banner
-            images={[{ src: "/look/karola.jpg", alt: "Rouleaux de tissus jaunes, orange et rouges" }]}
-            eyebrow="Wax, bazin, broderie"
-            title="Tissus"
+            images={[{ src: "/look/karola.jpg", alt: t("Rouleaux de tissus jaunes, orange et rouges") }]}
+            eyebrow={t("Wax, bazin, broderie")}
+            title={t("Tissus")}
             href="/tissus"
           />
-          <Grid label="Choisissez votre étoffe" href="/tissus">
+          <Grid label={t("Choisissez votre étoffe")} href="/tissus">
             {fabrics.map((fabric) => (
               <FabricCard key={fabric.id} fabric={fabric} />
             ))}
@@ -283,15 +291,15 @@ export default async function HomePage() {
         images={[
           {
             src: "/look/tailleur.jpg",
-            alt: "Pied-de-biche d'une machine à coudre sur un tissu noir",
+            alt: t("Pied-de-biche d'une machine à coudre sur un tissu noir"),
             // Calée vers le bas : la machine passe au-dessus du titre.
             position: "object-[30%_center] md:object-bottom",
           },
         ]}
-        eyebrow="Nos artisans"
-        title="Tailleurs"
+        eyebrow={t("Nos artisans")}
+        title={t("Tailleurs")}
         href="/tailleurs"
-        cta="Trouver mon tailleur"
+        cta={t("Trouver mon tailleur")}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
   passwordStrength,
 } from "@/lib/password";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Champ mot de passe avec exigences affichées en direct : chaque règle se coche
@@ -25,7 +26,7 @@ export function PasswordField({
   value,
   onChange,
   name = "password",
-  label = "Mot de passe",
+  label,
   autoComplete = "new-password",
   /**
    * `false` pour un champ de saisie simple (mot de passe actuel) : plus de
@@ -43,6 +44,7 @@ export function PasswordField({
   inputClassName?: string;
 }) {
   const id = useId();
+  const t = useT();
   const listId = `${id}-rules`;
   const [visible, setVisible] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -55,7 +57,7 @@ export function PasswordField({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>{label ?? t("Mot de passe")}</Label>
       <div className="relative">
         <Input
           id={id}
@@ -77,7 +79,7 @@ export function PasswordField({
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={
-            visible ? "Masquer le mot de passe" : "Afficher le mot de passe"
+            visible ? t("Masquer le mot de passe") : t("Afficher le mot de passe")
           }
           className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-9 items-center justify-center transition-colors"
         >
@@ -115,7 +117,7 @@ export function PasswordField({
                     : "text-muted-foreground",
                 )}
               >
-                {strength.label}
+                {t(strength.label)}
               </span>
             )}
           </div>
@@ -136,7 +138,7 @@ export function PasswordField({
                   ) : (
                     <X className="size-3.5 shrink-0 opacity-50" />
                   )}
-                  {rule.label}
+                  {t(rule.label)}
                 </li>
               );
             })}
@@ -144,8 +146,7 @@ export function PasswordField({
 
           {common && (
             <p className="text-destructive text-xs">
-              Ce mot de passe est trop courant : il se devine en quelques
-              secondes. Choisissez-en un autre.
+              {t("Ce mot de passe est trop courant : il se devine en quelques secondes. Choisissez-en un autre.")}
             </p>
           )}
         </div>

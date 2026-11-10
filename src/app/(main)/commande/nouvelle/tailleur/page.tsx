@@ -7,9 +7,11 @@ import { useConfigurator } from "@/components/order/configurator-context";
 import { formatPrice } from "@/lib/constants";
 import { tailoringPriceFor } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 export default function TailorStep() {
   const { data, state, update } = useConfigurator();
+  const tr = useT();
 
   // Une création signée : son auteur est proposé d'office (en tête, déjà
   // coché), mais le client reste libre de confier la confection à un autre.
@@ -33,9 +35,8 @@ export default function TailorStep() {
     <div className="grid gap-3">
       {author && (
         <p className="bg-muted/50 text-muted-foreground rounded-lg border p-3 text-xs">
-          <span className="text-foreground font-medium">{model?.name}</span> est
-          une création de {author.shop_name} : son atelier est choisi par
-          défaut. Vous pouvez aussi choisir un autre tailleur.
+          <span className="text-foreground font-medium">{model?.name}</span>{" "}
+          {tr("est une création de {name} : son atelier est choisi par défaut. Vous pouvez aussi choisir un autre tailleur.", { name: author.shop_name ?? "" })}
         </p>
       )}
 
@@ -64,7 +65,7 @@ export default function TailorStep() {
               <p className="truncate text-sm font-semibold">{t.shop_name}</p>
               {author?.id === t.id && (
                 <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
-                  <BadgeCheck className="size-3" /> Créateur du modèle
+                  <BadgeCheck className="size-3" /> {tr("Créateur du modèle")}
                 </span>
               )}
             </div>
@@ -75,8 +76,8 @@ export default function TailorStep() {
                 const label =
                   model?.tailor_id === t.id && model?.price != null
                     ? formatPrice(price)
-                    : `dès ${formatPrice(price)}`;
-                return `${label} · ${t.avg_delivery_days} j · ★ ${t.rating.toFixed(1)}`;
+                    : tr("dès {price}", { price: formatPrice(price) });
+                return `${label} · ${tr("{n} j", { n: t.avg_delivery_days })} · ★ ${t.rating.toFixed(1)}`;
               })()}
             </p>
           </div>

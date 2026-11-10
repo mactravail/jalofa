@@ -3,8 +3,12 @@ import type { Metadata } from "next";
 import { CheckoutView, type CheckoutAccount } from "@/components/cart/checkout-view";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Caisse" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Caisse") };
+}
 
 /** Le client connecté, pour pré-remplir ses coordonnées (et ne pas redemander
  *  de mot de passe). `null` : nouveau client, son compte naît à la commande. */

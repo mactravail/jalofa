@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, ChevronRight, Droplets, Package, Store, Sun } from "lucide-react";
 
@@ -15,6 +15,9 @@ import { getFabricById, getFabricReviews, getFabrics, getVendorById } from "@/li
 import { formatMeters, isFabricAvailable } from "@/lib/fabric-metrage";
 import { fabricSocialProof } from "@/lib/fabric-social-proof";
 import { AUDIENCE_LABELS, audiencesOf, fabricProfile, pricedUse } from "@/lib/fabric-usage";
+import { getT } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
 
 export async function generateMetadata({
   params,
@@ -22,15 +25,16 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  const t = await getT();
   const fabric = await getFabricById(id);
-  if (!fabric) return { title: "Tissu introuvable" };
+  if (!fabric) return { title: t("Tissu introuvable") };
 
   const profile = fabricProfile(fabric);
   return {
     title: fabric.name,
     description:
       fabric.description ??
-      `${profile.family} — ${profile.pitch} À partir de ${formatPrice(fabric.price_per_meter)} le mètre.`,
+      `${t(profile.family)} — ${t(profile.pitch)} ${t("À partir de {price} le mètre.", { price: formatPrice(fabric.price_per_meter) })}`,
     openGraph: fabric.image_url ? { images: [fabric.image_url] } : undefined,
   };
 }
@@ -43,6 +47,8 @@ export default async function FabricDetailPage({
   const { id } = await params;
   const fabric = await getFabricById(id);
   if (!fabric) notFound();
+  const t = await getT();
+  const locale = intlLocale(await getLocale());
 
   // Boutique d'origine — on ne lie que vers une fiche publique visible (une
   // boutique suspendue n'a pas de page).
@@ -83,16 +89,16 @@ export default async function FabricDetailPage({
       <DemoBanner />
 
       {/* Fil d'Ariane */}
-      <nav aria-label="Fil d'Ariane" className="text-muted-foreground mb-6 flex items-center gap-1 text-sm">
+      <nav aria-label={t("Fil d'Ariane")} className="text-muted-foreground mb-6 flex items-center gap-1 text-sm">
         <Link href="/tissus" className="hover:text-foreground">
-          Tissus
+          {t("Tissus")}
         </Link>
         <ChevronRight className="size-3.5" />
         <Link
           href={`/tissus?category=${fabric.category_slug ?? ""}`}
           className="hover:text-foreground capitalize"
         >
-          {fabric.category_slug ?? "Catalogue"}
+          {fabric.category_slug ? t(fabric.category_slug) : t("Catalogue")}
         </Link>
         <ChevronRight className="size-3.5" />
         <span className="text-foreground truncate font-medium">{fabric.name}</span>
@@ -106,10 +112,10 @@ export default async function FabricDetailPage({
             fabricName={fabric.name}
             colorLabel={fabric.color}
             uses={uses.map(({ use, meters }) => ({
-              label: use.label,
+              label: t(use.label),
               meters,
               icon: use.icon,
-              audience: AUDIENCE_LABELS[use.audience],
+              audience: t(AUDIENCE_LABELS[use.audience]),
             }))}
           />
         </div>
@@ -121,7 +127,7 @@ export default async function FabricDetailPage({
             color: v.color,
             image_url: v.image_url,
           }))}
-          uses={uses.map(({ use, meters }) => ({ label: use.label, meters }))}
+          uses={uses.map(({ use, meters }) => ({ label: t(use.label), meters }))}
           vendorName={shop?.shop_name ?? vendor?.shop_name ?? null}
           vendorHref={shop ? `/vendeurs/${shop.id}` : null}
           deliveryZone={fabric.delivery_zone ?? "none"}
@@ -140,13 +146,13 @@ export default async function FabricDetailPage({
       {fabricReviews.length > 0 && (
         <section id="avis-verifies" className="mt-12">
           <h2 className="font-serif text-2xl tracking-tight">
-            Avis vérifiés
+            {t("Avis vérifiés")}
             <span className="text-muted-foreground ml-2 text-base font-normal">
               ({fabricReviews.length})
             </span>
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            De clients ayant acheté et reçu ce tissu.
+            {t("De clients ayant acheté et reçu ce tissu.")}
           </p>
           <ReviewList reviews={fabricReviews} />
         </section>
@@ -155,19 +161,19 @@ export default async function FabricDetailPage({
       {/* À quoi sert ce tissu — la question n°1 devant un rouleau */}
       <section className="mt-16">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="font-serif text-2xl tracking-tight">Pour quelles tenues ?</h2>
+          <h2 className="font-serif text-2xl tracking-tight">{t("Pour quelles tenues ?")}</h2>
           <div className="flex flex-wrap gap-1.5">
             {audiences.map((a) => (
               <span
                 key={a}
                 className="bg-muted rounded-full px-2.5 py-1 text-xs font-medium"
               >
-                {AUDIENCE_LABELS[a]}
+                {t(AUDIENCE_LABELS[a])}
               </span>
             ))}
           </div>
         </div>
-        <p className="text-muted-foreground mt-2 max-w-2xl leading-relaxed">{profile.pitch}</p>
+        <p className="text-muted-foreground mt-2 max-w-2xl leading-relaxed">{t(profile.pitch)}</p>
 
         <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {uses.map(({ use, meters, fabricPrice }) => (
@@ -183,13 +189,13 @@ export default async function FabricDetailPage({
                   className="text-muted-foreground group-hover:text-foreground h-14 w-10 shrink-0 transition-colors"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium">{use.label}</p>
+                  <p className="font-medium">{t(use.label)}</p>
                   <p className="text-muted-foreground text-xs">
-                    {AUDIENCE_LABELS[use.audience]} · {formatMeters(meters)}
+                    {t(AUDIENCE_LABELS[use.audience])} · {formatMeters(meters)}
                   </p>
                   <p className="mt-1 text-sm font-medium">
                     {formatPrice(fabricPrice)}
-                    <span className="text-muted-foreground font-normal"> de tissu</span>
+                    <span className="text-muted-foreground font-normal"> {t("de tissu")}</span>
                   </p>
                 </div>
                 <ChevronRight className="text-muted-foreground ml-auto size-4 shrink-0" />
@@ -198,23 +204,22 @@ export default async function FabricDetailPage({
           ))}
         </ul>
         <p className="text-muted-foreground mt-3 text-xs">
-          Métrages conseillés par les ateliers pour une carrure standard. La confection du
-          tailleur s&apos;ajoute au prix du tissu.
+          {t("Métrages conseillés par les ateliers pour une carrure standard. La confection du tailleur s'ajoute au prix du tissu.")}
         </p>
       </section>
 
       {/* La matière */}
       <section className="mt-14">
-        <h2 className="font-serif text-2xl tracking-tight">La matière</h2>
+        <h2 className="font-serif text-2xl tracking-tight">{t("La matière")}</h2>
         <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: Package, term: "Famille", desc: profile.family },
-            { icon: Sun, term: "Saison", desc: profile.season },
-            { icon: Droplets, term: "Entretien", desc: profile.care },
+            { icon: Package, term: t("Famille"), desc: t(profile.family) },
+            { icon: Sun, term: t("Saison"), desc: t(profile.season) },
+            { icon: Droplets, term: t("Entretien"), desc: t(profile.care) },
             {
               icon: BadgeCheck,
-              term: "Disponibilité",
-              desc: `${isFabricAvailable(fabric) ? "Disponible" : "Épuisé"}${
+              term: t("Disponibilité"),
+              desc: `${isFabricAvailable(fabric) ? t("Disponible") : t("Épuisé")}${
                 fabric.color ? ` · ${fabric.color}` : ""
               }`,
             },
@@ -232,7 +237,7 @@ export default async function FabricDetailPage({
       {/* La boutique */}
       {shop && (
         <section className="mt-14">
-          <h2 className="font-serif text-2xl tracking-tight">La boutique</h2>
+          <h2 className="font-serif text-2xl tracking-tight">{t("La boutique")}</h2>
           <Link
             href={`/vendeurs/${shop.id}`}
             className="hover:bg-muted/40 mt-5 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
@@ -246,8 +251,7 @@ export default async function FabricDetailPage({
                 {shop.is_certified && <BadgeCheck className="text-muted-foreground size-4" />}
               </p>
               <p className="text-muted-foreground text-sm">
-                {shop.city ?? "Sénégal"} · {proof.orders.toLocaleString("fr-FR")} commandes
-                servies
+                {shop.city ?? t("Sénégal")} · {t("{n} commandes servies", { n: proof.orders.toLocaleString(locale) })}
               </p>
             </div>
             <ChevronRight className="text-muted-foreground ml-auto size-5 shrink-0" />
@@ -259,9 +263,9 @@ export default async function FabricDetailPage({
       {related.length > 0 && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="font-serif text-2xl tracking-tight">Dans la même famille</h2>
+            <h2 className="font-serif text-2xl tracking-tight">{t("Dans la même famille")}</h2>
             <Link href="/tissus" className="text-muted-foreground hover:text-foreground text-sm">
-              Tout voir
+              {t("Tout voir")}
             </Link>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">

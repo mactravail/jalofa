@@ -24,6 +24,10 @@ import {
 import type { OrderListItem, OrderMeasurement } from "@/lib/orders-data";
 import { clientNameOf } from "@/lib/clients";
 import { pipelineType } from "@/lib/pipeline";
+import { T } from "@/components/i18n/t";
+import { useT } from "@/components/i18n/locale-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { intlLocale } from "@/lib/i18n/config";
 
 /**
  * La fiche complète d'une commande, en panneau latéral. Quand une nouvelle
@@ -43,10 +47,12 @@ export function OrderDetailSheet({
   children: React.ReactNode;
 }) {
   const { role } = usePipeline();
+  const t = useT();
+  const locale = intlLocale(useLocale());
   const fabricTravels = pipelineType(order) === "full" && Boolean(order.vendor_id);
   // Le vendeur envoie à l'atelier : la livraison au client ne le concerne pas.
   const sendsToAtelier = role === "vendor" && order.type === "full";
-  const created = new Date(order.created_at).toLocaleDateString("fr-FR", {
+  const created = new Date(order.created_at).toLocaleDateString(locale, {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -58,7 +64,7 @@ export function OrderDetailSheet({
         render={
           <button
             type="button"
-            aria-label={`Voir la fiche de la commande ${order.order_number}`}
+            aria-label={t("Voir la fiche de la commande {code}", { code: order.order_number })}
             className="hover:bg-muted/50 -m-2 flex min-w-0 flex-1 items-center gap-4 rounded-lg p-2 text-left transition-colors"
           />
         }
@@ -78,7 +84,7 @@ export function OrderDetailSheet({
             <OrderStatusBadge status={order.status} />
           </div>
           <SheetDescription>
-            {ORDER_TYPE_LABELS[order.type]} · {created}
+            {t(ORDER_TYPE_LABELS[order.type])} · {created}
           </SheetDescription>
         </SheetHeader>
 
@@ -86,7 +92,7 @@ export function OrderDetailSheet({
           <Section title="Vêtement">
             {order.model?.name && <Row label="Modèle" value={order.model.name} />}
             {order.style?.name && <Row label="Style" value={order.style.name} />}
-            <Row label="Type" value={ORDER_TYPE_LABELS[order.type]} />
+            <Row label="Type" value={t(ORDER_TYPE_LABELS[order.type])} />
           </Section>
 
           <FabricSection order={order} />
@@ -98,7 +104,10 @@ export function OrderDetailSheet({
               <FabricComesFrom order={order} />
             ))}
 
-          <MeasurementSection measurement={order.measurement} />
+          <MeasurementSection
+            measurement={order.measurement}
+            photoUrl={order.body_photo_url ?? null}
+          />
 
           {!sendsToAtelier && (
           <>
@@ -135,8 +144,7 @@ export function OrderDetailSheet({
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Le nom, le téléphone et l&apos;e-mail du client s&apos;affichent ici quand
-                il a payé.
+                {t("Le nom, le téléphone et l'e-mail du client s'affichent ici quand il a payé.")}
               </p>
             )}
           </Section>
@@ -144,7 +152,7 @@ export function OrderDetailSheet({
           <Section title="Livraison">
             <Row
               label="Mode"
-              value={DELIVERY_METHOD_LABELS[order.delivery_method]}
+              value={t(DELIVERY_METHOD_LABELS[order.delivery_method])}
             />
             {order.delivery_address && (
               <Row label="Adresse" value={order.delivery_address} />
@@ -171,8 +179,8 @@ export function OrderDetailSheet({
             {order.is_quote && order.payment_status === "pending" && (
               <p className="text-muted-foreground text-sm">
                 {order.tailoring_price > 0
-                  ? "Prix envoyé. Le client doit accepter et payer."
-                  : "Le client attend votre prix. Donnez-le depuis « Nouvelles commandes »."}
+                  ? t("Prix envoyé. Le client doit accepter et payer.")
+                  : t("Le client attend votre prix. Donnez-le depuis « Nouvelles commandes ».")}
               </p>
             )}
             {order.fabric_price > 0 && (
@@ -187,13 +195,13 @@ export function OrderDetailSheet({
                 order.delivery_fee > 0
                   ? formatPrice(order.delivery_fee)
                   : order.delivery_method === "pickup" || order.is_quote
-                    ? "Gratuite"
-                    : "Selon votre fiche"
+                    ? t("Gratuite")
+                    : t("Selon votre fiche")
               }
             />
             <div className="bg-border my-2 h-px" />
             <div className="flex items-center justify-between text-sm font-semibold">
-              <span>Total</span>
+              <span>{t("Total")}</span>
               <span className="text-primary">
                 {formatPrice(order.total_amount)}
               </span>
@@ -202,9 +210,9 @@ export function OrderDetailSheet({
               label="Statut"
               value={`${
                 order.payment_method
-                  ? PAYMENT_METHOD_LABELS[order.payment_method]
+                  ? t(PAYMENT_METHOD_LABELS[order.payment_method])
                   : "—"
-              } · ${PAYMENT_STATUS_LABELS[order.payment_status]}`}
+              } · ${t(PAYMENT_STATUS_LABELS[order.payment_status])}`}
             />
           </Section>
         </div>
@@ -219,7 +227,7 @@ function FabricSection({ order }: { order: OrderListItem }) {
     return (
       <Section title="Tissu">
         <p className="text-muted-foreground text-sm">
-          Le client apporte son propre tissu.
+          <T>Le client apporte son propre tissu.</T>
         </p>
       </Section>
     );
@@ -227,7 +235,7 @@ function FabricSection({ order }: { order: OrderListItem }) {
 
   const meters =
     order.fabric_meters != null
-      ? `${order.fabric_meters.toLocaleString("fr-FR")} m`
+      ? `${order.fabric_meters} m`
       : null;
 
   return (
@@ -254,12 +262,12 @@ function FabricSection({ order }: { order: OrderListItem }) {
           )}
           {order.fabric?.color && (
             <p className="text-muted-foreground text-sm">
-              Couleur : {order.fabric.color}
+              <T>Couleur :</T> {order.fabric.color}
             </p>
           )}
           {meters && (
             <p className="text-sm font-medium">
-              Métrage : <span className="text-primary">{meters}</span>
+              <T>Métrage :</T> <span className="text-primary">{meters}</span>
             </p>
           )}
         </div>
@@ -271,14 +279,17 @@ function FabricSection({ order }: { order: OrderListItem }) {
 /** Le relevé de mesures — ce que lit le tailleur pour couper et coudre. */
 function MeasurementSection({
   measurement,
+  photoUrl,
 }: {
   measurement?: OrderMeasurement | null;
+  /** Photo de silhouette envoyée par le client avec sa taille standard. */
+  photoUrl: string | null;
 }) {
   if (!measurement) {
     return (
       <Section title="Mesures">
         <p className="text-muted-foreground text-sm">
-          Aucune mesure renseignée pour cette commande.
+          <T>Aucune mesure renseignée pour cette commande.</T>
         </p>
       </Section>
     );
@@ -290,12 +301,26 @@ function MeasurementSection({
         <div className="flex items-center gap-2">
           <Ruler className="text-muted-foreground size-4" />
           <span className="text-sm">
-            Taille standard :{" "}
+            <T>Taille standard :</T>{" "}
             <span className="font-semibold">
               {measurement.standard_size ?? "—"}
             </span>
           </span>
         </div>
+        {photoUrl && (
+          <a href={photoUrl} target="_blank" rel="noreferrer" className="mt-3 block w-40">
+            {/* Lien signé et temporaire : pas d'optimisation next/image. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photoUrl}
+              alt=""
+              className="aspect-3/4 w-full rounded-lg border object-cover object-top"
+            />
+            <span className="text-muted-foreground mt-1 block text-xs">
+              <T>{"Photo du client (ou d'une personne qui lui ressemble). Touchez pour agrandir."}</T>
+            </span>
+          </a>
+        )}
       </Section>
     );
   }
@@ -309,7 +334,7 @@ function MeasurementSection({
     <Section title="Mesures sur mesure">
       {values.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Relevé manuel sans cote renseignée.
+          <T>Relevé manuel sans cote renseignée.</T>
         </p>
       ) : (
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -318,7 +343,7 @@ function MeasurementSection({
               key={m.label}
               className="flex items-baseline justify-between gap-2 border-b border-dashed pb-1.5"
             >
-              <dt className="text-muted-foreground text-sm">{m.label}</dt>
+              <dt className="text-muted-foreground text-sm"><T>{m.label}</T></dt>
               <dd className="text-sm font-semibold">{m.value} cm</dd>
             </div>
           ))}
@@ -341,7 +366,7 @@ function Section({
   return (
     <section className="space-y-2">
       <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-        {title}
+        <T>{title}</T>
       </h3>
       {children}
     </section>
@@ -357,7 +382,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground"><T>{label}</T></span>
       <span className="text-right font-medium">{value}</span>
     </div>
   );

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { MAX_STYLE_GROUPS, MAX_STYLE_OPTIONS } from "@/lib/model-style";
 import { stylePresetsFor, type StylePreset } from "@/lib/style-presets";
 import type { ModelStyleGroup } from "@/lib/types";
+import { useT } from "@/components/i18n/locale-provider";
 
 /** Un choix en cours d'édition : sa photo peut être encore sur le téléphone. */
 export type DraftStyleOption = {
@@ -65,13 +66,16 @@ export function ModelStyleEditor({
   groups: DraftStyleGroup[];
   onChange: (update: (groups: DraftStyleGroup[]) => DraftStyleGroup[]) => void;
 }) {
+  const t = useT();
   const taken = new Set(groups.map((g) => g.name.trim().toLowerCase()));
-  const ideas = stylePresetsFor(modelName).filter((p) => !taken.has(p.name.toLowerCase()));
+  const ideas = stylePresetsFor(modelName)
+    .map((p) => ({ ...p, name: t(p.name) }))
+    .filter((p) => !taken.has(p.name.toLowerCase()));
   const isFull = groups.length >= MAX_STYLE_GROUPS;
 
   function addGroup(preset?: StylePreset) {
     if (isFull) {
-      toast.info(`Maximum ${MAX_STYLE_GROUPS} détails par modèle.`);
+      toast.info(t("Maximum {n} détails par modèle.", { n: MAX_STYLE_GROUPS }));
       return;
     }
     const options = preset ? preset.options.map((name) => emptyOption(name)) : [emptyOption(), emptyOption()];
@@ -111,11 +115,9 @@ export function ModelStyleEditor({
   return (
     <div className="space-y-3 rounded-xl border p-3">
       <div>
-        <Label>Style de ce modèle</Label>
+        <Label>{t("Style de ce modèle")}</Label>
         <p className="text-muted-foreground mt-1 text-xs">
-          Facultatif. Mettez seulement les photos que vous avez : une seule suffit.
-          Un choix sans photo n&apos;est pas montré au client. La première photo
-          est le modèle tel que vous le présentez.
+          {t("Facultatif. Mettez seulement les photos que vous avez : une seule suffit. Un choix sans photo n'est pas montré au client. La première photo est le modèle tel que vous le présentez.")}
         </p>
       </div>
 
@@ -126,8 +128,8 @@ export function ModelStyleEditor({
               value={group.name}
               onChange={(e) => patchGroup(group.slug, (g) => ({ ...g, name: e.target.value }))}
               maxLength={40}
-              placeholder="Nom du détail (ex. Poches)"
-              aria-label="Nom du détail"
+              placeholder={t("Nom du détail (ex. Poches)")}
+              aria-label={t("Nom du détail")}
               className="font-semibold"
             />
             <Button
@@ -135,7 +137,7 @@ export function ModelStyleEditor({
               variant="ghost"
               size="icon"
               onClick={() => removeGroup(group)}
-              aria-label={`Retirer ${group.name || "ce détail"}`}
+              aria-label={t("Retirer {name}", { name: group.name || t("ce détail") })}
             >
               <Trash2 className="size-4" />
             </Button>
@@ -159,7 +161,7 @@ export function ModelStyleEditor({
                       ) : (
                         <>
                           <ImagePlus className="size-6" />
-                          Mettre la photo
+                          {t("Mettre la photo")}
                         </>
                       )}
                       <input
@@ -175,7 +177,7 @@ export function ModelStyleEditor({
                     <button
                       type="button"
                       onClick={() => removeOption(group, option)}
-                      aria-label={`Retirer ${option.name || "ce choix"}`}
+                      aria-label={t("Retirer {name}", { name: option.name || t("ce choix") })}
                       className="bg-background/85 hover:bg-background absolute top-1 right-1 grid size-6 place-items-center rounded-full shadow-sm"
                     >
                       <X className="size-3.5" />
@@ -187,11 +189,11 @@ export function ModelStyleEditor({
                       patchOption(group.slug, option.slug, { name: e.target.value })
                     }
                     maxLength={40}
-                    placeholder="Nom du choix"
-                    aria-label="Nom du choix"
+                    placeholder={t("Nom du choix")}
+                    aria-label={t("Nom du choix")}
                   />
                   {included ? (
-                    <p className="text-muted-foreground px-1 text-xs">Prix inclus</p>
+                    <p className="text-muted-foreground px-1 text-xs">{t("Prix inclus")}</p>
                   ) : (
                     <Input
                       value={option.extra}
@@ -201,8 +203,8 @@ export function ModelStyleEditor({
                         })
                       }
                       inputMode="numeric"
-                      placeholder="En plus (FCFA)"
-                      aria-label={`Prix en plus pour ${option.name || "ce choix"}, en FCFA`}
+                      placeholder={t("En plus (FCFA)")}
+                      aria-label={t("Prix en plus pour {name}, en FCFA", { name: option.name || t("ce choix") })}
                     />
                   )}
                 </div>
@@ -221,7 +223,7 @@ export function ModelStyleEditor({
                 className="text-muted-foreground hover:bg-muted flex aspect-[4/5] flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-xs font-medium"
               >
                 <Plus className="size-5" />
-                Autre choix
+                {t("Autre choix")}
               </button>
             )}
           </div>
@@ -230,7 +232,7 @@ export function ModelStyleEditor({
 
       <div>
         <p className="text-muted-foreground mb-2 text-xs font-medium">
-          {groups.length === 0 ? "Touchez pour ajouter un détail :" : "Ajouter un autre détail :"}
+          {groups.length === 0 ? t("Touchez pour ajouter un détail :") : t("Ajouter un autre détail :")}
         </p>
         <div className="flex flex-wrap gap-2">
           {ideas.map((preset) => (
@@ -250,7 +252,7 @@ export function ModelStyleEditor({
             className="hover:bg-muted flex items-center gap-1 rounded-full border border-dashed px-3 py-2 text-sm font-medium"
           >
             <Plus className="size-3.5" />
-            Autre détail
+            {t("Autre détail")}
           </button>
         </div>
       </div>

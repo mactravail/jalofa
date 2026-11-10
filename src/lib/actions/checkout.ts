@@ -8,10 +8,11 @@ import { recordDemoFabricSales, type DemoFabricSale } from "@/lib/notifications-
 import { saveOrderContact } from "@/lib/order-contact";
 import { resolveTailoringPrice } from "@/lib/order-pricing";
 import { stripContactInfo } from "@/lib/privacy";
+import { renewProFromSale } from "@/lib/pro-subscription";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { ensureClientAccount } from "@/lib/supabase/guest";
 import { createClient } from "@/lib/supabase/server";
-import type { OrderType, PaymentMethod } from "@/lib/constants";
+import { MEASUREMENT_FIELDS, type OrderType, type PaymentMethod } from "@/lib/constants";
 import type { Fabric } from "@/lib/types";
 
 // A single basket line handed over from the cart. `qty` bespoke garments are
@@ -27,11 +28,47 @@ export type CheckoutItem = {
   measurement: {
     mode: "manual" | "standard";
     standard_size: string | null;
+    /** Photo de silhouette en data URL JPEG, avec une taille standard. */
+    photo?: string | null;
     values: Record<string, number | null>;
   } | null;
   notes: string | null;
   qty: number;
 };
+
+/** Seules les colonnes de mesures connues passent : le navigateur n'écrit rien d'autre. */
+function measurementValues(values: Record<string, number | null>) {
+  return Object.fromEntries(
+    MEASUREMENT_FIELDS.flatMap(({ key }) => {
+      const v = values?.[key];
+      return typeof v === "number" && Number.isFinite(v) ? [[key, v]] : [];
+    }),
+  );
+}
+
+/** Au-delà, ce n'est pas une photo compressée par le configurateur. */
+const MAX_BODY_PHOTO_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Range la photo de silhouette dans le bucket privé, sous l'uid du client.
+ * Facultative : un échec (bucket absent, format refusé) ne bloque jamais la
+ * commande, l'habit se fait alors sur la seule taille standard.
+ */
+async function storeBodyPhoto(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  dataUrl: string | null | undefined,
+): Promise<string | null> {
+  const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
+  if (!match) return null;
+  const bytes = Buffer.from(match[1], "base64");
+  if (bytes.length === 0 || bytes.length > MAX_BODY_PHOTO_BYTES) return null;
+  const path = `${userId}/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage
+    .from("body-photos")
+    .upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+  return error ? null : path;
+}
 
 export type CheckoutPayload = {
   items: CheckoutItem[];
@@ -252,6 +289,8 @@ export async function placeOrders(
   }
 
   const orderNumbers: string[] = [];
+  /** Les pros payés par ce panier — pour renouveler leur offre Pro échue. */
+  const soldBy: (string | null)[] = [];
 
   for (const item of payload.items) {
     // Recompute prices from authoritative DB rows. The fabric also carries the
@@ -278,6 +317,12 @@ export async function placeOrders(
       );
     }
 
+    // Une seule photo par ligne, partagée par chaque exemplaire.
+    const bodyPhotoPath =
+      item.measurement?.mode === "standard" && item.type !== "fabric_only"
+        ? await storeBodyPhoto(supabase, user.id, item.measurement.photo)
+        : null;
+
     const qty = Math.max(1, item.qty);
     for (let u = 0; u < qty; u++) {
       // One measurement row per garment.
@@ -290,7 +335,10 @@ export async function placeOrders(
             user_id: user.id,
             mode: m.mode,
             standard_size: m.mode === "standard" ? m.standard_size : null,
-            ...m.values,
+            // Colonne ajoutée par 20260816000001 : absente du payload sans photo,
+            // pour qu'une base pas encore migrée accepte la commande.
+            ...(bodyPhotoPath ? { photo_path: bodyPhotoPath } : {}),
+            ...measurementValues(m.values),
           })
           .select("id")
           .single();
@@ -343,8 +391,12 @@ export async function placeOrders(
       }
 
       orderNumbers.push(String(order.order_number));
+      soldBy.push(item.type !== "fabric_only" ? item.tailor_id : null, vendorId);
     }
   }
+
+  // Offre Pro échue : la vente rouvre un mois, retenu sur le reversement.
+  await renewProFromSale(soldBy);
 
   // Le compte vient peut-être de naître : l'en-tête (« Mon compte ») change.
   revalidatePath("/", "layout");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
+import { useT } from "@/components/i18n/locale-provider";
 
 const MAX_PHOTOS = 3;
 
@@ -51,6 +52,7 @@ export function InspirationForm({
   fabrics: { id: string; name: string }[];
 }) {
   const router = useRouter();
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -93,7 +95,7 @@ export function InspirationForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (photos.length === 0) {
-      toast.error("Ajoutez au moins une photo de votre tenue.");
+      toast.error(t("Ajoutez au moins une photo de votre tenue."));
       return;
     }
     const form = e.currentTarget;
@@ -107,7 +109,7 @@ export function InspirationForm({
       }
       const res = await createInspirationPost(null, formData);
       if (res?.ok) {
-        toast.success("Votre tenue est publiée dans l'inspiration !");
+        toast.success(t("Votre tenue est publiée dans l'inspiration !"));
         photos.forEach((p) => URL.revokeObjectURL(p.url));
         setPhotos([]);
         setMakerKind("tailleur_quartier");
@@ -122,7 +124,7 @@ export function InspirationForm({
   }
 
   const fabricItems: Record<string, string> = {
-    "": "Aucun",
+    "": t("Aucun"),
     ...Object.fromEntries(fabrics.map((f) => [f.id, f.name])),
   };
 
@@ -134,7 +136,7 @@ export function InspirationForm({
     >
       {error && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
-          {error}
+          {t(error)}
         </p>
       )}
 
@@ -143,7 +145,7 @@ export function InspirationForm({
       <input type="hidden" name="fabric_id" value={fabricId} />
 
       <div className="space-y-2">
-        <Label>Vos photos</Label>
+        <Label>{t("Vos photos")}</Label>
         <div className="flex flex-wrap items-center gap-2">
           {photos.map((photo, i) => (
             <div
@@ -155,7 +157,7 @@ export function InspirationForm({
               <button
                 type="button"
                 onClick={() => removePhoto(i)}
-                aria-label="Retirer cette photo"
+                aria-label={t("Retirer cette photo")}
                 className="bg-foreground/70 text-background absolute right-1 top-1 flex size-5 items-center justify-center rounded-full transition-colors hover:bg-foreground"
               >
                 <X className="size-3" />
@@ -170,7 +172,7 @@ export function InspirationForm({
               className="text-muted-foreground hover:border-foreground/40 hover:text-foreground flex size-24 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed transition-colors"
             >
               <ImagePlus className="size-5" />
-              <span className="text-[10px]">Ajouter</span>
+              <span className="text-[10px]">{t("Ajouter")}</span>
             </button>
           )}
         </div>
@@ -183,27 +185,26 @@ export function InspirationForm({
           onChange={(e) => addFiles(e.target.files)}
         />
         <p className="text-muted-foreground text-xs">
-          Jusqu&apos;à {MAX_PHOTOS} photos. Elles sont redimensionnées
-          automatiquement.
+          {t("Jusqu'à {n} photos. Elles sont redimensionnées automatiquement.", { n: MAX_PHOTOS })}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="insp-garment">Type de vêtement</Label>
+          <Label htmlFor="insp-garment">{t("Type de vêtement")}</Label>
           <Input
             id="insp-garment"
             name="garment_label"
             maxLength={80}
-            placeholder="Grand boubou, robe, ensemble…"
+            placeholder={t("Grand boubou, robe, ensemble…")}
           />
         </div>
         <div className="space-y-2">
-          <Label>Provenance de la tenue</Label>
+          <Label>{t("Provenance de la tenue")}</Label>
           <Select
             value={makerKind}
             onValueChange={(v) => setMakerKind(v as InspirationMakerKind)}
-            items={INSPIRATION_MAKER_KIND_LABELS}
+            items={Object.fromEntries(Object.entries(INSPIRATION_MAKER_KIND_LABELS).map(([k, v]) => [k, t(v)]))}
           >
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -211,7 +212,7 @@ export function InspirationForm({
             <SelectContent>
               {INSPIRATION_MAKER_KINDS.map((k) => (
                 <SelectItem key={k} value={k}>
-                  {INSPIRATION_MAKER_KIND_LABELS[k]}
+                  {t(INSPIRATION_MAKER_KIND_LABELS[k])}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -221,50 +222,50 @@ export function InspirationForm({
 
       <div className="space-y-2">
         <Label htmlFor="insp-maker">
-          Qui l&apos;a réalisée / où l&apos;avez-vous eue ?{" "}
-          <span className="text-muted-foreground font-normal">(facultatif)</span>
+          {t("Qui l'a réalisée / où l'avez-vous eue ?")}{" "}
+          <span className="text-muted-foreground font-normal">({t("facultatif")})</span>
         </Label>
         <Input
           id="insp-maker"
           name="maker_name"
           maxLength={120}
-          placeholder={MAKER_NAME_PLACEHOLDER[makerKind]}
+          placeholder={t(MAKER_NAME_PLACEHOLDER[makerKind])}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="insp-caption">
-          Description{" "}
-          <span className="text-muted-foreground font-normal">(facultatif)</span>
+          {t("Description")}{" "}
+          <span className="text-muted-foreground font-normal">({t("facultatif")})</span>
         </Label>
         <Textarea
           id="insp-caption"
           name="caption"
           rows={3}
           maxLength={1000}
-          placeholder="Racontez cette tenue : l'occasion, la coupe, ce que vous aimez…"
+          placeholder={t("Racontez cette tenue : l'occasion, la coupe, ce que vous aimez…")}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="insp-fabric-note">
-            Où avez-vous acheté le tissu ?{" "}
-            <span className="text-muted-foreground font-normal">(facultatif)</span>
+            {t("Où avez-vous acheté le tissu ?")}{" "}
+            <span className="text-muted-foreground font-normal">({t("facultatif")})</span>
           </Label>
           <Input
             id="insp-fabric-note"
             name="fabric_note"
             maxLength={160}
-            placeholder="Ex. Marché HLM, Dakar"
+            placeholder={t("Ex. Marché HLM, Dakar")}
           />
         </div>
         {fabrics.length > 0 && (
           <div className="space-y-2">
             <Label>
-              Ou reliez un tissu du catalogue{" "}
+              {t("Ou reliez un tissu du catalogue")}{" "}
               <span className="text-muted-foreground font-normal">
-                (facultatif)
+                ({t("facultatif")})
               </span>
             </Label>
             <Select
@@ -276,7 +277,7 @@ export function InspirationForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucun</SelectItem>
+                <SelectItem value="">{t("Aucun")}</SelectItem>
                 {fabrics.map((f) => (
                   <SelectItem key={f.id} value={f.id}>
                     {f.name}
@@ -290,7 +291,7 @@ export function InspirationForm({
 
       <Button type="submit" disabled={isPending || photos.length === 0}>
         {isPending && <Loader2 className="size-4 animate-spin" />}
-        Publier ma tenue
+        {t("Publier ma tenue")}
       </Button>
     </form>
   );

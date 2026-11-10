@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Sparkles } from "lucide-react";
 
@@ -25,6 +25,7 @@ import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { DEDICATED_HREF } from "@/lib/garment-routes";
 import { getRelatedGarments } from "@/lib/related-models";
+import { getT, localizedPath } from "@/lib/i18n/server";
 
 // Page dédiée d'un modèle : le prendre tel quel (taille seulement) ou le personnaliser.
 export default async function ModelDetailPage({
@@ -36,6 +37,7 @@ export default async function ModelDetailPage({
 }) {
   const { id } = await params;
   const { type, fabric, tailor } = await searchParams;
+  const t = await getT();
 
   // Le segment d'URL peut être l'`id` UUID (cartes du catalogue) ou le `slug`
   // stable (tuiles de la home) — cf. `getModelByIdOrSlug`. C'est le `slug` du
@@ -46,7 +48,7 @@ export default async function ModelDetailPage({
   const model = await getModelByIdOrSlug(id);
   if (!model) notFound();
   if (model.slug && DEDICATED_HREF[model.slug]) {
-    redirect(`${DEDICATED_HREF[model.slug]}?type=${model.slug}`);
+    redirect(await localizedPath(`${DEDICATED_HREF[model.slug]}?type=${model.slug}`));
   }
 
   const [styles, fabrics, tailors] = await Promise.all([
@@ -109,7 +111,7 @@ export default async function ModelDetailPage({
         href="/modeles"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
       >
-        <ArrowLeft className="size-4" /> Retour aux modèles
+        <ArrowLeft className="size-4" /> {t("Retour aux modèles")}
       </Link>
 
       {/* `grid-cols-1` explicite : sans lui, la colonne (implicite, donc `auto`)
@@ -164,12 +166,12 @@ export default async function ModelDetailPage({
           {styles.length > 0 && (
             <div className="mt-6">
               <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-                <Sparkles className="text-primary size-4" /> Occasions
+                <Sparkles className="text-primary size-4" /> {t("Occasions")}
               </h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {styles.map((s) => (
                   <Badge key={s.slug} variant="secondary">
-                    {s.name}
+                    {t(s.name)}
                   </Badge>
                 ))}
               </div>

@@ -9,7 +9,7 @@ import { StyleIcon, type StyleIconName } from "@/components/order/style-icons";
  * le cadre, et les silhouettes des pièces qu'il sert s'y inscrivent l'une après
  * l'autre, chacune avec son métrage mesuré au ruban.
  *
- * Convention Remotion du projet (cf. home/remotion/atelier-film.tsx) : toute
+ * Convention Remotion du projet : toute
  * l'animation passe par `useCurrentFrame()` + `interpolate()` en style inline —
  * jamais de transition/animation CSS ni de classe d'animation Tailwind, qui ne
  * sont pas déterministes. Les actes restent montés et se fondent par opacité,

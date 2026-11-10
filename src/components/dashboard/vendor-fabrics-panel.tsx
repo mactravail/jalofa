@@ -26,6 +26,8 @@ import { deleteFabric, setFabricInStock } from "@/lib/actions/fabrics";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
+import { translateNow } from "@/lib/i18n/translate";
 
 // Selling cloth is the vendor's whole shop, but only a sideline for a tailor —
 // who lands here with nothing listed and no reason to guess why the panel is
@@ -64,9 +66,9 @@ export function VendorFabricsPanel({
     startStockChange(async () => {
       try {
         await setFabricInStock(fabric.id, next);
-        toast.success(next ? "Tissu disponible." : "Tissu marqué épuisé.");
+        toast.success(translateNow(next ? "Tissu disponible." : "Tissu marqué épuisé."));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur, réessayez.");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur, réessayez."));
       } finally {
         setStockChangingId(null);
       }
@@ -103,10 +105,10 @@ export function VendorFabricsPanel({
     startDelete(async () => {
       try {
         await deleteFabric(target.id);
-        toast.success("Tissu supprimé.");
+        toast.success(translateNow("Tissu supprimé."));
         setDeleteTarget(null);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur de suppression.");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur de suppression."));
       }
     });
   }
@@ -115,20 +117,20 @@ export function VendorFabricsPanel({
     <section>
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-muted-foreground text-sm">
-          {fabrics.length} tissu{fabrics.length > 1 ? "s" : ""} en boutique
+          <T vars={{ n: fabrics.length }}>{fabrics.length > 1 ? "{n} tissus en boutique" : "{n} tissu en boutique"}</T>
         </p>
         <Button
           size="sm"
           onClick={openNew}
           className="gap-1.5 bg-fuchsia-500 text-white hover:bg-fuchsia-600"
         >
-          <Plus className="size-4" /> Ajouter un tissu
+          <Plus className="size-4" /> <T>Ajouter un tissu</T>
         </Button>
       </div>
 
       {fabrics.length > 0 && (
         <p className="text-muted-foreground mb-3 text-sm">
-          Un tissu fini ? Touchez « Disponible » pour le marquer « Épuisé ».
+          <T>Un tissu fini ? Touchez « Disponible » pour le marquer « Épuisé ».</T>
         </p>
       )}
 
@@ -142,13 +144,13 @@ export function VendorFabricsPanel({
             <Layers className="size-7" />
           </span>
           <span className="mt-4 text-base font-semibold">
-            Ajoutez votre premier tissu
+            <T>Ajoutez votre premier tissu</T>
           </span>
           <span className="text-muted-foreground mt-1 max-w-md text-sm">
-            {copy.empty}
+            <T>{copy.empty}</T>
           </span>
           <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-semibold text-white">
-            <Plus className="size-4" /> Ajouter un tissu
+            <Plus className="size-4" /> <T>Ajouter un tissu</T>
           </span>
         </button>
       ) : (
@@ -173,7 +175,7 @@ export function VendorFabricsPanel({
                     <p className="truncate font-medium">{fabric.name}</p>
                     {!fabric.is_active && (
                       <Badge className="bg-muted text-muted-foreground border-0">
-                        Masqué
+                        <T>Masqué</T>
                       </Badge>
                     )}
                   </div>
@@ -187,7 +189,7 @@ export function VendorFabricsPanel({
                   <p className="text-sm font-medium">
                     {formatPrice(fabric.price_per_meter)}
                   </p>
-                  <p className="text-muted-foreground text-xs">le mètre</p>
+                  <p className="text-muted-foreground text-xs"><T>le mètre</T></p>
                 </div>
 
                 <Button
@@ -205,7 +207,7 @@ export function VendorFabricsPanel({
                   {stockChangingId === fabric.id && (
                     <Loader2 className="size-4 animate-spin" />
                   )}
-                  {available ? "Disponible" : "Épuisé"}
+                  <T>{available ? "Disponible" : "Épuisé"}</T>
                 </Button>
 
                 <DropdownMenu>
@@ -218,13 +220,13 @@ export function VendorFabricsPanel({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => openEdit(fabric)}>
-                      <Pencil className="size-4" /> Modifier
+                      <Pencil className="size-4" /> <T>Modifier</T>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
                       onClick={() => setDeleteTarget(fabric)}
                     >
-                      <Trash2 className="size-4" /> Supprimer
+                      <Trash2 className="size-4" /> <T>Supprimer</T>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -247,10 +249,9 @@ export function VendorFabricsPanel({
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Supprimer ce tissu ?</DialogTitle>
+            <DialogTitle><T>Supprimer ce tissu ?</T></DialogTitle>
             <DialogDescription>
-              {deleteTarget?.name} sera définitivement retiré de votre boutique.
-              Cette action est irréversible.
+              {deleteTarget?.name} <T>sera définitivement retiré de votre boutique. Cette action est irréversible.</T>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -259,7 +260,7 @@ export function VendorFabricsPanel({
               onClick={() => setDeleteTarget(null)}
               disabled={isDeleting}
             >
-              Annuler
+              <T>Annuler</T>
             </Button>
             <Button
               variant="destructive"
@@ -267,7 +268,7 @@ export function VendorFabricsPanel({
               disabled={isDeleting}
             >
               {isDeleting && <Loader2 className="size-4 animate-spin" />}
-              Supprimer
+              <T>Supprimer</T>
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,11 +1,12 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, modelPhotos } from "@/lib/constants";
-import { DEDICATED_HREF } from "@/lib/garment-routes";
+import { modelHref } from "@/lib/model-href";
 import type { GarmentModel } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -13,22 +14,10 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   difficile: "Avancé",
 };
 
-/**
- * `context` carries an in-progress order (type / fabric / tailor chosen before a
- * garment was) through to the detail page, which folds it back into the
- * configurator link.
- */
-export function modelHref(model: GarmentModel, context?: string): string {
-  // Un modèle qui a sa page dédiée y va directement : /modeles/[id] ne faisait
-  // que rediriger vers `?type=<slug>` (en perdant déjà le contexte), donc on
-  // économise l'aller-retour — et une route dynamique de moins à traverser.
-  const dedicated = model.slug ? DEDICATED_HREF[model.slug] : undefined;
-  return dedicated
-    ? `${dedicated}?type=${model.slug}`
-    : `/modeles/${model.id}${context ? `?${context}` : ""}`;
-}
+export { modelHref };
 
-export function ModelCard({ model, context }: { model: GarmentModel; context?: string }) {
+export async function ModelCard({ model, context }: { model: GarmentModel; context?: string }) {
+  const t = await getT();
   // Le vêtement seul en vitrine — la vue portée vient juste après, dans la
   // galerie de la fiche.
   const [cover] = modelPhotos(model);
@@ -53,14 +42,14 @@ export function ModelCard({ model, context }: { model: GarmentModel; context?: s
         <h3 className="line-clamp-1 font-medium">{model.name}</h3>
         {model.price != null && (
           <p className="text-primary mt-1 text-sm font-semibold">
-            À partir de {formatPrice(model.price)}
+            {t("À partir de {price}", { price: formatPrice(model.price) })}
           </p>
         )}
         <div className="text-muted-foreground mt-1.5 flex items-center gap-2 text-xs">
-          <Clock className="size-3.5" />~{model.avg_days} jours
+          <Clock className="size-3.5" />{t("~{n} jours", { n: model.avg_days })}
           {model.difficulty && (
             <Badge variant="outline" className="ml-auto text-[10px]">
-              {DIFFICULTY_LABEL[model.difficulty] ?? model.difficulty}
+              {t(DIFFICULTY_LABEL[model.difficulty] ?? model.difficulty)}
             </Badge>
           )}
         </div>

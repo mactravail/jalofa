@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
+import { FABRIC_SHIP_HOURS, PRO_RESPONSE_HOURS } from "@/lib/after-sale";
 import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   description: `Conditions générales d'utilisation de ${APP_NAME} : règles communes, conditions pour les clients et conditions pour les tailleurs et vendeurs.`,
 };
 
-const LAST_UPDATED = "9 novembre 2026";
+const LAST_UPDATED = "10 novembre 2026";
 
 type Clause = {
   title: string;
@@ -67,8 +68,8 @@ const PARTS: Part[] = [
         body: `Les paiements s'effectuent sur la plateforme par Orange Money, Wave, Free Money ou carte bancaire, en FCFA. Le client règle sa commande en une seule fois. La somme n'est pas versée immédiatement au professionnel : elle est d'abord conservée par ${APP_NAME} (voir l'article suivant). Les coordonnées bancaires complètes ne sont pas stockées par la plateforme.`,
       },
       {
-        title: "5. Fonds en attente : reversement 5 jours après la livraison",
-        body: `Pour protéger le client contre la fraude et lui laisser le temps de vérifier ce qu'il a reçu, la somme payée est conservée par ${APP_NAME} en fonds en attente. Elle est reversée au professionnel 5 jours après la confirmation de la livraison, à condition qu'aucune réclamation ne soit ouverte. Si une réclamation légitime est en cours, le reversement est suspendu jusqu'à sa résolution ; s'il est établi que le professionnel est en tort, la somme peut être remboursée au client au lieu d'être versée. Ce délai de 5 jours est une garantie pour le client comme pour le professionnel honnête.`,
+        title: "5. Fonds en attente : reversement 3 jours après la livraison",
+        body: `Pour protéger le client contre la fraude et lui laisser le temps de vérifier ce qu'il a reçu, la somme payée est conservée par ${APP_NAME} en fonds en attente. Elle est reversée au professionnel 3 jours après la confirmation de la livraison, à condition qu'aucune réclamation ne soit ouverte. Si une réclamation légitime est en cours, le reversement est suspendu jusqu'à sa résolution ; s'il est établi que le professionnel est en tort, la somme peut être remboursée au client au lieu d'être versée. Ce délai de 3 jours est une garantie pour le client comme pour le professionnel honnête.`,
       },
       {
         title: "6. Dire et faire seulement ce que l'on peut faire",
@@ -142,11 +143,11 @@ const PARTS: Part[] = [
       },
       {
         title: "A4. Délais de confection (12 jours maximum)",
-        body: "Le tailleur s'engage sur un délai, affiché avant votre paiement, qui ne peut dépasser 12 jours pour la confection (hors délai de livraison lié à votre ville). Vous suivez l'avancement de votre commande étape par étape depuis votre espace. Si le tailleur ne peut pas tenir ce délai, il doit refuser la commande dès le départ plutôt que de l'accepter et vous faire attendre.",
+        body: "Le tailleur s'engage sur un délai, affiché avant votre paiement, qui ne peut dépasser 12 jours pour la confection (hors délai de livraison lié à votre ville). Vous suivez l'avancement de votre commande étape par étape depuis votre espace. Si le tailleur ne peut pas tenir ce délai, il doit refuser la commande dès le départ plutôt que de l'accepter et vous faire attendre. Plus d'une semaine de retard sur la date promise : vous pouvez annuler la commande depuis votre espace, tant que l'habit n'est pas parti, et vous êtes remboursé en totalité.",
       },
       {
         title: "A5. Livraison et vérification à réception",
-        body: `${APP_NAME} ne livre pas et n'ajoute aucun frais de livraison à un achat direct. Pour chaque tissu et chaque modèle, le professionnel indique où la livraison est gratuite, et cette information vous est montrée avant de payer. Hors de cette zone, vous réglez directement le GP ou le livreur : ce paiement ne passe pas par ${APP_NAME}, qui n'en est pas responsable. À la réception, vérifiez que ce que vous recevez correspond bien à votre commande : le bon modèle, les bonnes finitions, et — pour un tissu — la bonne matière, la bonne couleur et le bon métrage. En cas de problème, ne tardez pas : ouvrez une réclamation pendant le délai de fonds en attente de 5 jours.`,
+        body: `${APP_NAME} ne livre pas et n'ajoute aucun frais de livraison à un achat direct. Pour chaque tissu et chaque modèle, le professionnel indique où la livraison est gratuite, et cette information vous est montrée avant de payer. Hors de cette zone, vous réglez directement le GP ou le livreur : ce paiement ne passe pas par ${APP_NAME}, qui n'en est pas responsable. À la réception, vérifiez que ce que vous recevez correspond bien à votre commande : le bon modèle, les bonnes finitions, et — pour un tissu — la bonne matière, la bonne couleur et le bon métrage. En cas de problème, ne tardez pas : ouvrez une réclamation pendant le délai de fonds en attente de 3 jours.`,
       },
       {
         title: "A6. Votre droit de réclamation et de remboursement",
@@ -155,7 +156,7 @@ const PARTS: Part[] = [
           "le tailleur a menti sur ce qu'il savait faire (il a accepté un modèle qu'il ne maîtrise pas et l'a raté) ;",
           "on vous livre autre chose que ce que vous avez commandé (modèle, coupe, couleur ou finitions différents) ;",
           "la confection présente un défaut avéré ou n'est pas conforme aux mesures fournies ;",
-          "la commande n'est jamais livrée, ou l'est très au-delà du délai annoncé.",
+          "la commande n'est jamais livrée, ou a plus d'une semaine de retard sur le délai annoncé (voir A4).",
         ],
       },
       {
@@ -164,7 +165,7 @@ const PARTS: Part[] = [
       },
       {
         title: "A8. Comment faire une réclamation",
-        body: `Ouvrez la réclamation depuis la commande concernée, dans votre espace, pendant le délai de fonds en attente de 5 jours suivant la livraison. Décrivez le problème et joignez des photos si possible. Ces preuves permettent à ${APP_NAME} d'examiner votre dossier, d'entendre le professionnel et de trancher rapidement.`,
+        body: `Ouvrez la réclamation depuis la commande concernée, dans votre espace, pendant le délai de fonds en attente de 3 jours suivant la livraison. Décrivez le problème et joignez des photos si possible. Ces preuves permettent à ${APP_NAME} d'examiner votre dossier, d'entendre le professionnel et de trancher rapidement.`,
       },
       {
         title: "A9. Remboursements",
@@ -210,7 +211,9 @@ const PARTS: Part[] = [
         list: [
           "ne proposer et n'accepter que ce que vous savez réellement réaliser ou fournir ;",
           "afficher des prix clairs et complets, sans frais caché ;",
-          "respecter le délai que vous annoncez, dans la limite de 12 jours pour la confection ;",
+          `répondre à chaque nouvelle commande ou demande de devis sous ${PRO_RESPONSE_HOURS} h (accepter ou refuser) ;`,
+          `vendeurs : expédier le tissu sous ${FABRIC_SHIP_HOURS} h après le paiement ;`,
+          "respecter le délai que vous annoncez, dans la limite de 12 jours pour la confection : au-delà d'une semaine de retard, le client peut annuler et il est remboursé ;",
           "décrire vos tissus et vos modèles avec exactitude ;",
           "communiquer avec vos clients et honorer les commandes acceptées ;",
           `n'exiger aucun paiement en dehors de ${APP_NAME} ;`,
@@ -234,8 +237,8 @@ const PARTS: Part[] = [
         body: "La fiche d'un tissu doit être exacte : matière et composition, couleur, motif, largeur, métrage/longueur, qualité et prix. Un tissu décrit avec des informations fausses peut être retourné par le client, à vos frais, et constitue un manquement. Photographiez et décrivez vos tissus tels qu'ils sont réellement.",
       },
       {
-        title: "B8. Encaissement : reversement 5 jours après la livraison",
-        body: `L'argent d'une commande ne vous est pas versé immédiatement. ${APP_NAME} le conserve en fonds en attente, puis vous le reverse 5 jours après la confirmation de livraison, en l'absence de réclamation. Ce délai protège les clients contre la fraude et vous protège, vous, contre les contestations : une commande honnête et livrée conforme est payée sans encombre. Si une réclamation fondée aboutit, la somme peut être remboursée au client plutôt que versée.`,
+        title: "B8. Encaissement : reversement 3 jours après la livraison",
+        body: `L'argent d'une commande ne vous est pas versé immédiatement. ${APP_NAME} le conserve en fonds en attente, puis vous le reverse 3 jours après la confirmation de livraison, en l'absence de réclamation. Ce délai protège les clients contre la fraude et vous protège, vous, contre les contestations : une commande honnête et livrée conforme est payée sans encombre. Si une réclamation fondée aboutit, la somme peut être remboursée au client plutôt que versée.`,
       },
       {
         title: "B9. Barème des sanctions",

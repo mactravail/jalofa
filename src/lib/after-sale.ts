@@ -12,7 +12,7 @@ import type { OrderStatus, OrderType } from "@/lib/constants";
  *   `RECEIPT_CONFIRM_HOURS`, le tissu est considéré comme reçu.
  */
 export const CANCEL_WINDOW_HOURS = 24;
-export const RETURN_WINDOW_DAYS = 7;
+export const RETURN_WINDOW_DAYS = 3;
 export const RECEIPT_CONFIRM_HOURS = 48;
 
 /**
@@ -21,6 +21,26 @@ export const RECEIPT_CONFIRM_HOURS = 48;
  * problème à JALOFA.
  */
 export const PAYOUT_DELAY_HOURS = 72;
+
+// Les délais choisis d'après le marché (2026-11-10). Tous tiennent dans la même
+// logique : le retour d'un tissu (3 j) et le signalement d'un problème (3 j) se
+// ferment au moment où le pro est payé (72 h). Ainsi, JALOFA n'a jamais à
+// reprendre de l'argent déjà versé.
+//
+// Engagements du pro, écrits dans /conditions (B3). Pas encore de relance ni
+// d'annulation automatique : c'est une règle, pas un minuteur.
+/** Accepter ou refuser une nouvelle commande ou un devis (standard des places de marché : 24 h). */
+export const PRO_RESPONSE_HOURS = 24;
+/** Le vendeur expédie le tissu après le paiement (standard e-commerce : 1 à 2 jours). */
+export const FABRIC_SHIP_HOURS = 48;
+
+/** Plafond de confection écrit dans /conditions (A4, B5). */
+export const MAX_MAKING_DAYS = 12;
+/**
+ * Plus d'une semaine de retard sur la date promise : le client peut annuler et
+ * être remboursé, quel que soit l'avancement, tant que l'habit n'est pas parti.
+ */
+export const LATE_CANCEL_GRACE_DAYS = 7;
 
 // --- « La tenue vous va ? » ------------------------------------------------
 
@@ -73,6 +93,8 @@ type AfterSaleOrder = {
   payment_status: string;
   is_quote: boolean;
   created_at: string;
+  /** Délai donné par le tailleur sur un devis ; sinon le plafond de 12 jours. */
+  quote_ready_days?: number | null;
   fabric_return?: { status: string } | null;
   alterations?: { status: string }[] | null;
 };
@@ -108,6 +130,33 @@ export function canCancelOrder(
   if (!["received", "accepted", "fabric_prepared"].includes(order.status)) return false;
   const deadline = cancelDeadline(order, history);
   return deadline !== null && now <= deadline;
+}
+
+/**
+ * La date où l'habit devait être prêt : à partir de l'acceptation par le
+ * tailleur (ou du paiement), plus le délai du devis, sinon 12 jours.
+ */
+export function promisedReadyAt(order: AfterSaleOrder, history: HistoryRow[]): number | null {
+  if (order.type === "fabric_only" || order.payment_status !== "paid") return null;
+  const start = statusTime(history, "accepted") ?? new Date(order.created_at).getTime();
+  return start + (order.quote_ready_days ?? MAX_MAKING_DAYS) * 24 * HOUR_MS;
+}
+
+/** À partir de quand le retard permet d'annuler, en millisecondes. */
+export function lateCancelFrom(order: AfterSaleOrder, history: HistoryRow[]): number | null {
+  const promised = promisedReadyAt(order, history);
+  return promised === null ? null : promised + LATE_CANCEL_GRACE_DAYS * 24 * HOUR_MS;
+}
+
+/** Plus d'une semaine de retard, habit pas encore parti : annulation remboursée. */
+export function canCancelForLateness(
+  order: AfterSaleOrder,
+  history: HistoryRow[],
+  now: number = Date.now(),
+): boolean {
+  if (["shipped", "delivered", "cancelled", "rejected"].includes(order.status)) return false;
+  const from = lateCancelFrom(order, history);
+  return from !== null && now >= from;
 }
 
 /** Fin du délai de retour d'un tissu reçu, en millisecondes. */
@@ -148,8 +197,8 @@ export function whatsappHref(phone: string | null | undefined, message: string):
 }
 
 /** Date lue à l'heure du Sénégal, où que tourne le serveur. */
-export function formatDeadline(ms: number): string {
-  return new Date(ms).toLocaleString("fr-FR", {
+export function formatDeadline(ms: number, locale = "fr-FR"): string {
+  return new Date(ms).toLocaleString(locale, {
     day: "numeric",
     month: "long",
     hour: "2-digit",

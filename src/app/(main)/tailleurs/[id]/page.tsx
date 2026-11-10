@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, MapPin, Scissors, Star } from "lucide-react";
 
@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/constants";
 import { getModelsByTailor, getTailorById, getTailorReviews } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
 export default async function TailorProfilePage({
   params,
@@ -28,6 +29,7 @@ export default async function TailorProfilePage({
   const tailor = await getTailorById(id);
   // Un tailleur suspendu par la plateforme n'a plus de fiche publique.
   if (!tailor || tailor.is_suspended) notFound();
+  const t = await getT();
 
   const [reviews, models] = await Promise.all([
     getTailorReviews(id),
@@ -41,7 +43,7 @@ export default async function TailorProfilePage({
         href="/tailleurs"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
       >
-        <ArrowLeft className="size-4" /> Retour aux tailleurs
+        <ArrowLeft className="size-4" /> {t("Retour aux tailleurs")}
       </Link>
 
       <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
@@ -49,7 +51,7 @@ export default async function TailorProfilePage({
           {tailor.cover_url ? (
             <Image
               src={tailor.cover_url}
-              alt={tailor.shop_name ?? "Tailleur"}
+              alt={tailor.shop_name ?? t("Tailleur")}
               fill
               sizes="144px"
               className="object-cover"
@@ -77,7 +79,7 @@ export default async function TailorProfilePage({
                 <span className="text-foreground font-medium">
                   {tailor.rating.toFixed(1)}
                 </span>
-                ({tailor.rating_count} avis)
+                ({t("{n} avis", { n: tailor.rating_count })})
               </span>
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" /> {tailor.city}
@@ -88,7 +90,7 @@ export default async function TailorProfilePage({
             href={`/modeles?tailor=${tailor.id}`}
             className={cn(buttonVariants({ size: "lg" }), "h-11 text-base")}
           >
-            <Scissors className="size-4" /> Commander chez ce tailleur
+            <Scissors className="size-4" /> {t("Commander chez ce tailleur")}
           </Link>
         </div>
       </div>
@@ -111,11 +113,11 @@ export default async function TailorProfilePage({
               <Scissors className="size-5" />
             </span>
             <div>
-              <p className="text-muted-foreground text-xs">Prix de confection</p>
+              <p className="text-muted-foreground text-xs">{t("Prix de confection")}</p>
               {/* Prix « à partir de » : tarif de départ. Une tenue personnalisée
                   est chiffrée par devis. */}
               <p className="font-semibold">
-                À partir de {formatPrice(tailor.base_price)}
+                {t("À partir de {price}", { price: formatPrice(tailor.base_price) })}
               </p>
             </div>
           </CardContent>
@@ -126,8 +128,8 @@ export default async function TailorProfilePage({
               <Clock className="size-5" />
             </span>
             <div>
-              <p className="text-muted-foreground text-xs">Délai moyen</p>
-              <p className="font-semibold">{tailor.avg_delivery_days} jours</p>
+              <p className="text-muted-foreground text-xs">{t("Délai moyen")}</p>
+              <p className="font-semibold">{t("{n} jours", { n: tailor.avg_delivery_days })}</p>
             </div>
           </CardContent>
         </Card>
@@ -137,14 +139,13 @@ export default async function TailorProfilePage({
         <div className="flex items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold tracking-tight">
-              Créations de l&apos;atelier
+              {t("Créations de l'atelier")}
               <span className="text-muted-foreground ml-2 text-base font-normal">
                 ({models.length})
               </span>
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Les modèles proposés par ce tailleur. Choisissez-en un pour le
-              commander directement chez lui.
+              {t("Les modèles proposés par ce tailleur. Choisissez-en un pour le commander directement chez lui.")}
             </p>
           </div>
         </div>
@@ -152,14 +153,13 @@ export default async function TailorProfilePage({
         {models.length === 0 ? (
           <div className="mt-4 rounded-xl border border-dashed p-10 text-center">
             <p className="text-muted-foreground text-sm">
-              Ce tailleur n&apos;a pas encore publié de modèle. Vous pouvez tout
-              de même lui confier une commande sur mesure.
+              {t("Ce tailleur n'a pas encore publié de modèle. Vous pouvez tout de même lui confier une commande sur mesure.")}
             </p>
             <Link
               href={`/modeles?tailor=${tailor.id}`}
               className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
             >
-              <Scissors className="size-4" /> Commander sur mesure
+              <Scissors className="size-4" /> {t("Commander sur mesure")}
             </Link>
           </div>
         ) : (
@@ -174,7 +174,7 @@ export default async function TailorProfilePage({
       <section id="avis" className="mt-12">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">
-            Avis clients
+            {t("Avis clients")}
             <span className="text-muted-foreground ml-2 text-base font-normal">
               ({tailor.rating_count})
             </span>
@@ -187,8 +187,7 @@ export default async function TailorProfilePage({
 
         {reviews.length === 0 ? (
           <p className="text-muted-foreground mt-4 text-sm">
-            Aucun avis pour le moment. Soyez le premier à partager votre
-            expérience.
+            {t("Aucun avis pour le moment. Soyez le premier à partager votre expérience.")}
           </p>
         ) : (
           <ReviewList reviews={reviews} />

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { PasswordField } from "@/components/auth/password-field";
 import { TermsCheckbox } from "@/components/auth/signup-verification";
@@ -13,9 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { MEASUREMENT_FIELDS, formatPrice } from "@/lib/constants";
 import { bodyTypeLabel, heightBandLabel } from "@/lib/body-types";
 import { styleDetailSummary } from "@/lib/style-options";
+import { useT } from "@/components/i18n/locale-provider";
 
 export default function ReviewStep() {
   const { data, state, update, model, fabric, tailor, price } = useConfigurator();
+  const t = useT();
 
   const styleName = data.styles.find((s) => s.slug === state.styleSlug)?.name ?? null;
   const isFabricOnly = state.type === "fabric_only";
@@ -32,39 +34,39 @@ export default function ReviewStep() {
     isFabricOnly
       ? null
       : state.measurementMode === "standard"
-        ? `Taille ${state.standardSize}`
+        ? t("Taille {size}", { size: state.standardSize ?? "" })
         : (() => {
             const filled = MEASUREMENT_FIELDS.filter((f) => state.manual[f.key]?.trim());
             return filled.length
-              ? filled.map((f) => `${f.label} ${state.manual[f.key]} cm`).join(" · ")
-              : "Mesures détaillées";
+              ? filled.map((f) => `${t(f.label)} ${state.manual[f.key]} cm`).join(" · ")
+              : t("Mesures détaillées");
           })();
 
   const rows: { label: string; value: string | null; photo?: string }[] = [
-    { label: "Modèle", value: model?.name ?? null },
-    { label: "Occasion", value: styleName },
+    { label: t("Modèle"), value: model?.name ?? null },
+    { label: t("Occasion"), value: styleName ? t(styleName) : null },
     ...personalisation.map((d) => ({
-      label: d.group,
-      value: d.option,
+      label: t(d.group),
+      value: t(d.option),
       // Un modèle de tailleur : on revoit la vraie photo de chaque choix.
       photo: model?.tailor_id ? d.photo : undefined,
     })),
-    { label: "Silhouette", value: isFabricOnly ? null : bodyTypeLabel(state.bodyType) },
+    { label: t("Silhouette"), value: isFabricOnly ? null : (bodyTypeLabel(state.bodyType) && t(bodyTypeLabel(state.bodyType)!)) },
     {
-      label: "Taille estimée",
-      value: isFabricOnly ? null : heightBandLabel(model?.category_slug, state.heightBand),
+      label: t("Taille estimée"),
+      value: isFabricOnly ? null : (heightBandLabel(model?.category_slug, state.heightBand) && t(heightBandLabel(model?.category_slug, state.heightBand)!)),
     },
     {
-      label: "Tissu",
+      label: t("Tissu"),
       value:
         state.type === "own_fabric"
-          ? "Tissu personnel"
+          ? t("Tissu personnel")
           : fabric
             ? `${fabric.name} · ${state.fabricMeters} m`
             : null,
     },
-    { label: "Tailleur", value: tailor?.shop_name ?? null },
-    { label: "Mesures", value: measurementSummary },
+    { label: t("Tailleur"), value: tailor?.shop_name ?? null },
+    { label: t("Mesures"), value: measurementSummary },
   ].filter((r) => r.value !== null);
 
   return (
@@ -85,7 +87,7 @@ export default function ReviewStep() {
         ))}
         <div className="bg-muted/40 flex items-center justify-between gap-4 px-4 py-3">
           <dt className="text-sm font-semibold">
-            {isFabricOnly ? "Sous-total" : "À partir de"}
+            {isFabricOnly ? t("Sous-total") : t("À partir de")}
           </dt>
           <dd className="text-primary text-right text-base font-bold">
             {formatPrice(price.total)}
@@ -95,48 +97,46 @@ export default function ReviewStep() {
 
       {!isFabricOnly && (
         <p className="text-muted-foreground -mt-3 text-xs">
-          Prix indicatif : en personnalisant, vous demandez un devis. Le tailleur
-          vous répondra avec le prix final.
+          {t("Prix indicatif : en personnalisant, vous demandez un devis. Le tailleur vous répondra avec le prix final.")}
         </p>
       )}
 
       {state.type === "full" && fabric?.vendor_id && tailor && fabric.vendor_id !== tailor.id && (
         <p className="bg-muted/50 rounded-lg p-3 text-sm">
-          Ce tissu sera envoyé directement à l&apos;atelier du tailleur. Vous serez
-          prévenu quand il l&apos;aura reçu.
+          {t("Ce tissu sera envoyé directement à l'atelier du tailleur. Vous serez prévenu quand il l'aura reçu.")}
         </p>
       )}
 
       {!isFabricOnly && (
         <section className="space-y-3 rounded-xl border p-4">
           <div>
-            <h3 className="text-sm font-semibold">Où livrer votre tenue ?</h3>
+            <h3 className="text-sm font-semibold">{t("Où livrer votre tenue ?")}</h3>
             <p className="text-muted-foreground text-xs">
-              Le tailleur voit cette adresse pour le prix de la livraison, sans votre nom.
+              {t("Le tailleur voit cette adresse pour le prix de la livraison, sans votre nom.")}
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="delivery-address">Adresse</Label>
+            <Label htmlFor="delivery-address">{t("Adresse")}</Label>
             <Input
               id="delivery-address"
               autoComplete="street-address"
               value={state.deliveryAddress}
               onChange={(e) => update({ deliveryAddress: e.target.value })}
-              placeholder="Quartier, rue, repère"
+              placeholder={t("Quartier, rue, repère")}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="delivery-city">Ville</Label>
+            <Label htmlFor="delivery-city">{t("Ville")}</Label>
             <Input
               id="delivery-city"
               autoComplete="address-level2"
               value={state.deliveryCity}
               onChange={(e) => update({ deliveryCity: e.target.value })}
-              placeholder="Ex. Dakar"
+              placeholder={t("Ex. Dakar")}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="delivery-country">Pays</Label>
+            <Label htmlFor="delivery-country">{t("Pays")}</Label>
             <Input
               id="delivery-country"
               autoComplete="country-name"
@@ -153,14 +153,13 @@ export default function ReviewStep() {
       {!isFabricOnly && data.contactMode && (
         <section className="space-y-3 rounded-xl border p-4">
           <div>
-            <h3 className="text-sm font-semibold">Vos coordonnées</h3>
+            <h3 className="text-sm font-semibold">{t("Vos coordonnées")}</h3>
             <p className="text-muted-foreground text-xs">
-              Le tailleur ne reçoit votre nom, votre téléphone et votre e-mail que si
-              vous payez, pour vous livrer.
+              {t("Le tailleur ne reçoit votre nom, votre téléphone et votre e-mail que si vous payez, pour vous livrer.")}
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="contact-name">Nom complet</Label>
+            <Label htmlFor="contact-name">{t("Nom complet")}</Label>
             <Input
               id="contact-name"
               autoComplete="name"
@@ -170,7 +169,7 @@ export default function ReviewStep() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="contact-phone">Téléphone (WhatsApp)</Label>
+            <Label htmlFor="contact-phone">{t("Téléphone (WhatsApp)")}</Label>
             <Input
               id="contact-phone"
               type="tel"
@@ -184,59 +183,58 @@ export default function ReviewStep() {
           {data.contactMode === "account" && (
             <>
               <div className="space-y-1.5">
-                <Label htmlFor="contact-email">E-mail</Label>
+                <Label htmlFor="contact-email">{t("E-mail")}</Label>
                 <Input
                   id="contact-email"
                   type="email"
                   autoComplete="email"
                   value={state.contactEmail}
                   onChange={(e) => update({ contactEmail: e.target.value })}
-                  placeholder="vous@exemple.com"
+                  placeholder={t("vous@exemple.com")}
                 />
               </div>
               <PasswordField
                 value={state.contactPassword}
                 onChange={(v) => update({ contactPassword: v })}
-                label="Mot de passe"
+                label={t("Mot de passe")}
               />
               <div className="space-y-1.5">
                 <PasswordField
                   value={state.contactPasswordConfirm}
                   onChange={(v) => update({ contactPasswordConfirm: v })}
                   name="password_confirm"
-                  label="Répétez le mot de passe"
+                  label={t("Répétez le mot de passe")}
                   requirements={false}
                 />
                 {passwordsDiffer && (
                   <p className="text-destructive text-xs">
-                    Les deux mots de passe ne sont pas identiques.
+                    {t("Les deux mots de passe ne sont pas identiques.")}
                   </p>
                 )}
               </div>
               <p className="bg-muted/50 rounded-lg p-3 text-sm font-medium">
-                Gardez bien cet e-mail et ce mot de passe : ils vous serviront à vous
-                connecter pour voir le devis du tailleur.
+                {t("Gardez bien cet e-mail et ce mot de passe : ils vous serviront à vous connecter pour voir le devis du tailleur.")}
               </p>
               <TermsCheckbox
                 checked={state.contactAcceptTerms}
                 onChange={(v) => update({ contactAcceptTerms: v })}
               >
                 <span className="text-xs">
-                  J&apos;accepte les{" "}
+                  {t("J'accepte les")}{" "}
                   <Link
                     href="/conditions"
                     target="_blank"
                     className="text-foreground underline underline-offset-4"
                   >
-                    conditions d&apos;utilisation
+                    {t("conditions d'utilisation")}
                   </Link>{" "}
-                  et la{" "}
+                  {t("et la")}{" "}
                   <Link
                     href="/confidentialite"
                     target="_blank"
                     className="text-foreground underline underline-offset-4"
                   >
-                    politique de confidentialité
+                    {t("politique de confidentialité")}
                   </Link>
                   .
                 </span>
@@ -248,7 +246,7 @@ export default function ReviewStep() {
 
       <div className="space-y-2">
         <Label htmlFor="notes">
-          {isFabricOnly ? "Note pour le vendeur (facultatif)" : "Note pour le tailleur (facultatif)"}
+          {isFabricOnly ? t("Note pour le vendeur (facultatif)") : t("Note pour le tailleur (facultatif)")}
         </Label>
         <Textarea
           id="notes"
@@ -256,12 +254,12 @@ export default function ReviewStep() {
           onChange={(e) => update({ notes: e.target.value })}
           placeholder={
             isFabricOnly
-              ? "Précisions sur la quantité, la découpe, la date souhaitée..."
-              : "Précisions sur le style, les finitions, la date souhaitée..."
+              ? t("Précisions sur la quantité, la découpe, la date souhaitée...")
+              : t("Précisions sur le style, les finitions, la date souhaitée...")
           }
         />
         <p className="text-muted-foreground text-xs">
-          Ne mettez pas votre numéro ni votre e-mail : ils seront masqués.
+          {t("Ne mettez pas votre numéro ni votre e-mail : ils seront masqués.")}
         </p>
       </div>
 
@@ -276,14 +274,11 @@ export default function ReviewStep() {
       <p className="text-muted-foreground text-sm">
         {isFabricOnly ? (
           <>
-            Ajoutez ce tissu au panier. La livraison et le paiement seront choisis
-            à la caisse, pour l&apos;ensemble de votre commande.
+            {t("Ajoutez ce tissu au panier. La livraison et le paiement seront choisis à la caisse, pour l'ensemble de votre commande.")}
           </>
         ) : (
           <>
-            Envoyez votre demande de devis : gratuit et sans engagement. Le
-            tailleur vous répondra avec le prix final, puis vous accepterez et
-            paierez.
+            {t("Envoyez votre demande de devis : gratuit et sans engagement. Le tailleur vous répondra avec le prix final, puis vous accepterez et paierez.")}
           </>
         )}
       </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useMemo, useState } from "react";
 import { ShoppingBag, Truck, Wand2 } from "lucide-react";
 
@@ -12,6 +12,7 @@ import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { buildGenericAsIsPreset } from "@/lib/garment-preset";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 type Mode = "as_is" | "custom";
 
@@ -59,6 +60,7 @@ export function GarmentBuyBox({
   offer?: TailorOffer;
 }) {
   const router = useRouter();
+  const t = useT();
   // Un tissu épuisé n'est jamais proposé.
   const fabrics = allFabrics.filter(isFabricAvailable);
   const tailorFabrics = offer?.tailorFabrics.filter(isFabricAvailable) ?? [];
@@ -122,14 +124,14 @@ export function GarmentBuyBox({
   };
 
   const options: { key: Mode; label: string; hint: string }[] = [
-    { key: "as_is", label: "Tel quel", hint: "Juste votre taille" },
-    { key: "custom", label: "Sur mesure", hint: "Votre tissu, votre style" },
+    { key: "as_is", label: t("Tel quel"), hint: t("Juste votre taille") },
+    { key: "custom", label: t("Sur mesure"), hint: t("Votre tissu, votre style") },
   ];
 
   const customGroups = offer
     ? [
-        { label: `Tissus de ${offer.tailor.shop_name ?? "l'atelier"}`, fabrics: tailorFabrics },
-        { label: "Autres vendeurs", fabrics: otherFabrics },
+        { label: t("Tissus de {name}", { name: offer.tailor.shop_name ?? t("l'atelier") }), fabrics: tailorFabrics },
+        { label: t("Autres vendeurs"), fabrics: otherFabrics },
       ]
     : undefined;
 
@@ -137,7 +139,7 @@ export function GarmentBuyBox({
     <div className="bg-card rounded-2xl border p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-muted-foreground text-sm">
-          {mode === "as_is" ? "Prix" : "À partir de"}
+          {mode === "as_is" ? t("Prix") : t("À partir de")}
         </span>
         <span className="text-primary text-xl font-bold whitespace-nowrap">
           {formatPrice(shownPreset.total)}
@@ -146,7 +148,7 @@ export function GarmentBuyBox({
 
       {/* Comment le voulez-vous ? — un choix, pas un second bouton d'achat. */}
       {canAsIs && (
-        <div role="radiogroup" aria-label="Comment le voulez-vous ?" className="mt-4 grid grid-cols-2 gap-2">
+        <div role="radiogroup" aria-label={t("Comment le voulez-vous ?")} className="mt-4 grid grid-cols-2 gap-2">
           {options.map((o) => {
             const active = mode === o.key;
             return (
@@ -186,9 +188,12 @@ export function GarmentBuyBox({
               onChange={setSize}
               note={
                 offer
-                  ? "Le modèle présenté, ajusté à votre taille."
-                  : (preset.note ??
-                    `Le modèle présenté${presentedIn ? `, en ${presentedIn}` : ""}, ajusté à votre taille.`)
+                  ? t("Le modèle présenté, ajusté à votre taille.")
+                  : preset.note
+                    ? t(preset.note)
+                    : presentedIn
+                      ? t("Le modèle présenté, en {fabric}, ajusté à votre taille.", { fabric: presentedIn })
+                      : t("Le modèle présenté, ajusté à votre taille.")
               }
             />
           </>
@@ -203,12 +208,11 @@ export function GarmentBuyBox({
             {fabricGoesToAtelier && (
               <p className="bg-muted/50 mt-3 flex items-start gap-2 rounded-lg p-2.5 text-sm">
                 <Truck className="text-primary mt-0.5 size-4 shrink-0" />
-                Ce tissu sera envoyé directement à l&apos;atelier du tailleur.
+                {t("Ce tissu sera envoyé directement à l'atelier du tailleur.")}
               </p>
             )}
             <p className="text-muted-foreground mt-3 text-xs">
-              Ensuite : le style, le tailleur et vos mesures. Vous recevez un devis
-              gratuit, sans engagement.
+              {t("Ensuite : le style, le tailleur et vos mesures. Vous recevez un devis gratuit, sans engagement.")}
             </p>
           </>
         )}
@@ -217,16 +221,16 @@ export function GarmentBuyBox({
       <Button size="lg" className="mt-5 h-12 w-full text-base" onClick={onCta}>
         {mode === "as_is" ? (
           <>
-            <ShoppingBag className="size-4" /> Ajouter au panier
+            <ShoppingBag className="size-4" /> {t("Ajouter au panier")}
           </>
         ) : (
           <>
-            <Wand2 className="size-4" /> Personnaliser
+            <Wand2 className="size-4" /> {t("Personnaliser")}
           </>
         )}
       </Button>
       <p className="text-muted-foreground mt-2 text-center text-xs">
-        Pas besoin de créer un compte
+        {t("Pas besoin de créer un compte")}
       </p>
     </div>
   );

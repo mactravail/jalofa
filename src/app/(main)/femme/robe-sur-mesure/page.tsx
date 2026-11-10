@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
@@ -24,12 +24,17 @@ import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-p
 import { ROBE_TYPES } from "@/lib/garment-routes";
 import { getRelatedGarments } from "@/lib/related-models";
 import type { GarmentModel, Tailor } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Robe sur mesure",
-  description:
-    "La robe sur mesure, dans ses différents types — Robe, Grande Robe, Robe de Soirée, Boubou Femme... Prenez-la telle qu'elle est présentée ou personnalisez chaque détail.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Robe sur mesure"),
+    description: t(
+      "La robe sur mesure, dans ses différents types — Robe, Grande Robe, Robe de Soirée, Boubou Femme... Prenez-la telle qu'elle est présentée ou personnalisez chaque détail.",
+    ),
+  };
+}
 
 // Page d'accueil de TOUTE la famille « robe » — /modeles/[id] y redirige
 // chacun de ses membres (cf. garment-routes.ts). On choisit le type en haut
@@ -45,6 +50,7 @@ export default async function RobePage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const { type } = await searchParams;
+  const t = await getT();
   const selectedSlug = type && ROBE_TYPES.includes(type) ? type : ROBE_TYPES[0];
 
   const [fabrics, tailors, familyModelsRaw] = await Promise.all([
@@ -112,12 +118,12 @@ export default async function RobePage({
         href="/"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
       >
-        <ArrowLeft className="size-4" /> Retour à l&apos;accueil
+        <ArrowLeft className="size-4" /> {t("Retour à l'accueil")}
       </Link>
 
       <GarmentTypeSwitcher
         basePath="/femme/robe-sur-mesure"
-        label="Choisissez le type de robe"
+        label={t("Choisissez le type de robe")}
         types={switcherTypes}
         activeId={model.slug ?? model.id}
       />

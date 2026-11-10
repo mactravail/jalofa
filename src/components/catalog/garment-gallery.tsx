@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Scissors } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Galerie d'un vêtement : le vêtement seul, puis porté (devant, dos), puis les
@@ -32,6 +33,7 @@ export function GarmentGallery({
   className?: string;
   stageClassName?: string;
 }) {
+  const t = useT();
   const trackRef = useRef<HTMLDivElement>(null);
   const indexRef = useRef(0);
   const [index, setIndex] = useState(0);
@@ -97,7 +99,7 @@ export function GarmentGallery({
           }}
           tabIndex={0}
           role="group"
-          aria-roledescription="carrousel"
+          aria-roledescription={t("carrousel")}
           aria-label={`Photos — ${alt}`}
           className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-2xl outline-none [-ms-overflow-style:none] [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-scrollbar]:hidden"
         >
@@ -105,7 +107,7 @@ export function GarmentGallery({
             <div key={photo} className="relative h-full w-full shrink-0 snap-center">
               <Image
                 src={photo}
-                alt={`${alt} — vue ${i + 1} sur ${photos.length}`}
+                alt={`${alt} — ${t("vue {i} sur {n}", { i: i + 1, n: photos.length })}`}
                 fill
                 sizes={sizes}
                 preload={priority && i === 0}
@@ -137,7 +139,7 @@ export function GarmentGallery({
               key={photo}
               type="button"
               onClick={() => goTo(i)}
-              aria-label={`Voir la vue ${i + 1}`}
+              aria-label={t("Voir la vue {i}", { i: i + 1 })}
               aria-current={i === index}
               className={cn(
                 "bg-background relative size-12 shrink-0 overflow-hidden rounded-lg border transition-colors",
@@ -162,13 +164,14 @@ function Arrow({
   onClick: () => void;
   disabled: boolean;
 }) {
+  const t = useT();
   const Icon = side === "left" ? ChevronLeft : ChevronRight;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={side === "left" ? "Photo précédente" : "Photo suivante"}
+      aria-label={side === "left" ? t("Photo précédente") : t("Photo suivante")}
       className={cn(
         "bg-background/90 hover:bg-background absolute top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-sm transition-opacity disabled:pointer-events-none disabled:opacity-0",
         side === "left" ? "left-2" : "right-2",

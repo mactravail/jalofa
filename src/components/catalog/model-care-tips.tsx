@@ -1,5 +1,6 @@
 import { Lightbulb } from "lucide-react";
 
+import { T } from "@/components/i18n/t";
 import { careTipLines } from "@/lib/model-style";
 
 /** Les recommandations du tailleur : lavage, entretien, choses à éviter. */
@@ -17,7 +18,7 @@ export function ModelCareTips({
     <section className={className}>
       <h3 className="flex items-center gap-2 text-base font-semibold tracking-tight">
         <Lightbulb className="text-primary size-4 shrink-0" />
-        Les conseils du tailleur
+        <T>Les conseils du tailleur</T>
       </h3>
       <ul className="mt-2 space-y-1.5 text-sm">
         {lines.map((line, i) => (

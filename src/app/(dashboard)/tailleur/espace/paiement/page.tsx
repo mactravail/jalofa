@@ -3,8 +3,12 @@ import type { Metadata } from "next";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { PayoutMethodForm } from "@/components/dashboard/payout-method-form";
 import { getCurrentTailor } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Recevoir mon argent" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Recevoir mon argent") };
+}
 
 export default async function TailorPayoutPage() {
   const tailor = await getCurrentTailor();

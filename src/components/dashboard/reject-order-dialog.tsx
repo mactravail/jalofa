@@ -18,6 +18,7 @@ import {
   type RejectionReason,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
 
 /**
  * Le tailleur ne refuse jamais une commande à l'aveugle : il choisit POURQUOI.
@@ -48,10 +49,9 @@ export function RejectOrderDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Refuser cette commande</DialogTitle>
+          <DialogTitle><T>Refuser cette commande</T></DialogTitle>
           <DialogDescription>
-            Indiquez pourquoi. Le client sera prévenu et pourra choisir un autre
-            tailleur.
+            <T>Indiquez pourquoi. Le client sera prévenu et pourra choisir un autre tailleur.</T>
           </DialogDescription>
         </DialogHeader>
 
@@ -79,7 +79,7 @@ export function RejectOrderDialog({
                 >
                   {active && <span className="bg-primary size-2 rounded-full" />}
                 </span>
-                {REJECTION_REASON_LABELS[value]}
+                <T>{REJECTION_REASON_LABELS[value]}</T>
               </button>
             );
           })}
@@ -92,7 +92,7 @@ export function RejectOrderDialog({
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
-            Annuler
+            <T>Annuler</T>
           </Button>
           <Button
             type="button"
@@ -101,7 +101,7 @@ export function RejectOrderDialog({
             disabled={isPending || !reason}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            Confirmer le refus
+            <T>Confirmer le refus</T>
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -9,6 +9,9 @@ import { markFabricSalesRead } from "@/lib/actions/notifications";
 import { formatPrice, formatTimeAgo } from "@/lib/constants";
 import type { FabricSale } from "@/lib/notifications-data";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
+import { translateNow } from "@/lib/i18n/translate";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 /**
  * « Un client a acheté votre tissu » — the vendor's sales feed, showing the
@@ -23,7 +26,7 @@ export function FabricSalesPanel({ sales }: { sales: FabricSale[] }) {
       try {
         await markFabricSalesRead();
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erreur de mise à jour");
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur de mise à jour"));
       }
     });
 
@@ -31,10 +34,10 @@ export function FabricSalesPanel({ sales }: { sales: FabricSale[] }) {
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p className="text-muted-foreground flex min-w-0 items-center gap-2 text-sm">
-          {sales.length} vente{sales.length > 1 ? "s" : ""}
+          <T vars={{ n: sales.length }}>{sales.length > 1 ? "{n} ventes" : "{n} vente"}</T>
           {unread > 0 && (
             <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap">
-              {unread} nouvelle{unread > 1 ? "s" : ""}
+              <T vars={{ n: unread }}>{unread > 1 ? "{n} nouvelles" : "{n} nouvelle"}</T>
             </span>
           )}
         </p>
@@ -45,7 +48,7 @@ export function FabricSalesPanel({ sales }: { sales: FabricSale[] }) {
             ) : (
               <CheckCheck className="size-4" />
             )}
-            Tout marquer comme lu
+            <T>Tout marquer comme lu</T>
           </Button>
         )}
       </div>
@@ -54,7 +57,7 @@ export function FabricSalesPanel({ sales }: { sales: FabricSale[] }) {
         <div className="rounded-xl border border-dashed p-10 text-center">
           <BellOff className="text-muted-foreground mx-auto size-7" />
           <p className="text-muted-foreground mt-3 text-sm">
-            Aucune vente de tissu pour le moment.
+            <T>Aucune vente de tissu pour le moment.</T>
           </p>
         </div>
       ) : (
@@ -70,7 +73,8 @@ export function FabricSalesPanel({ sales }: { sales: FabricSale[] }) {
 
 function SaleRow({ sale }: { sale: FabricSale }) {
   const meters =
-    sale.fabric_meters === null ? null : `${sale.fabric_meters.toLocaleString("fr-FR")} m`;
+    sale.fabric_meters === null ? null : `${sale.fabric_meters} m`;
+  const locale = useLocale();
 
   return (
     <div
@@ -98,12 +102,12 @@ function SaleRow({ sale }: { sale: FabricSale }) {
           <p className="truncate font-medium">{sale.fabric_name}</p>
         </div>
         <p className="text-muted-foreground mt-0.5 truncate text-sm">
-          Payé par le client{meters ? ` : ${meters}` : ""}, à envoyer
+          <T>Payé par le client</T>{meters ? ` : ${meters}` : ""}, <T>à envoyer</T>
         </p>
         <p className="text-muted-foreground mt-0.5 truncate text-xs">
           {sale.order_number && <span className="font-mono">{sale.order_number}</span>}
           {sale.order_number && " · "}
-          <span suppressHydrationWarning>{formatTimeAgo(sale.created_at)}</span>
+          <span suppressHydrationWarning>{formatTimeAgo(sale.created_at, locale)}</span>
         </p>
         {/* Too narrow to sit beside the text: the price drops under it. */}
         <p className="text-primary mt-1 font-semibold sm:hidden">

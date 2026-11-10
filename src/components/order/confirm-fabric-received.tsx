@@ -1,35 +1,37 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useTransition } from "react";
 import { Loader2, PackageCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { confirmFabricReceived } from "@/lib/actions/orders";
+import { useT } from "@/components/i18n/locale-provider";
 
 /** Tissu seul expédié : le client confirme qu'il l'a reçu. */
 export function ConfirmFabricReceived({ orderId }: { orderId: string }) {
   const router = useRouter();
+  const t = useT();
   const [isPending, startTransition] = useTransition();
 
   const confirm = () => {
     startTransition(async () => {
       const res = await confirmFabricReceived(orderId);
       if (res.ok) {
-        toast.success("Merci, réception confirmée.");
+        toast.success(t("Merci, réception confirmée."));
         router.refresh();
       } else {
-        toast.error(res.error);
+        toast.error(t(res.error));
       }
     });
   };
 
   return (
     <div className="border-primary/30 bg-primary/5 rounded-xl border p-4">
-      <p className="font-semibold">Votre tissu est en route</p>
+      <p className="font-semibold">{t("Votre tissu est en route")}</p>
       <p className="text-muted-foreground mt-0.5 text-sm">
-        Touchez ce bouton seulement quand vous l&apos;avez entre les mains.
+        {t("Touchez ce bouton seulement quand vous l'avez entre les mains.")}
       </p>
       <Button
         size="lg"
@@ -42,7 +44,7 @@ export function ConfirmFabricReceived({ orderId }: { orderId: string }) {
         ) : (
           <PackageCheck className="size-4" />
         )}
-        J&apos;ai reçu mon tissu
+        {t("J'ai reçu mon tissu")}
       </Button>
     </div>
   );

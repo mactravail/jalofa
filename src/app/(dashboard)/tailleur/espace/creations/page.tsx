@@ -11,8 +11,12 @@ import {
   getTailorModels,
   getVendorFabrics,
 } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Mes modèles" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Mes modèles") };
+}
 
 export default async function TailorModelsPage() {
   const [models, suggestions, categories, fabrics, fabricCategories, fabricLinks, atelier] =

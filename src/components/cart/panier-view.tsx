@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Minus, Plus, Scissors, ShoppingBag, Trash2 } from "lucide-react";
 
 import { useCart, type CartItem } from "@/components/cart/cart-context";
@@ -8,9 +8,11 @@ import { Price } from "@/components/cart/price";
 import { buttonVariants } from "@/components/ui/button";
 import { basketHasFreeDelivery } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 export function PanierView() {
   const { items, subtotal, count, hydrated, setQty, removeItem } = useCart();
+  const t = useT();
 
   // Avoid a hydration flash: render nothing decisive until localStorage is read.
   if (!hydrated) {
@@ -27,17 +29,16 @@ export function PanierView() {
         <div className="bg-muted text-muted-foreground mx-auto flex size-16 items-center justify-center rounded-full">
           <ShoppingBag className="size-7" />
         </div>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">Votre panier est vide</h1>
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t("Votre panier est vide")}</h1>
         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
-          Parcourez les modèles et les tissus, personnalisez votre tenue, puis
-          ajoutez-la au panier.
+          {t("Parcourez les modèles et les tissus, personnalisez votre tenue, puis ajoutez-la au panier.")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link href="/modeles" className={buttonVariants({})}>
-            Voir les modèles
+            {t("Voir les modèles")}
           </Link>
           <Link href="/tissus" className={buttonVariants({ variant: "outline" })}>
-            Voir les tissus
+            {t("Voir les tissus")}
           </Link>
         </div>
       </div>
@@ -49,9 +50,9 @@ export function PanierView() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 lg:py-12">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-        Panier
+        {t("Panier")}
         <span className="text-muted-foreground ml-2 text-lg font-normal">
-          ({count} article{count > 1 ? "s" : ""})
+          ({count > 1 ? t("{n} articles", { n: count }) : t("{n} article", { n: count })})
         </span>
       </h1>
 
@@ -68,16 +69,16 @@ export function PanierView() {
         {/* Summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="bg-card rounded-2xl border p-6">
-            <h2 className="text-lg font-semibold">Récapitulatif</h2>
+            <h2 className="text-lg font-semibold">{t("Récapitulatif")}</h2>
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Sous-total</dt>
+                <dt className="text-muted-foreground">{t("Sous-total")}</dt>
                 <dd>
                   <Price amount={subtotal} className="font-medium" />
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Livraison</dt>
+                <dt className="text-muted-foreground">{t("Livraison")}</dt>
                 <dd
                   className={cn(
                     "whitespace-nowrap",
@@ -85,27 +86,26 @@ export function PanierView() {
                   )}
                 >
                   {freeDelivery ? (
-                    "Gratuite"
+                    t("Gratuite")
                   ) : (
-                    "Selon le pro"
+                    t("Selon le pro")
                   )}
                 </dd>
               </div>
             </dl>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t pt-4">
-              <span className="font-semibold">Total</span>
+              <span className="font-semibold">{t("Total")}</span>
               <Price amount={subtotal} className="text-primary ml-auto text-xl font-bold" />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              JALOFA n&apos;ajoute aucun frais de livraison. Si elle n&apos;est pas gratuite,
-              vous payez directement le GP ou le livreur.
+              {t("JALOFA n'ajoute aucun frais de livraison. Si elle n'est pas gratuite, vous payez directement le GP ou le livreur.")}
             </p>
 
             <Link
               href="/caisse"
               className={cn(buttonVariants({ size: "lg" }), "mt-5 w-full")}
             >
-              Passer à la caisse
+              {t("Passer à la caisse")}
             </Link>
             <Link
               href="/modeles"
@@ -114,7 +114,7 @@ export function PanierView() {
                 "mt-2 w-full",
               )}
             >
-              Continuer mes achats
+              {t("Continuer mes achats")}
             </Link>
           </div>
         </aside>
@@ -132,16 +132,19 @@ function CartLine({
   onQty: (lineId: string, qty: number) => void;
   onRemove: (lineId: string) => void;
 }) {
+  const t = useT();
   const details: string[] = [];
-  if (item.styleName) details.push(item.styleName);
+  if (item.styleName) details.push(t(item.styleName));
   if (item.tailorName) details.push(item.tailorName);
   if (item.type !== "fabric_only" && item.fabricMeters) {
-    details.push(`${item.fabricMeters} m de tissu`);
+    details.push(t("{n} m de tissu", { n: item.fabricMeters }));
   }
-  if (item.measurementLabel) details.push(item.measurementLabel);
+  if (item.measurementLabel) details.push(t(item.measurementLabel));
   if (item.styleRefs.length > 0) {
     details.push(
-      `${item.styleRefs.length} photo${item.styleRefs.length > 1 ? "s" : ""} d'inspiration`,
+      item.styleRefs.length > 1
+        ? t("{n} photos d'inspiration", { n: item.styleRefs.length })
+        : t("{n} photo d'inspiration", { n: item.styleRefs.length }),
     );
   }
 
@@ -155,7 +158,7 @@ function CartLine({
       <button
         type="button"
         onClick={() => onRemove(item.lineId)}
-        aria-label="Retirer du panier"
+        aria-label={t("Retirer du panier")}
         className="text-muted-foreground hover:text-destructive hover:bg-muted float-right -mt-1 -mr-1 ml-2 flex size-8 items-center justify-center rounded-full transition-colors"
       >
         <Trash2 className="size-4" />
@@ -174,7 +177,7 @@ function CartLine({
 
       <p className="font-medium text-pretty">{item.title}</p>
       <p className="text-muted-foreground mt-0.5 text-xs text-pretty sm:text-sm">
-        {item.subtitle}
+        {item.subtitle ? t(item.subtitle) : null}
       </p>
 
       {/* `clear-both` : les pastilles repartent toujours du bord gauche de la
@@ -194,7 +197,7 @@ function CartLine({
 
       {item.personalisation.length > 0 && (
         <p className="text-muted-foreground clear-both pt-1.5 text-xs">
-          {item.personalisation.map((p) => p.option).join(" · ")}
+          {item.personalisation.map((p) => t(p.option)).join(" · ")}
         </p>
       )}
 
@@ -218,7 +221,7 @@ function CartLine({
           </p>
           {item.qty > 1 && (
             <p className="text-muted-foreground text-[11px]">
-              <Price amount={item.unitPrice} /> / pièce
+              <Price amount={item.unitPrice} /> / {t("pièce")}
             </p>
           )}
         </div>
@@ -229,13 +232,14 @@ function CartLine({
 
 /** Compact sur mobile (98 px) : c'est ce qui libère la place du prix à côté. */
 function QtyStepper({ qty, onChange }: { qty: number; onChange: (q: number) => void }) {
+  const t = useT();
   return (
     <div className="flex shrink-0 items-center rounded-lg border">
       <button
         type="button"
         onClick={() => onChange(qty - 1)}
         disabled={qty <= 1}
-        aria-label="Diminuer la quantité"
+        aria-label={t("Diminuer la quantité")}
         className="hover:bg-muted flex size-8 items-center justify-center rounded-l-lg transition-colors disabled:opacity-40 sm:size-9"
       >
         <Minus className="size-4" />
@@ -246,7 +250,7 @@ function QtyStepper({ qty, onChange }: { qty: number; onChange: (q: number) => v
       <button
         type="button"
         onClick={() => onChange(qty + 1)}
-        aria-label="Augmenter la quantité"
+        aria-label={t("Augmenter la quantité")}
         className="hover:bg-muted flex size-8 items-center justify-center rounded-r-lg transition-colors sm:size-9"
       >
         <Plus className="size-4" />

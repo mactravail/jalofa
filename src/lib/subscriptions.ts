@@ -98,11 +98,13 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: "premium",
     name: "Pro",
     tagline: "Un abonnement, zéro commission : vous gardez 100%.",
-    monthlyPrice: 10000,
+    // 9 900 et pas 10 000 : sous la barre psychologique, et « 330 FCFA par
+    // jour » se lit comme le prix d'un café Touba, pas d'un abonnement.
+    monthlyPrice: 9900,
     scope: "both",
     commission: 0,
     featured: true,
-    badge: "Populaire",
+    badge: "Recommandé",
     features: [
       "Tailleur et vendeur de tissus dans le même compte",
       "0% de commission — vous gardez 100% de vos ventes",
@@ -126,6 +128,83 @@ export type ProOfferId = (typeof PRO_OFFER_IDS)[number];
 
 /** L'abonnement payant (offre « Pro »), facturé `monthlyPrice` par mois. */
 export const PAID_PLAN_ID: SubscriptionPlanId = "premium";
+
+/** Le prix d'un mois ramené à la journée (30 jours), arrondi à la dizaine. */
+export function dailyPrice(monthlyPrice: number): number {
+  return Math.round(monthlyPrice / 30 / 10) * 10;
+}
+
+/**
+ * Ventes mensuelles à partir desquelles l'offre Pro coûte moins cher que la
+ * commission du Gratuit, arrondies au millier supérieur.
+ */
+export function proBreakEven(monthlyPrice: number): number {
+  return Math.ceil(monthlyPrice / FREE_COMMISSION_RATE / 1000) * 1000;
+}
+
+/**
+ * Une offre racontée par la douleur qu'elle enlève : `title` = la solution en
+ * gros, `text` = le problème du pro qu'elle règle.
+ */
+export type OfferPoint = { title: string; text: string };
+
+/** Les deux offres d'un compte pro, telles qu'on les vend (inscription, /tailleurs). */
+export const OFFER_PITCH: Record<ProOfferId, { lead: string; points: OfferPoint[] }> = {
+  free: {
+    lead: "Pour démarrer sans rien payer.",
+    points: [
+      {
+        title: "0 FCFA par mois",
+        text: `Vous payez seulement quand vous vendez : ${Math.round(FREE_COMMISSION_RATE * 100)}% de la vente.`,
+      },
+      {
+        title: "Vos modèles en ligne",
+        text: "Publiez vos créations, les clients commandent sur JALOFA.",
+      },
+      {
+        title: "Votre tableau de bord",
+        text: "Devis, commandes et clients, sur votre téléphone.",
+      },
+      {
+        title: "Le client paie avant",
+        text: "Plus de tenue cousue pour un client qui disparaît.",
+      },
+    ],
+  },
+  premium: {
+    lead: "Faites de votre atelier une marque, ici et à l'étranger.",
+    points: [
+      {
+        title: "Des clients jusqu'à Paris et New York",
+        text: "La diaspora et d'autres pays commandent vos habits et paient en ligne.",
+      },
+      {
+        title: "Vu partout : catalogue, pubs, événements",
+        text: "Votre atelier passe en tête, et dans nos publicités et nos événements.",
+      },
+      {
+        title: "Gardez 100% de vos ventes",
+        text: "0% de commission. Chaque franc payé par le client est pour vous.",
+      },
+      {
+        title: "Vendez vos propres créations",
+        text: "Publiez vos modèles et vos habits : votre vitrine, ouverte jour et nuit.",
+      },
+      {
+        title: "Tout votre atelier dans la poche",
+        text: "Devis, commandes, suivi de chaque client : un seul tableau de bord.",
+      },
+      {
+        title: "Fini les clients qui marchandent",
+        text: "Masquez vos prix et donnez vos devis en privé.",
+      },
+      {
+        title: "Sans engagement, aucun oubli",
+        text: "Après le 1er mois : retenu sur vos ventes ou payé en mobile money. Arrêtez quand vous voulez.",
+      },
+    ],
+  },
+};
 
 /**
  * Le plan qui s'applique réellement : un abonnement payant dont la période est

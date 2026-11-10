@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import {
   ChevronDown,
   CreditCard,
@@ -12,11 +12,15 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { APP_NAME, PAYMENT_METHOD_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Questions fréquentes",
-  description: `Les réponses aux questions les plus courantes sur ${APP_NAME} : commandes, mesures, paiement, livraison et espaces pros.`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Questions fréquentes"),
+    description: t("Les réponses aux questions les plus courantes sur {app} : commandes, mesures, paiement, livraison et espaces pros.", { app: APP_NAME }),
+  };
+}
 
 const STEPS = [
   {
@@ -119,7 +123,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "Combien ça coûte de vendre sur JALOFA ?",
-        a: "Deux offres au choix. Gratuit : aucun abonnement, 5% de commission sur chaque vente, jamais sur la livraison. Pro : 10 000 FCFA par mois payés en mobile money (via PayDunya), 0% de commission — vous gardez 100% de vos ventes. Dans les deux cas, vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
+        a: "Deux offres au choix. Gratuit : aucun abonnement, 5% de commission sur chaque vente, jamais sur la livraison. Pro : 9 900 FCFA par mois (soit 330 FCFA par jour), 0% de commission — vous gardez 100% de vos ventes. Le 1er mois se paie à l'inscription en mobile money (via PayDunya) ; ensuite, chaque mois se paie au choix en mobile money depuis votre espace, ou est retenu automatiquement sur votre prochaine vente. Sans engagement : vous arrêtez quand vous voulez. Dans les deux cas, vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
       },
       {
         q: "Comment est fixé le prix d'une tenue ?",
@@ -129,19 +133,19 @@ const CATEGORIES: Category[] = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const t = await getT();
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-        Questions fréquentes
+        {t("Questions fréquentes")}
       </h1>
       <p className="text-muted-foreground mt-3">
-        Tout ce qu&apos;il faut savoir pour commander votre tenue sur mesure sur{" "}
-        {APP_NAME}.
+        {t("Tout ce qu'il faut savoir pour commander votre tenue sur mesure sur {app}.", { app: APP_NAME })}
       </p>
 
       <section id="comment-ca-marche" className="mt-10 scroll-mt-24">
-        <h2 className="text-lg font-semibold">Comment ça marche</h2>
+        <h2 className="text-lg font-semibold">{t("Comment ça marche")}</h2>
         <div className="mt-4 space-y-6">
           {STEPS.map((s) => (
             <div key={s.title} className="flex gap-4">
@@ -149,8 +153,8 @@ export default function FaqPage() {
                 <s.icon className="size-6" />
               </span>
               <div>
-                <h3 className="font-semibold">{s.title}</h3>
-                <p className="text-muted-foreground mt-1 text-sm">{s.desc}</p>
+                <h3 className="font-semibold">{t(s.title)}</h3>
+                <p className="text-muted-foreground mt-1 text-sm">{t(s.desc)}</p>
               </div>
             </div>
           ))}
@@ -160,16 +164,16 @@ export default function FaqPage() {
       <div className="mt-10 space-y-10">
         {CATEGORIES.map((category) => (
           <section key={category.title}>
-            <h2 className="text-lg font-semibold">{category.title}</h2>
+            <h2 className="text-lg font-semibold">{t(category.title)}</h2>
             <div className="mt-3 divide-y rounded-xl border">
               {category.items.map((item) => (
                 <details key={item.q} className="group">
                   <summary className="hover:bg-muted/50 flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                    {item.q}
+                    {t(item.q)}
                     <ChevronDown className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180" />
                   </summary>
                   <p className="text-muted-foreground px-4 pb-4 text-sm leading-relaxed">
-                    {item.a}
+                    {t(item.a)}
                   </p>
                 </details>
               ))}
@@ -179,10 +183,10 @@ export default function FaqPage() {
       </div>
 
       <div className="bg-muted/40 mt-12 rounded-2xl border p-6 text-center">
-        <h2 className="text-lg font-semibold">Prêt à commencer ?</h2>
+        <h2 className="text-lg font-semibold">{t("Prêt à commencer ?")}</h2>
         <div className="mt-4">
           <Link href="/modeles" className={cn(buttonVariants({ size: "lg" }), "h-11 text-base")}>
-            <Scissors className="size-4" /> Créer ma tenue
+            <Scissors className="size-4" /> {t("Créer ma tenue")}
           </Link>
         </div>
       </div>

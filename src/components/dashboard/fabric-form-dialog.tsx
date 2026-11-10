@@ -29,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENCY } from "@/lib/constants";
 import type { Fabric, FabricCategory } from "@/lib/types";
+import { useT } from "@/components/i18n/locale-provider";
 
 const NONE = "__none__";
 
@@ -47,6 +48,7 @@ export function FabricFormDialog({
   onSaved?: (fabricId: string) => void;
 }) {
   const isEdit = Boolean(fabric);
+  const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
   const [category, setCategory] = useState<string>(
     fabric?.category_slug ?? NONE,
@@ -60,7 +62,7 @@ export function FabricFormDialog({
   const preview = picked?.url ?? fabric?.image_url ?? null;
 
   const itemsMap: Record<string, string> = {
-    [NONE]: "Aucune catégorie",
+    [NONE]: t("Aucune catégorie"),
     ...Object.fromEntries(categories.map((c) => [c.slug, c.name])),
   };
 
@@ -74,7 +76,7 @@ export function FabricFormDialog({
     setError(null);
 
     if (!file && !fabric?.image_url) {
-      setError("Ajoutez une photo du tissu.");
+      setError(t("Ajoutez une photo du tissu."));
       return;
     }
 
@@ -87,7 +89,7 @@ export function FabricFormDialog({
       if (file) {
         const image = await resizeImage(file);
         if (image.size > MAX_UPLOAD_BYTES) {
-          setError("Cette photo est trop lourde. Choisissez-en une plus légère.");
+          setError(t("Cette photo est trop lourde. Choisissez-en une plus légère."));
           return;
         }
         formData.set("image", image);
@@ -97,15 +99,15 @@ export function FabricFormDialog({
       if (res?.ok) {
         toast.success(
           isEdit
-            ? "Tissu mis à jour."
+            ? t("Tissu mis à jour.")
             : formData.get("is_active") === "on"
-              ? "Tissu ajouté et mis en ligne."
-              : "Tissu ajouté (brouillon, non visible en boutique).",
+              ? t("Tissu ajouté et mis en ligne.")
+              : t("Tissu ajouté (brouillon, non visible en boutique)."),
         );
         if (res.id) onSaved?.(res.id);
         onOpenChange(false);
       } else if (res) {
-        setError(res.error);
+        setError(t(res.error));
       }
     });
   }
@@ -125,12 +127,12 @@ export function FabricFormDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Modifier le tissu" : "Ajouter un tissu"}
+            {isEdit ? t("Modifier le tissu") : t("Ajouter un tissu")}
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Mettez à jour les informations de ce tissu."
-              : "Renseignez les informations du tissu à mettre en vente."}
+              ? t("Mettez à jour les informations de ce tissu.")
+              : t("Renseignez les informations du tissu à mettre en vente.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -145,12 +147,12 @@ export function FabricFormDialog({
 
           {error && (
             <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
-              {error}
+              {t(error)}
             </p>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="fabric-image">Photo du tissu</Label>
+            <Label htmlFor="fabric-image">{t("Photo du tissu")}</Label>
             <div className="flex items-center gap-3">
               <div className="bg-muted size-20 shrink-0 overflow-hidden rounded-lg border">
                 {preview ? (
@@ -177,26 +179,26 @@ export function FabricFormDialog({
                 />
                 <p className="text-muted-foreground text-xs">
                   {isEdit
-                    ? "Laissez vide pour garder la photo actuelle."
-                    : "JPEG, PNG ou WebP. La photo est redimensionnée automatiquement."}
+                    ? t("Laissez vide pour garder la photo actuelle.")
+                    : t("JPEG, PNG ou WebP. La photo est redimensionnée automatiquement.")}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fabric-name">Nom du tissu</Label>
+            <Label htmlFor="fabric-name">{t("Nom du tissu")}</Label>
             <Input
               id="fabric-name"
               name="name"
               required
               defaultValue={fabric?.name ?? ""}
-              placeholder="Ex. Bazin Riche Blanc"
+              placeholder={t("Ex. Bazin Riche Blanc")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fabric-price">Prix / mètre ({CURRENCY})</Label>
+            <Label htmlFor="fabric-price">{t("Prix / mètre")} ({CURRENCY})</Label>
             <Input
               id="fabric-price"
               name="price_per_meter"
@@ -211,7 +213,7 @@ export function FabricFormDialog({
 
           <div className="space-y-2">
             <div className="space-y-2">
-              <Label>Catégorie</Label>
+              <Label>{t("Catégorie")}</Label>
               <Select
                 value={category}
                 onValueChange={(v) => setCategory(v as string)}
@@ -221,10 +223,10 @@ export function FabricFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>Aucune catégorie</SelectItem>
+                  <SelectItem value={NONE}>{t("Aucune catégorie")}</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c.slug} value={c.slug}>
-                      {c.name}
+                      {t(c.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -233,7 +235,7 @@ export function FabricFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Couleurs</Label>
+            <Label>{t("Couleurs")}</Label>
             <FabricColorPicker
               key={`${fabric?.id ?? "new"}-${open}`}
               defaultValue={fabric?.color}
@@ -241,25 +243,25 @@ export function FabricFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fabric-material">Matière</Label>
+            <Label htmlFor="fabric-material">{t("Matière")}</Label>
             <Input
               id="fabric-material"
               name="material"
               defaultValue={fabric?.material ?? ""}
-              placeholder="Ex. Coton, laine, lin…"
+              placeholder={t("Ex. Coton, laine, lin…")}
             />
           </div>
 
           <DeliveryZoneField defaultValue={fabric?.delivery_zone} />
 
           <div className="space-y-2">
-            <Label htmlFor="fabric-description">Description</Label>
+            <Label htmlFor="fabric-description">{t("Description")}</Label>
             <Textarea
               id="fabric-description"
               name="description"
               rows={2}
               defaultValue={fabric?.description ?? ""}
-              placeholder="Détails, tissage, usage recommandé…"
+              placeholder={t("Détails, tissage, usage recommandé…")}
             />
           </div>
 
@@ -271,10 +273,9 @@ export function FabricFormDialog({
               className="accent-primary mt-0.5 size-4 rounded"
             />
             <span>
-              Mettre en ligne dans la boutique
+              {t("Mettre en ligne dans la boutique")}
               <span className="text-muted-foreground block text-xs">
-                Le tissu apparaît aussitôt dans le catalogue et peut être
-                commandé. Décochez pour le garder en brouillon.
+                {t("Le tissu apparaît aussitôt dans le catalogue et peut être commandé. Décochez pour le garder en brouillon.")}
               </span>
             </span>
           </label>
@@ -286,11 +287,11 @@ export function FabricFormDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Annuler
+              {t("Annuler")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              {isEdit ? "Enregistrer" : "Ajouter le tissu"}
+              {isEdit ? t("Enregistrer") : t("Ajouter le tissu")}
             </Button>
           </DialogFooter>
         </form>

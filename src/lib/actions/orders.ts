@@ -7,6 +7,7 @@ import { saveOrderContact } from "@/lib/order-contact";
 import { resolveTailoringPrice } from "@/lib/order-pricing";
 import { isTerminal, pipelineType, timelineFor } from "@/lib/pipeline";
 import { stripContactInfo } from "@/lib/privacy";
+import { renewProFromSale } from "@/lib/pro-subscription";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureClientAccount } from "@/lib/supabase/guest";
@@ -476,13 +477,15 @@ export async function acceptQuote(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "client_id, is_quote, payment_status, tailoring_price, fabric_id, delivery_address, delivery_city, delivery_country",
+      "client_id, tailor_id, vendor_id, is_quote, payment_status, tailoring_price, fabric_id, delivery_address, delivery_city, delivery_country",
     )
     .eq("id", orderId)
     .single();
   const o = order as unknown as
     | {
         client_id: string;
+        tailor_id: string | null;
+        vendor_id: string | null;
         is_quote: boolean;
         payment_status: string;
         tailoring_price: number;
@@ -562,6 +565,9 @@ export async function acceptQuote(
     .eq("client_id", user.id)
     .eq("payment_status", "pending");
   if (error) return { ok: false, error: error.message };
+
+  // Offre Pro échue : cette vente rouvre un mois, retenu sur le reversement.
+  await renewProFromSale([o.tailor_id, o.vendor_id]);
 
   revalidatePath(`/compte/commandes/${orderId}`);
   revalidatePath("/compte/commandes");

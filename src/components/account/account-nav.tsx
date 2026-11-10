@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname } from "@/lib/i18n/navigation";
 import { Bell, Heart, MapPin, Package, Sparkles, UserCog } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 const LINKS = [
   { href: "/compte", label: "Mes commandes", short: "Commandes", icon: Package, tone: "text-orange-400 bg-orange-500/15" },
@@ -43,6 +44,7 @@ function Badge({ unread, className }: { unread: number; className?: string }) {
  */
 export function AccountNavMobile({ unread }: { unread: number }) {
   const pathname = usePathname();
+  const t = useT();
   return (
     <nav className="bg-background/95 sticky top-[calc(4rem+1px)] z-30 -mx-4 mb-6 border-b px-1 py-2 backdrop-blur md:hidden">
       <ul className="grid grid-cols-6">
@@ -70,7 +72,7 @@ export function AccountNavMobile({ unread }: { unread: number }) {
                     active ? "text-foreground font-semibold" : "text-muted-foreground",
                   )}
                 >
-                  {l.short}
+                  {t(l.short)}
                 </span>
               </Link>
             </li>
@@ -84,6 +86,7 @@ export function AccountNavMobile({ unread }: { unread: number }) {
 /** Sur ordinateur : le menu latéral, mêmes couleurs. */
 export function AccountNavDesktop({ unread }: { unread: number }) {
   const pathname = usePathname();
+  const t = useT();
   return (
     <nav className="flex flex-col gap-1">
       {LINKS.map((l) => {
@@ -100,7 +103,7 @@ export function AccountNavDesktop({ unread }: { unread: number }) {
             <span className={cn("grid size-7 place-items-center rounded-lg", l.tone)}>
               <l.icon className="size-4" />
             </span>
-            {l.label}
+            {t(l.label)}
             {l.badge && <Badge unread={unread} className="ml-auto" />}
           </Link>
         );

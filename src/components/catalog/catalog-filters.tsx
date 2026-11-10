@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "@/lib/i18n/navigation";
 import { Loader2, Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 type Option = { slug: string; name: string };
 
@@ -21,6 +22,7 @@ export function CategoryChips({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const active = searchParams.get(paramName);
+  const t = useT();
 
   const select = useCallback(
     (slug: string | null) => {
@@ -37,7 +39,7 @@ export function CategoryChips({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Chip active={!active} onClick={() => select(null)}>
-        Tous
+        {t("Tous")}
       </Chip>
       {options.map((o) => (
         <Chip
@@ -45,7 +47,7 @@ export function CategoryChips({
           active={active === o.slug}
           onClick={() => select(o.slug)}
         >
-          {o.name}
+          {t(o.name)}
         </Chip>
       ))}
       {isPending && <Loader2 className="text-muted-foreground size-4 animate-spin" />}
@@ -78,7 +80,8 @@ function Chip({
   );
 }
 
-export function SearchInput({ placeholder = "Rechercher..." }: { placeholder?: string }) {
+export function SearchInput({ placeholder }: { placeholder?: string }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -101,7 +104,7 @@ export function SearchInput({ placeholder = "Rechercher..." }: { placeholder?: s
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t("Rechercher...")}
         className="pl-9"
       />
     </form>

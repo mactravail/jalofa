@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -31,6 +31,9 @@ import {
 import { deliveryPolicy, type FreeDeliveryZone } from "@/lib/delivery";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { intlLocale } from "@/lib/i18n/config";
 
 /** Métrages d'appel — les trois intentions d'achat d'un tissu au mètre. */
 const QUICK_METERS = [3, 6, 12];
@@ -63,6 +66,8 @@ export function FabricBuyPanel({
 }) {
   const { addItem } = useCart();
   const [meters, setMeters] = useState(3);
+  const t = useT();
+  const locale = intlLocale(useLocale());
 
   const max = MAX_METERS;
   const available = isFabricAvailable(fabric);
@@ -86,20 +91,20 @@ export function FabricBuyPanel({
       measurement: null,
       notes: null,
       title: fabric.name,
-      subtitle: "Tissu au mètre",
+      subtitle: t("Tissu au mètre"),
       image: fabric.image_url,
       styleName: null,
       tailorName: null,
       // Le vendeur le décide pour chacun de ses tissus (cf. basketHasFreeDelivery).
       freeDelivery: deliveryZone !== "none",
       freeDeliveryZone: deliveryZone,
-      personalisation: [{ group: "Métrage", option: formatMeters(meters) }],
+      personalisation: [{ group: t("Métrage"), option: formatMeters(meters) }],
       measurementLabel: null,
       unitFabricPrice: total,
       unitTailoringPrice: 0,
       unitPrice: total,
     });
-    toast.success(`${formatMeters(meters)} de ${fabric.name} ajoutés au panier`);
+    toast.success(t("{m} de {name} ajoutés au panier", { m: formatMeters(meters), name: fabric.name }));
   };
 
   const share = async () => {
@@ -111,7 +116,7 @@ export function FabricBuyPanel({
         return;
       }
       await navigator.clipboard.writeText(url);
-      toast.success("Lien copié");
+      toast.success(t("Lien copié"));
     } catch {
       // Partage annulé ou presse-papiers refusé — rien à signaler au client.
     }
@@ -120,7 +125,7 @@ export function FabricBuyPanel({
   return (
     <div>
       <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.2em]">
-        {fabric.material ?? "Tissu"}
+        {fabric.material ?? t("Tissu")}
       </p>
       <h1 className="mt-2 font-serif text-4xl leading-tight tracking-tight">{fabric.name}</h1>
 
@@ -128,20 +133,20 @@ export function FabricBuyPanel({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
         <span className="flex items-center gap-1.5">
           <ReviewStars value={rating} size="size-3.5" />
-          <span className="font-medium">{rating.toLocaleString("fr-FR")}</span>
+          <span className="font-medium">{rating.toLocaleString(locale)}</span>
         </span>
         <a href="#avis" className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
-          {reviewCount} avis
+          {t("{n} avis", { n: reviewCount })}
         </a>
         <span className="text-muted-foreground">·</span>
         <span className="text-muted-foreground">
-          {orders.toLocaleString("fr-FR")} commandes
+          {t("{n} commandes", { n: orders.toLocaleString(locale) })}
         </span>
       </div>
 
       <p className="mt-5 text-3xl font-semibold">
         {formatPrice(fabric.price_per_meter)}
-        <span className="text-muted-foreground text-base font-normal"> / mètre</span>
+        <span className="text-muted-foreground text-base font-normal"> / {t("mètre")}</span>
       </p>
 
       {fabric.description && (
@@ -164,7 +169,7 @@ export function FabricBuyPanel({
                     style={{ backgroundColor: hex }}
                   />
                 )}
-                {c}
+                {t(c)}
               </span>
             );
           })}
@@ -176,10 +181,10 @@ export function FabricBuyPanel({
       {variants.length > 0 && (
         <section className="mt-6">
           <p className="text-sm font-medium">
-            Coloris{" "}
+            {t("Coloris")}{" "}
             <span className="text-muted-foreground font-normal">
-              · {fabric.color ?? "unique"}
-              {variants.length > 1 && ` — ${variants.length} coloris disponibles`}
+              · {fabric.color ?? t("unique")}
+              {variants.length > 1 && ` — ${t("{n} coloris disponibles", { n: variants.length })}`}
             </span>
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
@@ -189,7 +194,7 @@ export function FabricBuyPanel({
                 <Link
                   key={v.id}
                   href={`/tissus/${v.id}`}
-                  aria-label={v.color ?? "Coloris"}
+                  aria-label={v.color ?? t("Coloris")}
                   title={v.color ?? undefined}
                   aria-current={active ? "true" : undefined}
                   className={cn(
@@ -216,9 +221,9 @@ export function FabricBuyPanel({
       {/* Métrage */}
       <section className="mt-6">
         <div className="flex items-baseline justify-between">
-          <p className="text-sm font-medium">Métrage</p>
+          <p className="text-sm font-medium">{t("Métrage")}</p>
           <p className="text-muted-foreground text-xs">
-            Coupe au demi-mètre
+            {t("Coupe au demi-mètre")}
           </p>
         </div>
 
@@ -247,7 +252,7 @@ export function FabricBuyPanel({
               type="button"
               onClick={() => setSafe(meters - METERS_STEP)}
               disabled={meters <= MIN_CUT_METERS}
-              aria-label="Retirer un demi-mètre"
+              aria-label={t("Retirer un demi-mètre")}
               className="hover:bg-muted flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40"
             >
               <Minus className="size-4" />
@@ -259,7 +264,7 @@ export function FabricBuyPanel({
               type="button"
               onClick={() => setSafe(meters + METERS_STEP)}
               disabled={meters >= max}
-              aria-label="Ajouter un demi-mètre"
+              aria-label={t("Ajouter un demi-mètre")}
               className="hover:bg-muted flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40"
             >
               <Plus className="size-4" />
@@ -270,8 +275,8 @@ export function FabricBuyPanel({
 
         <p className="text-muted-foreground mt-2 text-xs">
           {covered
-            ? `De quoi tailler : ${covered.label.toLowerCase()} (${formatMeters(covered.meters)}).`
-            : `Sous ${formatMeters(uses.length ? Math.min(...uses.map((u) => u.meters)) : 2)}, prévoyez une petite pièce (foulard, ceinture).`}
+            ? t("De quoi tailler : {use} ({m}).", { use: covered.label.toLowerCase(), m: formatMeters(covered.meters) })
+            : t("Sous {m}, prévoyez une petite pièce (foulard, ceinture).", { m: formatMeters(uses.length ? Math.min(...uses.map((u) => u.meters)) : 2) })}
         </p>
       </section>
 
@@ -279,7 +284,7 @@ export function FabricBuyPanel({
       {available ? (
         <div className="mt-6 grid gap-2.5">
           <Button type="button" size="lg" className="h-12 w-full text-base" onClick={addToCart}>
-            <Package className="size-4" /> Ajouter au panier
+            <Package className="size-4" /> {t("Ajouter au panier")}
           </Button>
           <Link
             href={`/modeles?fabric=${fabric.id}`}
@@ -288,12 +293,12 @@ export function FabricBuyPanel({
               "h-12 w-full text-base",
             )}
           >
-            <Scissors className="size-4" /> Faire coudre une tenue
+            <Scissors className="size-4" /> {t("Faire coudre une tenue")}
           </Link>
         </div>
       ) : (
         <p className="bg-muted mt-6 rounded-xl p-4 text-center font-semibold">
-          Ce tissu est épuisé
+          {t("Ce tissu est épuisé")}
         </p>
       )}
 
@@ -303,19 +308,21 @@ export function FabricBuyPanel({
           <Truck className="mt-0.5 size-4 shrink-0" />
           <div>
             <dt className="font-medium">
-              Livraison
+              {t("Livraison")}
             </dt>
             <dd className="text-muted-foreground text-xs">
-              {deliveryPolicy(deliveryZone)}
+              {t(deliveryPolicy(deliveryZone))}
             </dd>
           </div>
         </div>
         <div className="flex items-start gap-2.5">
           <Store className="mt-0.5 size-4 shrink-0" />
           <div>
-            <dt className="font-medium">Retrait en boutique — gratuit</dt>
+            <dt className="font-medium">{t("Retrait en boutique — gratuit")}</dt>
             <dd className="text-muted-foreground text-xs">
-              {vendorName ? `Chez ${vendorName}, ` : ""}aux horaires du vendeur.
+              {vendorName
+                ? t("Chez {name}, aux horaires du vendeur.", { name: vendorName })
+                : t("Aux horaires du vendeur.")}
             </dd>
           </div>
         </div>
@@ -324,17 +331,17 @@ export function FabricBuyPanel({
       {/* Fiche technique — la ligne « SKU / catégorie / partage » du commerce */}
       <dl className="text-muted-foreground mt-5 space-y-1.5 border-t pt-5 text-sm">
         <div className="flex gap-3">
-          <dt className="w-24 shrink-0">Référence</dt>
+          <dt className="w-24 shrink-0">{t("Référence")}</dt>
           <dd className="text-foreground font-mono text-xs uppercase">
             {fabric.id.slice(-8)}
           </dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-24 shrink-0">Matière</dt>
+          <dt className="w-24 shrink-0">{t("Matière")}</dt>
           <dd className="text-foreground">{fabric.material ?? "—"}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-24 shrink-0">Boutique</dt>
+          <dt className="w-24 shrink-0">{t("Boutique")}</dt>
           <dd>
             {vendorHref && vendorName ? (
               <Link href={vendorHref} className="text-foreground hover:underline">
@@ -346,13 +353,13 @@ export function FabricBuyPanel({
           </dd>
         </div>
         <div className="flex items-center gap-3">
-          <dt className="w-24 shrink-0">Partager</dt>
+          <dt className="w-24 shrink-0">{t("Partager")}</dt>
           <dd className="flex items-center gap-2">
             <button
               type="button"
               onClick={share}
               className="hover:bg-muted flex size-9 items-center justify-center rounded-lg border transition-colors"
-              aria-label="Partager ce tissu"
+              aria-label={t("Partager ce tissu")}
             >
               <Share2 className="size-4" />
             </button>
@@ -361,13 +368,13 @@ export function FabricBuyPanel({
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(window.location.href);
-                  toast.success("Lien copié");
+                  toast.success(t("Lien copié"));
                 } catch {
-                  toast.error("Copie impossible");
+                  toast.error(t("Copie impossible"));
                 }
               }}
               className="hover:bg-muted flex size-9 items-center justify-center rounded-lg border transition-colors"
-              aria-label="Copier le lien"
+              aria-label={t("Copier le lien")}
             >
               <Copy className="size-4" />
             </button>

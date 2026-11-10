@@ -14,6 +14,8 @@ import {
   type PayoutMethod,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
+import { useT } from "@/components/i18n/locale-provider";
 
 const METHODS = Object.keys(PAYOUT_METHOD_LABELS) as PayoutMethod[];
 
@@ -33,6 +35,7 @@ export function PayoutMethodForm({
 }) {
   const [method, setMethod] = useState<PayoutMethod | null>(initialMethod);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
   const [isPending, startTransition] = useTransition();
 
   const isMobile = method ? PAYOUT_IS_MOBILE(method) : true;
@@ -41,7 +44,7 @@ export function PayoutMethodForm({
     e.preventDefault();
     setError(null);
     if (!method) {
-      setError("Choisissez un moyen de paiement.");
+      setError(t("Choisissez un moyen de paiement."));
       return;
     }
     const formData = new FormData(e.currentTarget);
@@ -49,9 +52,9 @@ export function PayoutMethodForm({
     startTransition(async () => {
       const res = await savePayoutMethod(null, formData);
       if (res?.ok) {
-        toast.success("Moyen de paiement enregistré.");
+        toast.success(t("Moyen de paiement enregistré."));
       } else if (res) {
-        setError(res.error);
+        setError(t(res.error));
       }
     });
   }
@@ -65,7 +68,7 @@ export function PayoutMethodForm({
       )}
 
       <div className="space-y-2">
-        <Label>Moyen de paiement</Label>
+        <Label><T>Moyen de paiement</T></Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {METHODS.map((m) => {
             const active = method === m;
@@ -87,7 +90,7 @@ export function PayoutMethodForm({
                     <Check className="size-2.5" strokeWidth={3} />
                   </span>
                 )}
-                {PAYOUT_METHOD_LABELS[m]}
+                <T>{PAYOUT_METHOD_LABELS[m]}</T>
               </button>
             );
           })}
@@ -96,7 +99,7 @@ export function PayoutMethodForm({
 
       <div className="space-y-2">
         <Label htmlFor="payout_number">
-          {isMobile ? "Numéro qui reçoit vos paiements" : "RIB / IBAN"}
+          <T>{isMobile ? "Numéro qui reçoit vos paiements" : "RIB / IBAN"}</T>
         </Label>
         <Input
           id="payout_number"
@@ -108,18 +111,18 @@ export function PayoutMethodForm({
         />
         <p className="text-muted-foreground text-xs">
           {isMobile
-            ? "Le numéro du compte Mobile Money sur lequel vous voulez être payé."
-            : "Le RIB ou l'IBAN de votre compte bancaire."}
+            ? t("Le numéro du compte Mobile Money sur lequel vous voulez être payé.")
+            : t("Le RIB ou l'IBAN de votre compte bancaire.")}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="payout_name">Titulaire du compte</Label>
+        <Label htmlFor="payout_name"><T>Titulaire du compte</T></Label>
         <Input
           id="payout_name"
           name="payout_name"
           defaultValue={initialName ?? ""}
-          placeholder="Nom tel qu'il apparaît sur le compte"
+          placeholder={t("Nom tel qu'il apparaît sur le compte")}
           required
         />
       </div>
@@ -127,15 +130,14 @@ export function PayoutMethodForm({
       <div className="bg-muted/40 text-muted-foreground flex items-start gap-2 rounded-lg border p-3 text-xs">
         <ShieldCheck className="text-primary mt-0.5 size-4 shrink-0" />
         <span>
-          Vos coordonnées de paiement restent privées : elles ne servent qu&apos;à
-          vous verser vos ventes et ne sont jamais affichées aux clients.
+          <T>{"Vos coordonnées de paiement restent privées : elles ne servent qu'à vous verser vos ventes et ne sont jamais affichées aux clients."}</T>
         </span>
       </div>
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer
+          <T>Enregistrer</T>
         </Button>
       </div>
     </form>

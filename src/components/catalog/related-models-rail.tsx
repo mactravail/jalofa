@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 
 import { Price } from "@/components/cart/price";
+import { useT } from "@/components/i18n/locale-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { intlLocale } from "@/lib/i18n/config";
 
 export type RelatedGarment = {
   id: string;
@@ -22,6 +25,8 @@ export type RelatedGarment = {
 export function RelatedModelsRail({ items }: { items: RelatedGarment[] }) {
   const trackRef = useRef<HTMLUListElement>(null);
   const [page, setPage] = useState({ current: 1, total: 1 });
+  const t = useT();
+  const locale = intlLocale(useLocale());
 
   function measure(track: HTMLElement) {
     const width = track.clientWidth || 1;
@@ -51,11 +56,11 @@ export function RelatedModelsRail({ items }: { items: RelatedGarment[] }) {
     <section aria-labelledby="related-models" className="mt-16 border-t pt-12">
       <div className="flex items-center justify-between gap-4">
         <h2 id="related-models" className="min-w-0 font-serif text-2xl tracking-tight">
-          Vous aimerez aussi
+          {t("Vous aimerez aussi")}
         </h2>
         {page.total > 1 && (
           <p className="text-muted-foreground hidden shrink-0 text-sm sm:block">
-            Page {page.current} sur {page.total}
+            {t("Page {current} sur {total}", page)}
           </p>
         )}
       </div>
@@ -85,7 +90,7 @@ export function RelatedModelsRail({ items }: { items: RelatedGarment[] }) {
                 </h3>
                 {item.price != null && (
                   <p className="mt-0.5 text-[13px] font-semibold">
-                    <span className="text-muted-foreground text-[11px] font-normal">Dès </span>
+                    <span className="text-muted-foreground text-[11px] font-normal">{t("Dès")} </span>
                     <Price amount={item.price} />
                   </p>
                 )}
@@ -93,10 +98,10 @@ export function RelatedModelsRail({ items }: { items: RelatedGarment[] }) {
                   {item.reviewCount > 0 && (
                     <>
                       <Star className="size-3 shrink-0 fill-amber-400 text-amber-400" aria-hidden />
-                      {item.rating.toLocaleString("fr-FR", { maximumFractionDigits: 1 })}
+                      {item.rating.toLocaleString(locale, { maximumFractionDigits: 1 })}
                     </>
                   )}
-                  <span>{`${item.reviewCount} avis · ~${item.avgDays} jours`}</span>
+                  <span>{`${t("{n} avis", { n: item.reviewCount })} · ${t("~{n} jours", { n: item.avgDays })}`}</span>
                 </p>
               </Link>
             </li>
@@ -127,13 +132,14 @@ function RailArrow({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   const Icon = side === "left" ? ChevronLeft : ChevronRight;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={side === "left" ? "Modèles précédents" : "Modèles suivants"}
+      aria-label={side === "left" ? t("Modèles précédents") : t("Modèles suivants")}
       className={`bg-background hover:bg-muted absolute top-[28%] hidden size-11 items-center justify-center rounded-lg border transition-opacity disabled:opacity-0 sm:flex ${
         side === "left" ? "left-1" : "right-1"
       }`}

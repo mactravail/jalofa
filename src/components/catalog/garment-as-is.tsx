@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { Ruler } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { useCart } from "@/components/cart/cart-context";
 import { STANDARD_SIZES, formatPrice } from "@/lib/constants";
 import type { FreeDeliveryZone } from "@/lib/delivery";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // « Prendre le vêtement tel quel » : le client accepte le modèle tel qu'il est
 // présenté — même tissu, mêmes finitions — et ne choisit QUE sa taille. Tout le
@@ -45,10 +46,11 @@ export type AsIsPreset = {
 export function useAddAsIs(preset: AsIsPreset) {
   const router = useRouter();
   const { addItem } = useCart();
+  const t = useT();
 
   return (size: string | null) => {
     if (!size) {
-      toast.error("Choisissez d'abord votre taille");
+      toast.error(t("Choisissez d'abord votre taille"));
       return;
     }
     addItem({
@@ -63,20 +65,20 @@ export function useAddAsIs(preset: AsIsPreset) {
       measurement: { mode: "standard", standard_size: size, values: {} },
       notes: preset.notesSpec,
       title: preset.modelName,
-      subtitle: preset.subtitle ?? "Modèle présenté · à votre taille",
+      subtitle: t(preset.subtitle ?? "Modèle présenté · à votre taille"),
       image: preset.image,
       styleName: null,
       tailorName: preset.tailorName,
       freeDelivery: preset.freeDelivery ?? false,
       freeDeliveryZone: preset.freeDeliveryZone,
       personalisation: preset.personalisation,
-      measurementLabel: `Taille ${size}`,
+      measurementLabel: t("Taille {size}", { size }),
       unitFabricPrice: preset.fabricPrice,
       unitTailoringPrice: preset.tailoringPrice,
       unitPrice: preset.total,
     });
-    toast.success(`${preset.modelName} ajouté au panier`, {
-      description: `Taille ${size} · ${formatPrice(preset.total)}`,
+    toast.success(t("{name} ajouté au panier", { name: preset.modelName }), {
+      description: `${t("Taille {size}", { size })} · ${formatPrice(preset.total)}`,
     });
     router.push("/panier");
   };
@@ -92,14 +94,15 @@ export function SizePicker({
   onChange: (size: string) => void;
   note?: string;
 }) {
+  const t = useT();
   return (
     <div>
       <div className="flex items-center gap-1.5 text-sm font-medium">
-        <Ruler className="text-primary size-4" /> Choisissez votre taille
+        <Ruler className="text-primary size-4" /> {t("Choisissez votre taille")}
       </div>
       <p className="text-muted-foreground mt-0.5 text-xs">
         {note ??
-          "Même tissu et mêmes finitions que le modèle présenté — le tailleur l'ajuste à votre taille."}
+          t("Même tissu et mêmes finitions que le modèle présenté — le tailleur l'ajuste à votre taille.")}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {STANDARD_SIZES.map((s) => (

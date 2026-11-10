@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { modelPhotos } from "@/lib/constants";
 import type { GarmentModel, ModelCategory } from "@/lib/types";
+import { T } from "@/components/i18n/t";
 
 type Gender = ModelCategory["gender"] | "autre";
 
@@ -61,10 +62,9 @@ export function ModelSuggestionPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Ajouter un modèle</DialogTitle>
+          <DialogTitle><T>Ajouter un modèle</T></DialogTitle>
           <DialogDescription>
-            Partez d&apos;un de nos modèles — vous n&apos;aurez qu&apos;à ajuster
-            la fiche — ou créez le vôtre de toutes pièces.
+            <T>{"Partez d'un de nos modèles — vous n'aurez qu'à ajuster la fiche — ou créez le vôtre de toutes pièces."}</T>
           </DialogDescription>
         </DialogHeader>
 
@@ -78,9 +78,9 @@ export function ModelSuggestionPicker({
               <Plus className="size-5" />
             </span>
             <span className="min-w-0">
-              <span className="block font-medium">Nouveau modèle</span>
+              <span className="block font-medium"><T>Nouveau modèle</T></span>
               <span className="text-muted-foreground block text-sm">
-                Créez une création inédite, à partir d&apos;une page blanche.
+                <T>{"Créez une création inédite, à partir d'une page blanche."}</T>
               </span>
             </span>
           </button>
@@ -88,7 +88,7 @@ export function ModelSuggestionPicker({
           {sections.map((section) => (
             <div key={section.gender} className="mb-4 last:mb-0">
               <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
-                {section.label}
+                <T>{section.label}</T>
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {section.items.map((s) => {
@@ -111,7 +111,7 @@ export function ModelSuggestionPicker({
                         )}
                       </span>
                       <span className="block min-w-0 flex-1 truncate font-medium">
-                        {s.name}
+                        <T>{s.name}</T>
                       </span>
                     </button>
                   );

@@ -8,6 +8,7 @@ import {
 } from "@/lib/constants";
 import type { OrderStatusHistory } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { LocalDate, T } from "@/components/i18n/t";
 
 const STATUS_TONE: Partial<Record<OrderStatus, string>> = {
   received: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
@@ -28,7 +29,7 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
         STATUS_TONE[status] ?? "bg-muted text-muted-foreground",
       )}
     >
-      {ORDER_STATUS_LABELS[status]}
+      <T>{ORDER_STATUS_LABELS[status]}</T>
     </Badge>
   );
 }
@@ -52,7 +53,7 @@ export function OrderTimeline({
   if (status === "rejected" || status === "cancelled") {
     return (
       <div className="text-destructive rounded-lg border border-dashed p-4 text-sm">
-        Cette commande a été {ORDER_STATUS_LABELS[status].toLowerCase()}.
+        <T>{status === "rejected" ? "Cette commande a été refusée." : "Cette commande a été annulée."}</T>
       </div>
     );
   }
@@ -94,16 +95,14 @@ export function OrderTimeline({
                 !done && "text-muted-foreground",
               )}
             >
-              {ORDER_STATUS_LABELS[s]}
+              <T>{ORDER_STATUS_LABELS[s]}</T>
             </p>
             {at && (
               <p className="text-muted-foreground text-xs">
-                {new Date(at).toLocaleString("fr-FR", {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                <LocalDate
+                  iso={at}
+                  options={{ day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }}
+                />
               </p>
             )}
           </li>

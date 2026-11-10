@@ -3,8 +3,12 @@ import type { Metadata } from "next";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { VendorFabricsPanel } from "@/components/dashboard/vendor-fabrics-panel";
 import { getFabricCategories, getVendorFabrics } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Mes tissus" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Mes tissus") };
+}
 
 // Un tailleur vend son tissu sous son propre uid : c'est bien la requête vendeur
 // qu'il faut ici — sa fiche boutique est créée au premier enregistrement.

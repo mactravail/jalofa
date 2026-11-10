@@ -63,6 +63,9 @@ export type OrderRelations = {
   address?: { address_line: string; city: string; region: string | null } | null;
   /** Le relevé de mesures rattaché à la commande, pour la fiche du pro. */
   measurement?: OrderMeasurement | null;
+  /** Photo de silhouette jointe à une taille standard : lien signé (1 h), pour
+   *  le tailleur d'une commande payée seulement. */
+  body_photo_url?: string | null;
   /** Le retour du tissu, si le client a demandé à le rendre. */
   fabric_return?: { status: "requested" | "received" } | null;
   /** Les retouches demandées sur ce vêtement. */
@@ -73,6 +76,15 @@ export type OrderRelations = {
     status: "requested" | "done";
     created_at: string;
   }[] | null;
+  /** La réponse du client à « La tenue vous va ? », s'il a répondu. */
+  satisfaction?: OrderSatisfaction | null;
+};
+
+export type OrderSatisfaction = {
+  verdict: "perfect" | "problem";
+  issues: string[];
+  comment: string | null;
+  created_at: string;
 };
 
 export type OrderListItem = Order & OrderRelations;
@@ -140,6 +152,78 @@ function forPro(role: ProRole, order: OrderListItem): OrderListItem {
   };
 }
 
+/** Joint la photo de silhouette du client (lien signé) aux commandes payées. */
+async function withBodyPhotos(orders: OrderListItem[]): Promise<OrderListItem[]> {
+  // Avant le paiement, le pro ne connaît que le code et l'adresse : une photo
+  // peut montrer un visage, elle attend donc le paiement.
+  const ids = orders
+    .filter((o) => o.payment_status === "paid" && o.measurement_id && o.type !== "fabric_only")
+    .map((o) => o.measurement_id as string);
+  if (ids.length === 0) return orders;
+  try {
+    const admin = createAdminClient();
+    // Lu à part du select principal : sur une base pas encore migrée, la colonne
+    // manque (42703) et seule la photo disparaît, pas la liste des commandes.
+    const { data, error } = await admin
+      .from("measurements")
+      .select("id, photo_path")
+      .in("id", ids)
+      .not("photo_path", "is", null);
+    if (error || !data?.length) return orders;
+    const rows = data as { id: string; photo_path: string }[];
+    const { data: signed } = await admin.storage.from("body-photos").createSignedUrls(
+      rows.map((r) => r.photo_path),
+      3600,
+    );
+    const urlByPath = new Map(
+      (signed ?? []).flatMap((s) => (s.path && s.signedUrl ? [[s.path, s.signedUrl]] : [])),
+    );
+    const urlByMeasurement = new Map(
+      rows.flatMap((r) => {
+        const url = urlByPath.get(r.photo_path);
+        return url ? [[r.id, url]] : [];
+      }),
+    );
+    return orders.map((o) => ({
+      ...o,
+      body_photo_url: o.measurement_id ? (urlByMeasurement.get(o.measurement_id) ?? null) : null,
+    }));
+  } catch {
+    // Clé de service absente : la fiche s'affiche sans la photo.
+    return orders;
+  }
+}
+
+/**
+ * Joint à chaque commande livrée la réponse « La tenue vous va ? » du client.
+ * Requête à part et tolérante : si la table manque encore en prod, l'espace pro
+ * s'affiche quand même, simplement sans ces retours.
+ */
+async function withSatisfaction(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orders: OrderListItem[],
+): Promise<OrderListItem[]> {
+  const ids = orders.filter((o) => o.status === "delivered").map((o) => o.id);
+  if (ids.length === 0) return orders;
+  const { data, error } = await supabase
+    .from("order_satisfaction" as "orders")
+    .select("order_id, verdict, issues, comment, created_at")
+    .in("order_id", ids);
+  if (error || !data) return orders;
+  const byOrder = new Map(
+    (data as unknown as (OrderSatisfaction & { order_id: string })[]).map((r) => [r.order_id, r]),
+  );
+  return orders.map((o) => {
+    const row = byOrder.get(o.id);
+    if (!row) return o;
+    const { verdict, issues, comment, created_at } = row;
+    return {
+      ...o,
+      satisfaction: { verdict, issues: issues ?? [], comment, created_at },
+    };
+  });
+}
+
 export async function getTailorOrders(): Promise<OrderListItem[]> {
   if (!isSupabaseConfigured()) return DEMO_TAILOR_ORDERS.map((o) => forPro("tailor", o));
   const supabase = await createClient();
@@ -152,7 +236,10 @@ export async function getTailorOrders(): Promise<OrderListItem[]> {
     .eq("tailor_id", user.id)
     .order("created_at", { ascending: false });
 
-  return ((data as unknown as OrderListItem[]) ?? []).map((o) => forPro("tailor", o));
+  const orders = await withBodyPhotos(
+    await withSatisfaction(supabase, (data as unknown as OrderListItem[]) ?? []),
+  );
+  return orders.map((o) => forPro("tailor", o));
 }
 
 export async function getVendorOrders(): Promise<OrderListItem[]> {
@@ -170,7 +257,8 @@ export async function getVendorOrders(): Promise<OrderListItem[]> {
   // Deux cas ne concernent pas le vendeur : le tissu du tailleur lui-même (rien
   // à envoyer, la commande vit dans l'espace tailleur) et le devis pas encore
   // payé (le tissu ne part qu'une fois le client ayant payé).
-  return ((data as unknown as OrderListItem[]) ?? [])
+  const orders = await withSatisfaction(supabase, (data as unknown as OrderListItem[]) ?? []);
+  return orders
     .filter(
       (o) =>
         o.tailor_id !== user.id && !(o.is_quote && o.payment_status === "pending"),

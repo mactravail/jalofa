@@ -3,8 +3,12 @@ import type { Metadata } from "next";
 import { RegisterChoice } from "@/components/auth/register-choice";
 import { RegisterForm } from "@/components/auth/register-form";
 import type { ProOfferId } from "@/lib/subscriptions";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Créer un compte" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Créer un compte") };
+}
 
 /**
  * « Créer un compte » : deux comptes seulement — **client** (gratuit) ou

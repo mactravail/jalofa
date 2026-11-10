@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
 import { DemoBanner } from "@/components/demo-banner";
 import { FemmeCollection } from "@/components/catalog/femme-collection";
 import { HommeCollection } from "@/components/catalog/homme-collection";
-import { ModelCard } from "@/components/catalog/model-card";
+import { ModelsCatalog } from "@/components/catalog/models-catalog";
 import { getLatestReviews, getModelCategories, getModels } from "@/lib/data";
+import { getT } from "@/lib/i18n/server";
 
 type ModelsSearchParams = {
   category?: string;
@@ -21,23 +21,26 @@ export async function generateMetadata({
   searchParams: Promise<ModelsSearchParams>;
 }): Promise<Metadata> {
   const { category } = await searchParams;
+  const t = await getT();
   if (category === "homme") {
     return {
-      title: "Homme — tenues sur mesure",
-      description:
+      title: t("Homme — tenues sur mesure"),
+      description: t(
         "Grand boubou, kaftan, costume : un habit coupé pour votre corps, pour la cérémonie, le vendredi ou le bureau.",
+      ),
     };
   }
   if (category === "femme") {
     return {
-      title: "Femme — tenues sur mesure",
-      description:
+      title: t("Femme — tenues sur mesure"),
+      description: t(
         "La robe que vous n'avez vue qu'en rêve, cousue pour vous par un tailleur, à vos mesures.",
+      ),
     };
   }
   return {
-    title: "Modèles",
-    description: "Des centaines de modèles : boubou, kaftan, robe, ensemble et plus.",
+    title: t("Modèles"),
+    description: t("Des centaines de modèles : boubou, kaftan, robe, ensemble et plus."),
   };
 }
 
@@ -51,10 +54,6 @@ export default async function ModelsPage({
     getModels({ category }),
     getModelCategories(),
   ]);
-
-  const filtered = q
-    ? models.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
-    : models;
 
   // The configurator sends people here when they started an order without
   // choosing a garment. Keep what they had already picked so the detail page can
@@ -93,35 +92,20 @@ export default async function ModelsPage({
     );
   }
 
+  // Tout le reste (catalogue complet, autre catégorie, recherche) : la grille
+  // « collection » filtre et trie côté client, sur tout le catalogue.
+  const allModels = category ? await getModels() : models;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <>
       <DemoBanner />
-
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Modèles</h1>
-          <p className="text-muted-foreground mt-1">
-            Choisissez un modèle, puis un style et un tissu pour votre tenue.
-          </p>
-        </div>
-        <SearchInput placeholder="Rechercher un modèle..." />
-      </div>
-
-      <div className="mb-8">
-        <CategoryChips options={categories} />
-      </div>
-
-      {filtered.length === 0 ? (
-        <p className="text-muted-foreground py-16 text-center">
-          Aucun modèle ne correspond à votre recherche.
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((model) => (
-            <ModelCard key={model.id} model={model} context={contextQuery} />
-          ))}
-        </div>
-      )}
-    </div>
+      <ModelsCatalog
+        models={allModels}
+        categories={categories}
+        initialCategory={category}
+        initialQuery={q}
+        context={contextQuery}
+      />
+    </>
   );
 }

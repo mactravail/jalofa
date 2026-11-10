@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 // Bandeau défilant « Nos collections » — Homme, Femme et Enfant réunis, au même
 // format que le bandeau des tissus (<FabricMarquee />) : deux pistes identiques

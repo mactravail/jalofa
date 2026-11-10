@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Check, Ruler, ShoppingBag, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 

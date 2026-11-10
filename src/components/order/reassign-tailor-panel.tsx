@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import type { Tailor } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Une commande refusée n'est pas une impasse : le client relance ici chez un
@@ -33,6 +34,7 @@ export function ReassignTailorPanel({
   tailors: Tailor[];
 }) {
   const router = useRouter();
+  const tr = useT();
   const [selected, setSelected] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -41,10 +43,10 @@ export function ReassignTailorPanel({
     startTransition(async () => {
       const res = await reassignTailor(orderId, selected);
       if (res.ok) {
-        toast.success("Commande relancée chez le nouveau tailleur.");
+        toast.success(tr("Commande relancée chez le nouveau tailleur."));
         router.refresh();
       } else {
-        toast.error(res.error);
+        toast.error(tr(res.error));
       }
     });
   };
@@ -54,20 +56,19 @@ export function ReassignTailorPanel({
       <div className="flex items-start gap-3">
         <AlertTriangle className="text-destructive mt-0.5 size-5 shrink-0" />
         <div>
-          <p className="font-semibold">Commande refusée par le tailleur</p>
+          <p className="font-semibold">{tr("Commande refusée par le tailleur")}</p>
           <p className="text-muted-foreground text-sm">
-            {reason
+            {tr(reason
               ? REJECTION_REASON_CLIENT_LABELS[reason]
-              : "Le tailleur ne peut pas honorer cette commande."}{" "}
-            Choisissez un autre tailleur pour la relancer — le reste de votre
-            commande est conservé.
+              : "Le tailleur ne peut pas honorer cette commande.")}{" "}
+            {tr("Choisissez un autre tailleur pour la relancer — le reste de votre commande est conservé.")}
           </p>
         </div>
       </div>
 
       {tailors.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Aucun autre tailleur disponible pour le moment. Réessayez plus tard.
+          {tr("Aucun autre tailleur disponible pour le moment. Réessayez plus tard.")}
         </p>
       ) : (
         <>
@@ -97,7 +98,7 @@ export function ReassignTailorPanel({
                   <p className="truncate text-sm font-semibold">{t.shop_name}</p>
                   <p className="text-muted-foreground text-xs">{t.city}</p>
                   <p className="mt-1 text-xs">
-                    dès {formatPrice(t.base_price)} · {t.avg_delivery_days} j · ★{" "}
+                    {tr("dès {price}", { price: formatPrice(t.base_price) })} · {tr("{n} j", { n: t.avg_delivery_days })} · ★{" "}
                     {t.rating.toFixed(1)}
                   </p>
                 </div>
@@ -108,7 +109,7 @@ export function ReassignTailorPanel({
           <div className="flex justify-end">
             <Button onClick={confirm} disabled={isPending || !selected}>
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              Relancer chez ce tailleur
+              {tr("Relancer chez ce tailleur")}
             </Button>
           </div>
         </>

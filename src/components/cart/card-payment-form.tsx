@@ -6,6 +6,7 @@ import { Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // ---------------------------------------------------------------------------
 // Card model
@@ -211,6 +212,7 @@ export function CardPaymentForm({
   onChange: (card: CardDetails) => void;
 }) {
   const numberId = useId();
+  const t = useT();
   // Errors surface on blur only — flagging an invalid number mid-typing is noise.
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const touch = (k: string) => setTouched((t) => ({ ...t, [k]: true }));
@@ -222,34 +224,34 @@ export function CardPaymentForm({
   const numberError =
     touched.number && card.number.length > 0
       ? brand === "unknown"
-        ? "Carte non prise en charge."
+        ? t("Carte non prise en charge.")
         : card.number.length < spec.length
-          ? "Numéro incomplet."
+          ? t("Numéro incomplet.")
           : !luhnValid(card.number)
-            ? "Numéro de carte invalide."
+            ? t("Numéro de carte invalide.")
             : null
       : null;
 
   const expiryError =
     touched.expiry && card.expiry.length > 0 && !expiryValid(card.expiry)
       ? card.expiry.length < 4
-        ? "Date incomplète."
-        : "Date expirée."
+        ? t("Date incomplète.")
+        : t("Date expirée.")
       : null;
 
   const cvcError =
     touched.cvc && card.cvc.length > 0 && card.cvc.length < spec.cvc
-      ? `${spec.cvc} chiffres attendus.`
+      ? t("{n} chiffres attendus.", { n: spec.cvc })
       : null;
 
   return (
     <div className="bg-muted/30 mt-3 space-y-4 rounded-xl border p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">Détails de la carte</p>
+        <p className="text-sm font-medium">{t("Détails de la carte")}</p>
         <AcceptedBrands active={brand} />
       </div>
 
-      <CardField label="Numéro de carte" error={numberError}>
+      <CardField label={t("Numéro de carte")} error={numberError}>
         <div className="relative">
           <Input
             id={numberId}
@@ -269,7 +271,7 @@ export function CardPaymentForm({
         </div>
       </CardField>
 
-      <CardField label="Titulaire de la carte" error={null}>
+      <CardField label={t("Titulaire de la carte")} error={null}>
         <Input
           autoComplete="cc-name"
           placeholder="Aminata Diop"
@@ -280,11 +282,11 @@ export function CardPaymentForm({
       </CardField>
 
       <div className="grid grid-cols-2 gap-4">
-        <CardField label="Expiration" hint="MM/AA" error={expiryError}>
+        <CardField label={t("Expiration")} hint={t("MM/AA")} error={expiryError}>
           <Input
             inputMode="numeric"
             autoComplete="cc-exp"
-            placeholder="MM/AA"
+            placeholder={t("MM/AA")}
             value={
               card.expiry.length > 2
                 ? `${card.expiry.slice(0, 2)}/${card.expiry.slice(2)}`
@@ -302,7 +304,7 @@ export function CardPaymentForm({
           />
         </CardField>
 
-        <CardField label={spec.cvcLabel} hint={`${spec.cvc} chiffres`} error={cvcError}>
+        <CardField label={spec.cvcLabel} hint={t("{n} chiffres", { n: spec.cvc })} error={cvcError}>
           <Input
             inputMode="numeric"
             autoComplete="cc-csc"
@@ -318,7 +320,7 @@ export function CardPaymentForm({
 
       <p className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
         <Lock className="size-3 shrink-0" />
-        Paiement sécurisé — vos informations bancaires ne sont pas stockées.
+        {t("Paiement sécurisé — vos informations bancaires ne sont pas stockées.")}
       </p>
     </div>
   );

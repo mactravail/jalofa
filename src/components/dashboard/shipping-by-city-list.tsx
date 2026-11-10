@@ -15,6 +15,7 @@ import {
   pipelineType,
   timelineFor,
 } from "@/lib/pipeline";
+import { T } from "@/components/i18n/t";
 
 /**
  * Le tri des expéditions par ville. On ne garde que ce que ce métier livre
@@ -37,7 +38,7 @@ export function ShippingByCityList({ empty }: { empty: string }) {
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
         <PackageOpen className="text-muted-foreground mx-auto size-7" />
-        <p className="text-muted-foreground mt-3 text-sm">{empty}</p>
+        <p className="text-muted-foreground mt-3 text-sm"><T>{empty}</T></p>
       </div>
     );
   }
@@ -77,7 +78,7 @@ function CityGroupCard({
         <MapPin className="text-primary size-4 shrink-0" />
         <h2 className="font-semibold">{city}</h2>
         <span className="bg-primary/10 text-primary ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">
-          {count} colis
+          <T vars={{ n: count }}>{"{n} colis"}</T>
         </span>
       </header>
       <ul className="divide-y">
@@ -114,7 +115,7 @@ function ShippingRow({ order }: { order: OrderListItem }) {
           </span>
           <OrderStatusBadge status={order.status} />
         </div>
-        <p className="mt-0.5 truncate text-sm font-medium">{title}</p>
+        <p className="mt-0.5 truncate text-sm font-medium"><T>{title}</T></p>
         {order.delivery_address && (
           <p className="text-muted-foreground truncate text-xs">{order.delivery_address}</p>
         )}

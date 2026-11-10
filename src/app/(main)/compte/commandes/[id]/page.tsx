@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star } from "lucide-react";
 
@@ -25,10 +25,12 @@ import { getFabrics, getTailors } from "@/lib/data";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import {
 
+  canCancelForLateness,
   canCancelOrder,
   canReturnFabric,
   cancelDeadline,
   formatDeadline,
+  promisedReadyAt,
   returnDeadline,
 } from "@/lib/after-sale";
 import {
@@ -42,6 +44,10 @@ import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
 import { InTransitPanel, PayoutDelayNotice } from "@/components/order/delivery-panels";
 import { JalofaWhatsApp } from "@/components/order/jalofa-whatsapp";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { getT } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
+import { T } from "@/components/i18n/t";
 
 export default async function OrderTrackingPage({
   params,
@@ -50,6 +56,8 @@ export default async function OrderTrackingPage({
 }) {
   const { id } = await params;
   const order = await getOrderDetail(id);
+  const t = await getT();
+  const locale = intlLocale(await getLocale());
 
   // Une commande refusée peut repartir chez un autre tailleur : on charge les
   // ateliers ouverts (sauf celui qui a refusé). Seul cas où le client rechoisit.
@@ -74,7 +82,7 @@ export default async function OrderTrackingPage({
     return (
       <div className="rounded-xl border border-dashed p-10 text-center">
         <p className="text-muted-foreground">
-          Le suivi de commande sera disponible une fois la base de données connectée.
+          {t("Le suivi de commande sera disponible une fois la base de données connectée.")}
         </p>
       </div>
     );
@@ -85,6 +93,10 @@ export default async function OrderTrackingPage({
   const reviewed =
     order.status === "delivered" ? await getOrderReviewState(order.id) : null;
   const cancelEnd = cancelDeadline(order, order.history);
+  // Plus d'une semaine après la date promise : annulation remboursée.
+  const promisedAt = promisedReadyAt(order, order.history);
+  const lateCancel =
+    !canCancelOrder(order, order.history) && canCancelForLateness(order, order.history);
   const returnEnd = returnDeadline(order, order.history);
   const returnAddress =
     order.fabric_return?.status === "requested" ? await getFabricReturnAddress(order) : null;
@@ -95,14 +107,14 @@ export default async function OrderTrackingPage({
         href="/compte"
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"
       >
-        <ArrowLeft className="size-4" /> Mes commandes
+        <ArrowLeft className="size-4" /> {t("Mes commandes")}
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-mono text-lg font-semibold">{order.order_number}</h1>
           <p className="text-muted-foreground text-sm">
-            {new Date(order.created_at).toLocaleDateString("fr-FR", {
+            {new Date(order.created_at).toLocaleDateString(locale, {
               day: "2-digit",
               month: "long",
               year: "numeric",
@@ -159,12 +171,21 @@ export default async function OrderTrackingPage({
         <ConfirmFabricReceived orderId={order.id} />
       )}
 
-      {canCancelOrder(order, order.history) && (
+      {(canCancelOrder(order, order.history) || lateCancel) && (
         <CancelOrderPanel
           orderId={order.id}
           paid={order.payment_status === "paid"}
+          lateSince={
+            lateCancel && promisedAt !== null
+              ? new Date(promisedAt).toLocaleDateString(locale, {
+                  day: "numeric",
+                  month: "long",
+                  timeZone: "Africa/Dakar",
+                })
+              : null
+          }
           deadlineLabel={
-            order.status !== "rejected" && cancelEnd !== null ? formatDeadline(cancelEnd) : null
+            order.status !== "rejected" && cancelEnd !== null ? formatDeadline(cancelEnd, locale) : null
           }
         />
       )}
@@ -173,7 +194,7 @@ export default async function OrderTrackingPage({
         <FabricReturnPanel
           orderId={order.id}
           status={order.fabric_return?.status ?? null}
-          deadlineLabel={returnEnd !== null ? formatDeadline(returnEnd) : null}
+          deadlineLabel={returnEnd !== null ? formatDeadline(returnEnd, locale) : null}
           returnAddress={returnAddress}
         />
       )}
@@ -204,8 +225,7 @@ export default async function OrderTrackingPage({
           {order.tailor_id && !reviewed.tailor && (
             <div className="rounded-xl border p-4">
               <p className="flex items-center gap-2 font-semibold">
-                <Star className="size-4 text-amber-400" /> Votre avis sur{" "}
-                {order.tailor?.shop_name ?? "votre tailleur"}
+                <Star className="size-4 text-amber-400" /> {t("Votre avis sur {name}", { name: order.tailor?.shop_name ?? t("votre tailleur") })}
               </p>
               <div className="mt-3">
                 <TailorReviewForm tailorId={order.tailor_id} />
@@ -218,7 +238,7 @@ export default async function OrderTrackingPage({
             !reviewed.fabric && (
               <div className="rounded-xl border p-4">
                 <p className="flex items-center gap-2 font-semibold">
-                  <Star className="size-4 text-amber-400" /> Votre avis sur le tissu
+                  <Star className="size-4 text-amber-400" /> {t("Votre avis sur le tissu")}
                   {order.fabric?.name ? ` « ${order.fabric.name} »` : ""}
                 </p>
                 <div className="mt-3">
@@ -235,20 +255,20 @@ export default async function OrderTrackingPage({
           <JalofaWhatsApp
             orderNumber={order.order_number}
             message="J'ai un problème avec ma commande :"
-            label="Un problème ? Contacter un membre de JALOFA"
+            label={t("Un problème ? Contacter un membre de JALOFA")}
             className="w-full"
           />
         </div>
       )}
 
       {order.payment_status === "refunded" && (
-        <p className="rounded-xl border p-4 font-semibold">Vous avez été remboursé.</p>
+        <p className="rounded-xl border p-4 font-semibold">{t("Vous avez été remboursé.")}</p>
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Suivi</CardTitle>
+            <CardTitle className="text-base">{t("Suivi")}</CardTitle>
           </CardHeader>
           <CardContent>
             <OrderTimeline
@@ -261,7 +281,7 @@ export default async function OrderTrackingPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Détails</CardTitle>
+            <CardTitle className="text-base">{t("Détails")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Row label="Type" value={ORDER_TYPE_LABELS[order.type]} />
@@ -292,20 +312,20 @@ export default async function OrderTrackingPage({
                     order.delivery_fee > 0
                       ? formatPrice(order.delivery_fee)
                       : order.delivery_method === "pickup" || order.is_quote
-                        ? "Gratuite"
-                        : "Selon le pro"
+                        ? t("Gratuite")
+                        : t("Selon le pro")
                   }
                 />
                 <div className="my-3 h-px bg-border" />
                 <div className="flex items-center justify-between font-semibold">
-                  <span>Total</span>
+                  <span>{t("Total")}</span>
                   <span className="text-primary">{formatPrice(order.total_amount)}</span>
                 </div>
               </>
             )}
             <Row
               label="Paiement"
-              value={`${order.payment_method ? PAYMENT_METHOD_LABELS[order.payment_method] : "—"} · ${PAYMENT_STATUS_LABELS[order.payment_status]}`}
+              value={`${order.payment_method ? t(PAYMENT_METHOD_LABELS[order.payment_method]) : "—"} · ${t(PAYMENT_STATUS_LABELS[order.payment_status])}`}
             />
           </CardContent>
         </Card>
@@ -317,8 +337,8 @@ export default async function OrderTrackingPage({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <span className="text-muted-foreground"><T>{label}</T></span>
+      <span className="text-right font-medium"><T>{value}</T></span>
     </div>
   );
 }

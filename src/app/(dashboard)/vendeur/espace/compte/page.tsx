@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 
 import { AccountSettings } from "@/components/account/account-settings";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Mes informations" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("Mes informations") };
+}
 
 export default function VendorAccountPage() {
   return (

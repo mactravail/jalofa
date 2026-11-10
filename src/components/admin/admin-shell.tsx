@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/i18n/link";
+import { usePathname } from "@/lib/i18n/navigation";
 import { Home, LogOut, Menu, ShieldCheck } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

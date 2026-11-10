@@ -13,7 +13,7 @@ import {
   Sun,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { useState, type ComponentType } from "react";
 
 import { ModelCareTips } from "@/components/catalog/model-care-tips";
@@ -28,6 +28,7 @@ import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
 import { styleGroupsFor } from "@/lib/style-options";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/i18n/locale-provider";
 
 // Finishing groups whose drawing is composed onto the chosen garment's bust
 // (a boubou collar ≠ a costume collar). Coupe + Longueur keep their own
@@ -59,6 +60,7 @@ const OCCASION_ICONS: Record<string, ComponentType<{ className?: string }>> = {
 export default function StyleStep() {
   const { data, state, update, model, setPreviewPhoto } = useConfigurator();
   const [occasionOpen, setOccasionOpen] = useState(false);
+  const t = useT();
   const chosenOccasion = data.styles.find((s) => s.slug === state.styleSlug)?.name;
 
   // Only this garment's own cuts and finishings — a jupe gets no collar group,
@@ -95,12 +97,12 @@ export default function StyleStep() {
               )}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="text-muted-foreground block text-xs">Modèle publié par</span>
+              <span className="text-muted-foreground block text-xs">{t("Modèle publié par")}</span>
               <span className="block truncate text-base font-semibold">{author.shop_name}</span>
               {author.rating_count > 0 && (
                 <span className="text-muted-foreground flex items-center gap-1 text-xs">
                   <Star className="size-3 fill-current" />
-                  {author.rating.toFixed(1)} · {author.rating_count} avis
+                  {author.rating.toFixed(1)} · {t("{n} avis", { n: author.rating_count })}
                 </span>
               )}
             </span>
@@ -122,9 +124,9 @@ export default function StyleStep() {
             aria-expanded={occasionOpen}
             className="flex min-h-11 w-full items-center gap-x-2 text-left text-base font-semibold tracking-tight"
           >
-            Occasion
+            {t("Occasion")}
             <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs font-normal">
-              · {chosenOccasion ?? "optionnel"}
+              · {chosenOccasion ? t(chosenOccasion) : t("optionnel")}
             </span>
             <ChevronDown
               className={cn(
@@ -153,7 +155,7 @@ export default function StyleStep() {
                   )}
                 >
                   {active ? <Check className="size-4" /> : <Icon className="size-4" />}
-                  {s.name}
+                  {t(s.name)}
                 </button>
               );
             })}
@@ -169,10 +171,10 @@ export default function StyleStep() {
         return (
           <section key={group.slug}>
             <h3 className="mb-3 flex flex-wrap items-baseline gap-x-2">
-              <span className="text-base font-semibold tracking-tight">{group.name}</span>
+              <span className="text-base font-semibold tracking-tight">{t(group.name)}</span>
               {chosen && (
                 <span className="text-muted-foreground text-xs font-normal">
-                  · {chosen.name}
+                  · {t(chosen.name)}
                 </span>
               )}
             </h3>
@@ -213,7 +215,7 @@ export default function StyleStep() {
                       {opt.photo ? (
                         <Image
                           src={opt.photo}
-                          alt={opt.name}
+                          alt={t(opt.name)}
                           fill
                           sizes={
                             isTailorModel
@@ -262,7 +264,7 @@ export default function StyleStep() {
                         active ? "text-foreground font-semibold" : "text-muted-foreground",
                       )}
                     >
-                      {opt.name}
+                      {t(opt.name)}
                     </span>
                     {opt.extra ? (
                       <span className="text-primary text-xs font-semibold whitespace-nowrap">
@@ -279,8 +281,7 @@ export default function StyleStep() {
 
       {isTailorModel && groups.length === 0 && (
         <p className="text-muted-foreground rounded-xl border p-3 text-sm">
-          Ce modèle est cousu tel qu&apos;il est présenté. Une envie particulière ?
-          Ajoutez une photo ou écrivez au tailleur au récapitulatif.
+          {t("Ce modèle est cousu tel qu'il est présenté. Une envie particulière ? Ajoutez une photo ou écrivez au tailleur au récapitulatif.")}
         </p>
       )}
 

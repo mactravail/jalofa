@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ChevronRight, LayoutDashboard } from "lucide-react";
 
 import { ClientOrdersBoard, ClientOrdersEmpty } from "@/components/account/client-orders-board";
@@ -10,6 +10,7 @@ import { getMyUnreadNotificationCount } from "@/lib/notifications-data";
 import { getMyOrders } from "@/lib/orders-data";
 import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
 const isPro = (role: string): role is ProRole =>
   role === "tailor" || role === "vendor";
@@ -25,16 +26,17 @@ export default async function AccountPage() {
     getMyOrders(),
     getMyUnreadNotificationCount(),
   ]);
+  const t = await getT();
 
   if (!profile && isSupabaseConfigured()) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
           <p className="text-muted-foreground">
-            Connectez-vous pour voir vos commandes.
+            {t("Connectez-vous pour voir vos commandes.")}
           </p>
           <Link href="/connexion" className={cn(buttonVariants(), "mt-4")}>
-            Se connecter
+            {t("Se connecter")}
           </Link>
         </CardContent>
       </Card>
@@ -56,7 +58,7 @@ export default async function AccountPage() {
           )}
         >
           <span className="flex items-center gap-3">
-            <LayoutDashboard className="size-6" /> {DASHBOARD_TITLE[pro]}
+            <LayoutDashboard className="size-6" /> {t(DASHBOARD_TITLE[pro])}
           </span>
           <ChevronRight className="size-6" />
         </Link>
@@ -70,8 +72,8 @@ export default async function AccountPage() {
           firstName={firstName}
           message={
             isSupabaseConfigured()
-              ? "Vous n'avez pas encore de commande."
-              : "Vos commandes s'afficheront ici une fois la base de données connectée."
+              ? t("Vous n'avez pas encore de commande.")
+              : t("Vos commandes s'afficheront ici une fois la base de données connectée.")
           }
         />
       ) : (

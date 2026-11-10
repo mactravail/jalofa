@@ -1,7 +1,8 @@
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { ArrowRight, Scissors, Shirt, Store } from "lucide-react";
 
 import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * Premier écran de « Créer un compte » : deux comptes seulement, qui doivent se
@@ -15,7 +16,8 @@ import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
  * `data-wide` élargit le conteneur du layout d'auth : les cartes passent côte à
  * côte sur grand écran.
  */
-export function RegisterChoice({ redirect }: { redirect?: string }) {
+export async function RegisterChoice({ redirect }: { redirect?: string }) {
+  const t = await getT();
   const clientHref = redirect
     ? `/inscription?role=client&redirect=${encodeURIComponent(redirect)}`
     : "/inscription?role=client";
@@ -24,10 +26,10 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
     <div data-wide className="space-y-7">
       <header className="motion-safe:animate-in motion-safe:fade-in space-y-4 text-center motion-safe:duration-500">
         <p className="text-muted-foreground text-xs font-medium tracking-[0.25em] uppercase">
-          Créer un compte
+          {t("Créer un compte")}
         </p>
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Qui êtes-vous ?
+          {t("Qui êtes-vous ?")}
         </h1>
         <TapeMeasure />
       </header>
@@ -42,7 +44,7 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
 
           <div className="flex items-start justify-between gap-4">
             <span className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
-              Professionnel
+              {t("Professionnel")}
             </span>
             <Scissors
               aria-hidden
@@ -51,22 +53,22 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
             />
           </div>
 
-          <h2 className="mt-3 text-3xl font-bold tracking-tight">Je suis pro</h2>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight">{t("Je suis pro")}</h2>
           <p className="mt-1.5 text-base text-white/70">
-            Je couds et je vends du tissu.
+            {t("Je couds et je vends du tissu.")}
           </p>
 
           <div className="mt-4 mb-6 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
-              <Scissors aria-hidden className="size-4" /> Tailleur
+              <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
-              <Store aria-hidden className="size-4" /> Vendeur de tissu
+              <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
             </span>
           </div>
 
           <span className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-base font-semibold text-neutral-950 transition-colors group-hover:bg-neutral-200">
-            Voir les offres pro
+            {t("Voir les offres pro")}
             <ArrowRight
               aria-hidden
               className="size-5 transition-transform group-hover:translate-x-1"
@@ -83,7 +85,7 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
 
           <div className="flex items-start justify-between gap-4">
             <span className="text-xs font-semibold tracking-[0.2em] text-neutral-600 uppercase">
-              Gratuit
+              {t("Gratuit")}
             </span>
             <Shirt
               aria-hidden
@@ -93,14 +95,14 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
           </div>
 
           <h2 className="mt-3 text-3xl font-bold tracking-tight">
-            Je suis client
+            {t("Je suis client")}
           </h2>
           <p className="mt-1.5 mb-6 text-base text-neutral-600">
-            Je commande des tenues sur mesure.
+            {t("Je commande des tenues sur mesure.")}
           </p>
 
           <span className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 py-3.5 text-base font-semibold text-white transition-colors group-hover:bg-neutral-800">
-            Créer mon compte
+            {t("Créer mon compte")}
             <ArrowRight
               aria-hidden
               className="size-5 transition-transform group-hover:translate-x-1"
@@ -110,12 +112,12 @@ export function RegisterChoice({ redirect }: { redirect?: string }) {
       </div>
 
       <p className="text-muted-foreground text-center text-sm">
-        Déjà inscrit ?{" "}
+        {t("Déjà inscrit ?")}{" "}
         <Link
           href="/connexion"
           className="text-foreground inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline"
         >
-          Se connecter
+          {t("Se connecter")}
         </Link>
       </p>
     </div>

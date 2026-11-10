@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import { Clock, Plus, Star, Store, User } from "lucide-react";
 
 import { CustomerReviews } from "@/components/catalog/collection-sections";
@@ -14,6 +14,9 @@ import type { LatestReviews, ModelReviewStats } from "@/lib/data";
 import { deliveryPolicy } from "@/lib/delivery";
 import { careTipLines } from "@/lib/model-style";
 import type { GarmentModel } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
+import { getLocale } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
 
 /**
  * Ce que toutes les fiches vêtement montrent, dans le même ordre : le haut de
@@ -70,7 +73,7 @@ type GarmentAuthor = {
   city?: string | null;
 };
 
-export function GarmentHeading({
+export async function GarmentHeading({
   model,
   author,
   reviews,
@@ -84,6 +87,8 @@ export function GarmentHeading({
   /** Remplace le niveau de difficulté (« 3 pièces » sur le grand boubou). */
   badge?: string;
 }) {
+  const t = await getT();
+  const locale = intlLocale(await getLocale());
   const audience = model.category_slug ? AUDIENCE_LABEL[model.category_slug] : null;
   const badgeLabel =
     badge ?? (model.difficulty ? DIFFICULTY_LABEL[model.difficulty] : null);
@@ -91,7 +96,7 @@ export function GarmentHeading({
   return (
     <header>
       {eyebrow && (
-        <p className="text-primary text-xs font-medium tracking-wide uppercase">{eyebrow}</p>
+        <p className="text-primary text-xs font-medium tracking-wide uppercase">{t(eyebrow)}</p>
       )}
       <h1 className="mt-1 text-3xl font-bold tracking-tight">{model.name}</h1>
 
@@ -102,22 +107,22 @@ export function GarmentHeading({
         {reviews.count > 0 && (
           <>
             <Star className="size-3 fill-amber-400 text-amber-400" />
-            {reviews.average.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} ·{" "}
+            {reviews.average.toLocaleString(locale, { maximumFractionDigits: 1 })} ·{" "}
           </>
         )}
-        {reviews.count} avis
+        {t("{n} avis", { n: reviews.count })}
       </a>
 
       <p className="mt-3 flex items-center gap-1.5 text-sm">
         <Store className="text-muted-foreground size-4 shrink-0" />
         <span className="min-w-0">
-          Publié par{" "}
+          {t("Publié par")}{" "}
           {author ? (
             <Link
               href={`/tailleurs/${author.id}`}
               className="font-medium underline underline-offset-4"
             >
-              {author.shop_name ?? "son tailleur"}
+              {author.shop_name ?? t("son tailleur")}
             </Link>
           ) : (
             <span className="font-medium">{APP_NAME}</span>
@@ -128,27 +133,28 @@ export function GarmentHeading({
 
       <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
         <span className="flex items-center gap-1.5">
-          <Clock className="size-4" /> ~{model.avg_days} jours de confection
+          <Clock className="size-4" /> {t("~{n} jours de confection", { n: model.avg_days })}
         </span>
         {audience && (
           <span className="flex items-center gap-1.5">
-            <User className="size-4" /> {audience}
+            <User className="size-4" /> {t(audience)}
           </span>
         )}
-        {badgeLabel && <Badge variant="outline">{badgeLabel}</Badge>}
+        {badgeLabel && <Badge variant="outline">{t(badgeLabel)}</Badge>}
       </div>
     </header>
   );
 }
 
-function SeeMore({ title, children }: { title: string; children: ReactNode }) {
+async function SeeMore({ title, children }: { title: string; children: ReactNode }) {
+  const t = await getT();
   return (
     <details className="group border-b">
       <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 font-medium [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0">{title}</span>
+        <span className="min-w-0">{t(title)}</span>
         <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs font-normal">
-          <span className="group-open:hidden">Voir plus</span>
-          <span className="hidden group-open:inline">Voir moins</span>
+          <span className="group-open:hidden">{t("Voir plus")}</span>
+          <span className="hidden group-open:inline">{t("Voir moins")}</span>
           <Plus className="size-4 transition-transform group-open:rotate-45" />
         </span>
       </summary>
@@ -157,7 +163,7 @@ function SeeMore({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function GarmentDetails({
+export async function GarmentDetails({
   model,
 }: {
   model: Pick<
@@ -165,6 +171,7 @@ export function GarmentDetails({
     "description" | "avg_days" | "care_tips" | "delivery_zone" | "tailor_id"
   >;
 }) {
+  const t = await getT();
   const tips = careTipLines(model.care_tips);
   const description = model.description?.trim() || null;
   // La description d'une création est celle de son tailleur, mot pour mot :
@@ -176,35 +183,34 @@ export function GarmentDetails({
       {(description || !isTailorModel) && (
         <SeeMore title="Description">
           {description && <p className="whitespace-pre-line">{description}</p>}
-          {!isTailorModel && <p>Tailles standard XS → XXXL, ajustées par le tailleur.</p>}
+          {!isTailorModel && <p>{t("Tailles standard XS → XXXL, ajustées par le tailleur.")}</p>}
         </SeeMore>
       )}
 
       <SeeMore title="Livraison et remboursement">
-        <p>{deliveryPolicy(model.delivery_zone)}</p>
-        <p>{`Comptez ~${model.avg_days} jours de confection, plus le trajet jusqu'à votre ville.`}</p>
+        <p>{t(deliveryPolicy(model.delivery_zone))}</p>
+        <p>{t("Comptez ~{n} jours de confection, plus le trajet jusqu'à votre ville.", { n: model.avg_days })}</p>
         <p>
-          {`Vous pouvez annuler pendant ${CANCEL_WINDOW_HOURS} h après le paiement, tant que le tissu n'est pas parti : ${APP_NAME} vous rembourse.`}
+          {t("Vous pouvez annuler pendant {h} h après le paiement, tant que le tissu n'est pas parti : {app} vous rembourse.", { h: CANCEL_WINDOW_HOURS, app: APP_NAME })}
         </p>
-        <p>Une tenue cousue ne peut pas être rendue, mais votre tailleur peut la retoucher.</p>
+        <p>{t("Une tenue cousue ne peut pas être rendue, mais votre tailleur peut la retoucher.")}</p>
         <p>
-          Défaut, erreur ou tenue jamais reçue : faites une réclamation dans les 5 jours après la
-          livraison pour être remboursé.
+          {t("Défaut, erreur ou tenue jamais reçue : faites une réclamation dans les 3 jours après la livraison pour être remboursé.")}
         </p>
         <Link href="/conditions" className="inline-block underline underline-offset-4">
-          Lire les conditions
+          {t("Lire les conditions")}
         </Link>
       </SeeMore>
 
       <SeeMore title="Instructions">
         {tips.length === 0 && (
-          <p>Conseils généraux, à adapter selon le tissu :</p>
+          <p>{t("Conseils généraux, à adapter selon le tissu :")}</p>
         )}
         <ul className="space-y-1.5">
           {(tips.length > 0 ? tips : GENERAL_CARE).map((line, i) => (
             <li key={`${i}-${line}`} className="flex gap-2">
               <span aria-hidden>•</span>
-              <span className="min-w-0">{line}</span>
+              <span className="min-w-0">{tips.length > 0 ? line : t(line)}</span>
             </li>
           ))}
         </ul>

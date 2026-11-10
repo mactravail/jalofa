@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { T } from "@/components/i18n/t";
+import { useT } from "@/components/i18n/locale-provider";
 
 export type CourierInfo = { name: string; phone: string; eta: string };
 
@@ -41,6 +43,7 @@ export function CourierDialog({
   isPending: boolean;
 }) {
   const [name, setName] = useState("");
+  const t = useT();
   const [phone, setPhone] = useState("");
   const [eta, setEta] = useState(inThreeHours);
 
@@ -57,28 +60,27 @@ export function CourierDialog({
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Truck className="size-5" /> Tenue remise au livreur
+              <Truck className="size-5" /> <T>Tenue remise au livreur</T>
             </DialogTitle>
             <DialogDescription>
-              Le client recevra le nom et le numéro du livreur. Donnez aussi au livreur le
-              numéro du client pour qu&apos;il puisse l&apos;appeler.
+              <T>{"Le client recevra le nom et le numéro du livreur. Donnez aussi au livreur le numéro du client pour qu'il puisse l'appeler."}</T>
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="courier-name">Nom du livreur</Label>
+              <Label htmlFor="courier-name"><T>Nom du livreur</T></Label>
               <Input
                 id="courier-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex. Moussa"
+                placeholder={t("Ex. Moussa")}
                 autoComplete="off"
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="courier-phone">Numéro du livreur</Label>
+              <Label htmlFor="courier-phone"><T>Numéro du livreur</T></Label>
               <Input
                 id="courier-phone"
                 type="tel"
@@ -90,7 +92,7 @@ export function CourierDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="courier-eta">Arrivée prévue chez le client</Label>
+              <Label htmlFor="courier-eta"><T>Arrivée prévue chez le client</T></Label>
               <Input
                 id="courier-eta"
                 type="datetime-local"
@@ -108,7 +110,7 @@ export function CourierDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Annuler
+              <T>Annuler</T>
             </Button>
             <Button
               type="submit"
@@ -116,7 +118,7 @@ export function CourierDialog({
               className="bg-emerald-600 text-white hover:bg-emerald-700"
             >
               {isPending ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
-              Envoyer au client
+              <T>Envoyer au client</T>
             </Button>
           </DialogFooter>
         </form>

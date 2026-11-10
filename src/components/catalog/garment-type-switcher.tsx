@@ -1,8 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 
 import { formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 
 export type GarmentTypeCard = {
   id: string;
@@ -20,7 +21,7 @@ export type GarmentTypeCard = {
  * if you had landed there directly from /modeles. Nothing switches once
  * "Personnaliser" is pressed — this only decides which garment you're on.
  */
-export function GarmentTypeSwitcher({
+export async function GarmentTypeSwitcher({
   basePath,
   label,
   types,
@@ -32,17 +33,18 @@ export function GarmentTypeSwitcher({
   activeId: string;
 }) {
   if (types.length < 2) return null;
+  const tr = await getT();
 
   return (
     <div className="mb-8">
       <p className="mb-3 text-sm font-medium">{label}</p>
       <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {types.map((t) => {
-          const active = t.id === activeId;
+        {types.map((type) => {
+          const active = type.id === activeId;
           return (
             <Link
-              key={t.id}
-              href={`${basePath}?type=${t.id}`}
+              key={type.id}
+              href={`${basePath}?type=${type.id}`}
               scroll={false}
               aria-current={active}
               className={cn(
@@ -53,10 +55,10 @@ export function GarmentTypeSwitcher({
               )}
             >
               <div className="bg-muted relative aspect-square overflow-hidden">
-                {t.image && (
+                {type.image && (
                   <Image
-                    src={t.image}
-                    alt={t.name}
+                    src={type.image}
+                    alt={type.name}
                     fill
                     sizes="112px"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -70,10 +72,10 @@ export function GarmentTypeSwitcher({
                     active && "text-primary",
                   )}
                 >
-                  {t.name}
+                  {type.name}
                 </p>
                 <p className="text-muted-foreground text-[11px]">
-                  Dès {formatPrice(t.fromPrice)}
+                  {tr("Dès")} {formatPrice(type.fromPrice)}
                 </p>
               </div>
             </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Supprime une publication « Inspiration » après confirmation. Utilisé par
@@ -30,6 +31,7 @@ export function DeleteInspirationButton({
   label?: string;
 }) {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -37,11 +39,11 @@ export function DeleteInspirationButton({
     startTransition(async () => {
       const res = await deleteInspirationPost(id);
       if (res.ok) {
-        toast.success("Publication supprimée.");
+        toast.success(t("Publication supprimée."));
         setOpen(false);
         router.refresh();
       } else {
-        toast.error(res.error);
+        toast.error(t(res.error));
       }
     });
   }
@@ -61,7 +63,7 @@ export function DeleteInspirationButton({
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Supprimer cette publication"
+          aria-label={t("Supprimer cette publication")}
           onClick={() => setOpen(true)}
           className="text-muted-foreground hover:text-destructive size-8 shrink-0"
         >
@@ -72,10 +74,9 @@ export function DeleteInspirationButton({
       <Dialog open={open} onOpenChange={(o) => !isPending && setOpen(o)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Supprimer cette publication ?</DialogTitle>
+            <DialogTitle>{t("Supprimer cette publication ?")}</DialogTitle>
             <DialogDescription>
-              La tenue et ses photos seront définitivement retirées de la galerie.
-              Cette action est irréversible.
+              {t("La tenue et ses photos seront définitivement retirées de la galerie. Cette action est irréversible.")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -84,7 +85,7 @@ export function DeleteInspirationButton({
               onClick={() => setOpen(false)}
               disabled={isPending}
             >
-              Annuler
+              {t("Annuler")}
             </Button>
             <Button
               variant="destructive"
@@ -92,7 +93,7 @@ export function DeleteInspirationButton({
               disabled={isPending}
             >
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              Supprimer
+              {t("Supprimer")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/i18n/link";
 import {
   ChevronRight,
   ClipboardList,
@@ -17,6 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
 import { moneyReleased, revenueOf } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
+import { T } from "@/components/i18n/t";
 
 const FEED_MAX = 4;
 
@@ -45,7 +46,7 @@ export function OverviewPanel({
 
   return (
     <div className="space-y-8">
-      <h1 className="sr-only">Accueil</h1>
+      <h1 className="sr-only"><T>Accueil</T></h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Tile
@@ -78,13 +79,13 @@ export function OverviewPanel({
 
       <section>
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold">Nouvelles commandes</h2>
+          <h2 className="text-xl font-bold"><T>Nouvelles commandes</T></h2>
           {todo.length > FEED_MAX && (
             <Link
               href={`${root}/a-traiter`}
               className="flex shrink-0 items-center gap-1 text-base font-medium hover:underline"
             >
-              Voir les {todo.length} <ChevronRight className="size-4" />
+              <T vars={{ n: todo.length }}>{"Voir les {n}"}</T> <ChevronRight className="size-4" />
             </Link>
           )}
         </div>
@@ -104,7 +105,7 @@ export function OverviewPanel({
           )}
         >
           <Plus className="size-5" />
-          {role === "tailor" ? "Ajouter un modèle" : "Ajouter un tissu"}
+          <T>{role === "tailor" ? "Ajouter un modèle" : "Ajouter un tissu"}</T>
         </Link>
 
         {needsPayout && (
@@ -114,7 +115,7 @@ export function OverviewPanel({
           >
             <CreditCard className="size-5 shrink-0 text-amber-500" />
             <span className="min-w-0 flex-1">
-              Où voulez-vous recevoir votre argent ?
+              <T>Où voulez-vous recevoir votre argent ?</T>
             </span>
             <ChevronRight className="text-muted-foreground size-5 shrink-0" />
           </Link>
@@ -153,9 +154,9 @@ function Tile({
         className,
       )}
     >
-      <span className="flex items-center gap-2 text-base font-medium">
+      <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium whitespace-nowrap sm:gap-2 sm:text-base">
         <Icon className={cn("size-5 shrink-0", !urgent && iconClass)} />
-        {label}
+        <span className="truncate"><T>{label}</T></span>
       </span>
       <span className="block truncate text-3xl font-bold tracking-tight sm:text-4xl">
         {children}
