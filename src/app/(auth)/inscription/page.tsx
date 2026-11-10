@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { RegisterChoice } from "@/components/auth/register-choice";
 import { RegisterForm } from "@/components/auth/register-form";
+import { launchPromoSlotsLeft } from "@/lib/pro-subscription";
 import type { ProOfferId } from "@/lib/subscriptions";
 import { getT } from "@/lib/i18n/server";
 
@@ -42,11 +43,14 @@ export default async function RegisterPage({
         ? "free"
         : undefined;
 
+  const promoSlotsLeft = isPro ? await launchPromoSlotsLeft() : 0;
+
   return (
     <RegisterForm
       kind={isPro ? "pro" : "client"}
       initialOffer={initialOffer}
       redirectTo={redirect}
+      promoSlotsLeft={promoSlotsLeft}
     />
   );
 }

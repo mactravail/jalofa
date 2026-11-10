@@ -49,6 +49,8 @@ export type OfferSearchParams = {
   token?: string;
   annule?: string;
   erreur?: string;
+  /** Inscription pendant l'offre de lancement : Pro offert jusqu'au 1er décembre. */
+  lancement?: string;
   /** Ancien retour d'inscription « payée à la première vente » (comptes existants). */
   differe?: string;
   /** Le pro vient d'arrêter / de reprendre le renouvellement. */
@@ -112,6 +114,12 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
 
   if (!notice && params.annule) {
     notice = { ok: false, text: t("Paiement annulé. Vous restez sur l'offre Gratuit.") };
+  }
+  if (!notice && params.lancement) {
+    notice = {
+      ok: true,
+      text: t("Bienvenue ! Offre de lancement : l'offre {plan} vous est offerte jusqu'au 1er décembre. Ensuite, vous ne payez qu'après votre première vente.", { plan }),
+    };
   }
   if (!notice && params.differe) {
     notice = { ok: true, text: t("L'offre {plan} est active.", { plan }) };

@@ -10,6 +10,7 @@ import {
 } from "@/components/home/collection-marquee";
 import { HeroVideo } from "@/components/home/hero-video";
 import { getFabrics } from "@/lib/data";
+import { isLaunchPromoOpen } from "@/lib/launch-promo";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
@@ -49,20 +50,51 @@ function BannerCaption({
   title,
   href,
   cta,
+  text,
+  note,
+  highlight,
+  inFlow,
   as: Heading = "h2",
 }: {
+  /** Sur-titre en orange (annonce d'une promo). */
+  highlight?: boolean;
+  /**
+   * Texte dans le flux (et non posé en absolu) : la bannière grandit s'il ne
+   * tient pas dans la photo — utile sur mobile quand il y a un paragraphe.
+   */
+  inFlow?: boolean;
   eyebrow: string;
   title: string;
   href: string;
   cta: string;
+  text?: string;
+  /** Petite mention discrète sous le texte (ex. une promo). */
+  note?: string;
   as?: "h1" | "h2";
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-start px-4 pb-8 text-white md:px-6 md:pb-12">
-      <p className="text-xs font-medium tracking-[0.15em] uppercase text-white/90">{eyebrow}</p>
+    <div
+      className={cn(
+        "pointer-events-none flex flex-col items-start px-4 pb-8 text-white md:px-6 md:pb-12",
+        inFlow ? "relative pt-24" : "absolute inset-x-0 bottom-0",
+      )}
+    >
+      <p
+        className={cn(
+          "text-xs font-medium tracking-[0.15em] uppercase",
+          highlight ? "font-bold text-orange-500" : "text-white/90",
+        )}
+      >
+        {eyebrow}
+      </p>
       <Heading className="mt-3 text-5xl leading-none font-medium tracking-tight text-balance sm:text-7xl md:text-8xl lg:text-9xl">
         {title}
       </Heading>
+      {text && (
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/90 md:text-lg">{text}</p>
+      )}
+      {/* Petite ligne discrète, façon « mention en bas de page ». */}
+      {note && <p className="mt-2 max-w-xl text-xs leading-snug text-white/60">{note}</p>}
       <div className="pointer-events-auto mt-6">
         <DiscoverLink href={href} light>
           {cta}
@@ -108,17 +140,31 @@ async function Banner({
   title,
   href,
   cta: ctaProp,
+  text,
+  note,
+  highlight,
 }: {
+  highlight?: boolean;
   images: { src: string; alt: string; position?: string }[];
   eyebrow: string;
   title: string;
   href: string;
   cta?: string;
+  text?: string;
+  note?: string;
 }) {
   const t = await getT();
   const cta = ctaProp ?? t("Découvrir");
   return (
-    <section className="relative aspect-4/5 w-full overflow-hidden bg-neutral-900 md:aspect-16/7">
+    // Avec un paragraphe, le texte est dans le flux et la section n'a pas
+    // d'overflow-hidden : elle garde son format photo mais s'allonge si le texte
+    // ne tient pas (sinon, sur mobile, le haut du texte était coupé).
+    <section
+      className={cn(
+        "relative aspect-4/5 w-full bg-neutral-900 md:aspect-16/7",
+        text ? "flex flex-col justify-end" : "overflow-hidden",
+      )}
+    >
       <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0 flex">
         {images.map((img, i) => (
           <div
@@ -136,7 +182,7 @@ async function Banner({
         ))}
       </Link>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-      <BannerCaption eyebrow={eyebrow} title={title} href={href} cta={cta} />
+      <BannerCaption eyebrow={eyebrow} title={title} href={href} cta={cta} text={text} note={note} highlight={highlight} inFlow={!!text} />
     </section>
   );
 }
@@ -235,6 +281,8 @@ async function Grid({
 export default async function HomePage() {
   const fabrics = (await getFabrics()).slice(0, 8);
   const t = await getT();
+  // Offre de lancement (novembre) : la bannière « Rejoignez-nous » l'annonce.
+  const promoOpen = isLaunchPromoOpen();
 
   return (
     <div>
@@ -296,10 +344,23 @@ export default async function HomePage() {
             position: "object-[30%_center] md:object-bottom",
           },
         ]}
-        eyebrow={t("Nos artisans")}
-        title={t("Tailleurs")}
-        href="/tailleurs"
-        cta={t("Trouver mon tailleur")}
+        eyebrow={
+          promoOpen
+            ? t("Offre de novembre · Course aux 100 premiers")
+            : t("Tailleur ou vendeur de tissus")
+        }
+        title={t("Rejoignez-nous")}
+        highlight={promoOpen}
+        note={
+          promoOpen
+            ? t("Les 100 premiers tailleurs et vendeurs de tissus ont l'offre Pro offerte : 0 FCFA au lieu de 9 900 FCFA par mois.")
+            : undefined
+        }
+        text={t(
+          "Recevez des commandes de clients au Sénégal et dans la diaspora, présentez vos créations sur Internet et développez votre atelier sans avoir à créer votre propre site.",
+        )}
+        href="/inscription?role=pro"
+        cta={t("Nous rejoindre")}
       />
     </div>
   );

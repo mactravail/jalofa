@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { passwordIssue } from "@/lib/password";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { safeRedirect } from "@/lib/safe-redirect";
-import { OFFER_PAGE, startProCheckout } from "@/lib/pro-subscription";
+import { grantLaunchPromo, OFFER_PAGE, startProCheckout } from "@/lib/pro-subscription";
 import { PAID_PLAN_ID } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -145,6 +145,16 @@ export async function signUp(
     // passerelle échoue, le compte existe déjà (offre Gratuit) et la page
     // « Mon offre » permet de réessayer.
     if (wantsPaidOffer && data.user) {
+      // Offre de lancement (novembre) : Pro offert jusqu'au 1er décembre, rien
+      // à payer maintenant. Plus de place → paiement du 1er mois comme d'habitude.
+      let promo = false;
+      try {
+        promo = await grantLaunchPromo(data.user.id);
+      } catch (err) {
+        console.error("[launch promo]", err);
+      }
+      if (promo) redirect(`${OFFER_PAGE}?lancement=1`);
+
       let checkoutUrl: string | null = null;
       try {
         checkoutUrl = await startProCheckout({

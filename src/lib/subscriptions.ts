@@ -179,12 +179,12 @@ export const OFFER_PITCH: Record<ProOfferId, { lead: string; points: OfferPoint[
         text: "La diaspora et d'autres pays commandent vos habits et paient en ligne.",
       },
       {
-        title: "Vu partout : catalogue, pubs, événements",
-        text: "Votre atelier passe en tête, et dans nos publicités et nos événements.",
-      },
-      {
         title: "Gardez 100% de vos ventes",
         text: "0% de commission. Chaque franc payé par le client est pour vous.",
+      },
+      {
+        title: "Vu partout : catalogue, pubs, événements",
+        text: "Votre atelier passe en tête, et dans nos publicités et nos événements.",
       },
       {
         title: "Vendez vos propres créations",

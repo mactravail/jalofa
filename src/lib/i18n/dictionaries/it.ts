@@ -7,6 +7,12 @@ export const it: Record<string, string> = {
   "JALOFA met en relation clients, tailleurs et vendeurs de tissus. Créez un vêtement sur mesure depuis votre téléphone, en Afrique.":
     "JALOFA mette in contatto clienti, sarti e venditori di tessuti. Crea un abito su misura dal tuo telefono, in Africa.",
   "Tailleurs et vendeurs : inscription gratuite": "Sarti e venditori: iscrizione gratuita",
+  "Offre de novembre · Course aux 100 premiers": "Offerta di novembre · Corsa ai primi 100",
+  "Les 100 premiers tailleurs et vendeurs de tissus ont l'offre Pro offerte : 0 FCFA au lieu de 9 900 FCFA par mois.":
+    "I primi 100 sarti e venditori di tessuti hanno l'offerta Pro in regalo: 0 FCFA invece di 9 900 FCFA al mese.",
+  "100 places ! Rejoignez JALOFA gratuitement": "100 posti! Unisciti a JALOFA gratis",
+  "100 places ! Économisez 9 900 FCFA, rejoignez JALOFA gratuitement":
+    "100 posti! Risparmia 9 900 FCFA, unisciti a JALOFA gratis",
   "JALOFA — accueil": "JALOFA — home",
   "Connexion": "Accedi",
   "Panier": "Carrello",
@@ -63,6 +69,40 @@ export const it: Record<string, string> = {
   "Pied-de-biche d'une machine à coudre sur un tissu noir": "Piedino di una macchina da cucire su un tessuto nero",
   "Nos artisans": "I nostri artigiani",
   "Trouver mon tailleur": "Trova il mio sarto",
+  "Tailleur ou vendeur de tissus": "Sarto o venditore di tessuti",
+  "Offre de lancement · Novembre": "Offerta di lancio · Novembre",
+  "/ mois": "/ mese",
+  "Ton abonnement professionnel offert !": "Il tuo abbonamento professionale in regalo!",
+  "Offre valable jusqu'au 30 novembre 2026, dans la limite des 100 premiers tailleurs éligibles.":
+    "Offerta valida fino al 30 novembre 2026, nel limite dei primi 100 sarti idonei.",
+  "Ce que les tailleurs et vendeurs obtiennent :": "Cosa ottengono sarti e venditori:",
+  "Une boutique professionnelle sur JALOFA.": "Un negozio professionale su JALOFA.",
+  "La possibilité d'exposer leurs créations.": "La possibilità di esporre le proprie creazioni.",
+  "La possibilité de proposer du sur-mesure et du prêt-à-porter.":
+    "La possibilità di proporre su misura e prêt-à-porter.",
+  "Une visibilité auprès de nouveaux clients.": "Visibilità presso nuovi clienti.",
+  "L'accès aux fonctionnalités de l'offre Pro.": "L'accesso alle funzionalità dell'offerta Pro.",
+  "0 FCFA pendant la période promotionnelle": "0 FCFA durante il periodo promozionale",
+  "L'offre Pro offerte jusqu'au 1er décembre": "L'offerta Pro gratis fino al 1° dicembre",
+  "0 FCFA en novembre": "0 FCFA a novembre",
+  "Réservé aux 100 premiers tailleurs et vendeurs de tissus.": "Riservata ai primi 100 sarti e venditori di tessuti.",
+  "Rien à payer à l'inscription.": "Niente da pagare all'iscrizione.",
+  "À partir de décembre, vous payez seulement quand vous avez fait au moins une vente.": "Da dicembre paghi solo quando hai fatto almeno una vendita.",
+  "Pas de vente, rien à payer. Sans engagement.": "Nessuna vendita, niente da pagare. Senza impegno.",
+  "Vite, plus que {n} places ! Les premiers inscrits sont servis en premier.":
+    "Presto, solo {n} posti rimasti! I primi iscritti sono serviti per primi.",
+  "Places limitées : les premiers inscrits sont servis en premier. Votre atelier peut en faire partie dès aujourd'hui.":
+    "Posti limitati: i primi iscritti sono serviti per primi. Il tuo laboratorio può farne parte già da oggi.",
+  "J'en profite": "Ne approfitto",
+  "Plus tard": "Più tardi",
+  "Offre de lancement : rien à payer aujourd'hui. L'offre Pro est offerte jusqu'au 1er décembre, ensuite vous payez seulement après votre première vente.":
+    "Offerta di lancio: niente da pagare oggi. L'offerta Pro è gratis fino al 1° dicembre, poi paghi solo dopo la tua prima vendita.",
+  "Bienvenue ! Offre de lancement : l'offre {plan} vous est offerte jusqu'au 1er décembre. Ensuite, vous ne payez qu'après votre première vente.":
+    "Benvenuto! Offerta di lancio: l'offerta {plan} è gratis fino al 1° dicembre. Poi paghi solo dopo la tua prima vendita.",
+  "Rejoignez-nous": "Unisciti a noi",
+  "Nous rejoindre": "Unisciti a noi",
+  "Recevez des commandes de clients au Sénégal et dans la diaspora, présentez vos créations sur Internet et développez votre atelier sans avoir à créer votre propre site.":
+    "Ricevi ordini da clienti in Senegal e nella diaspora, presenta le tue creazioni su Internet e fai crescere il tuo laboratorio senza dover creare un tuo sito.",
   "Homme — tenues sur mesure": "Uomo — abiti su misura",
   "Grand boubou, kaftan, costume : un habit coupé pour votre corps, pour la cérémonie, le vendredi ou le bureau.": "Grand boubou, caftano, abito: un capo tagliato per il tuo corpo, per la cerimonia, il venerdì o l'ufficio.",
   "Femme — tenues sur mesure": "Donna — abiti su misura",

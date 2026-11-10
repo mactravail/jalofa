@@ -9,6 +9,7 @@ import { useCart } from "@/components/cart/cart-context";
 import { MobileNav } from "@/components/mobile-nav";
 import { Wordmark } from "@/components/wordmark";
 import { display } from "@/lib/display-font";
+import { isLaunchPromoOpen } from "@/lib/launch-promo";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
@@ -46,6 +47,7 @@ function Header({
     };
   }, [overVideo]);
 
+  const promoOpen = isLaunchPromoOpen();
   const transparent = overVideo && heroInView;
   const iconClass = transparent
     ? "text-white hover:bg-white/15 hover:text-white"
@@ -53,14 +55,28 @@ function Header({
 
   return (
     <>
+      {/* Bandeau d'annonce. Jusqu'au 30 novembre, il annonce l'offre de
+          lancement (même style, seul le texte change). */}
       <Link
-        href="/inscription"
+        href={promoOpen ? "/inscription?role=pro" : "/inscription"}
         className={cn(
           display.className,
           "flex h-9 items-center bg-neutral-800 px-4 text-xs tracking-[0.06em] text-white uppercase md:px-6 md:text-sm",
         )}
       >
-        <span className="truncate">{t("Tailleurs et vendeurs : inscription gratuite")}</span>
+        {promoOpen ? (
+          <>
+            {/* Mobile : version courte, la phrase entière ne tient pas sur une ligne. */}
+            <span className="truncate md:hidden">
+              {t("100 places ! Rejoignez JALOFA gratuitement")}
+            </span>
+            <span className="truncate max-md:hidden">
+              {t("100 places ! Économisez 9 900 FCFA, rejoignez JALOFA gratuitement")}
+            </span>
+          </>
+        ) : (
+          <span className="truncate">{t("Tailleurs et vendeurs : inscription gratuite")}</span>
+        )}
       </Link>
 
       {/* Sur la home, marge négative de la hauteur du header (bordure comprise) : le hero remonte dessous. */}

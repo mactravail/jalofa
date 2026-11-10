@@ -9,6 +9,11 @@ import {
   isPaydunyaConfigured,
   type InvoiceStatus,
 } from "@/lib/paydunya";
+import {
+  isLaunchPromoOpen,
+  LAUNCH_PROMO_END,
+  LAUNCH_PROMO_SLOTS,
+} from "@/lib/launch-promo";
 import { getPlan, PAID_PLAN_ID } from "@/lib/subscriptions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -169,6 +174,44 @@ export async function renewProFromSale(
       console.error("[pro renew from sale]", err);
     }
   }
+}
+
+/**
+ * Places restantes de l'offre de lancement (cf. `launch-promo.ts`). Une place
+ * prise = un atelier dont l'offre Pro expire exactement à `LAUNCH_PROMO_END`.
+ * 0 si la promo est finie ou si la base est injoignable.
+ */
+export async function launchPromoSlotsLeft(): Promise<number> {
+  if (!isLaunchPromoOpen()) return 0;
+  try {
+    const { count, error } = await db()
+      .from("tailors")
+      .select("id", { count: "exact", head: true })
+      .eq("plan", PAID_PLAN_ID)
+      .eq("plan_expires_at", LAUNCH_PROMO_END);
+    if (error) return 0;
+    return Math.max(0, LAUNCH_PROMO_SLOTS - (count ?? 0));
+  } catch {
+    return 0; // pas de clé de service (démo)
+  }
+}
+
+/**
+ * Donne l'offre Pro jusqu'au 1er décembre à un pro qui vient de s'inscrire, s'il
+ * reste une place. Rien à payer maintenant : à l'échéance, son premier mois
+ * repart sur sa première vente (`renewProFromSale`). Renvoie `true` si la
+ * place est attribuée. Deux inscriptions simultanées sur la 100e place peuvent
+ * en prendre une de trop — sans gravité pour une promo.
+ */
+export async function grantLaunchPromo(proId: string): Promise<boolean> {
+  if ((await launchPromoSlotsLeft()) <= 0) return false;
+  const admin = db();
+  const patch = { plan: PAID_PLAN_ID, plan_expires_at: LAUNCH_PROMO_END };
+  const [tailor] = await Promise.all([
+    admin.from("tailors").update(patch).eq("id", proId).select("id"),
+    admin.from("vendors").update(patch).eq("id", proId),
+  ]);
+  return !tailor.error && (tailor.data?.length ?? 0) > 0;
 }
 
 /** « Sans engagement » : arrêter (ou reprendre) le renouvellement de l'offre Pro. */
