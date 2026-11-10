@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Loader2, MapPin, MessageSquareQuote } from "lucide-react";
+import { CalendarClock, Loader2, MapPin, MessageSquareQuote } from "lucide-react";
 import { toast } from "sonner";
 
 import { acceptQuote } from "@/lib/actions/orders";
@@ -32,6 +32,8 @@ export function QuotePayPanel({
   totalAmount,
   deliveryPlace,
   hasAddress,
+  readyDays = null,
+  note = null,
 }: {
   orderId: string;
   /** Combien de fois le client a déjà modifié sa demande. */
@@ -46,6 +48,10 @@ export function QuotePayPanel({
   deliveryPlace: string;
   /** Une ancienne demande peut ne pas en avoir : il faut d'abord la modifier. */
   hasAddress: boolean;
+  /** Le délai annoncé par le tailleur : « prête en N jours ». */
+  readyDays?: number | null;
+  /** Le mot bref du tailleur. */
+  note?: string | null;
 }) {
   const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
@@ -107,6 +113,23 @@ export function QuotePayPanel({
           <dd className="text-primary whitespace-nowrap">{formatPrice(totalAmount)}</dd>
         </div>
       </dl>
+
+      {readyDays ? (
+        <p className="mt-3 flex items-center gap-1.5 text-sm">
+          <CalendarClock className="text-muted-foreground size-4 shrink-0" />
+          <span>
+            Prête en <strong>{readyDays} jour{readyDays > 1 ? "s" : ""}</strong> après
+            le paiement
+          </span>
+        </p>
+      ) : null}
+
+      {note && (
+        <blockquote className="bg-background mt-3 rounded-lg border p-3 text-sm">
+          <p className="text-muted-foreground text-xs font-medium">Le mot du tailleur</p>
+          <p className="mt-1 break-words whitespace-pre-line">{note}</p>
+        </blockquote>
+      )}
 
       {hasAddress ? (
         <p className="mt-3 flex items-start gap-1.5 text-sm">

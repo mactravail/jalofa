@@ -147,6 +147,7 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
         deliveryCountry={order.delivery_country}
         deliveryZone={order.model?.delivery_zone}
         paymentStatus={order.payment_status}
+        readyDays={order.quote_ready_days}
       />
     </div>
   );

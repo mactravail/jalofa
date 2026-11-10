@@ -51,6 +51,7 @@ export function OrderStatusControl({
   deliveryCountry = null,
   deliveryZone = "none",
   paymentStatus,
+  readyDays = null,
 }: {
   orderId: string;
   status: OrderStatus;
@@ -68,6 +69,8 @@ export function OrderStatusControl({
   /** Le choix du tailleur pour la livraison de ce modèle. */
   deliveryZone?: FreeDeliveryZone;
   paymentStatus?: PaymentStatus;
+  /** Devis envoyé : « prêt dans N jours ». */
+  readyDays?: number | null;
 }) {
   const { role, move, reject, quote } = usePipeline();
   const [isPending, startTransition] = useTransition();
@@ -104,10 +107,15 @@ export function OrderStatusControl({
     });
   };
 
-  const confirmQuote = (price: number, deliveryFee: number) => {
+  const confirmQuote = (
+    price: number,
+    deliveryFee: number,
+    readyDays: number,
+    note: string | null,
+  ) => {
     startTransition(async () => {
       try {
-        await quote(orderId, price, deliveryFee, fabricPrice);
+        await quote(orderId, price, deliveryFee, fabricPrice, readyDays, note);
         setQuoteOpen(false);
         toast.success(
           `Devis envoyé : ${formatPrice(price + deliveryFee + fabricPrice)}. Le client doit répondre.`,
@@ -135,6 +143,7 @@ export function OrderStatusControl({
           <div className="min-w-0 text-sm leading-snug">
             <p className="font-semibold text-amber-500">Devis envoyé</p>
             <p className="text-muted-foreground">
+              {readyDays ? `Prête en ${readyDays} jour${readyDays > 1 ? "s" : ""} · ` : ""}
               En attente de la réponse du client.
             </p>
           </div>

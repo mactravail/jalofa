@@ -50,6 +50,10 @@ type PipelineValue = {
     price: number,
     deliveryFee: number,
     fabricPrice: number,
+    /** « Prêt dans N jours ». */
+    readyDays: number,
+    /** Un mot bref au client. */
+    note: string | null,
   ) => Promise<void>;
 };
 
@@ -126,7 +130,14 @@ export function PipelineProvider({
   );
 
   const quote = useCallback(
-    async (orderId: string, price: number, deliveryFee: number, fabricPrice: number) => {
+    async (
+      orderId: string,
+      price: number,
+      deliveryFee: number,
+      fabricPrice: number,
+      readyDays: number,
+      note: string | null,
+    ) => {
       if (demo) {
         // Devis chiffré en démo : le prix apparaît, la commande reste reçue et
         // impayée (elle attend l'accord du client).
@@ -134,10 +145,12 @@ export function PipelineProvider({
           tailoring_price: price,
           delivery_fee: deliveryFee,
           total_amount: price + deliveryFee + fabricPrice,
+          quote_ready_days: readyDays,
+          quote_note: note,
         });
         return;
       }
-      const res = await quoteOrder(orderId, price, deliveryFee);
+      const res = await quoteOrder(orderId, price, deliveryFee, readyDays, note);
       if (!res.ok) throw new Error(res.error);
     },
     [demo, patch],

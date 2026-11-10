@@ -113,6 +113,7 @@ function NewOrderCard({
           deliveryCountry={order.delivery_country}
           deliveryZone={order.model?.delivery_zone}
           paymentStatus={order.payment_status}
+          readyDays={order.quote_ready_days}
         />
       </div>
     </article>

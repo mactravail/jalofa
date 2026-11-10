@@ -236,6 +236,8 @@ export async function quoteOrder(
   orderId: string,
   price: number,
   deliveryFee: number,
+  readyDays: number,
+  note?: string | null,
 ): Promise<QuoteOrderState> {
   if (!isSupabaseConfigured()) return { ok: false, error: "Base de données non connectée." };
 
@@ -247,6 +249,12 @@ export async function quoteOrder(
   if (!Number.isFinite(delivery) || delivery < 0) {
     return { ok: false, error: "Indiquez un prix de livraison valide." };
   }
+  const days = Math.round(Number(readyDays));
+  if (!Number.isFinite(days) || days < 1 || days > 120) {
+    return { ok: false, error: "Indiquez en combien de jours la tenue sera prête (1 à 120)." };
+  }
+  // Pas de numéro ni d'e-mail : le client reste privé jusqu'au paiement.
+  const cleanNote = stripContactInfo((note ?? "").trim()).slice(0, 200) || null;
 
   const supabase = await createClient();
   const {
@@ -303,13 +311,22 @@ export async function quoteOrder(
   }
 
   const total = amount + delivery + Number(o.fabric_price ?? 0);
-  const { error } = await db
-    .from("orders")
-    .update({ tailoring_price: amount, delivery_fee: delivery, total_amount: total })
-    .eq("id", orderId)
-    .eq("tailor_id", user.id)
-    .eq("status", "received")
-    .eq("payment_status", "pending");
+  const priced = { tailoring_price: amount, delivery_fee: delivery, total_amount: total };
+  const send = (patch: Record<string, unknown>) =>
+    db
+      .from("orders")
+      .update(patch)
+      .eq("id", orderId)
+      .eq("tailor_id", user.id)
+      .eq("status", "received")
+      .eq("payment_status", "pending");
+
+  let { error } = await send({ ...priced, quote_ready_days: days, quote_note: cleanNote });
+  // Colonnes pas encore créées en prod (migration 20260812000001) : le prix
+  // part quand même, le délai et la note arriveront après la migration.
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    ({ error } = await send(priced));
+  }
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/tailleur/espace", "layout");

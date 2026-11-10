@@ -348,6 +348,10 @@ export interface Order {
   is_quote: boolean;
   /** Combien de fois le client a modifié sa demande de devis. */
   quote_revision: number;
+  /** Devis : « prêt dans N jours », fixé par le tailleur avec son prix. */
+  quote_ready_days?: number | null;
+  /** Devis : un mot bref du tailleur au client. */
+  quote_note?: string | null;
   /** L'adresse où le pro livre : il la voit dès le devis, sans le nom du client. */
   delivery_address: string | null;
   delivery_country: string | null;

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/constants";
 import { tailorDeliversFree, type FreeDeliveryZone } from "@/lib/delivery";
 
@@ -36,7 +37,12 @@ export function QuoteOrderDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (price: number, deliveryFee: number) => void;
+  onConfirm: (
+    price: number,
+    deliveryFee: number,
+    readyDays: number,
+    note: string | null,
+  ) => void;
   isPending: boolean;
   fabricPrice: number;
   address: string | null;
@@ -48,16 +54,21 @@ export function QuoteOrderDialog({
   const suggestedDelivery = tailorDeliversFree(deliveryZone, { city, country }) ? "0" : "";
   const [value, setValue] = useState("");
   const [deliveryValue, setDeliveryValue] = useState(suggestedDelivery);
+  const [daysValue, setDaysValue] = useState("");
+  const [note, setNote] = useState("");
   const place = [address, city, country].filter(Boolean).join(", ");
 
   const price = Math.round(Number(value));
   const delivery = Math.round(Number(deliveryValue));
+  const days = Math.round(Number(daysValue));
+  const daysValid = daysValue.trim() !== "" && Number.isFinite(days) && days >= 1 && days <= 120;
   const valid =
     Number.isFinite(price) &&
     price > 0 &&
     deliveryValue.trim() !== "" &&
     Number.isFinite(delivery) &&
-    delivery >= 0;
+    delivery >= 0 &&
+    daysValid;
 
   return (
     <Dialog
@@ -66,6 +77,8 @@ export function QuoteOrderDialog({
         if (!next) {
           setValue("");
           setDeliveryValue(suggestedDelivery);
+          setDaysValue("");
+          setNote("");
         }
         onOpenChange(next);
       }}
@@ -74,7 +87,7 @@ export function QuoteOrderDialog({
         <DialogHeader>
           <DialogTitle>Donner mon prix</DialogTitle>
           <DialogDescription>
-            Le client recevra le détail : tissu, livraison et votre travail.
+            Le client recevra le détail : tissu, livraison, votre travail et le délai.
           </DialogDescription>
         </DialogHeader>
 
@@ -113,6 +126,43 @@ export function QuoteOrderDialog({
             <p className="text-muted-foreground text-xs">0 = livraison gratuite.</p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="quote_days">Prêt dans combien de jours ?</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="quote_days"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={120}
+                step={1}
+                value={daysValue}
+                onChange={(e) => setDaysValue(e.target.value)}
+                placeholder="Ex. 6"
+                className="w-24"
+              />
+              <span className="text-muted-foreground text-sm">jours</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="quote_note">
+              Un mot pour le client{" "}
+              <span className="text-muted-foreground font-normal">(facultatif)</span>
+            </Label>
+            <Textarea
+              id="quote_note"
+              value={note}
+              onChange={(e) => setNote(e.target.value.slice(0, 200))}
+              placeholder="Ex. Je peux ajouter une doublure si vous voulez."
+              rows={2}
+              maxLength={200}
+            />
+            <p className="text-muted-foreground text-right text-xs tabular-nums">
+              {note.length}/200
+            </p>
+          </div>
+
           {valid && (
             <dl className="bg-muted/50 space-y-1 rounded-lg p-3 text-sm">
               {fabricPrice > 0 && <Line label="Tissu" amount={formatPrice(fabricPrice)} />}
@@ -121,6 +171,7 @@ export function QuoteOrderDialog({
                 amount={delivery > 0 ? formatPrice(delivery) : "Gratuite"}
               />
               <Line label="Mon travail" amount={formatPrice(price)} />
+              <Line label="Prêt dans" amount={`${days} jour${days > 1 ? "s" : ""}`} />
               <div className="flex justify-between gap-3 border-t pt-1 font-semibold">
                 <dt>Total pour le client</dt>
                 <dd className="whitespace-nowrap">
@@ -142,7 +193,7 @@ export function QuoteOrderDialog({
           </Button>
           <Button
             type="button"
-            onClick={() => valid && onConfirm(price, delivery)}
+            onClick={() => valid && onConfirm(price, delivery, days, note.trim() || null)}
             disabled={isPending || !valid}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}

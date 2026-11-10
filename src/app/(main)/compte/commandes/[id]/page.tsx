@@ -79,7 +79,7 @@ export default async function OrderTrackingPage({
   return (
     <div className="space-y-6">
       <Link
-        href="/compte/commandes"
+        href="/compte"
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"
       >
         <ArrowLeft className="size-4" /> Mes commandes
@@ -120,6 +120,8 @@ export default async function OrderTrackingPage({
             .filter(Boolean)
             .join(", ")}
           hasAddress={Boolean(order.delivery_address && order.delivery_city)}
+          readyDays={order.quote_ready_days}
+          note={order.quote_note}
         />
       )}
 
