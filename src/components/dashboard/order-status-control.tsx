@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Loader2, PackageCheck, Tag, Truck, X } from "lucide-react";
+import { Check, Hourglass, Loader2, PackageCheck, Tag, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { usePipeline } from "@/components/dashboard/pipeline-store";
@@ -130,9 +130,15 @@ export function OrderStatusControl({
   ) {
     if (tailoringPrice > 0) {
       return (
-        <span className="text-muted-foreground text-sm">
-          Prix envoyé. Le client doit répondre.
-        </span>
+        <div className="flex w-full items-center gap-3 rounded-lg bg-amber-500/10 px-3 py-2.5">
+          <Hourglass className="size-5 shrink-0 text-amber-500" />
+          <div className="min-w-0 text-sm leading-snug">
+            <p className="font-semibold text-amber-500">Devis envoyé</p>
+            <p className="text-muted-foreground">
+              En attente de la réponse du client.
+            </p>
+          </div>
+        </div>
       );
     }
     return (

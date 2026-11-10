@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, ClipboardList, Home, Plus, Store, type LucideIcon } from "lucide-react";
 
+import { useUnreadCount } from "@/components/dashboard/notifications-seen";
 import { cn } from "@/lib/utils";
 
 const ROOT = "/tailleur/espace";
@@ -58,15 +59,20 @@ const RIGHT: Tab[] = [
  * réseaux sociaux) : ajouter un modèle est LE geste du tailleur.
  */
 export function TailorBottomNav({
-  todo,
+  unread,
+  orderDates,
   className,
 }: {
-  /** Nouvelles commandes en attente — la pastille de « Notifications ». */
-  todo: number;
+  /** Notifications non lues (serveur). */
+  unread: number;
+  /** Dates d'arrivée des nouvelles commandes : celles tombées depuis la
+   *  dernière visite de « Notifications » comptent comme non lues. */
+  orderDates: string[];
   /** Le point de rupture qui masque la barre (`md:hidden`, `lg:hidden`…). */
   className?: string;
 }) {
   const pathname = usePathname();
+  const unseen = useUnreadCount(unread, orderDates);
 
   const isActive = (tab: Tab) =>
     tab.href === ROOT
@@ -87,9 +93,9 @@ export function TailorBottomNav({
       >
         <span className="relative">
           <tab.icon className="size-6" strokeWidth={active ? 2.25 : 2} aria-hidden />
-          {tab.badge && todo > 0 && (
+          {tab.badge && unseen > 0 && (
             <span className="border-background absolute -top-1.5 -right-2.5 flex min-w-4 items-center justify-center rounded-full border-2 bg-rose-500 px-1 text-[0.625rem] leading-4 font-bold text-white">
-              {todo}
+              {unseen > 9 ? "9+" : unseen}
             </span>
           )}
         </span>

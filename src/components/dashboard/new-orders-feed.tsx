@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronRight, Clock } from "lucide-react";
+
 import { Price } from "@/components/cart/price";
 import { OrderDetailSheet } from "@/components/dashboard/order-detail-sheet";
 import { OrderStatusControl } from "@/components/dashboard/order-status-control";
@@ -52,46 +54,49 @@ function NewOrderCard({
     order.model?.name ?? order.fabric?.name ?? ORDER_TYPE_LABELS[order.type];
   // Un devis pas encore payé n'a pas de prix ferme : c'est au tailleur de le donner.
   const quotePending = order.is_quote && order.payment_status === "pending";
-  const amount = quotePending ? order.tailoring_price : amountFor(role, order);
+  // Devis chiffré : on montre le total que voit le client (tissu et livraison compris).
+  const amount = quotePending
+    ? order.tailoring_price > 0
+      ? order.tailoring_price + order.delivery_fee + order.fabric_price
+      : 0
+    : amountFor(role, order);
 
   return (
     <article className="bg-card overflow-hidden rounded-xl border">
-      <div className="flex p-4">
+      <div className="p-4">
         <OrderDetailSheet order={order}>
           {order.fabric?.image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={order.fabric.image_url}
               alt=""
-              className="bg-muted size-16 shrink-0 rounded-lg object-cover"
+              className="bg-muted size-16 shrink-0 self-start rounded-lg object-cover"
             />
           )}
 
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-semibold">{title}</p>
-            <p className="text-muted-foreground truncate font-mono text-sm">
-              Code {order.order_number}
-            </p>
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="line-clamp-2 text-base leading-snug font-semibold">{title}</p>
             {(order.contact_first_name || order.contact_last_name) && (
               <p className="text-muted-foreground truncate text-sm">{clientNameOf(order)}</p>
             )}
+            <p className="text-muted-foreground text-xs break-all">
+              Code <span className="font-mono">{order.order_number}</span>
+            </p>
             <p
-              className="text-muted-foreground mt-1 text-sm first-letter:uppercase"
+              className="text-muted-foreground flex items-center gap-1.5 text-xs"
               suppressHydrationWarning
             >
-              {formatReceivedAt(order.created_at)}
+              <Clock className="size-3 shrink-0" />
+              Reçue {formatReceivedAt(order.created_at)}
             </p>
-          </div>
-
-          <div className="shrink-0 text-right text-lg font-bold">
-            {quotePending && amount === 0 ? (
-              <span className="text-base font-semibold text-amber-500">
-                Sans prix
-              </span>
-            ) : (
-              <Price amount={amount} />
+            {amount > 0 && (
+              <p className="pt-1 text-lg font-bold">
+                <Price amount={amount} />
+              </p>
             )}
           </div>
+
+          <ChevronRight className="text-muted-foreground size-4 shrink-0" />
         </OrderDetailSheet>
       </div>
 

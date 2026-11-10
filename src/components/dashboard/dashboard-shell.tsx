@@ -42,6 +42,7 @@ export function DashboardShell({
   fullName,
   badges,
   capabilities,
+  unread = 0,
   children,
 }: {
   role: ProRole;
@@ -53,6 +54,8 @@ export function DashboardShell({
    * affiche un sélecteur pour basculer d'un métier à l'autre.
    */
   capabilities: ProRole[];
+  /** Notifications non lues — la pastille de la cloche du tailleur. */
+  unread?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -61,7 +64,8 @@ export function DashboardShell({
 
   // La pastille se lit dans le pipeline, comme la page des nouvelles commandes : les deux
   // ne peuvent pas se contredire après un déplacement.
-  const todo = useBucket("todo").length;
+  const todoOrders = useBucket("todo");
+  const todo = todoOrders.length;
   const allBadges: DashboardBadges = { ...badges, todo };
   const tailor = role === "tailor";
 
@@ -151,7 +155,11 @@ export function DashboardShell({
         {children}
       </main>
 
-      {tailor && <TailorBottomNav todo={todo} className="lg:hidden" />}
+      {tailor && <TailorBottomNav
+          unread={unread}
+          orderDates={todoOrders.map((o) => o.created_at)}
+          className="lg:hidden"
+        />}
     </div>
   );
 }

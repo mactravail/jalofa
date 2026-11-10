@@ -3,14 +3,20 @@ import { Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { TailorBottomNav } from "@/components/tailor-bottom-nav";
 import { getProOrders } from "@/lib/dashboard-data";
+import { getMyUnreadNotificationCount } from "@/lib/notifications-data";
 import { bucketOrders } from "@/lib/pipeline";
 import { getCurrentProfile } from "@/lib/queries";
 
-/** Le compteur « à traiter » : il charge les commandes, donc il ne doit pas bloquer la page. */
+/** La pastille de la cloche : elle charge des données, donc elle ne doit pas bloquer la page. */
 async function TailorBottomNavWithCount() {
-  const orders = await getProOrders("tailor");
-  const todo = bucketOrders("tailor", orders, "todo").length;
-  return <TailorBottomNav todo={todo} className="md:hidden" />;
+  const [orders, unread] = await Promise.all([
+    getProOrders("tailor"),
+    getMyUnreadNotificationCount(),
+  ]);
+  const orderDates = bucketOrders("tailor", orders, "todo").map((o) => o.created_at);
+  return (
+    <TailorBottomNav unread={unread} orderDates={orderDates} className="md:hidden" />
+  );
 }
 
 /**
@@ -22,7 +28,9 @@ export async function SiteBottomNav() {
 
   if (profile?.role === "tailor") {
     return (
-      <Suspense fallback={<TailorBottomNav todo={0} className="md:hidden" />}>
+      <Suspense
+        fallback={<TailorBottomNav unread={0} orderDates={[]} className="md:hidden" />}
+      >
         <TailorBottomNavWithCount />
       </Suspense>
     );

@@ -28,6 +28,23 @@ export async function getMyNotifications(limit = 20): Promise<Notification[]> {
   return (data as Notification[]) ?? [];
 }
 
+/** Combien de notifications non lues (la pastille rouge de la cloche). */
+export async function getMyUnreadNotificationCount(): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+  const supabase = await createClient();
+  const user = await getAuthUser();
+  if (!user) return 0;
+
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .neq("type", "fabric_sale")
+    .eq("is_read", false);
+
+  return count ?? 0;
+}
+
 /**
  * A « votre tissu a été acheté » notification, flattened for the vendor
  * dashboard: which cloth to cut, how much of it, and what the sale earned.

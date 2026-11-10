@@ -54,4 +54,5 @@ export async function markMyNotificationsRead() {
   if (error) throw new Error(error.message);
 
   revalidatePath("/compte", "layout");
+  revalidatePath("/tailleur/espace", "layout");
 }

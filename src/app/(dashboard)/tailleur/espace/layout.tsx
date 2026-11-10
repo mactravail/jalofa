@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PipelineProvider } from "@/components/dashboard/pipeline-store";
 import { ProPending } from "@/components/dashboard/pro-pending";
 import { getProOrders } from "@/lib/dashboard-data";
+import { getMyUnreadNotificationCount } from "@/lib/notifications-data";
 import {
   activatedCapabilities,
   getCurrentProfile,
@@ -20,10 +21,11 @@ export default async function TailorDashboardLayout({
   children: React.ReactNode;
 }) {
   const configured = isSupabaseConfigured();
-  const [profile, orders, access] = await Promise.all([
+  const [profile, orders, access, unread] = await Promise.all([
     getCurrentProfile(),
     getProOrders("tailor"),
     getProAccess(),
+    getMyUnreadNotificationCount(),
   ]);
 
   if (configured) {
@@ -51,6 +53,7 @@ export default async function TailorDashboardLayout({
         role="tailor"
         fullName={profile?.full_name ?? null}
         badges={{}}
+        unread={unread}
         capabilities={activatedCapabilities(access)}
       >
         {children}
