@@ -2,18 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Loader2, Scissors, Undo2 } from "lucide-react";
+import { AlertTriangle, Loader2, ThumbsUp, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   cancelOrder,
-  requestAlteration,
   requestFabricReturn,
+  submitSatisfaction,
   type AfterSaleResult,
 } from "@/lib/actions/after-sale";
-import { ALTERATION_REASON_LABELS, type AlterationReason } from "@/lib/after-sale";
+import {
+  SATISFACTION_ISSUES,
+  isSatisfactionIssue,
+  type AlterationReason,
+  type SatisfactionIssue,
+  type SatisfactionVerdict,
+} from "@/lib/after-sale";
 import { cn } from "@/lib/utils";
 
 function useAfterSaleAction(done: string) {
@@ -145,77 +151,150 @@ export function FabricReturnPanel({
   );
 }
 
-const REASONS = Object.keys(ALTERATION_REASON_LABELS) as AlterationReason[];
+const ISSUES = Object.keys(SATISFACTION_ISSUES) as SatisfactionIssue[];
 
-/** Un vêtement ne se rend pas : il se retouche. */
-export function AlterationPanel({
+/**
+ * « La tenue vous va ? », après « Reçue » : Parfaite (mot facultatif) ou Un
+ * problème (suggestions et/ou mot libre). La réponse part au tailleur — et au
+ * vendeur si le tissu est en cause — et à JALOFA, qui évalue les prestataires.
+ */
+export function SatisfactionPanel({
   orderId,
-  canAsk,
+  answer,
   alterations,
 }: {
   orderId: string;
-  canAsk: boolean;
+  /** Déjà répondu : on affiche la réponse. */
+  answer: { verdict: SatisfactionVerdict; issues: string[]; comment: string | null } | null;
   alterations: { id: string; reason: AlterationReason; status: "requested" | "done" }[];
 }) {
-  const [reason, setReason] = useState<AlterationReason | null>(null);
-  const [note, setNote] = useState("");
-  const { run, isPending } = useAfterSaleAction("Demande envoyée à votre tailleur.");
+  const [verdict, setVerdict] = useState<SatisfactionVerdict | null>(null);
+  const [issues, setIssues] = useState<SatisfactionIssue[]>([]);
+  const [comment, setComment] = useState("");
+  const { run, isPending } = useAfterSaleAction("Merci ! Votre réponse est envoyée.");
+
+  const toggle = (i: SatisfactionIssue) =>
+    setIssues((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
+
+  if (answer) {
+    return (
+      <div className="rounded-xl border p-4">
+        <p className="flex items-center gap-2 font-semibold">
+          {answer.verdict === "perfect" ? (
+            <>
+              <ThumbsUp className="size-4 text-emerald-400" /> Vous trouvez la tenue parfaite
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="size-4 text-amber-400" /> Vous avez signalé un problème
+            </>
+          )}
+        </p>
+        {answer.issues.length > 0 && (
+          <p className="text-muted-foreground mt-1 text-sm">
+            {answer.issues
+              .filter(isSatisfactionIssue)
+              .map((i) => SATISFACTION_ISSUES[i].label)
+              .join(", ")}
+          </p>
+        )}
+        {answer.comment && <p className="mt-1 text-sm break-words">« {answer.comment} »</p>}
+        {alterations.map((a) => (
+          <p key={a.id} className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
+            Retouche :{" "}
+            <span className="font-medium">
+              {a.status === "done" ? "faite par le tailleur" : "demande envoyée au tailleur"}
+            </span>
+          </p>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border p-4">
-      <p className="flex items-center gap-2 font-semibold">
-        <Scissors className="size-4" /> Votre tenue ne va pas ?
-      </p>
-      <p className="text-muted-foreground mt-0.5 text-sm">
-        Une tenue cousue ne peut pas être rendue, mais votre tailleur peut la retoucher.
-      </p>
+      <p className="font-semibold">La tenue vous va ?</p>
 
-      {alterations.map((a) => (
-        <p key={a.id} className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
-          {ALTERATION_REASON_LABELS[a.reason]} :{" "}
-          <span className="font-medium">
-            {a.status === "done" ? "retouche faite" : "demande envoyée au tailleur"}
-          </span>
-        </p>
-      ))}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setVerdict("perfect")}
+          aria-pressed={verdict === "perfect"}
+          className={cn(
+            "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-sm font-semibold transition-colors",
+            verdict === "perfect"
+              ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+              : "hover:bg-muted",
+          )}
+        >
+          <ThumbsUp className="size-6" /> Parfaite
+        </button>
+        <button
+          type="button"
+          onClick={() => setVerdict("problem")}
+          aria-pressed={verdict === "problem"}
+          className={cn(
+            "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-sm font-semibold transition-colors",
+            verdict === "problem"
+              ? "border-amber-500 bg-amber-500/10 text-amber-400"
+              : "hover:bg-muted",
+          )}
+        >
+          <AlertTriangle className="size-6" /> Un problème
+        </button>
+      </div>
 
-      {canAsk && (
+      {verdict === "problem" && (
         <>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {REASONS.map((r) => (
+          <p className="text-muted-foreground mt-4 text-sm">
+            Qu&apos;est-ce qui ne va pas ? (plusieurs choix possibles)
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ISSUES.map((i) => (
               <button
-                key={r}
+                key={i}
                 type="button"
-                onClick={() => setReason(r)}
-                aria-pressed={reason === r}
+                onClick={() => toggle(i)}
+                aria-pressed={issues.includes(i)}
                 className={cn(
-                  "rounded-lg border p-3 text-sm font-medium transition-colors",
-                  reason === r ? "border-primary ring-primary/30 ring-2" : "hover:bg-muted",
+                  "rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                  issues.includes(i)
+                    ? "border-amber-500 bg-amber-500/10 font-medium text-amber-400"
+                    : "hover:bg-muted",
                 )}
               >
-                {ALTERATION_REASON_LABELS[r]}
+                {SATISFACTION_ISSUES[i].label}
               </button>
             ))}
           </div>
-          {reason && (
-            <>
-              <Textarea
-                className="mt-3"
-                rows={2}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Expliquez en quelques mots (facultatif)"
-              />
-              <Button
-                className="mt-3 h-11 w-full"
-                disabled={isPending}
-                onClick={() => run(() => requestAlteration(orderId, reason, note))}
-              >
-                {isPending && <Loader2 className="size-4 animate-spin" />}
-                Demander la retouche
-              </Button>
-            </>
-          )}
+          <p className="text-muted-foreground mt-3 text-xs">
+            Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.
+          </p>
+        </>
+      )}
+
+      {verdict && (
+        <>
+          <Textarea
+            className="mt-3"
+            rows={2}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={1000}
+            placeholder={
+              verdict === "perfect"
+                ? "Un mot pour le tailleur ? (facultatif)"
+                : "Expliquez en quelques mots (facultatif)"
+            }
+          />
+          <Button
+            className="mt-3 h-11 w-full"
+            disabled={isPending || (verdict === "problem" && issues.length === 0 && !comment.trim())}
+            onClick={() => run(() => submitSatisfaction(orderId, verdict, issues, comment))}
+          >
+            {isPending && <Loader2 className="size-4 animate-spin" />}
+            Envoyer
+          </Button>
         </>
       )}
     </div>

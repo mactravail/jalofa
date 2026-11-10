@@ -148,6 +148,8 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
         deliveryZone={order.model?.delivery_zone}
         paymentStatus={order.payment_status}
         readyDays={order.quote_ready_days}
+        courierName={order.courier_name}
+        courierPhone={order.courier_phone}
       />
     </div>
   );

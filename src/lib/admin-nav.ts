@@ -9,6 +9,7 @@ import {
   Shirt,
   Sparkles,
   Star,
+  ThumbsUp,
   Store,
   Undo2,
   UserCog,
@@ -41,6 +42,7 @@ export type AdminNavId =
   | "reviews"
   | "inspiration"
   | "feedback"
+  | "satisfaction"
   | "finance"
   | "payouts";
 
@@ -161,6 +163,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/avis`,
         label: "Avis",
         icon: Star,
+      },
+      // « La tenue vous va ? » : Parfaite / Un problème, par prestataire.
+      {
+        id: "satisfaction",
+        href: `${ADMIN_ROOT}/satisfaction`,
+        label: "Satisfaction",
+        icon: ThumbsUp,
       },
       {
         id: "inspiration",

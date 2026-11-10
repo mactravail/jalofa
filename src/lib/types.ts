@@ -352,6 +352,11 @@ export interface Order {
   quote_ready_days?: number | null;
   /** Devis : un mot bref du tailleur au client. */
   quote_note?: string | null;
+  /** Le livreur à qui le tailleur a remis la tenue (étape « en route »). */
+  courier_name?: string | null;
+  courier_phone?: string | null;
+  /** Arrivée prévue chez le client. */
+  courier_eta?: string | null;
   /** L'adresse où le pro livre : il la voit dès le devis, sans le nom du client. */
   delivery_address: string | null;
   delivery_country: string | null;

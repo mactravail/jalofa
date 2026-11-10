@@ -481,3 +481,35 @@ export async function getAdminStats(): Promise<AdminStats> {
     },
   };
 }
+
+/** Une réponse « La tenue vous va ? », avec de quoi la situer. */
+export type SatisfactionRow = {
+  id: string;
+  created_at: string;
+  verdict: "perfect" | "problem";
+  issues: string[];
+  comment: string | null;
+  tailor_id: string | null;
+  vendor_id: string | null;
+  order: { id: string; order_number: string; model: { name: string } | null } | null;
+  tailor: { shop_name: string } | null;
+  vendor: { shop_name: string } | null;
+};
+
+/**
+ * Toutes les réponses « Parfaite / Un problème » des clients, de la plus
+ * récente. Sert à évaluer chaque tailleur et chaque vendeur.
+ */
+export async function getSatisfactionRows(): Promise<SatisfactionRow[]> {
+  const supabase = await adminDb();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("order_satisfaction")
+    .select(
+      "id, created_at, verdict, issues, comment, tailor_id, vendor_id, order:orders(id, order_number, model:models(name)), tailor:tailors(shop_name), vendor:vendors(shop_name)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) return [];
+  return (data as unknown as SatisfactionRow[]) ?? [];
+}

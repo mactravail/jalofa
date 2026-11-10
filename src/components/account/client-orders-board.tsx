@@ -46,6 +46,13 @@ function actionFor(order: OrderListItem): Action | null {
       showPrice: false,
     };
   }
+  if (order.type !== "fabric_only" && order.status === "shipped") {
+    return {
+      title: "Votre tenue est en route",
+      label: "Voir le livreur",
+      showPrice: false,
+    };
+  }
   return null;
 }
 

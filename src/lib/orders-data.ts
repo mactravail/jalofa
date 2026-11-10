@@ -223,3 +223,47 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     history: (history as unknown as OrderStatusHistory[]) ?? [],
   };
 }
+
+/**
+ * Le client a-t-il déjà noté cette commande ? Une note par commande, pour le
+ * tailleur (`reviews`) comme pour le tissu (`fabric_reviews`). Une table absente
+ * (migration pas encore passée) compte comme « pas encore noté ».
+ */
+export async function getOrderReviewState(
+  orderId: string,
+): Promise<{ tailor: boolean; fabric: boolean }> {
+  if (!isSupabaseConfigured()) return { tailor: false, fabric: false };
+  const supabase = await createClient();
+  const [tailor, fabric] = await Promise.all([
+    supabase.from("reviews").select("id", { count: "exact", head: true }).eq("order_id", orderId),
+    supabase
+      .from("fabric_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("order_id", orderId),
+  ]);
+  return {
+    tailor: !tailor.error && (tailor.count ?? 0) > 0,
+    fabric: !fabric.error && (fabric.count ?? 0) > 0,
+  };
+}
+
+/** La réponse « La tenue vous va ? » du client, s'il a déjà répondu. */
+export async function getOrderSatisfaction(orderId: string): Promise<{
+  verdict: "perfect" | "problem";
+  issues: string[];
+  comment: string | null;
+} | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("order_satisfaction" as "orders")
+    .select("verdict, issues, comment")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as unknown as {
+    verdict: "perfect" | "problem";
+    issues: string[];
+    comment: string | null;
+  };
+}

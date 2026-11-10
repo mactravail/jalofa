@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { CourierDialog, type CourierInfo } from "@/components/dashboard/courier-dialog";
 import { usePipeline } from "@/components/dashboard/pipeline-store";
+import { handOverToCourier } from "@/lib/actions/orders";
 import { QuoteOrderDialog } from "@/components/dashboard/quote-order-dialog";
 import { RejectOrderDialog } from "@/components/dashboard/reject-order-dialog";
 import { Button } from "@/components/ui/button";
@@ -53,10 +55,7 @@ function workshopStep(status: OrderStatus): {
   icon: typeof Truck;
 } {
   if (status === "sewing" || status === "in_production" || status === "quality_check") {
-    return { next: "shipped", label: "Tenue prête, en route", icon: Truck };
-  }
-  if (status === "shipped") {
-    return { next: "delivered", label: "Livrée au client", icon: PackageCheck };
+    return { next: "shipped", label: "Remise au livreur", icon: Truck };
   }
   // Tissu reçu (ou tissu du client) : la couture peut commencer.
   return { next: "sewing", label: "Je commence la couture", icon: Scissors };
@@ -80,6 +79,8 @@ export function OrderStatusControl({
   deliveryZone = "none",
   paymentStatus,
   readyDays = null,
+  courierName = null,
+  courierPhone = null,
 }: {
   orderId: string;
   status: OrderStatus;
@@ -99,11 +100,28 @@ export function OrderStatusControl({
   paymentStatus?: PaymentStatus;
   /** Devis envoyé : « prêt dans N jours ». */
   readyDays?: number | null;
+  /** Le livreur, une fois la tenue en route. */
+  courierName?: string | null;
+  courierPhone?: string | null;
 }) {
-  const { role, move, reject, quote } = usePipeline();
+  const { role, demo, move, reject, quote } = usePipeline();
   const [isPending, startTransition] = useTransition();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
+  const [courierOpen, setCourierOpen] = useState(false);
+
+  const confirmCourier = (courier: CourierInfo) => {
+    startTransition(async () => {
+      try {
+        if (demo) await move(orderId, "shipped");
+        else await handOverToCourier(orderId, courier);
+        setCourierOpen(false);
+        toast.success("Le client est prévenu : la tenue est en route.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
+      }
+    });
+  };
 
   const run = (next: OrderStatus) => {
     startTransition(async () => {
@@ -298,13 +316,29 @@ export function OrderStatusControl({
     // Le tissu est en main : une étape à la fois, chacune prévient le client
     // (couture commencée → en route → livrée). « Déjà livrée » reste possible
     // pour qui remet la tenue en main propre.
+    // En route : c'est au client de dire qu'il l'a reçue.
+    if (status === "shipped") {
+      return (
+        <div className="flex w-full items-center gap-3 rounded-lg bg-violet-500/10 px-3 py-2.5 sm:w-auto">
+          <Truck className="size-5 shrink-0 text-violet-400" />
+          <div className="min-w-0 text-sm leading-snug">
+            <p className="font-semibold text-violet-400">En route</p>
+            <p className="text-muted-foreground">
+              {courierName ? `${courierName} · ${courierPhone ?? ""} · ` : ""}
+              En attente de la confirmation du client.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     if (tailorInWorkshop(status, type)) {
       const step = workshopStep(status);
       return (
-        <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
+        <>
           <Button
             className={cn(BIG, YES)}
-            onClick={() => run(step.next)}
+            onClick={() => (step.next === "shipped" ? setCourierOpen(true) : run(step.next))}
             disabled={isPending}
           >
             {isPending ? (
@@ -314,17 +348,13 @@ export function OrderStatusControl({
             )}
             {step.label}
           </Button>
-          {step.next !== "delivered" && (
-            <button
-              type="button"
-              onClick={() => run("delivered")}
-              disabled={isPending}
-              className="text-muted-foreground hover:text-foreground text-center text-xs underline underline-offset-2 sm:text-right"
-            >
-              Déjà remise au client ? Marquer livrée
-            </button>
-          )}
-        </div>
+          <CourierDialog
+            open={courierOpen}
+            onOpenChange={setCourierOpen}
+            onConfirm={confirmCourier}
+            isPending={isPending}
+          />
+        </>
       );
     }
   }

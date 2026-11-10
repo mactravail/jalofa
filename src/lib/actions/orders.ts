@@ -635,6 +635,11 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
     throw new Error("La réception du tissu est confirmée par celui qui le reçoit.");
   }
 
+  // La réception, c'est le client qui la confirme (`confirmOrderReceived`).
+  if (status === "delivered") {
+    throw new Error("C'est le client qui confirme qu'il a reçu sa commande.");
+  }
+
   const timeline = timelineFor(pipelineType(order));
   const from = timeline.indexOf(order.status);
   const to = timeline.indexOf(status);
@@ -654,6 +659,66 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   revalidatePath(`/tailleur/espace`, "layout");
   revalidatePath(`/vendeur/espace`, "layout");
   revalidatePath(`/compte/commandes/${orderId}`);
+}
+
+/**
+ * Le tailleur remet la tenue à un livreur : nom, numéro et arrivée prévue. Le
+ * client en est prévenu (trigger) et pourra appeler le livreur ; c'est ensuite
+ * lui qui confirme la réception.
+ */
+export async function handOverToCourier(
+  orderId: string,
+  courier: { name: string; phone: string; eta: string },
+) {
+  const { supabase, order, isTailor } = await proOrder(orderId);
+  if (!isTailor) throw new Error("C'est le tailleur qui remet la tenue au livreur.");
+
+  const name = courier.name.trim().slice(0, 80);
+  const phone = courier.phone.trim().slice(0, 30);
+  const eta = new Date(courier.eta);
+  if (!name) throw new Error("Indiquez le nom du livreur.");
+  if (phone.replace(/\D/g, "").length < 7) throw new Error("Indiquez le numéro du livreur.");
+  if (Number.isNaN(eta.getTime())) throw new Error("Indiquez quand la tenue arrivera.");
+
+  const timeline = timelineFor(pipelineType(order));
+  if (timeline.indexOf("shipped") <= timeline.indexOf(order.status)) {
+    throw new Error("Cette commande est déjà en route.");
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      status: "shipped" as OrderStatus,
+      courier_name: name,
+      courier_phone: phone,
+      courier_eta: eta.toISOString(),
+    })
+    .eq("id", orderId)
+    .eq("status", order.status);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/tailleur/espace`, "layout");
+  revalidatePath(`/compte/commandes/${orderId}`);
+}
+
+/** Le client a bien reçu sa tenue : la commande est terminée, avis et retouches s'ouvrent. */
+export async function confirmOrderReceived(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Base de données non connectée." };
+
+  const supabase = await createClient();
+  // Fonction ajoutée par 20260814000001, pas encore dans `database.types.ts` ;
+  // même signature que `confirm_fabric_received`.
+  const { error } = await supabase.rpc(
+    "confirm_order_received" as "confirm_fabric_received",
+    { p_order_id: orderId },
+  );
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/compte/commandes/${orderId}`);
+  revalidatePath("/compte", "layout");
+  revalidatePath("/tailleur/espace", "layout");
+  return { ok: true };
 }
 
 /** Le client confirme qu'il a reçu son tissu : c'est ce qui paie le vendeur. */

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Star } from "lucide-react";
 
 import {
-  AlterationPanel,
+  SatisfactionPanel,
   CancelOrderPanel,
   FabricReturnPanel,
 } from "@/components/order/after-sale-panels";
@@ -24,14 +24,23 @@ import {
 import { getFabrics, getTailors } from "@/lib/data";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import {
-  canAskAlteration,
+
   canCancelOrder,
   canReturnFabric,
   cancelDeadline,
   formatDeadline,
   returnDeadline,
 } from "@/lib/after-sale";
-import { getFabricReturnAddress, getOrderDetail } from "@/lib/orders-data";
+import {
+  getFabricReturnAddress,
+  getOrderDetail,
+  getOrderReviewState,
+  getOrderSatisfaction,
+} from "@/lib/orders-data";
+import { TailorReviewForm } from "@/components/catalog/tailor-review-form";
+import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
+import { InTransitPanel, PayoutDelayNotice } from "@/components/order/delivery-panels";
+import { JalofaWhatsApp } from "@/components/order/jalofa-whatsapp";
 import { isSupabaseConfigured } from "@/lib/queries";
 
 export default async function OrderTrackingPage({
@@ -71,6 +80,10 @@ export default async function OrderTrackingPage({
     );
   }
 
+  const satisfaction =
+    order.status === "delivered" ? await getOrderSatisfaction(order.id) : null;
+  const reviewed =
+    order.status === "delivered" ? await getOrderReviewState(order.id) : null;
   const cancelEnd = cancelDeadline(order, order.history);
   const returnEnd = returnDeadline(order, order.history);
   const returnAddress =
@@ -165,15 +178,68 @@ export default async function OrderTrackingPage({
         />
       )}
 
-      {order.type !== "fabric_only" &&
-        order.status === "delivered" &&
-        order.payment_status === "paid" && (
-          <AlterationPanel
-            orderId={order.id}
-            canAsk={canAskAlteration(order)}
-            alterations={order.alterations ?? []}
+      {/* En route : le livreur, puis « Reçue » / « Pas reçue ». */}
+      {order.type !== "fabric_only" && order.status === "shipped" && (
+        <InTransitPanel
+          orderId={order.id}
+          orderNumber={order.order_number}
+          courierName={order.courier_name ?? null}
+          courierPhone={order.courier_phone ?? null}
+          courierEta={order.courier_eta ?? null}
+        />
+      )}
+
+      {/* Reçue : « La tenue vous va ? » — Parfaite ou Un problème. */}
+      {order.type !== "fabric_only" && order.status === "delivered" && (
+        <SatisfactionPanel
+          orderId={order.id}
+          answer={satisfaction}
+          alterations={order.alterations ?? []}
+        />
+      )}
+
+      {/* Reçue : l'avis sur le tailleur et le tissu ne s'ouvre qu'ici. */}
+      {order.status === "delivered" && reviewed && (
+        <div className="space-y-4">
+          {order.tailor_id && !reviewed.tailor && (
+            <div className="rounded-xl border p-4">
+              <p className="flex items-center gap-2 font-semibold">
+                <Star className="size-4 text-amber-400" /> Votre avis sur{" "}
+                {order.tailor?.shop_name ?? "votre tailleur"}
+              </p>
+              <div className="mt-3">
+                <TailorReviewForm tailorId={order.tailor_id} />
+              </div>
+            </div>
+          )}
+          {order.vendor_id &&
+            order.vendor_id !== order.tailor_id &&
+            order.type !== "own_fabric" &&
+            !reviewed.fabric && (
+              <div className="rounded-xl border p-4">
+                <p className="flex items-center gap-2 font-semibold">
+                  <Star className="size-4 text-amber-400" /> Votre avis sur le tissu
+                  {order.fabric?.name ? ` « ${order.fabric.name} »` : ""}
+                </p>
+                <div className="mt-3">
+                  <VendorReviewForm vendorId={order.vendor_id} />
+                </div>
+              </div>
+            )}
+        </div>
+      )}
+
+      {order.status === "delivered" && (
+        <div className="space-y-3">
+          <PayoutDelayNotice />
+          <JalofaWhatsApp
+            orderNumber={order.order_number}
+            message="J'ai un problème avec ma commande :"
+            label="Un problème ? Contacter un membre de JALOFA"
+            className="w-full"
           />
-        )}
+        </div>
+      )}
 
       {order.payment_status === "refunded" && (
         <p className="rounded-xl border p-4 font-semibold">Vous avez été remboursé.</p>

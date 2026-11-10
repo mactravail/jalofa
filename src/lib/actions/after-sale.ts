@@ -7,7 +7,11 @@ import {
   canAskAlteration,
   canCancelOrder,
   canReturnFabric,
+  isSatisfactionIssue,
+  SATISFACTION_ISSUES,
   type AlterationReason,
+  type SatisfactionIssue,
+  type SatisfactionVerdict,
 } from "@/lib/after-sale";
 import type { OrderStatus, OrderType } from "@/lib/constants";
 import { isSupabaseConfigured } from "@/lib/queries";
@@ -253,6 +257,126 @@ export async function requestAlteration(
   ]);
 
   revalidateOrder(orderId);
+  return { ok: true };
+}
+
+/**
+ * « La tenue vous va ? » — Parfaite, ou un problème (suggestions et/ou mot
+ * libre). Une réponse par commande. Le tailleur (et le vendeur si le tissu est
+ * en cause) est prévenu ; JALOFA la retrouve dans `/admin/satisfaction` pour
+ * évaluer les prestataires. Un problème retouchable ouvre aussi une retouche.
+ */
+export async function submitSatisfaction(
+  orderId: string,
+  verdict: SatisfactionVerdict,
+  rawIssues: string[],
+  rawComment: string,
+): Promise<AfterSaleResult> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+
+  const issues = [...new Set(rawIssues)].filter(isSatisfactionIssue) as SatisfactionIssue[];
+  const comment = rawComment.trim().slice(0, 1000) || null;
+  if (verdict !== "perfect" && verdict !== "problem") {
+    return { ok: false, error: "Choisissez une réponse." };
+  }
+  if (verdict === "problem" && issues.length === 0 && !comment) {
+    return { ok: false, error: "Dites-nous ce qui ne va pas." };
+  }
+
+  const loaded = await loadOrder(orderId);
+  if (!loaded || loaded.order.client_id !== loaded.userId) {
+    return { ok: false, error: "Commande introuvable." };
+  }
+  const { order, userId } = loaded;
+  if (order.status !== "delivered") {
+    return { ok: false, error: "Vous pourrez répondre une fois la tenue reçue." };
+  }
+
+  const vendorId =
+    order.vendor_id && order.vendor_id !== order.tailor_id ? order.vendor_id : null;
+
+  let db: ReturnType<typeof createAdminClient>;
+  try {
+    db = createAdminClient();
+  } catch {
+    return { ok: false, error: "Indisponible pour le moment." };
+  }
+
+  const { error } = await db.from("order_satisfaction").insert({
+    order_id: orderId,
+    client_id: userId,
+    tailor_id: order.tailor_id,
+    vendor_id: vendorId,
+    verdict,
+    issues: verdict === "problem" ? issues : [],
+    comment,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: error.code === "23505" ? "Vous avez déjà répondu." : error.message,
+    };
+  }
+
+  // Une retouche possible ? Elle part chez le tailleur avec le mot du client.
+  const retouch = issues
+    .map((i) => SATISFACTION_ISSUES[i].alteration)
+    .find((a): a is AlterationReason => a !== null);
+  if (verdict === "problem" && retouch && order.tailor_id && canAskAlteration(order)) {
+    await db.from("order_alterations").insert({
+      order_id: orderId,
+      client_id: userId,
+      tailor_id: order.tailor_id,
+      reason: retouch,
+      note: [issues.map((i) => SATISFACTION_ISSUES[i].label).join(", "), comment]
+        .filter(Boolean)
+        .join(" — "),
+    });
+  }
+
+  const labelsFor = (who: "tailor" | "vendor") =>
+    issues.filter((i) => SATISFACTION_ISSUES[i].who === who).map((i) => SATISFACTION_ISSUES[i].label);
+  const body = (labels: string[]) =>
+    [`Commande ${order.order_number}.`, labels.join(", "), comment ? `« ${comment} »` : null]
+      .filter(Boolean)
+      .join(" ");
+
+  if (verdict === "perfect") {
+    await notify([
+      {
+        user_id: order.tailor_id,
+        type: "satisfaction_perfect",
+        title: "Le client trouve sa tenue parfaite",
+        body: body([]),
+        link: "/tailleur/espace/terminees",
+        order_id: orderId,
+      },
+    ]);
+  } else {
+    const tailorIssues = labelsFor("tailor");
+    const vendorIssues = labelsFor("vendor");
+    await notify([
+      {
+        user_id: tailorIssues.length > 0 || comment || !vendorId ? order.tailor_id : null,
+        type: "satisfaction_problem",
+        title: retouch ? "Un client demande une retouche" : "Un client signale un problème",
+        body: body(tailorIssues),
+        link: retouch ? "/tailleur/espace/a-traiter" : "/tailleur/espace/terminees",
+        order_id: orderId,
+      },
+      {
+        user_id: vendorIssues.length > 0 ? vendorId : null,
+        type: "satisfaction_problem",
+        title: "Un client signale un problème de tissu",
+        body: body(vendorIssues),
+        link: "/vendeur/espace/terminees",
+        order_id: orderId,
+      },
+    ]);
+  }
+
+  revalidateOrder(orderId);
+  revalidatePath("/admin/satisfaction");
   return { ok: true };
 }
 

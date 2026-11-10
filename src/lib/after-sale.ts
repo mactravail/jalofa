@@ -15,6 +15,47 @@ export const CANCEL_WINDOW_HOURS = 24;
 export const RETURN_WINDOW_DAYS = 7;
 export const RECEIPT_CONFIRM_HOURS = 48;
 
+/**
+ * Le tailleur et le vendeur de tissu sont payés 72 h après la livraison : c'est
+ * le temps qu'a le client (ou son GP, s'il vit à l'étranger) pour signaler un
+ * problème à JALOFA.
+ */
+export const PAYOUT_DELAY_HOURS = 72;
+
+// --- « La tenue vous va ? » ------------------------------------------------
+
+export type SatisfactionVerdict = "perfect" | "problem";
+
+/**
+ * Les problèmes proposés au client. `who` = le prestataire concerné (il est
+ * prévenu, et c'est sur lui que le problème compte). `alteration` = ce que le
+ * tailleur peut retoucher : une demande de retouche part avec.
+ */
+export const SATISFACTION_ISSUES = {
+  too_big: { label: "Trop grande", who: "tailor", alteration: "too_big" },
+  too_small: { label: "Trop petite", who: "tailor", alteration: "too_small" },
+  slit_too_wide: { label: "Fente trop large", who: "tailor", alteration: "slit_too_wide" },
+  wrong_length: { label: "Longueur pas bonne", who: "tailor", alteration: "other" },
+  bad_finish: { label: "Couture mal finie", who: "tailor", alteration: "other" },
+  not_like_model: { label: "Pas comme le modèle", who: "tailor", alteration: null },
+  fabric_different: { label: "Tissu différent de la photo", who: "vendor", alteration: null },
+  fabric_damaged: { label: "Tissu abîmé", who: "vendor", alteration: null },
+  late: { label: "Livrée en retard", who: "tailor", alteration: null },
+  other: { label: "Autre chose", who: "tailor", alteration: null },
+} as const satisfies Record<
+  string,
+  { label: string; who: "tailor" | "vendor"; alteration: AlterationReason | null }
+>;
+
+export type SatisfactionIssue = keyof typeof SATISFACTION_ISSUES;
+
+export const isSatisfactionIssue = (v: string): v is SatisfactionIssue =>
+  Object.prototype.hasOwnProperty.call(SATISFACTION_ISSUES, v);
+
+/** Le WhatsApp de l'équipe JALOFA — seul moyen de contact affiché au client. */
+export const JALOFA_WHATSAPP = "00393291114442";
+export const JALOFA_WHATSAPP_DISPLAY = "+39 329 111 4442";
+
 export type AlterationReason = "too_big" | "too_small" | "slit_too_wide" | "other";
 
 export const ALTERATION_REASON_LABELS: Record<AlterationReason, string> = {
