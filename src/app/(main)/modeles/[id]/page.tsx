@@ -10,6 +10,7 @@ import {
   GarmentHeading,
 } from "@/components/catalog/garment-summary";
 import { DemoBanner } from "@/components/demo-banner";
+import { EuropeProductFacts } from "@/components/europe/europe-product-facts";
 import { Badge } from "@/components/ui/badge";
 import { modelPhotos } from "@/lib/constants";
 import {
@@ -130,6 +131,9 @@ export default async function ModelDetailPage({
 
         <div>
           <GarmentHeading model={model} author={author} reviews={reviews} />
+
+          {/* JALOFA EUROPE : l'atelier, le lieu, la matière, le prix en € et FCFA. */}
+          <EuropeProductFacts model={model} />
 
           {/* Un seul bloc d'achat, un seul bouton : « Tel quel » (taille
               seulement, prix ferme) ou « Sur mesure » (tissu, puis le

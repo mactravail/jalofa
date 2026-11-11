@@ -139,6 +139,7 @@ export async function saveFabric(
   revalidatePath("/vendeur/espace", "layout");
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/tissus");
+  revalidatePath("/europe");
   return { ok: true, id: savedId };
 }
 
@@ -164,6 +165,7 @@ async function setFabricInStockImpl(id: string, inStock: boolean): Promise<void>
   revalidatePath("/vendeur/espace", "layout");
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/tissus");
+  revalidatePath("/europe");
   revalidatePath(`/tissus/${id}`);
   revalidatePath("/modeles", "layout");
 }
@@ -205,6 +207,7 @@ async function deleteFabricImpl(id: string): Promise<void> {
   revalidatePath("/vendeur/espace", "layout");
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/tissus");
+  revalidatePath("/europe");
 }
 
 // Wrappers exportés : le message d'erreur doit revenir en valeur, pas en exception

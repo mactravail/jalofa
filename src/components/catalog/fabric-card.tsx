@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "@/components/i18n/link";
 
+import { EuropeBadge } from "@/components/europe/europe-badge";
+import { ProductPrice } from "@/components/europe/europe-price";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/constants";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,13 @@ export async function FabricCard({
             {colors.length === 1 ? t(colors[0]) : t("{n} couleurs", { n: colors.length })}
           </Badge>
         )}
+        {fabric.origin?.europe && (
+          <EuropeBadge
+            overlay
+            country={fabric.origin.country}
+            className="absolute right-2 bottom-2 max-w-[calc(100%-1rem)]"
+          />
+        )}
         {fabric.in_stock === false && (
           <span className="absolute inset-0 grid place-items-center bg-black/60 font-semibold text-white">
             {t("Épuisé")}
@@ -64,7 +72,7 @@ export async function FabricCard({
         <h3 className="line-clamp-1 font-medium">{fabric.name}</h3>
         <p className="text-muted-foreground text-xs">{fabric.material}</p>
         <p className="text-primary mt-1.5 font-semibold">
-          {formatPrice(fabric.price_per_meter)}
+          <ProductPrice amount={fabric.price_per_meter} europe={fabric.origin?.europe} />
           <span className="text-muted-foreground text-xs font-normal"> / {t("mètre")}</span>
         </p>
       </div>

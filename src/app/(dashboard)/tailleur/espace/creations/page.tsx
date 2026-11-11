@@ -9,8 +9,10 @@ import {
   getMyAtelier,
   getMyModelFabricLinks,
   getTailorModels,
+  getCurrentTailor,
   getVendorFabrics,
 } from "@/lib/data";
+import { isEuropeCountry } from "@/lib/europe";
 import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TailorModelsPage() {
-  const [models, suggestions, categories, fabrics, fabricCategories, fabricLinks, atelier] =
+  const [models, suggestions, categories, fabrics, fabricCategories, fabricLinks, atelier, tailor] =
     await Promise.all([
       getTailorModels(),
       getModelSuggestions(),
@@ -28,6 +30,7 @@ export default async function TailorModelsPage() {
       getFabricCategories(),
       getMyModelFabricLinks(),
       getMyAtelier(),
+      getCurrentTailor(),
     ]);
 
   return (
@@ -43,6 +46,7 @@ export default async function TailorModelsPage() {
         fabricCategories={fabricCategories}
         fabricLinks={fabricLinks}
         atelier={atelier}
+        europe={isEuropeCountry(tailor?.country)}
       />
     </DashboardPage>
   );

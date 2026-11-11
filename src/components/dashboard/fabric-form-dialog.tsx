@@ -27,7 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CURRENCY } from "@/lib/constants";
+import { CURRENCY, formatPrice } from "@/lib/constants";
+import { eurToXof, xofToEur } from "@/lib/europe";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { useT } from "@/components/i18n/locale-provider";
 
@@ -39,6 +40,7 @@ export function FabricFormDialog({
   fabric,
   categories,
   onSaved,
+  europe = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,7 +48,12 @@ export function FabricFormDialog({
   categories: FabricCategory[];
   /** Appelé avec l'id du tissu une fois enregistré. */
   onSaved?: (fabricId: string) => void;
+  /** Boutique en Europe (JALOFA EUROPE) : prix saisi en €, livraison « Europe ». */
+  europe?: boolean;
 }) {
+  const [priceEur, setPriceEur] = useState<string>(
+    fabric?.price_per_meter != null ? String(xofToEur(fabric.price_per_meter)) : "",
+  );
   const isEdit = Boolean(fabric);
   const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
@@ -198,17 +205,46 @@ export function FabricFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fabric-price">{t("Prix / mètre")} ({CURRENCY})</Label>
-            <Input
-              id="fabric-price"
-              name="price_per_meter"
-              type="number"
-              min={0}
-              step={1}
-              required
-              defaultValue={fabric?.price_per_meter ?? ""}
-              placeholder="0"
-            />
+            {europe ? (
+              <>
+                <Label htmlFor="fabric-price">{t("Prix / mètre")} (€)</Label>
+                <Input
+                  id="fabric-price"
+                  type="number"
+                  min={0}
+                  step={1}
+                  required
+                  value={priceEur}
+                  onChange={(e) => setPriceEur(e.target.value)}
+                  placeholder="0"
+                />
+                {/* Enregistré et payé en FCFA : c'est la devise de JALOFA. */}
+                <input
+                  type="hidden"
+                  name="price_per_meter"
+                  value={priceEur.trim() ? String(eurToXof(Number(priceEur) || 0)) : ""}
+                />
+                {priceEur.trim() && (
+                  <p className="text-muted-foreground text-xs">
+                    {t("Soit {price} le mètre.", { price: formatPrice(eurToXof(Number(priceEur) || 0)) })}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <Label htmlFor="fabric-price">{t("Prix / mètre")} ({CURRENCY})</Label>
+                <Input
+                  id="fabric-price"
+                  name="price_per_meter"
+                  type="number"
+                  min={0}
+                  step={1}
+                  required
+                  defaultValue={fabric?.price_per_meter ?? ""}
+                  placeholder="0"
+                />
+              </>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -252,7 +288,7 @@ export function FabricFormDialog({
             />
           </div>
 
-          <DeliveryZoneField defaultValue={fabric?.delivery_zone} />
+          <DeliveryZoneField defaultValue={fabric?.delivery_zone} europe={europe} />
 
           <div className="space-y-2">
             <Label htmlFor="fabric-description">{t("Description")}</Label>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { runAction, type ActionResult } from "@/lib/action-result";
 import { parseDeliveryZone } from "@/lib/delivery";
+import { europeTypeInfo, parseEuropeType, parseMakingType } from "@/lib/europe";
 
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
 import { modelBodyFitProblem, parseModelBodyFits } from "@/lib/model-body-fit";
@@ -171,7 +172,12 @@ export async function saveModel(
     isOwnModelPhoto(url, user.id),
   );
 
-  const categorySlug = text(formData.get("category_slug"));
+  // JALOFA EUROPE : la catégorie européenne décide de la page Homme ou Femme,
+  // quoi qu'ait envoyé le formulaire. Ces champs n'arrivent que du formulaire
+  // d'un atelier européen : les autres sauvegardes n'y touchent pas.
+  const sendsEurope = formData.has("europe_type");
+  const europeType = sendsEurope ? parseEuropeType(formData.get("europe_type")) : null;
+  const categorySlug = europeTypeInfo(europeType)?.category ?? text(formData.get("category_slug"));
   const bodyFits = parseModelBodyFits(formData.get("body_fits"), categorySlug);
 
   // Pour publier : un style complet, le tissu de chaque silhouette, au moins un
@@ -250,6 +256,14 @@ export async function saveModel(
     price: price(formData.get("price")),
     image_url: finalUrls[0],
     is_active: formData.get("is_active") === "on",
+    ...(sendsEurope
+      ? {
+          europe_type: europeType,
+          material: text(formData.get("material"))?.slice(0, 160) ?? null,
+          making_type: parseMakingType(formData.get("making_type")),
+          sizes: text(formData.get("sizes"))?.slice(0, 120) ?? null,
+        }
+      : {}),
   };
 
   const photoRows = (modelId: string) =>
@@ -347,6 +361,7 @@ export async function saveModel(
 
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
+  revalidatePath("/europe");
   return { ok: true };
 }
 
@@ -454,6 +469,7 @@ async function setModelPublishedImpl(id: string, published: boolean): Promise<vo
 
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
+  revalidatePath("/europe");
   revalidatePath("/admin", "layout");
 }
 
@@ -501,6 +517,7 @@ async function deleteModelImpl(id: string): Promise<void> {
 
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
+  revalidatePath("/europe");
 }
 
 // Wrappers exportés : le message d'erreur doit revenir en valeur, pas en exception

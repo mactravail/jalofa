@@ -4,7 +4,9 @@
  * l'estimation côté client et au montant facturé côté serveur.
  */
 
-export type FreeDeliveryZone = "none" | "dakar" | "senegal" | "world";
+import { isEuropeCountry } from "@/lib/europe";
+
+export type FreeDeliveryZone = "none" | "dakar" | "senegal" | "europe" | "world";
 
 export const FREE_DELIVERY_ZONES: { value: FreeDeliveryZone; label: string }[] = [
   { value: "senegal", label: "Gratuite dans tout le Sénégal (conseillé)" },
@@ -12,6 +14,19 @@ export const FREE_DELIVERY_ZONES: { value: FreeDeliveryZone; label: string }[] =
   { value: "world", label: "Gratuite partout dans le monde" },
   { value: "none", label: "Payée par le client (GP ou livreur)" },
 ];
+
+/**
+ * Les choix d'un pro installé en Europe (JALOFA EUROPE) : « toute l'Europe »
+ * remplace Dakar et le Sénégal, qui n'ont pas de sens depuis Milan.
+ */
+export const EUROPE_DELIVERY_ZONES: { value: FreeDeliveryZone; label: string }[] = [
+  { value: "europe", label: "Gratuite dans toute l'Europe (conseillé)" },
+  { value: "world", label: "Gratuite partout dans le monde" },
+  { value: "none", label: "Payée par le client (transporteur)" },
+];
+export const EUROPE_RECOMMENDED_ZONE: FreeDeliveryZone = "europe";
+export const EUROPE_DELIVERY_ADVICE =
+  "Conseil : gratuite dans toute l'Europe. Ailleurs, le client paie le transporteur.";
 
 /** Ce que JALOFA conseille aux pros, et le choix proposé sur un nouveau produit. */
 export const RECOMMENDED_DELIVERY_ZONE: FreeDeliveryZone = "senegal";
@@ -22,6 +37,7 @@ const ZONE_POLICY: Record<FreeDeliveryZone, string> = {
   none: "Livraison payée par le client, directement au GP ou au livreur.",
   dakar: "Livraison gratuite à Dakar. Ailleurs, le client paie directement le GP ou le livreur.",
   senegal: "Livraison gratuite dans tout le Sénégal. À l'étranger, le client paie directement le GP.",
+  europe: "Livraison gratuite dans toute l'Europe. Ailleurs, le client paie directement le transporteur.",
   world: "Livraison gratuite partout dans le monde.",
 };
 
@@ -36,7 +52,10 @@ export function deliveryPolicy(zone: FreeDeliveryZone | null | undefined): strin
 
 /** Le choix du formulaire, ramené aux valeurs permises. */
 export function parseDeliveryZone(value: unknown): FreeDeliveryZone {
-  return FREE_DELIVERY_ZONES.find((z) => z.value === value)?.value ?? "none";
+  return (
+    [...FREE_DELIVERY_ZONES, ...EUROPE_DELIVERY_ZONES].find((z) => z.value === value)?.value ??
+    "none"
+  );
 }
 
 export type DeliveryDestination = {
@@ -77,5 +96,6 @@ export function tailorDeliversFree(
 ): boolean {
   if (zone === "world") return true;
   if (zone === "none" || !destination) return false;
+  if (zone === "europe") return isEuropeCountry(destination.country);
   return zone === "dakar" ? inDakar(destination) : inSenegal(destination);
 }

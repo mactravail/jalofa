@@ -24,9 +24,10 @@ import {
   GarmentDetailIcon,
   type DetailGroup,
 } from "@/components/order/garment-detail-icons";
+import { isPlancheArt, PlancheArt, plancheArtIsTall } from "@/components/order/planche-art";
 import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
-import { styleGroupsFor } from "@/lib/style-options";
+import { normalizeStyleDetails, visibleStyleGroups } from "@/lib/style-options";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 
@@ -65,7 +66,9 @@ export default function StyleStep() {
 
   // Only this garment's own cuts and finishings — a jupe gets no collar group,
   // a robe never sees a kaftan.
-  const groups = styleGroupsFor(model);
+  // Un groupe conditionnel (les poignets d'une chemise) disparaît quand son
+  // choix parent ne s'y prête plus (manche courte).
+  const groups = visibleStyleGroups(model, state.styleDetails);
   // The bust archetype the finishing drawings are composed onto.
   const family = detailFamilyFor(model);
   // Le modèle d'un tailleur : ses vraies photos, son nom, ses conseils.
@@ -187,7 +190,12 @@ export default function StyleStep() {
                     key={opt.slug}
                     onClick={() => {
                       update({
-                        styleDetails: { ...state.styleDetails, [group.slug]: opt.slug },
+                        // Un choix devenu impossible (bustier + manches
+                        // longues) passe sur la première option possible.
+                        styleDetails: normalizeStyleDetails(model, {
+                          ...state.styleDetails,
+                          [group.slug]: opt.slug,
+                        }),
                       });
                       if (isTailorModel && opt.photo) setPreviewPhoto(opt.photo);
                     }}
@@ -201,7 +209,16 @@ export default function StyleStep() {
                           ? "aspect-square"
                           : opt.photo
                             ? PHOTO_TILE
-                            : cn("p-2", TALL_GROUPS.has(group.slug) ? "aspect-[4/5]" : "aspect-square"),
+                            : cn(
+                                "p-2",
+                                (
+                                  opt.art && isPlancheArt(opt.art)
+                                    ? plancheArtIsTall(opt.art)
+                                    : TALL_GROUPS.has(group.slug)
+                                )
+                                  ? "aspect-[4/5]"
+                                  : "aspect-square",
+                              ),
                         active
                           ? "border-primary ring-primary/40 ring-1"
                           : "border-border/60 group-hover/opt:border-foreground/30",
@@ -226,6 +243,14 @@ export default function StyleStep() {
                             "rounded-[7px] object-cover transition-opacity",
                             !isTailorModel && "object-top",
                             active ? "opacity-100" : "opacity-80 group-hover/opt:opacity-100",
+                          )}
+                        />
+                      ) : opt.art && isPlancheArt(opt.art) ? (
+                        <PlancheArt
+                          name={opt.art}
+                          className={cn(
+                            "h-full w-full",
+                            active ? "text-foreground" : "text-muted-foreground/80",
                           )}
                         />
                       ) : opt.art ? (

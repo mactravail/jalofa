@@ -15,6 +15,7 @@ import type {
 } from "@/lib/constants";
 import type { BodyFigureShape } from "@/lib/body-figure";
 import type { FreeDeliveryZone } from "@/lib/delivery";
+import type { EuropeType, MakingType, ProductOrigin } from "@/lib/europe";
 import type { SubscriptionPlanId } from "@/lib/subscriptions";
 
 // Domain row types used when rendering data. These mirror the SQL schema and
@@ -49,6 +50,8 @@ export interface Tailor {
   shop_name: string | null;
   bio: string | null;
   city: string | null;
+  /** Le pays de l'atelier. Un pays d'Europe = JALOFA EUROPE (cf. `europe.ts`). */
+  country?: string | null;
   base_price: number;
   avg_delivery_days: number;
   /**
@@ -114,6 +117,8 @@ export interface Vendor {
   shop_name: string | null;
   bio: string | null;
   city: string | null;
+  /** Le pays de l'atelier. Un pays d'Europe = JALOFA EUROPE (cf. `europe.ts`). */
+  country?: string | null;
   /**
    * Le vendeur prend la livraison à sa charge : mis en avant sur sa fiche
    * publique et, à la caisse, la livraison à domicile n'est pas facturée au
@@ -193,6 +198,8 @@ export interface Fabric {
   is_active: boolean;
   /** Où ce pro offre la livraison de ce tissu. */
   delivery_zone?: FreeDeliveryZone;
+  /** La boutique qui le vend : nom, ville, pays (joint depuis `vendors`). */
+  origin?: ProductOrigin | null;
 }
 
 export interface ModelCategory {
@@ -290,6 +297,16 @@ export interface GarmentModel {
    * retombe sur `image_url`. Vient de `model_photos` triée par `sort_order`.
    */
   photos: string[];
+  /** JALOFA EUROPE : la catégorie européenne (robe de mariage, costume…). */
+  europe_type?: EuropeType | null;
+  /** Matière et tissu, en clair (« Laine Super 120s, Biella »). */
+  material?: string | null;
+  /** Sur mesure, prêt-à-porter, ou les deux. */
+  making_type?: MakingType | null;
+  /** Tailles disponibles en prêt-à-porter, en clair (« 46 à 56 »). */
+  sizes?: string | null;
+  /** L'atelier qui le fabrique : nom, ville, pays (joint depuis `tailors`). */
+  origin?: ProductOrigin | null;
 }
 
 export interface Measurement {

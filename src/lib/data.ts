@@ -11,6 +11,7 @@ import {
   VENDORS,
   VENDOR_REVIEWS,
 } from "@/lib/fixtures";
+import { isEuropeCountry, type ProductOrigin } from "@/lib/europe";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
@@ -75,6 +76,51 @@ export async function getStyles(): Promise<Style[]> {
 
 // --- Fabrics ---------------------------------------------------------------
 
+// JALOFA EUROPE : la boutique (nom, ville, pays) voyage avec le tissu, aplatie en
+// `origin` — c'est son pays qui range le tissu dans /europe.
+const FABRIC_SELECT = "*, vendors(shop_name, city, country)";
+const LEGACY_FABRIC_SELECT = "*";
+
+/**
+ * Filet de sécurité de déploiement : tant que la migration JALOFA EUROPE
+ * (`20260817000001`) n'est pas appliquée, la colonne `country` n'existe pas et
+ * les requêtes enrichies échoueraient — le catalogue serait vide. On sonde donc
+ * la colonne (une requête minuscule, au plus une fois par minute) et on retombe
+ * sur les anciennes requêtes si elle manque. Une fois la migration passée, le
+ * site bascule tout seul, sans redéploiement.
+ */
+let europeColumns: { ok: boolean; at: number } | null = null;
+const PROBE_TTL_MS = 60_000;
+
+async function hasEuropeColumns(): Promise<boolean> {
+  if (europeColumns && Date.now() - europeColumns.at < PROBE_TTL_MS) return europeColumns.ok;
+  const supabase = await createClient();
+  const { error } = await supabase.from("tailors").select("country").limit(1);
+  // Seul « colonne inconnue » (42703) désactive ; une autre erreur ne change rien.
+  const ok = error?.code !== "42703";
+  europeColumns = { ok, at: Date.now() };
+  return ok;
+}
+
+// Typées comme la requête enrichie : la variante « ancienne » renvoie les mêmes
+// lignes, sans le pays (`origin.country` reste vide, rien n'est européen).
+async function fabricSelect(): Promise<typeof FABRIC_SELECT> {
+  return ((await hasEuropeColumns()) ? FABRIC_SELECT : LEGACY_FABRIC_SELECT) as typeof FABRIC_SELECT;
+}
+
+async function modelSelect(): Promise<typeof MODEL_SELECT> {
+  return ((await hasEuropeColumns()) ? MODEL_SELECT : LEGACY_MODEL_SELECT) as typeof MODEL_SELECT;
+}
+
+type FabricRow = Omit<Fabric, "origin"> & {
+  vendors?: { shop_name?: string | null; city?: string | null; country?: string | null } | null;
+};
+
+function toFabric(row: FabricRow): Fabric {
+  const { vendors, ...fabric } = row;
+  return { ...fabric, origin: toOrigin(vendors) };
+}
+
 export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]> {
   if (!isSupabaseConfigured()) {
     return FABRICS.filter((f) => {
@@ -92,13 +138,13 @@ export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]>
   }
 
   const supabase = await createClient();
-  let query = supabase.from("fabrics").select("*").eq("is_active", true);
+  let query = supabase.from("fabrics").select(await fabricSelect()).eq("is_active", true);
   if (filters.category) query = query.eq("category_slug", filters.category);
   if (filters.color) query = query.ilike("color", `%${filters.color}%`);
   if (filters.maxPrice) query = query.lte("price_per_meter", filters.maxPrice);
   if (filters.q) query = query.ilike("name", `%${filters.q}%`);
   const { data } = await query.order("created_at", { ascending: false });
-  return (data as Fabric[]) ?? [];
+  return ((data as FabricRow[]) ?? []).map(toFabric);
 }
 
 /** Fabrics owned by the signed-in vendor (for the pro dashboard). */
@@ -120,8 +166,8 @@ export async function getFabricById(id: string): Promise<Fabric | null> {
     return FABRICS.find((f) => f.id === id) ?? null;
   }
   const supabase = await createClient();
-  const { data } = await supabase.from("fabrics").select("*").eq("id", id).single();
-  return (data as Fabric | null) ?? null;
+  const { data } = await supabase.from("fabrics").select(await fabricSelect()).eq("id", id).single();
+  return data ? toFabric(data as FabricRow) : null;
 }
 
 /** Tissus actifs d'une boutique donnée — la grille de sa fiche publique. */
@@ -132,11 +178,11 @@ export async function getFabricsByVendor(vendorId: string): Promise<Fabric[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("fabrics")
-    .select("*")
+    .select(await fabricSelect())
     .eq("vendor_id", vendorId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
-  return (data as Fabric[]) ?? [];
+  return ((data as FabricRow[]) ?? []).map(toFabric);
 }
 
 /** Les tissus que le tailleur a publiés pour ce modèle. */
@@ -200,13 +246,38 @@ export async function getMyAtelier(): Promise<TailorAtelier | null> {
 // La galerie vit dans `model_photos` ; on l'aplatit en `photos` triée pour que
 // l'UI n'ait qu'un tableau d'URLs, comme les fixtures. `tailors` n'est joint que
 // pour savoir si l'auteur est ouvert (cf. `isOrderable`) et n'est pas exposé.
+//
+// JALOFA EUROPE : on joint aussi le nom, la ville et le pays de l'atelier. C'est
+// le pays qui range le produit dans /europe (cf. `europe.ts`), sans colonne à
+// tenir à jour sur chaque modèle.
 const MODEL_SELECT =
-  "*, model_photos(image_url, sort_order), tailors(is_active, is_suspended)";
+  "*, model_photos(image_url, sort_order), tailors(is_active, is_suspended, shop_name, city, country)";
+const LEGACY_MODEL_SELECT =
+  "*, model_photos(image_url, sort_order), tailors(is_active, is_suspended, shop_name, city)";
 
-type ModelRow = Omit<GarmentModel, "photos"> & {
+type ModelRow = Omit<GarmentModel, "photos" | "origin"> & {
   model_photos?: { image_url: string; sort_order: number }[] | null;
-  tailors?: { is_active: boolean; is_suspended: boolean } | null;
+  tailors?: {
+    is_active: boolean;
+    is_suspended: boolean;
+    shop_name?: string | null;
+    city?: string | null;
+    country?: string | null;
+  } | null;
 };
+
+function toOrigin(
+  pro: { shop_name?: string | null; city?: string | null; country?: string | null } | null | undefined,
+): ProductOrigin | null {
+  if (!pro) return null;
+  const country = pro.country ?? null;
+  return {
+    shop_name: pro.shop_name ?? null,
+    city: pro.city ?? null,
+    country,
+    europe: isEuropeCountry(country),
+  };
+}
 
 // Champ par champ plutôt qu'un spread : `tailors` ne sert qu'au filtre et n'a
 // rien à faire dans la charge envoyée aux composants client.
@@ -226,6 +297,12 @@ function toModel(row: ModelRow): GarmentModel {
     style_groups: row.style_groups ?? [],
     body_fits: row.body_fits ?? [],
     care_tips: row.care_tips ?? null,
+    delivery_zone: row.delivery_zone,
+    europe_type: row.europe_type ?? null,
+    material: row.material ?? null,
+    making_type: row.making_type ?? null,
+    sizes: row.sizes ?? null,
+    origin: toOrigin(row.tailors),
     photos: (row.model_photos ?? [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -253,7 +330,7 @@ export async function getModels(filters: { category?: string } = {}): Promise<
     );
   }
   const supabase = await createClient();
-  let query = supabase.from("models").select(MODEL_SELECT).eq("is_active", true);
+  let query = supabase.from("models").select(await modelSelect()).eq("is_active", true);
   if (filters.category) query = query.eq("category_slug", filters.category);
   const { data } = await query.order("name");
   return ((data as ModelRow[]) ?? []).filter(isOrderable).map(toModel);
@@ -272,7 +349,7 @@ export async function getModelSuggestions(): Promise<GarmentModel[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("models")
-    .select(MODEL_SELECT)
+    .select(await modelSelect())
     .is("tailor_id", null)
     .eq("is_active", true)
     .order("name");
@@ -290,7 +367,7 @@ export async function getModelsByTailor(tailorId: string): Promise<GarmentModel[
   const supabase = await createClient();
   const { data } = await supabase
     .from("models")
-    .select(MODEL_SELECT)
+    .select(await modelSelect())
     .eq("tailor_id", tailorId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -312,7 +389,7 @@ export async function getTailorModels(): Promise<GarmentModel[]> {
   if (!user) return [];
   const { data } = await supabase
     .from("models")
-    .select(MODEL_SELECT)
+    .select(await modelSelect())
     .eq("tailor_id", user.id)
     .order("created_at", { ascending: false });
   return ((data as ModelRow[]) ?? []).map(toModel);
@@ -323,7 +400,7 @@ export async function getModelById(id: string): Promise<GarmentModel | null> {
     return MODELS.find((m) => m.id === id) ?? null;
   }
   const supabase = await createClient();
-  const { data } = await supabase.from("models").select(MODEL_SELECT).eq("id", id).single();
+  const { data } = await supabase.from("models").select(await modelSelect()).eq("id", id).single();
   if (!data || !isOrderable(data as ModelRow)) return null;
   return toModel(data as ModelRow);
 }
@@ -343,7 +420,7 @@ export async function getModelBySlug(slug: string): Promise<GarmentModel | null>
   const supabase = await createClient();
   const { data } = await supabase
     .from("models")
-    .select(MODEL_SELECT)
+    .select(await modelSelect())
     .eq("slug", slug)
     .maybeSingle();
   if (!data || !isOrderable(data as ModelRow)) return null;

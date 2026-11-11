@@ -48,6 +48,16 @@ const FAMILY_BY_SLUG: Record<string, DetailFamily> = {
 
   "chemise": "shirt",
   "chemise-femme": "shirt",
+  "europe-chemise-femme": "shirt",
+  "europe-chemise-homme": "shirt",
+  "europe-smoking-homme": "tailored",
+  "europe-costume-homme": "tailored",
+  "europe-costume-2p-homme": "tailored",
+  "europe-robe-soiree": "fitted",
+  "europe-robe": "fitted",
+  "europe-costume-femme": "tailored",
+  "europe-robe-mariage": "fitted",
+  "europe-detente-femme": "flowing",
 
   "costume": "tailored",
   "costume-africain": "tailored",

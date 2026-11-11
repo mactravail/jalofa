@@ -48,10 +48,13 @@ export function VendorFabricsPanel({
   fabrics,
   categories,
   role = "vendor",
+  europe = false,
 }: {
   fabrics: Fabric[];
   categories: FabricCategory[];
   role?: "tailor" | "vendor";
+  /** Boutique en Europe (JALOFA EUROPE) : prix en €, livraison « Europe ». */
+  europe?: boolean;
 }) {
   const copy = COPY[role];
   const [formOpen, setFormOpen] = useState(false);
@@ -238,10 +241,12 @@ export function VendorFabricsPanel({
       )}
 
       <FabricFormDialog
+        key={editing?.id ?? "new"}
         open={formOpen}
         onOpenChange={setFormOpen}
         fabric={editing}
         categories={categories}
+        europe={europe}
       />
 
       <Dialog

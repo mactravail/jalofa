@@ -19,7 +19,8 @@ import { useCart } from "@/components/cart/cart-context";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import { ReviewStars } from "@/components/catalog/review-stars";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { formatPrice } from "@/lib/constants";
+import { EuropeBadge } from "@/components/europe/europe-badge";
+import { ProductPrice } from "@/components/europe/europe-price";
 import {
   clampMeters,
   formatMeters,
@@ -144,8 +145,19 @@ export function FabricBuyPanel({
         </span>
       </div>
 
+      {fabric.origin?.europe && (
+        <p className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+          <EuropeBadge country={fabric.origin.country} />
+          {fabric.origin.city && (
+            <span className="text-muted-foreground">
+              {t("Boutique à {place}", { place: [fabric.origin.city, fabric.origin.country].filter(Boolean).join(", ") })}
+            </span>
+          )}
+        </p>
+      )}
+
       <p className="mt-5 text-3xl font-semibold">
-        {formatPrice(fabric.price_per_meter)}
+        <ProductPrice amount={fabric.price_per_meter} europe={fabric.origin?.europe} />
         <span className="text-muted-foreground text-base font-normal"> / {t("mètre")}</span>
       </p>
 
@@ -270,7 +282,9 @@ export function FabricBuyPanel({
               <Plus className="size-4" />
             </button>
           </div>
-          <p className="text-xl font-semibold">{formatPrice(total)}</p>
+          <p className="text-xl font-semibold">
+            <ProductPrice amount={total} europe={fabric.origin?.europe} stacked />
+          </p>
         </div>
 
         <p className="text-muted-foreground mt-2 text-xs">

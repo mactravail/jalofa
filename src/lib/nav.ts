@@ -3,6 +3,10 @@ export type NavLink = { href: string; label: string };
 export const NAV_LINKS: NavLink[] = [
   { href: "/modeles?category=homme", label: "Homme" },
   { href: "/modeles?category=femme", label: "Femme" },
+  // JALOFA AFRIQUE : les habits africains, homme et femme (page `/afrique`).
+  { href: "/afrique", label: "JALOFA AFRIQUE" },
+  // JALOFA EUROPE : les créations des ateliers européens (cf. `lib/europe.ts`).
+  { href: "/europe", label: "JALOFA EUROPE" },
   // Chaussures sur mesure — masqué pour l'instant, on y reviendra plus tard.
   // La page et le configurateur restent en place ; il suffit de décommenter.
   // { href: "/homme/chaussures-sur-mesure/personnaliser", label: "Chaussures" },

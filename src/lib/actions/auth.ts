@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { parseCountry } from "@/lib/europe";
 import { passwordIssue } from "@/lib/password";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { safeRedirect } from "@/lib/safe-redirect";
@@ -115,6 +116,14 @@ export async function signUp(
   // mois suivants sont retenus sur les ventes (cf. `renewProFromSale`).
   const wantsPaidOffer = isPro && String(formData.get("offer") ?? "") === PAID_PLAN_ID;
 
+  // Où se trouve l'atelier (pros seulement). Un pays d'Europe range ses
+  // produits dans JALOFA EUROPE (cf. `europe.ts`).
+  const country = isPro ? parseCountry(formData.get("country")) : null;
+  const city = isPro ? String(formData.get("city") ?? "").trim().slice(0, 80) : "";
+  if (isPro && !city) {
+    return { error: "Indiquez la ville de votre atelier." };
+  }
+
   if (!isSupabaseConfigured()) return { error: DB_NOT_READY };
 
   const supabase = await createClient();
@@ -122,7 +131,7 @@ export async function signUp(
     email,
     password,
     options: {
-      data: { full_name: fullName, phone, role },
+      data: { full_name: fullName, phone, role, ...(isPro ? { country, city } : {}) },
     },
   });
 
@@ -147,6 +156,20 @@ export async function signUp(
 
   // If email confirmation is disabled the user is signed in immediately.
   if (data.session) {
+    // Le pays et la ville rejoignent l'atelier et la boutique créés par
+    // `handle_new_user` (déclencheur laissé intact). Le pro est connecté : ce
+    // sont ses propres lignes (RLS « update own »). Un échec ne bloque pas
+    // l'inscription — le profil permet de corriger.
+    if (isPro && data.user && country) {
+      const place = { country, city };
+      const [tailorRes, vendorRes] = await Promise.all([
+        supabase.from("tailors").update(place).eq("id", data.user.id),
+        supabase.from("vendors").update(place).eq("id", data.user.id),
+      ]);
+      if (tailorRes.error || vendorRes.error) {
+        console.error("[signup place]", tailorRes.error ?? vendorRes.error);
+      }
+    }
     revalidatePath("/", "layout");
     // Offre Pro choisie : on part directement payer sur PayDunya. Si la
     // passerelle échoue, le compte existe déjà (offre Gratuit) et la page

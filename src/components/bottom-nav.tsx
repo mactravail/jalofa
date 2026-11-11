@@ -6,12 +6,11 @@ import {
   CircleUserRound,
   Home,
   Shirt,
-  ShoppingBag,
-  SwatchBook,
+  Earth,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
-import { useCart } from "@/components/cart/cart-context";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 
@@ -31,13 +30,10 @@ const TABS: Tab[] = [
     icon: Shirt,
     match: ["/modeles", "/homme", "/femme", "/commande"],
   },
-  { href: "/tissus", label: "Tissus", icon: SwatchBook, match: ["/tissus"] },
-  {
-    href: "/panier",
-    label: "Panier",
-    icon: ShoppingBag,
-    match: ["/panier", "/caisse"],
-  },
+  // Les tissus restent accessibles par le menu ; la barre du bas met JALOFA EUROPE en avant.
+  { href: "/europe", label: "Europe", icon: Globe, match: ["/europe"] },
+  // Le panier reste dans le header (icône sur mobile) : la barre du bas met JALOFA AFRIQUE en avant.
+  { href: "/afrique", label: "Afrique", icon: Earth, match: ["/afrique"] },
   {
     href: "/compte",
     label: "Compte",
@@ -52,7 +48,6 @@ const TABS: Tab[] = [
  */
 export function BottomNav() {
   const pathname = usePathname();
-  const { count } = useCart();
   const t = useT();
 
   const isActive = (tab: Tab) =>
@@ -86,11 +81,6 @@ export function BottomNav() {
                   strokeWidth={active ? 2.25 : 2}
                   aria-hidden
                 />
-                {tab.href === "/panier" && count > 0 && (
-                  <span className="bg-primary text-primary-foreground absolute -top-1.5 -right-2.5 flex min-w-4 items-center justify-center rounded-full px-1 text-[0.625rem] leading-4 font-semibold">
-                    {count}
-                  </span>
-                )}
               </span>
               {t(tab.label)}
             </Link>

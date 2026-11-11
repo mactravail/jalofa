@@ -19,7 +19,13 @@ import {
   type DraftStyleGroup,
 } from "@/components/dashboard/model-style-editor";
 import { saveModel, uploadModelStylePhoto } from "@/lib/actions/models";
-import { modelPhotos } from "@/lib/constants";
+import { formatPrice, modelPhotos } from "@/lib/constants";
+import {
+  EUROPE_TYPES,
+  eurToXof,
+  MAKING_TYPES,
+  xofToEur,
+} from "@/lib/europe";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { modelBodyFitProblem } from "@/lib/model-body-fit";
 import { careTipLines, MAX_CARE_TIPS_LENGTH, modelStyleProblem } from "@/lib/model-style";
@@ -87,6 +93,7 @@ export function ModelFormDialog({
   fabricCategories,
   linkedFabricIds,
   atelier,
+  europe = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -106,6 +113,11 @@ export function ModelFormDialog({
   linkedFabricIds: string[];
   /** Null : l'atelier n'est pas encore renseigné, le formulaire le demande. */
   atelier: TailorAtelier | null;
+  /**
+   * Atelier installé en Europe (JALOFA EUROPE) : catégorie européenne, matière,
+   * confection, tailles, et un prix saisi en euros (enregistré en FCFA).
+   */
+  europe?: boolean;
 }) {
   const isEdit = Boolean(model);
   const t = useT();
@@ -142,6 +154,10 @@ export function ModelFormDialog({
     toDraftBodyFits(model?.body_fits, source?.category_slug),
   );
   const [careTips, setCareTips] = useState(model?.care_tips ?? "");
+  const [europeType, setEuropeType] = useState<string>(model?.europe_type ?? "");
+  const [priceEur, setPriceEur] = useState<string>(
+    source?.price != null ? String(xofToEur(source.price)) : "",
+  );
   const [styleUpload, setStyleUpload] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -260,6 +276,11 @@ export function ModelFormDialog({
     const formData = new FormData(e.currentTarget);
     formData.set("category_slug", category === NONE ? "" : category);
     formData.set("difficulty", difficulty === NONE ? "" : difficulty);
+    // JALOFA EUROPE : le prix est saisi en euros, enregistré et payé en FCFA.
+    if (europe) {
+      const eur = Number(priceEur);
+      formData.set("price", priceEur.trim() && Number.isFinite(eur) ? String(eurToXof(eur)) : "");
+    }
     for (const id of selectedFabrics) formData.append("fabric_id", id);
     const items = photos;
 
@@ -575,6 +596,99 @@ export function ModelFormDialog({
             </div>
           </div>
 
+          {europe && (
+            <div className="space-y-4 rounded-xl border p-3">
+              <p className="text-xs font-semibold tracking-[0.14em] uppercase">JALOFA EUROPE</p>
+              <div className="space-y-2">
+                <Label htmlFor="model-europe-type">{t("Catégorie JALOFA EUROPE")}</Label>
+                <select
+                  id="model-europe-type"
+                  name="europe_type"
+                  value={europeType}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setEuropeType(value);
+                    // La catégorie européenne décide de la page Homme ou Femme.
+                    const info = EUROPE_TYPES.find((x) => x.value === value);
+                    if (info) {
+                      setCategory(info.category);
+                      setBodyFits((prev) => rebaseDraftBodyFits(prev, info.category));
+                    }
+                  }}
+                  className="border-input bg-background h-10 w-full rounded-lg border px-3 text-base md:text-sm"
+                >
+                  <option value="">{t("Choisissez…")}</option>
+                  {EUROPE_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {t(type.label)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="model-material">{t("Matière et tissu")}</Label>
+                <Input
+                  id="model-material"
+                  name="material"
+                  maxLength={160}
+                  defaultValue={source?.material ?? ""}
+                  placeholder={t("Ex. Laine Super 120s, Biella")}
+                />
+              </div>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">{t("Confection")}</legend>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {MAKING_TYPES.map((type) => (
+                    <label
+                      key={type.value}
+                      className="has-[:checked]:border-primary has-[:checked]:ring-primary/30 flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm has-[:checked]:ring-2"
+                    >
+                      <input
+                        type="radio"
+                        name="making_type"
+                        value={type.value}
+                        defaultChecked={(source?.making_type ?? "les_deux") === type.value}
+                        className="accent-primary size-4"
+                      />
+                      {t(type.label)}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="space-y-2">
+                <Label htmlFor="model-sizes">{t("Tailles disponibles (prêt-à-porter)")}</Label>
+                <Input
+                  id="model-sizes"
+                  name="sizes"
+                  maxLength={120}
+                  defaultValue={source?.sizes ?? ""}
+                  placeholder={t("Ex. 46 à 56, ou S, M, L, XL")}
+                />
+              </div>
+            </div>
+          )}
+
+          {europe ? (
+            <div className="space-y-2">
+              <Label htmlFor="model-price-eur">{t("Prix « à partir de » (€)")}</Label>
+              <Input
+                id="model-price-eur"
+                type="number"
+                min={0}
+                step={1}
+                value={priceEur}
+                onChange={(e) => setPriceEur(e.target.value)}
+                placeholder="450"
+              />
+              <p className="text-muted-foreground text-xs">
+                {priceEur.trim() && Number.isFinite(Number(priceEur))
+                  ? t("Soit {price} : les clients voient les deux prix et paient en FCFA.", {
+                      price: formatPrice(eurToXof(Number(priceEur))),
+                    })
+                  : t("Les clients voient le prix en euros et en FCFA, et paient en FCFA.")}
+              </p>
+            </div>
+          ) : (
           <div className="space-y-2">
             <Label htmlFor="model-price">{t("Prix « à partir de » (FCFA)")}</Label>
             <Input
@@ -590,6 +704,7 @@ export function ModelFormDialog({
               {t("Le prix de départ affiché aux clients. Pris tel quel, ils le paient ; personnalisé, vous fixez le prix final par devis. Laissez vide pour utiliser votre tarif « à partir de » par défaut.")}
             </p>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label>{t("Difficulté")}</Label>
@@ -612,7 +727,7 @@ export function ModelFormDialog({
             </Select>
           </div>
 
-          <DeliveryZoneField defaultValue={model?.delivery_zone} />
+          <DeliveryZoneField defaultValue={model?.delivery_zone} europe={europe} />
 
           <div className="space-y-2">
             <Label htmlFor="model-description">{t("Description")}</Label>
@@ -717,6 +832,7 @@ export function ModelFormDialog({
           onOpenChange={setFabricFormOpen}
           fabric={null}
           categories={fabricCategories}
+          europe={europe}
           onSaved={(id) => setSelectedFabrics((prev) => [...prev, id])}
         />
       </DialogContent>

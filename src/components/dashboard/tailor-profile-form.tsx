@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { saveTailorProfile } from "@/lib/actions/tailors";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { Button } from "@/components/ui/button";
+import { CountrySelect } from "@/components/europe/country-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -142,6 +143,14 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
           defaultValue={tailor.shop_name ?? ""}
           placeholder={t("Ex. Atelier Fatou Couture")}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="country"><T>Pays</T></Label>
+        <CountrySelect defaultValue={tailor.country} />
+        <p className="text-muted-foreground text-xs">
+          <T>{"Un pays d'Europe fait apparaître vos produits dans JALOFA EUROPE."}</T>
+        </p>
       </div>
 
       <div className="space-y-2">

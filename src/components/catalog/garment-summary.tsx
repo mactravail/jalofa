@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CANCEL_WINDOW_HOURS } from "@/lib/after-sale";
 import { APP_NAME } from "@/lib/constants";
+import { isEuropeCountry } from "@/lib/europe";
 import type { LatestReviews, ModelReviewStats } from "@/lib/data";
 import { deliveryPolicy } from "@/lib/delivery";
 import { careTipLines } from "@/lib/model-style";
@@ -71,6 +72,8 @@ type GarmentAuthor = {
   id: string;
   shop_name: string | null;
   city?: string | null;
+  /** Affiché seulement hors du Sénégal (JALOFA EUROPE). */
+  country?: string | null;
 };
 
 export async function GarmentHeading({
@@ -128,6 +131,7 @@ export async function GarmentHeading({
             <span className="font-medium">{APP_NAME}</span>
           )}
           {author?.city ? ` · ${author.city}` : ""}
+          {author?.country && isEuropeCountry(author.country) ? `, ${author.country}` : ""}
         </span>
       </p>
 

@@ -123,6 +123,8 @@ export async function GarmentChooser({
     avgDays: model.avg_days,
     price: model.price,
     occasion,
+    europe: model.origin?.europe ?? false,
+    country: model.origin?.country ?? null,
   }));
 
   return (

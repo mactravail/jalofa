@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "@/components/i18n/link";
 import { ChevronDown, X } from "lucide-react";
 
-import { Price } from "@/components/cart/price";
+import { ProductPrice } from "@/components/europe/europe-price";
+import { EuropeBadge } from "@/components/europe/europe-badge";
 import { modelHref } from "@/lib/model-href";
 import { modelPhotos } from "@/lib/constants";
 import { display } from "@/lib/display-font";
@@ -232,7 +233,7 @@ export function ModelsCatalog({
   );
 }
 
-function CatalogTile({
+export function CatalogTile({
   model,
   context,
   categoryName,
@@ -273,6 +274,13 @@ function CatalogTile({
             className="object-cover opacity-0 transition duration-700 ease-out group-hover:scale-[1.03] group-hover:opacity-100"
           />
         )}
+        {model.origin?.europe && (
+          <EuropeBadge
+            overlay
+            country={model.origin.country}
+            className="absolute top-2 left-2 max-w-[calc(100%-1rem)]"
+          />
+        )}
       </div>
       <div className="flex flex-1 flex-col px-3 pt-3 pb-4 md:px-4 md:pt-4 md:pb-5">
         {categoryName && (
@@ -292,7 +300,11 @@ function CatalogTile({
           {model.price != null ? (
             <>
               {t("Dès")}{" "}
-              <Price amount={model.price} className="font-medium text-white" />
+              <ProductPrice
+                amount={model.price}
+                europe={model.origin?.europe}
+                className="font-medium text-white"
+              />
             </>
           ) : (
             <>{t("Prêt en ~{n} jours", { n: model.avg_days })}</>

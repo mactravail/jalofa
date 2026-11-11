@@ -64,6 +64,7 @@ export function TailorModelsPanel({
   fabricCategories,
   fabricLinks,
   atelier,
+  europe = false,
 }: {
   models: GarmentModel[];
   suggestions: GarmentModel[];
@@ -74,6 +75,8 @@ export function TailorModelsPanel({
   /** Les tissus cochés pour chaque modèle. */
   fabricLinks: Record<string, string[]>;
   atelier: TailorAtelier | null;
+  /** Atelier installé en Europe : le formulaire montre les champs JALOFA EUROPE. */
+  europe?: boolean;
 }) {
   const activeFabricIds = new Set(fabrics.filter((f) => f.is_active).map((f) => f.id));
   const lacksFabric = (model: GarmentModel) =>
@@ -351,6 +354,7 @@ export function TailorModelsPanel({
         fabricCategories={fabricCategories}
         linkedFabricIds={editing ? (fabricLinks[editing.id] ?? []) : []}
         atelier={atelier}
+        europe={europe}
       />
 
       <Dialog

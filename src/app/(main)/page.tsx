@@ -8,6 +8,8 @@ import {
   HOMME,
   type CollectionTile,
 } from "@/components/home/collection-marquee";
+import { EUROPE_SLOGAN, EUROPE_TYPES } from "@/lib/europe";
+import { EUROPE_HERO, EUROPE_TYPE_IMAGES } from "@/lib/europe-images";
 import { HeroVideo } from "@/components/home/hero-video";
 import { getFabrics } from "@/lib/data";
 import { isLaunchPromoOpen } from "@/lib/launch-promo";
@@ -187,6 +189,36 @@ async function Banner({
   );
 }
 
+/** Alterne deux listes (homme, femme, homme…) : la rangée mélange les deux. */
+function alternate<T>(a: T[], b: T[]): T[] {
+  return Array.from({ length: Math.max(a.length, b.length) }).flatMap((_, i) =>
+    [a[i], b[i]].filter((x): x is T => x !== undefined),
+  );
+}
+
+/** JALOFA AFRIQUE : les habits africains, homme et femme mêlés. */
+const AFRIQUE_TILES = alternate(HOMME, FEMME).slice(0, 10);
+
+/** JALOFA EUROPE : chaque catégorie avec sa photo, homme et femme mêlés. */
+const EUROPE_TILES: CollectionTile[] = (() => {
+  const toTile = (type: (typeof EUROPE_TYPES)[number]): CollectionTile | null => {
+    const src = EUROPE_TYPE_IMAGES[type.value];
+    if (!src) return null;
+    return {
+      name: type.label,
+      audience: type.category === "homme" ? "Homme" : "Femme",
+      src,
+      href: `/modeles?category=${type.category}`,
+      alt: type.label,
+    };
+  };
+  const tiles = (category: "homme" | "femme") =>
+    EUROPE_TYPES.filter((type) => type.category === category)
+      .map(toTile)
+      .filter((tile): tile is CollectionTile => tile !== null);
+  return alternate(tiles("femme"), tiles("homme"));
+})();
+
 /** Largeur réelle des cartes de la rangée (`w-48 sm:w-60 lg:w-72`) : pas de photo trop grande sur téléphone. */
 const CARD_SIZES = "(min-width: 1024px) 18rem, (min-width: 640px) 15rem, 12rem";
 
@@ -289,33 +321,33 @@ export default async function HomePage() {
       <VideoHero />
 
       <Banner
-        images={[
-          {
-            src: "/collection homme/mallem.jpg",
-            alt: t("Silhouette d'un homme en costume devant une porte éclairée"),
-            // Sur mobile, l'homme passe à droite : la porte claire ne gêne pas le titre.
-            position: "object-[40%_center] md:object-center",
-          },
-        ]}
-        eyebrow={t("Collection")}
-        title={t("Homme")}
-        href="/modeles?category=homme"
+        images={[{ src: "/collection femme/bgcolfem.jpg", alt: t("Deux femmes en manteau devant une porte sombre") }]}
+        eyebrow={t("Homme · Femme")}
+        title={t("Afrique")}
+        href="/afrique"
       />
-      <Grid label={t("Grand boubou, kaftan, costume")} href="/modeles?category=homme">
-        {HOMME.slice(0, 8).map((tile) => (
+      <Grid label={t("Grand boubou, robe, kaftan, cérémonie")} href="/afrique">
+        {AFRIQUE_TILES.map((tile) => (
           <GarmentCard key={tile.name} tile={tile} />
         ))}
       </Grid>
 
       <Banner
-        images={[{ src: "/collection femme/bgcolfem.jpg", alt: t("Deux femmes en manteau devant une porte sombre") }]}
-        eyebrow={t("Collection")}
-        title={t("Femme")}
-        href="/modeles?category=femme"
+        images={[
+          {
+            src: EUROPE_HERO.src,
+            alt: t(EUROPE_HERO.alt),
+            // Photo d'atelier très claire : assombrie pour rester dans le thème noir du site.
+            position: cn(EUROPE_HERO.position, "brightness-[0.5] contrast-110"),
+          },
+        ]}
+        eyebrow={t(EUROPE_SLOGAN)}
+        title="Europe"
+        href="/europe"
       />
-      <Grid label={t("Robe, boubou, cérémonie")} href="/modeles?category=femme">
-        {FEMME.slice(0, 8).map((tile) => (
-          <GarmentCard key={tile.name} tile={tile} />
+      <Grid label={t("Costume, robe, smoking, chemise")} href="/europe">
+        {EUROPE_TILES.map((tile) => (
+          <GarmentCard key={tile.src} tile={tile} />
         ))}
       </Grid>
 

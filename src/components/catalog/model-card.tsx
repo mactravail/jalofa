@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "@/components/i18n/link";
 import { Clock } from "lucide-react";
 
+import { EuropeBadge } from "@/components/europe/europe-badge";
+import { ProductPrice } from "@/components/europe/europe-price";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, modelPhotos } from "@/lib/constants";
+import { modelPhotos } from "@/lib/constants";
 import { modelHref } from "@/lib/model-href";
 import type { GarmentModel } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -37,12 +39,16 @@ export async function ModelCard({ model, context }: { model: GarmentModel; conte
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         )}
+        {model.origin?.europe && (
+          <EuropeBadge overlay country={model.origin.country} className="absolute top-2 left-2 max-w-[calc(100%-1rem)]" />
+        )}
       </div>
       <div className="p-3">
         <h3 className="line-clamp-1 font-medium">{model.name}</h3>
         {model.price != null && (
           <p className="text-primary mt-1 text-sm font-semibold">
-            {t("À partir de {price}", { price: formatPrice(model.price) })}
+            {t("À partir de")}{" "}
+            <ProductPrice amount={model.price} europe={model.origin?.europe} />
           </p>
         )}
         <div className="text-muted-foreground mt-1.5 flex items-center gap-2 text-xs">

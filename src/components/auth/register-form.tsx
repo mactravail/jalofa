@@ -18,6 +18,7 @@ import {
 import { signUp, type AuthState } from "@/lib/actions/auth";
 import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
 import { PasswordField } from "@/components/auth/password-field";
+import { CountrySelect } from "@/components/europe/country-select";
 import { RobotTrap, TermsCheckbox } from "@/components/auth/signup-verification";
 import { Price } from "@/components/cart/price";
 import { Button } from "@/components/ui/button";
@@ -400,6 +401,27 @@ export function RegisterForm({
               className={FIELD_CLASS}
             />
           </div>
+          {/* Où se trouve l'atelier : un pays d'Europe range ses créations et
+              ses tissus dans JALOFA EUROPE. Modifiable ensuite dans le profil. */}
+          {isPro && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="country">{t("Pays de l'atelier")}</Label>
+                <CountrySelect className="h-12 rounded-xl pl-4 md:text-base" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">{t("Ville")}</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  autoComplete="address-level2"
+                  placeholder={t("Ex. Dakar, Milan, Paris")}
+                  required
+                  className={FIELD_CLASS}
+                />
+              </div>
+            </div>
+          )}
           <PasswordField
             value={password}
             onChange={setPassword}

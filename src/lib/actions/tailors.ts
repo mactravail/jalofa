@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
+import { parseCountry } from "@/lib/europe";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
@@ -110,6 +111,7 @@ export async function saveTailorProfile(
     cover_url = typeof entry === "string" && entry.trim() ? entry.trim() : null;
   }
 
+  const country = formData.has("country") ? parseCountry(formData.get("country")) : null;
   const { error } = await supabase
     .from("tailors")
     .update({
@@ -126,6 +128,21 @@ export async function saveTailorProfile(
     // La mise à jour a échoué : ne pas laisser traîner une photo orpheline.
     if (file && cover_url) await removeImage(supabase, BUCKET, cover_url);
     return { ok: false, error: error.message };
+  }
+
+  // JALOFA EUROPE : le pays, à part et sans bloquer le profil (si la migration
+  // n'est pas encore passée, la colonne manque). Un compte pro = un atelier +
+  // une boutique : même pays des deux côtés, pour que créations et tissus
+  // rejoignent ensemble JALOFA EUROPE.
+  if (country) {
+    const results = await Promise.all(
+      (["tailors", "vendors"] as const).map((table) =>
+        supabase.from(table).update({ country }).eq("id", user.id),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) console.error("[country]", failed.error);
+    revalidatePath("/europe");
   }
 
   // Photo remplacée ou retirée : nettoyer l'ancienne (best-effort).

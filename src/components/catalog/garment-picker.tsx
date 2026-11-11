@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "@/components/i18n/link";
 import { Clock } from "lucide-react";
 
-import { Price } from "@/components/cart/price";
+import { ProductPrice } from "@/components/europe/europe-price";
+import { EuropeBadge } from "@/components/europe/europe-badge";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 
@@ -17,9 +18,15 @@ export type PickerItem = {
   avgDays: number | null;
   price: number | null;
   occasion: string | null;
+  /** JALOFA EUROPE : fabriqué en Europe (étiquette + prix en € et FCFA). */
+  europe?: boolean;
+  country?: string | null;
 };
 
 const ALL = "tout";
+/** Filtre ajouté quand la page compte des créations d'ateliers européens. */
+const EUROPE = "europe";
+const EUROPE_INTRO = "Les créations de nos ateliers en Europe. L'élégance européenne, accessible au monde.";
 
 /** L'unique section où l'on choisit l'habit à faire coudre : l'occasion filtre la grille. */
 export function GarmentPicker({
@@ -31,9 +38,20 @@ export function GarmentPicker({
 }) {
   const [active, setActive] = useState(ALL);
   const t = useT();
-  const visible = active === ALL ? items : items.filter((item) => item.occasion === active);
-  const intro = occasions.find((o) => o.id === active)?.intro;
-  const filters = [{ id: ALL, title: t("Tout") }, ...occasions.map((o) => ({ ...o, title: t(o.title) }))];
+  const hasEurope = items.some((item) => item.europe);
+  const visible =
+    active === ALL
+      ? items
+      : active === EUROPE
+        ? items.filter((item) => item.europe)
+        : items.filter((item) => item.occasion === active);
+  const intro =
+    active === EUROPE ? EUROPE_INTRO : occasions.find((o) => o.id === active)?.intro;
+  const filters = [
+    { id: ALL, title: t("Tout") },
+    ...occasions.map((o) => ({ ...o, title: t(o.title) })),
+    ...(hasEurope ? [{ id: EUROPE, title: "JALOFA EUROPE" }] : []),
+  ];
 
   return (
     <>
@@ -74,6 +92,9 @@ export function GarmentPicker({
                   className="object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]"
                 />
               )}
+              {item.europe && (
+                <EuropeBadge overlay country={item.country} className="absolute top-2 left-2 max-w-[calc(100%-1rem)]" />
+              )}
             </div>
             <h3 className="mt-2.5 text-sm font-medium tracking-tight md:text-base">{item.name}</h3>
             <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs md:text-sm">
@@ -86,7 +107,7 @@ export function GarmentPicker({
               {/* Un prix absent inquiète : on dit qui le fixe. */}
               {item.price != null ? (
                 <span className="text-foreground font-medium">
-                  {t("Dès")} <Price amount={item.price} />
+                  {t("Dès")} <ProductPrice amount={item.price} europe={item.europe} />
                 </span>
               ) : (
                 <span>{t("Prix fixé par le tailleur")}</span>
