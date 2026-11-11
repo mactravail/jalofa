@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { quoteOrder, rejectOrder, updateOrderStatus } from "@/lib/actions/orders";
+import { unwrap } from "@/lib/action-result";
 import type { OrderStatus, RejectionReason } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
@@ -111,7 +112,7 @@ export function PipelineProvider({
         patch(orderId, { status });
         return;
       }
-      await updateOrderStatus(orderId, status);
+      unwrap(await updateOrderStatus(orderId, status));
     },
     [demo, patch],
   );
@@ -124,7 +125,7 @@ export function PipelineProvider({
         patch(orderId, { status: "rejected", rejection_reason: reason });
         return;
       }
-      await rejectOrder(orderId, reason);
+      unwrap(await rejectOrder(orderId, reason));
     },
     [demo, patch],
   );

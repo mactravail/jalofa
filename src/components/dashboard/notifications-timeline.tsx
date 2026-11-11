@@ -59,6 +59,8 @@ const TONES: Record<string, { icon: LucideIcon; tone: string }> = {
   order_sewing: { icon: Scissors, tone: "bg-sky-500/15 text-sky-400" },
   order_shipped: { icon: Truck, tone: "bg-violet-500/15 text-violet-400" },
   order_delivered: { icon: PackageCheck, tone: "bg-emerald-500/15 text-emerald-400" },
+  // Admin : un tailleur a masqué un modèle déjà commandé (garde-fou anti-arnaque).
+  model_hidden: { icon: AlertTriangle, tone: "bg-amber-500/15 text-amber-400" },
 };
 const DEFAULT_TONE = { icon: Bell, tone: "bg-muted text-muted-foreground" };
 

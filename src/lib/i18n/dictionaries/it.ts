@@ -471,7 +471,7 @@ export const it: Record<string, string> = {
   "Choisissez un mot de passe qui remplit toutes les exigences.": "Scegli una password che soddisfi tutti i requisiti.",
   "Répétez le même mot de passe.": "Ripeti la stessa password.",
   "Acceptez les conditions générales pour continuer.": "Accetta le condizioni generali per continuare.",
-  "Confirmez que vous n'êtes pas un robot.": "Conferma di non essere un robot.",
+  "Accès refusé.": "Accesso negato.",
   "Changer de compte": "Cambia tipo di account",
   "Pour démarrer sans rien payer.": "Per iniziare senza pagare nulla.",
   "0 FCFA par mois": "0 FCFA al mese",

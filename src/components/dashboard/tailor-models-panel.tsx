@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteModel, setModelPublished } from "@/lib/actions/models";
+import { unwrap } from "@/lib/action-result";
 import type {
   Fabric,
   FabricCategory,
@@ -98,7 +99,7 @@ export function TailorModelsPanel({
     setPublishingId(model.id);
     startPublish(async () => {
       try {
-        await setModelPublished(model.id, next);
+        unwrap(await setModelPublished(model.id, next));
         toast.success(
           next
             ? translateNow("Modèle publié dans le catalogue.")
@@ -184,7 +185,7 @@ export function TailorModelsPanel({
     if (!target) return;
     startDelete(async () => {
       try {
-        await deleteModel(target.id);
+        unwrap(await deleteModel(target.id));
         toast.success(translateNow("Modèle supprimé."));
         setDeleteTarget(null);
       } catch (e) {

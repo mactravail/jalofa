@@ -18,7 +18,7 @@ import {
 import { signUp, type AuthState } from "@/lib/actions/auth";
 import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
 import { PasswordField } from "@/components/auth/password-field";
-import { NotARobot, TermsCheckbox } from "@/components/auth/signup-verification";
+import { RobotTrap, TermsCheckbox } from "@/components/auth/signup-verification";
 import { Price } from "@/components/cart/price";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,8 +73,9 @@ const OFFERS: {
  *    supprimé à tout moment, le 1er mois ne peut donc pas être une dette. Les
  *    mois suivants sont retenus sur les ventes (cf. `renewProFromSale`).
  *
- * Toute inscription exige l'acceptation des conditions et la case « Je ne suis
- * pas un robot ».
+ * Toute inscription exige l'acceptation des conditions. La case « Je ne suis
+ * pas un robot » est un piège invisible (`RobotTrap`) : un humain ne la voit
+ * pas, un robot qui la coche se voit refuser l'accès.
  */
 export function RegisterForm({
   kind,
@@ -95,7 +96,6 @@ export function RegisterForm({
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [notRobot, setNotRobot] = useState(false);
 
   const [state, formAction, isPending] = useActionState<AuthState, FormData>(
     signUp,
@@ -104,7 +104,7 @@ export function RegisterForm({
 
   const passwordOk = checkPassword(password).valid;
   const passwordsMatch = passwordConfirm.length > 0 && passwordConfirm === password;
-  const canSubmit = passwordOk && passwordsMatch && acceptedTerms && notRobot;
+  const canSubmit = passwordOk && passwordsMatch && acceptedTerms;
   const paid = isPro && offer === PAID_PLAN_ID;
   // Offre de lancement : l'offre Pro ne se paie pas à l'inscription.
   const promo = isPro && promoSlotsLeft > 0;
@@ -444,7 +444,7 @@ export function RegisterForm({
               </Link>{" "}
               {t("et la politique de confidentialité de JALOFA.")}
             </TermsCheckbox>
-            <NotARobot checked={notRobot} onChange={setNotRobot} />
+            <RobotTrap />
           </div>
 
           <Button
@@ -462,9 +462,7 @@ export function RegisterForm({
                   ? "Choisissez un mot de passe qui remplit toutes les exigences."
                   : !passwordsMatch
                     ? "Répétez le même mot de passe."
-                    : !acceptedTerms
-                      ? "Acceptez les conditions générales pour continuer."
-                      : "Confirmez que vous n'êtes pas un robot.",
+                    : "Acceptez les conditions générales pour continuer.",
               )}
             </p>
           )}

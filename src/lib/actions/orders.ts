@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { runAction, type ActionResult } from "@/lib/action-result";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { saveOrderContact } from "@/lib/order-contact";
 import { resolveTailoringPrice } from "@/lib/order-pricing";
@@ -628,7 +629,7 @@ async function proOrder(orderId: string) {
  * revient jamais en arrière — sans quoi un pro pourrait rejouer indéfiniment le
  * passage à « livrée » et recompter la commande dans ses statistiques.
  */
-export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+async function updateOrderStatusImpl(orderId: string, status: OrderStatus) {
   const { supabase, order, isTailor } = await proOrder(orderId);
 
   // L'argent du vendeur dépend de la réception : ce n'est pas lui qui la déclare.
@@ -672,7 +673,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
  * client en est prévenu (trigger) et pourra appeler le livreur ; c'est ensuite
  * lui qui confirme la réception.
  */
-export async function handOverToCourier(
+async function handOverToCourierImpl(
   orderId: string,
   courier: { name: string; phone: string; eta: string },
 ) {
@@ -752,7 +753,7 @@ export async function confirmFabricReceived(
  * pourra relancer chez un autre tailleur. L'administration, elle, retrouve le
  * refus sur sa page dédiée.
  */
-export async function rejectOrder(orderId: string, reason: RejectionReason) {
+async function rejectOrderImpl(orderId: string, reason: RejectionReason) {
   const { supabase, order } = await proOrder(orderId);
 
   // On ne refuse qu'une commande qu'on n'a pas encore prise en main : une fois le
@@ -855,4 +856,18 @@ export async function reassignTailor(
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/admin/refus");
   return { ok: true };
+}
+
+// Wrappers exportés : le message d'erreur doit revenir en valeur, pas en exception
+// (masquée en production) — cf. `src/lib/action-result.ts`.
+export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<ActionResult> {
+  return runAction(() => updateOrderStatusImpl(orderId, status));
+}
+
+export async function handOverToCourier(orderId: string, courier: { name: string; phone: string; eta: string }): Promise<ActionResult> {
+  return runAction(() => handOverToCourierImpl(orderId, courier));
+}
+
+export async function rejectOrder(orderId: string, reason: RejectionReason): Promise<ActionResult> {
+  return runAction(() => rejectOrderImpl(orderId, reason));
 }

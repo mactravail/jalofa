@@ -5,10 +5,13 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { ModerationProvider } from "@/components/admin/moderation-store";
 import {
   getAllFeedback,
+  getAllModels,
   getAllOrders,
   getAllTailors,
   getAllVendors,
+  hiddenOrderedModels,
 } from "@/lib/admin-data";
+import { getMyUnreadNotificationCount } from "@/lib/notifications-data";
 import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Administration" };
@@ -31,12 +34,19 @@ export default async function AdminLayout({
 
   // Pastilles du menu : commandes à accepter, pros en attente de validation, et
   // retours des utilisateurs pas encore traités.
-  const [orders, tailors, vendors, feedback] = await Promise.all([
+  const [orders, tailors, vendors, feedback, models, unread] = await Promise.all([
     getAllOrders(),
     getAllTailors(),
     getAllVendors(),
     getAllFeedback(),
+    getAllModels(),
+    getMyUnreadNotificationCount(),
   ]);
+  // Modèles masqués par leur tailleur alors que des commandes sont en cours :
+  // risque d'arnaque, à vérifier (cf. la page « Modèles »).
+  const hiddenWithOngoing = hiddenOrderedModels(models, orders, tailors).filter(
+    (h) => h.ongoing > 0,
+  ).length;
   const newFeedback = feedback.filter((f) => f.status === "new").length;
   const pending = orders.filter((o) => o.status === "received").length;
   // Les commandes refusées en attente : autant de clients à rappeler pour les
@@ -54,6 +64,8 @@ export default async function AdminLayout({
         rejections: rejected,
         subscriptions: pendingPros.size,
         feedback: newFeedback,
+        models: hiddenWithOngoing,
+        notifications: unread,
       }}
     >
       <ModerationProvider demo={!isSupabaseConfigured()}>

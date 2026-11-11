@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "@/components/i18n/link";
 import { usePathname } from "@/lib/i18n/navigation";
-import { Home, LogOut, Menu, ShieldCheck } from "lucide-react";
+import { Bell, Home, LogOut, Menu, ShieldCheck } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export function AdminShell({
   return (
     <div className="bg-muted/30 flex min-h-svh flex-1 flex-col lg:flex-row">
       <aside className="bg-card sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r lg:flex">
-        <Brand />
+        <Brand unread={badges.notifications ?? 0} />
         <Nav
           badges={badges}
           isActive={isActive}
@@ -91,9 +91,10 @@ export function AdminShell({
         >
           <Wordmark size="sm" />
         </Link>
-        <span className="text-muted-foreground truncate border-l pl-2 text-sm font-medium">
+        <span className="text-muted-foreground min-w-0 flex-1 truncate border-l pl-2 text-sm font-medium">
           {current?.label ?? ADMIN_TITLE}
         </span>
+        <AdminBell unread={badges.notifications ?? 0} />
       </header>
 
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -103,8 +104,29 @@ export function AdminShell({
   );
 }
 
+/** La cloche de l'admin : pastille rouge tant qu'il reste des notifications non lues. */
+function AdminBell({ unread }: { unread: number }) {
+  return (
+    <Link
+      href={`${ADMIN_ROOT}/notifications`}
+      aria-label={unread > 0 ? `Notifications (${unread} non lues)` : "Notifications"}
+      className={cn(
+        "hover:bg-accent relative grid size-9 shrink-0 place-items-center rounded-full transition-colors",
+        unread > 0 ? "text-foreground" : "text-muted-foreground",
+      )}
+    >
+      <Bell className="size-5" />
+      {unread > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 grid min-w-4.5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] leading-4.5 font-bold text-white">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 /** Même logotype que le reste du site ; « Admin » n'est qu'une mention à côté. */
-function Brand() {
+function Brand({ unread }: { unread?: number }) {
   return (
     <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
       <Link
@@ -117,6 +139,7 @@ function Brand() {
       <span className="bg-muted text-muted-foreground ml-auto flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
         <ShieldCheck className="size-3" /> Admin
       </span>
+      {unread !== undefined && <AdminBell unread={unread} />}
     </div>
   );
 }

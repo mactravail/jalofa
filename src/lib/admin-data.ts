@@ -298,6 +298,41 @@ export const getAllModels = cache(async (): Promise<GarmentModel[]> => {
   }));
 });
 
+/** Un modèle de tailleur masqué alors qu'il a déjà été commandé. */
+export type HiddenOrderedModel = {
+  model: GarmentModel;
+  shopName: string | null;
+  orders: number;
+  /** Commandes pas encore livrées / refusées / annulées : le vrai risque. */
+  ongoing: number;
+};
+
+/**
+ * Garde-fou anti-arnaque : un modèle déjà commandé ne se supprime pas, il se
+ * masque. L'administration surveille ces modèles masqués, ceux qui ont encore
+ * des commandes en cours en tête (cf. `alertAdminsModelHidden`).
+ */
+export function hiddenOrderedModels(
+  models: GarmentModel[],
+  orders: OrderListItem[],
+  tailors: Tailor[],
+): HiddenOrderedModel[] {
+  const shops = new Map(tailors.map((t) => [t.id, t.shop_name]));
+  const result: HiddenOrderedModel[] = [];
+  for (const model of models) {
+    if (model.is_active || !model.tailor_id) continue;
+    const mine = orders.filter((o) => o.model_id === model.id);
+    if (mine.length === 0) continue;
+    result.push({
+      model,
+      shopName: shops.get(model.tailor_id) ?? null,
+      orders: mine.length,
+      ongoing: mine.filter((o) => !isTerminal(o.status)).length,
+    });
+  }
+  return result.sort((a, b) => b.ongoing - a.ongoing || b.orders - a.orders);
+}
+
 export const getAllReviews = cache(async (): Promise<ReviewRow[]> => {
   if (!isSupabaseConfigured()) return DEMO_REVIEWS;
   const supabase = await adminDb();

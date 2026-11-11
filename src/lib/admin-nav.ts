@@ -1,5 +1,6 @@
 import {
   Ban,
+  Bell,
   LayoutDashboard,
   Layers,
   MessageCircle,
@@ -29,6 +30,7 @@ export const ADMIN_TITLE = "Administration";
 export type AdminNavId =
   | "overview"
   | "account"
+  | "notifications"
   | "orders"
   | "rejections"
   | "receipts"
@@ -71,6 +73,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: ADMIN_ROOT,
         label: "Vue d'ensemble",
         icon: LayoutDashboard,
+      },
+      // La cloche : alertes de la place de marché (ex. modèle masqué après commande).
+      {
+        id: "notifications",
+        href: `${ADMIN_ROOT}/notifications`,
+        label: "Notifications",
+        icon: Bell,
       },
       // Le compte de l'administrateur lui-même : son nom et son mot de passe.
       {

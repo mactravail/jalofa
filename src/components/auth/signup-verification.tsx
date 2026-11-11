@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2, ShieldCheck } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
@@ -43,61 +43,39 @@ export function TermsCheckbox({
   );
 }
 
-/**
- * Widget « Je ne suis pas un robot » façon reCAPTCHA. La vérification anti-robot
- * est simulée pour le MVP (aucune passerelle) : au clic, un court instant de
- * vérification, puis une coche verte. `onChange(true)` est appelé une fois validé.
- */
-export function NotARobot({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const [verifying, setVerifying] = useState(false);
-  const t = useT();
+/** Nom du champ caché qui trahit un robot (relu par `signUp`). */
+export const ROBOT_TRAP_FIELD = "robot_check";
 
-  function handleClick() {
-    if (checked || verifying) return;
-    setVerifying(true);
-    // Petit délai pour imiter une vérification côté serveur.
-    setTimeout(() => {
-      setVerifying(false);
-      onChange(true);
-    }, 700);
-  }
+/**
+ * Piège à robots (« honeypot »). La case « Je ne suis pas un robot » est bien
+ * dans la page, mais INVISIBLE pour un humain : hors de l'écran, ignorée par les
+ * lecteurs d'écran (`aria-hidden`) et sautée par la touche Tab. Personne n'a
+ * donc à la cocher pour s'inscrire. Un robot qui remplit et clique tout ce qu'il
+ * trouve la coche : le champ caché passe à « 1 » et le serveur refuse l'accès.
+ */
+export function RobotTrap() {
+  const [tripped, setTripped] = useState(false);
 
   return (
-    <div className="bg-muted/30 flex items-center justify-between gap-3 rounded-lg border p-3">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={checked}
-          aria-busy={verifying}
-          aria-label={t("Je ne suis pas un robot")}
-          disabled={verifying || checked}
-          onClick={handleClick}
-          className={cn(
-            "bg-background flex size-7 items-center justify-center rounded-md border-2 transition-colors",
-            checked
-              ? "border-primary"
-              : "border-muted-foreground/40 hover:border-muted-foreground",
-          )}
-        >
-          {verifying ? (
-            <Loader2 className="text-muted-foreground size-4 animate-spin" />
-          ) : checked ? (
-            <Check className="text-primary size-5" />
-          ) : null}
-        </button>
-        <span className="text-sm font-medium">{t("Je ne suis pas un robot")}</span>
-      </div>
-      <div className="text-muted-foreground flex flex-col items-center gap-0.5">
-        <ShieldCheck className="size-5" />
-        <span className="text-[9px] leading-none">{t("Sécurité")}</span>
-      </div>
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
+    >
+      <input type="hidden" name={ROBOT_TRAP_FIELD} value={tripped ? "1" : ""} />
+      <label>
+        <input
+          type="checkbox"
+          name="not_a_robot"
+          tabIndex={-1}
+          autoComplete="off"
+          checked={tripped}
+          onChange={() => setTripped(true)}
+        />
+        Je ne suis pas un robot
+      </label>
+      <button type="button" tabIndex={-1} onClick={() => setTripped(true)}>
+        Je ne suis pas un robot
+      </button>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { runAction, type ActionResult } from "@/lib/action-result";
 import { parseDeliveryZone } from "@/lib/delivery";
 
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
@@ -142,7 +143,7 @@ export async function saveFabric(
 }
 
 /** Le pro indique si son tissu est disponible ou épuisé. */
-export async function setFabricInStock(id: string, inStock: boolean): Promise<void> {
+async function setFabricInStockImpl(id: string, inStock: boolean): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
 
   const supabase = await createClient();
@@ -168,7 +169,7 @@ export async function setFabricInStock(id: string, inStock: boolean): Promise<vo
 }
 
 /** Delete a fabric owned by the signed-in seller. */
-export async function deleteFabric(id: string): Promise<void> {
+async function deleteFabricImpl(id: string): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
 
   const supabase = await createClient();
@@ -204,4 +205,14 @@ export async function deleteFabric(id: string): Promise<void> {
   revalidatePath("/vendeur/espace", "layout");
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/tissus");
+}
+
+// Wrappers exportés : le message d'erreur doit revenir en valeur, pas en exception
+// (masquée en production) — cf. `src/lib/action-result.ts`.
+export async function deleteFabric(id: string): Promise<ActionResult> {
+  return runAction(() => deleteFabricImpl(id));
+}
+
+export async function setFabricInStock(id: string, inStock: boolean): Promise<ActionResult> {
+  return runAction(() => setFabricInStockImpl(id, inStock));
 }

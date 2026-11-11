@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/constants";
 import { deleteFabric, setFabricInStock } from "@/lib/actions/fabrics";
+import { unwrap } from "@/lib/action-result";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -65,7 +66,7 @@ export function VendorFabricsPanel({
     setStockChangingId(fabric.id);
     startStockChange(async () => {
       try {
-        await setFabricInStock(fabric.id, next);
+        unwrap(await setFabricInStock(fabric.id, next));
         toast.success(translateNow(next ? "Tissu disponible." : "Tissu marqué épuisé."));
       } catch (e) {
         toast.error(translateNow(e instanceof Error ? e.message : "Erreur, réessayez."));
@@ -104,7 +105,7 @@ export function VendorFabricsPanel({
     if (!target) return;
     startDelete(async () => {
       try {
-        await deleteFabric(target.id);
+        unwrap(await deleteFabric(target.id));
         toast.success(translateNow("Tissu supprimé."));
         setDeleteTarget(null);
       } catch (e) {

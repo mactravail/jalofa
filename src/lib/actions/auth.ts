@@ -73,6 +73,13 @@ export async function signUp(
   const password = String(formData.get("password") ?? "");
   const redirectTo = String(formData.get("redirect") ?? "").trim();
 
+  // Piège à robots : la case « Je ne suis pas un robot » est invisible pour un
+  // humain (cf. `RobotTrap`). Si elle a été cochée, c'est un robot : accès refusé,
+  // sans dire pourquoi, avant toute création de compte.
+  if (String(formData.get("robot_check") ?? "") !== "") {
+    return { error: "Accès refusé." };
+  }
+
   if (!fullName || !email || !password) {
     return { error: "Nom, e-mail et mot de passe sont obligatoires." };
   }

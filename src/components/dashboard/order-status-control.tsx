@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { CourierDialog, type CourierInfo } from "@/components/dashboard/courier-dialog";
 import { usePipeline } from "@/components/dashboard/pipeline-store";
 import { handOverToCourier } from "@/lib/actions/orders";
+import { unwrap } from "@/lib/action-result";
 import { QuoteOrderDialog } from "@/components/dashboard/quote-order-dialog";
 import { RejectOrderDialog } from "@/components/dashboard/reject-order-dialog";
 import { Button } from "@/components/ui/button";
@@ -116,7 +117,7 @@ export function OrderStatusControl({
     startTransition(async () => {
       try {
         if (demo) await move(orderId, "shipped");
-        else await handOverToCourier(orderId, courier);
+        else unwrap(await handOverToCourier(orderId, courier));
         setCourierOpen(false);
         toast.success(translateNow("Le client est prévenu : la tenue est en route."));
       } catch (e) {

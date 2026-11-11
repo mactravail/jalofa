@@ -55,4 +55,5 @@ export async function markMyNotificationsRead() {
 
   revalidatePath("/compte", "layout");
   revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/admin", "layout");
 }

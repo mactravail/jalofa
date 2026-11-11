@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { runAction, type ActionResult } from "@/lib/action-result";
 import { parseDeliveryZone } from "@/lib/delivery";
 
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
@@ -12,7 +13,10 @@ import {
   parseModelStyleGroups,
   styleGroupPhotos,
 } from "@/lib/model-style";
+import type { OrderStatus } from "@/lib/constants";
+import { isTerminal } from "@/lib/pipeline";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ModelBodyFit, ModelStyleGroup } from "@/lib/types";
 
@@ -346,8 +350,58 @@ export async function saveModel(
   return { ok: true };
 }
 
+/**
+ * Garde-fou anti-arnaque : un modèle déjà commandé ne peut pas être supprimé,
+ * seulement masqué. Quand un tailleur le masque, l'administration est prévenue
+ * (notification + page « Modèles ») — surtout si des commandes sont encore en
+ * cours, le cas où un client risque de payer sans rien recevoir. Best-effort :
+ * un échec ici n'annule pas le geste du tailleur.
+ */
+async function alertAdminsModelHidden(modelId: string, tailorId: string) {
+  try {
+    const db = createAdminClient();
+    const { data: orders } = await db
+      .from("orders")
+      .select("status")
+      .eq("model_id", modelId);
+    const list = (orders ?? []) as { status: OrderStatus }[];
+    if (list.length === 0) return;
+    const ongoing = list.filter((o) => !isTerminal(o.status)).length;
+
+    const [{ data: model }, { data: tailor }, { data: admins }] = await Promise.all([
+      db.from("models").select("name").eq("id", modelId).maybeSingle(),
+      db.from("tailors").select("shop_name").eq("id", tailorId).maybeSingle(),
+      db.from("profiles").select("id").eq("role", "admin"),
+    ]);
+    if (!admins?.length) return;
+
+    const name = (model as { name: string } | null)?.name ?? "Un modèle";
+    const shop = (tailor as { shop_name: string | null } | null)?.shop_name ?? "Un tailleur";
+    const orderWord = list.length > 1 ? `${list.length} commandes` : "1 commande";
+    const body =
+      ongoing > 0
+        ? `${shop} a masqué « ${name} » (${orderWord}, dont ${ongoing} en cours). À vérifier.`
+        : `${shop} a masqué « ${name} » (${orderWord}, toutes terminées).`;
+
+    await db.from("notifications").insert(
+      (admins as { id: string }[]).map((a) => ({
+        user_id: a.id,
+        type: "model_hidden",
+        title:
+          ongoing > 0
+            ? "Modèle masqué avec des commandes en cours"
+            : "Modèle masqué après commande",
+        body,
+        link: "/admin/modeles",
+      })),
+    );
+  } catch {
+    // Clé de service absente : le masquage reste enregistré.
+  }
+}
+
 /** Publish a draft model to the catalogue, or put a published one back in draft. */
-export async function setModelPublished(id: string, published: boolean): Promise<void> {
+async function setModelPublishedImpl(id: string, published: boolean): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
 
   const supabase = await createClient();
@@ -396,13 +450,15 @@ export async function setModelPublished(id: string, published: boolean): Promise
   if (error) throw new Error(error.message);
   if (published && data && data.length > 0) await openShop(supabase, user.id);
   if (!data || data.length === 0) throw new Error("Modèle introuvable.");
+  if (!published) await alertAdminsModelHidden(id, user.id);
 
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
+  revalidatePath("/admin", "layout");
 }
 
 /** Delete a model owned by the signed-in tailor. */
-export async function deleteModel(id: string): Promise<void> {
+async function deleteModelImpl(id: string): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
 
   const supabase = await createClient();
@@ -445,4 +501,14 @@ export async function deleteModel(id: string): Promise<void> {
 
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
+}
+
+// Wrappers exportés : le message d'erreur doit revenir en valeur, pas en exception
+// (masquée en production) — cf. `src/lib/action-result.ts`.
+export async function deleteModel(id: string): Promise<ActionResult> {
+  return runAction(() => deleteModelImpl(id));
+}
+
+export async function setModelPublished(id: string, published: boolean): Promise<ActionResult> {
+  return runAction(() => setModelPublishedImpl(id, published));
 }
