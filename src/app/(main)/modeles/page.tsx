@@ -84,6 +84,8 @@ export default async function ModelsPage({
       <>
         <DemoBanner />
         <FemmeCollection
+          // Les modèles retirés du site sont déjà écartés par `getModels`
+          // (cf. `retired-models.ts`).
           models={models}
           context={contextQuery}
           reviews={await getLatestReviews()}
@@ -94,14 +96,17 @@ export default async function ModelsPage({
 
   // Tout le reste (catalogue complet, autre catégorie, recherche) : la grille
   // « collection » filtre et trie côté client, sur tout le catalogue.
-  const allModels = category ? await getModels() : models;
+  // Les habits pour enfant ne sont plus proposés dans le catalogue.
+  const allModels = (category ? await getModels() : models).filter(
+    (m) => m.category_slug !== "enfant",
+  );
 
   return (
     <>
       <DemoBanner />
       <ModelsCatalog
         models={allModels}
-        categories={categories}
+        categories={categories.filter((c) => c.slug !== "enfant")}
         initialCategory={category}
         initialQuery={q}
         context={contextQuery}

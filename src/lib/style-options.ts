@@ -1,4 +1,16 @@
+import type { BayeLahatDetailIconName } from "@/components/order/baye-lahat-detail-icons";
+import type { GrandBoubouDetailIconName } from "@/components/order/grand-boubou-detail-icons";
+import type { AgbadaDetailIconName } from "@/components/order/agbada-detail-icons";
+import type { DashikiDetailIconName } from "@/components/order/dashiki-detail-icons";
+import type { CostumeAfricainDetailIconName } from "@/components/order/costume-africain-detail-icons";
+import type { GiletDetailIconName } from "@/components/order/gilet-detail-icons";
+import type { KaftanDetailIconName } from "@/components/order/kaftan-detail-icons";
+import type { KaftanTroisPiecesDetailIconName } from "@/components/order/kaftan-trois-pieces-detail-icons";
 import type { BoubouDetailIconName } from "@/components/order/boubou-detail-icons";
+import type { CeremonyDetailIconName } from "@/components/order/ceremony-detail-icons";
+import type { PantsuitDetailIconName } from "@/components/order/pantsuit-detail-icons";
+import type { SkirtDetailIconName } from "@/components/order/skirt-detail-icons";
+import type { EnsembleDetailIconName } from "@/components/order/ensemble-detail-icons";
 import type { ShirtDetailIconName } from "@/components/order/shirt-detail-icons";
 import type { GownDetailIconName } from "@/components/order/gown-detail-icons";
 import type { WomensSuitDetailIconName } from "@/components/order/womens-suit-detail-icons";
@@ -47,7 +59,19 @@ export type StyleGroupOption = (
         | TuxedoDetailIconName
         | GownDetailIconName
         | WomensSuitDetailIconName
-        | LoungeDetailIconName;
+        | LoungeDetailIconName
+        | CeremonyDetailIconName
+        | PantsuitDetailIconName
+        | SkirtDetailIconName
+        | EnsembleDetailIconName
+        | BayeLahatDetailIconName
+        | GrandBoubouDetailIconName
+        | AgbadaDetailIconName
+        | DashikiDetailIconName
+        | CostumeAfricainDetailIconName
+        | GiletDetailIconName
+        | KaftanDetailIconName
+        | KaftanTroisPiecesDetailIconName;
       icon?: never;
       photo?: never;
       extra?: never;
@@ -301,6 +325,618 @@ const BOUBOU_GROUPS: StyleGroup[] = [
   BRODERIE_BOUBOU,
   POCHES_BOUBOU,
   MANCHES_BOUBOU,
+];
+
+// ---------------------------------------------------------------------------
+// Grand boubou HOMME — toujours trois pièces (boubou, kaftan dessous,
+// pantalon) — redessiné dans le trait du Baye Lahat
+// (`grand-boubou-detail-icons.tsx`) : coupe, broderie, poches et manches sur
+// le boubou entier, col en gros plan, pantalon dessiné seul. Rattaché au slug
+// exact `grand-boubou` ; l'agbada a AGBADA_GROUPS.
+// ---------------------------------------------------------------------------
+
+const GRAND_BOUBOU_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "classique", name: "Classique (Mbubb)", art: "gb-coupe-classique" },
+      { slug: "royal", name: "Royal, très ample", art: "gb-coupe-royal" },
+      { slug: "moderne", name: "Moderne ajusté", art: "gb-coupe-moderne" },
+      { slug: "court", name: "Court (3/4)", art: "gb-coupe-court" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "rond", name: "Col rond brodé", art: "gb-col-rond" },
+      { slug: "encolure-brodee", name: "Encolure brodée complexe", art: "gb-col-encolure-brodee" },
+      { slug: "fente", name: "Col rond à fente", art: "gb-col-fente" },
+      { slug: "mao", name: "Col Mao", art: "gb-col-mao" },
+      { slug: "mao-brode", name: "Col Mao brodé", art: "gb-col-mao-brode" },
+      { slug: "v", name: "Col en V", art: "gb-col-v" },
+      { slug: "carre", name: "Encolure carrée", art: "gb-col-carre" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "encolure", name: "Encolure brodée", art: "gb-brod-encolure" },
+      { slug: "plastron", name: "Plastron brodé", art: "gb-brod-plastron" },
+      { slug: "etoile", name: "Broderie « étoile »", art: "gb-brod-etoile" },
+      { slug: "segou", name: "Motif « Ségou »", art: "gb-brod-segou" },
+      { slug: "devant", name: "Devant tout brodé", art: "gb-brod-devant" },
+      { slug: "doree", name: "Broderie fil d'or", art: "gb-brod-doree" },
+      { slug: "sans", name: "Sans broderie", art: "gb-brod-sans" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "sans", name: "Sans poche", art: "gb-poche-sans" },
+      { slug: "poitrine", name: "Poche poitrine", art: "gb-poche-poitrine" },
+      { slug: "poitrine-brodee", name: "Poche poitrine brodée", art: "gb-poche-poitrine-brodee" },
+      { slug: "devant", name: "Poche devant", art: "gb-poche-devant" },
+      { slug: "laterales", name: "2 poches latérales", art: "gb-poche-laterales" },
+    ],
+  },
+  {
+    slug: "manches",
+    name: "Manches",
+    options: [
+      { slug: "evasee", name: "Classique évasée", art: "gb-manche-evasee" },
+      { slug: "tres-large", name: "Très large", art: "gb-manche-tres-large" },
+      { slug: "cape", name: "« Cape » traditionnelle", art: "gb-manche-cape" },
+      { slug: "bord-brode", name: "À bord brodé", art: "gb-manche-bord-brode" },
+      { slug: "ajustee", name: "Ajustée à poignet", art: "gb-manche-ajustee" },
+    ],
+  },
+  // Toujours trois pièces : le kaftan qu'on porte dessous, puis le pantalon
+  // (jamais « sans »).
+  {
+    slug: "kaftan",
+    name: "Kaftan (dessous)",
+    options: [
+      { slug: "court", name: "Kaftan court", art: "gb-kaftan-court" },
+      { slug: "moyen", name: "Kaftan moyen", art: "gb-kaftan-moyen" },
+      { slug: "long", name: "Kaftan long", art: "gb-kaftan-long" },
+    ],
+  },
+  {
+    slug: "kaftan-col",
+    name: "Col du kaftan",
+    options: [
+      { slug: "normal", name: "Col normal", art: "gb-kaftan-col-normal" },
+      { slug: "mao", name: "Col Mao", art: "gb-kaftan-col-mao" },
+      { slug: "chemise", name: "Col chemise", art: "gb-kaftan-col-chemise" },
+    ],
+  },
+  {
+    slug: "kaftan-manches",
+    name: "Manches du kaftan",
+    options: [
+      { slug: "longues", name: "Manches longues", art: "gb-kaftan-manche-longue" },
+      { slug: "courtes", name: "Manches courtes", art: "gb-kaftan-manche-courte" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "droit", name: "Pantalon droit", art: "gb-pantalon-droit" },
+      { slug: "thiaya-moyen", name: "Thiaya moyen", art: "gb-pantalon-thiaya-moyen" },
+      { slug: "thiaya-large", name: "Thiaya très large", art: "gb-pantalon-thiaya-large" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Agbada — un trois-pièces (bonnet en option) : la grande robe de dessus, un
+// peu sous le genou, avec UNE seule grande poche sur le ventre ; la chemise du
+// dessous, plus courte, à col chemise ou col Mao ; un pantalon de costume.
+// Ses propres planches (`agbada-detail-icons.tsx`), slug exact `agbada`.
+// ---------------------------------------------------------------------------
+
+const AGBADA_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "classique", name: "Classique", art: "ag-coupe-classique" },
+      { slug: "ample", name: "Très ample", art: "ag-coupe-ample" },
+      { slug: "moderne", name: "Moderne ajusté", art: "ag-coupe-moderne" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "rond", name: "Col rond brodé", art: "ag-col-rond" },
+      { slug: "fente", name: "Col rond à fente", art: "ag-col-fente" },
+      { slug: "v", name: "Col en V", art: "ag-col-v" },
+      { slug: "carre", name: "Encolure carrée", art: "ag-col-carre" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "plastron", name: "Motif en pointe", art: "ag-brod-plastron" },
+      { slug: "encolure", name: "Encolure brodée", art: "ag-brod-encolure" },
+      { slug: "poche", name: "Poche brodée", art: "ag-brod-poche" },
+      { slug: "devant", name: "Devant tout brodé", art: "ag-brod-devant" },
+      { slug: "sans", name: "Sans broderie", art: "ag-brod-sans" },
+    ],
+  },
+  // Une seule poche, toujours : on choisit sa forme.
+  {
+    slug: "poche",
+    name: "La grande poche",
+    options: [
+      { slug: "carree", name: "Carrée", art: "ag-poche-carree" },
+      { slug: "arrondie", name: "Arrondie", art: "ag-poche-arrondie" },
+      { slug: "pointe", name: "En pointe", art: "ag-poche-pointe" },
+    ],
+  },
+  {
+    slug: "dessous",
+    name: "Chemise du dessous",
+    options: [
+      { slug: "chemise", name: "Style chemise", art: "ag-dessous-chemise" },
+      { slug: "mao", name: "Col Mao", art: "ag-dessous-mao" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "droit", name: "Pantalon droit", art: "ag-pantalon-droit" },
+      { slug: "ajuste", name: "Pantalon ajusté", art: "ag-pantalon-ajuste" },
+    ],
+  },
+  {
+    slug: "bonnet",
+    name: "Bonnet",
+    options: [
+      { slug: "avec", name: "Avec bonnet", art: "ag-bonnet-avec" },
+      { slug: "sans", name: "Sans bonnet", art: "ag-bonnet-sans" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Baye Lahat — le grand boubou mouride, à la façon de Serigne Abdou Lahat
+// Mbacké : très ample, en bazin, sobre, avec son écharpe (kaala). Ses propres planches (`baye-lahat-detail-icons.tsx`), rattachées au
+// slug exact : les autres grands boubous gardent BOUBOU_GROUPS.
+// ---------------------------------------------------------------------------
+
+const BAYE_LAHAT_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "classique", name: "Classique ample", art: "bl-coupe-classique" },
+      { slug: "royal", name: "Royal, jusqu'au sol", art: "bl-coupe-royal" },
+      { slug: "moderne", name: "Moderne, moins large", art: "bl-coupe-moderne" },
+      { slug: "trois-pieces", name: "Trois pièces", art: "bl-coupe-trois-pieces" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "rond", name: "Col rond brodé", art: "bl-col-rond" },
+      { slug: "fente", name: "Col rond à fente", art: "bl-col-fente" },
+      { slug: "mao", name: "Col Mao", art: "bl-col-mao" },
+      { slug: "carre", name: "Encolure carrée", art: "bl-col-carre" },
+      { slug: "v", name: "Col en V", art: "bl-col-v" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "encolure", name: "Encolure brodée", art: "bl-brod-encolure" },
+      { slug: "plastron", name: "Plastron brodé", art: "bl-brod-plastron" },
+      { slug: "poche", name: "Grande poche brodée", art: "bl-brod-poche" },
+      { slug: "devant", name: "Devant tout brodé", art: "bl-brod-devant" },
+      { slug: "sans", name: "Sans broderie", art: "bl-brod-sans" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "sans", name: "Sans poche", art: "bl-poche-sans" },
+      { slug: "poitrine", name: "Poche poitrine", art: "bl-poche-poitrine" },
+      { slug: "devant", name: "Poche devant", art: "bl-poche-devant" },
+      { slug: "laterales", name: "2 poches latérales", art: "bl-poche-laterales" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "sans", name: "Sans pantalon", art: "bl-pantalon-sans" },
+      { slug: "droit", name: "Pantalon droit", art: "bl-pantalon-droit" },
+      { slug: "thiaya-moyen", name: "Thiaya moyen", art: "bl-pantalon-thiaya-moyen" },
+      { slug: "thiaya-large", name: "Thiaya très large", art: "bl-pantalon-thiaya-large" },
+    ],
+  },
+  {
+    slug: "echarpe",
+    name: "Écharpe",
+    options: [
+      { slug: "sans", name: "Sans écharpe", art: "bl-echarpe-sans" },
+      { slug: "avec", name: "Avec écharpe", art: "bl-echarpe-avec" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Dashiki — la tunique panafricaine à enfiler : large, manches courtes, encolure
+// en V et son grand plastron brodé. Ses propres planches
+// (`dashiki-detail-icons.tsx`), slug exact `dashiki`.
+// ---------------------------------------------------------------------------
+
+const DASHIKI_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "classique", name: "Classique ample", art: "dk-coupe-classique" },
+      { slug: "longue", name: "Longue, au genou", art: "dk-coupe-longue" },
+      { slug: "ajustee", name: "Ajustée", art: "dk-coupe-ajustee" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "v", name: "Col en V", art: "dk-col-v" },
+      { slug: "rond", name: "Col rond brodé", art: "dk-col-rond" },
+      { slug: "fente", name: "Col rond à fente", art: "dk-col-fente" },
+      { slug: "mao", name: "Col Mao", art: "dk-col-mao" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "plastron", name: "Plastron en V", art: "dk-brod-plastron" },
+      { slug: "encolure", name: "Encolure brodée", art: "dk-brod-encolure" },
+      { slug: "manches", name: "Manches et bas brodés", art: "dk-brod-manches" },
+      { slug: "devant", name: "Devant tout brodé", art: "dk-brod-devant" },
+      { slug: "sans", name: "Sans broderie", art: "dk-brod-sans" },
+    ],
+  },
+  {
+    slug: "manches",
+    name: "Manches",
+    options: [
+      { slug: "courtes", name: "Manches courtes", art: "dk-manche-courtes" },
+      { slug: "trois-quarts", name: "Trois-quarts", art: "dk-manche-trois-quarts" },
+      { slug: "longues", name: "Manches longues", art: "dk-manche-longues" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "sans", name: "Sans poche", art: "dk-poche-sans" },
+      { slug: "poitrine", name: "Poche poitrine", art: "dk-poche-poitrine" },
+      { slug: "laterales", name: "2 poches latérales", art: "dk-poche-laterales" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "sans", name: "Sans pantalon", art: "dk-pantalon-sans" },
+      { slug: "droit", name: "Pantalon droit", art: "dk-pantalon-droit" },
+      { slug: "saroual", name: "Large / saroual", art: "dk-pantalon-saroual" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Costume africain — tunique ou veste à col Mao ou officier sur un pantalon
+// de costume assorti. Jamais de broderie. Ses propres planches (`costume-africain-detail-icons.tsx`), slug
+// exact `costume-africain`.
+// ---------------------------------------------------------------------------
+
+const COSTUME_AFRICAIN_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "veste", name: "Veste, aux hanches", art: "ca-coupe-veste" },
+      { slug: "tunique", name: "Tunique mi-cuisse", art: "ca-coupe-tunique" },
+      { slug: "longue", name: "Tunique longue, au genou", art: "ca-coupe-longue" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "mao", name: "Col Mao", art: "ca-col-mao" },
+      { slug: "officier", name: "Col officier", art: "ca-col-officier" },
+    ],
+  },
+  {
+    slug: "fermeture",
+    name: "Fermeture",
+    options: [
+      { slug: "boutons", name: "Boutons visibles", art: "ca-fermeture-boutons" },
+      { slug: "cachee", name: "Patte cachée", art: "ca-fermeture-cachee" },
+      { slug: "biais", name: "Croisée en biais", art: "ca-fermeture-biais" },
+      { slug: "demi", name: "Demi-patte, 2 boutons", art: "ca-fermeture-demi" },
+    ],
+  },
+  {
+    slug: "decor",
+    name: "Décor du devant",
+    options: [
+      { slug: "uni", name: "Uni", art: "ca-decor-uni" },
+      { slug: "bandes", name: "Bandes rayées", art: "ca-decor-bandes" },
+      { slug: "matelasse", name: "Empiècement matelassé", art: "ca-decor-matelasse" },
+      { slug: "lisere", name: "Liseré contrasté", art: "ca-decor-lisere" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "sans", name: "Sans poche", art: "ca-poche-sans" },
+      { slug: "poitrine", name: "Poche passepoilée", art: "ca-poche-poitrine" },
+      { slug: "pochette", name: "Avec pochette", art: "ca-poche-pochette" },
+      { slug: "rabat", name: "2 poches à rabat", art: "ca-poche-rabat" },
+      { slug: "cotes", name: "Poches côtés", art: "ca-poche-cotes" },
+    ],
+  },
+  {
+    slug: "manches",
+    name: "Manches",
+    options: [
+      { slug: "longues", name: "Manches longues", art: "ca-manche-longues" },
+      { slug: "boutons", name: "Poignet boutonné", art: "ca-manche-boutons" },
+      { slug: "contraste", name: "Poignet contrasté", art: "ca-manche-contraste" },
+      { slug: "chemise", name: "Manche chemise", art: "ca-manche-chemise" },
+      { slug: "courtes", name: "Manches courtes", art: "ca-manche-courtes" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "droit", name: "Pantalon droit", art: "ca-pantalon-droit" },
+      { slug: "ajuste", name: "Pantalon ajusté", art: "ca-pantalon-ajuste" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Gilet homme — sans manches, décolleté en V, bas en pointes, souvent en wax.
+// Ses propres planches (`gilet-detail-icons.tsx`). Le gilet femme garde les
+// siennes (clé `gilet-femme`).
+// ---------------------------------------------------------------------------
+
+const GILET_HOMME_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "droit", name: "Gilet droit", art: "gi-coupe-classique" },
+      { slug: "cintre", name: "Gilet cintré", art: "gi-coupe-cintre" },
+      { slug: "long", name: "Gilet long", art: "gi-coupe-long" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "v-profond", name: "Décolleté en V", art: "gi-col-v-profond" },
+      { slug: "v-haut", name: "V montant", art: "gi-col-v-haut" },
+      { slug: "chale", name: "Col châle", art: "gi-col-chale" },
+      { slug: "crante", name: "Revers cranté", art: "gi-col-crante" },
+      { slug: "mao", name: "Col Mao", art: "gi-col-mao" },
+    ],
+  },
+  {
+    slug: "boutonnage",
+    name: "Boutonnage",
+    options: [
+      { slug: "3", name: "3 boutons", art: "gi-boutons-3" },
+      { slug: "4", name: "4 boutons", art: "gi-boutons-4" },
+      { slug: "5", name: "5 boutons", art: "gi-boutons-5" },
+      { slug: "croise", name: "Croisé", art: "gi-boutons-croise" },
+    ],
+  },
+  {
+    slug: "bas",
+    name: "Bas",
+    options: [
+      { slug: "pointes", name: "En pointes", art: "gi-bas-pointes" },
+      { slug: "droit", name: "Droit", art: "gi-bas-droit" },
+      { slug: "arrondi", name: "Arrondi", art: "gi-bas-arrondi" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "sans", name: "Sans poche", art: "gi-poche-sans" },
+      { slug: "deux", name: "2 poches passepoilées", art: "gi-poche-deux" },
+      { slug: "trois", name: "3 poches", art: "gi-poche-trois" },
+      { slug: "rabat", name: "2 poches à rabat", art: "gi-poche-rabat" },
+    ],
+  },
+  {
+    slug: "dos",
+    name: "Dos",
+    options: [
+      { slug: "tissu", name: "Dos en tissu", art: "gi-dos-tissu" },
+      { slug: "doublure", name: "Dos en doublure satinée", art: "gi-dos-doublure" },
+      { slug: "martingale", name: "Avec martingale", art: "gi-dos-martingale" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Kaftan 2 pièces — tunique à col rond et petite patte boutonnée, poche
+// poitrine, manches à poignet, sur un pantalon à taille coulissée. Ses propres
+// planches (`kaftan-detail-icons.tsx`), slug exact `kaftan`.
+// ---------------------------------------------------------------------------
+
+const KAFTAN_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "droit", name: "Kaftan droit", art: "kf-coupe-droit" },
+      { slug: "cintre", name: "Kaftan cintré", art: "kf-coupe-cintre" },
+      { slug: "long", name: "Kaftan long", art: "kf-coupe-long" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col",
+    options: [
+      { slug: "rond", name: "Col rond", art: "kf-col-rond" },
+      { slug: "mao", name: "Col Mao", art: "kf-col-mao" },
+      { slug: "chemise", name: "Col chemise", art: "kf-col-chemise" },
+    ],
+  },
+  {
+    slug: "patte",
+    name: "Boutonnage",
+    options: [
+      { slug: "courte", name: "Patte courte, 2 boutons", art: "kf-patte-courte" },
+      { slug: "longue", name: "Patte longue", art: "kf-patte-longue" },
+      { slug: "cachee", name: "Patte cachée", art: "kf-patte-cachee" },
+      { slug: "sans", name: "Sans patte", art: "kf-patte-sans" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "chevrons", name: "Chevrons le long de la patte", art: "kf-brod-chevrons" },
+      { slug: "plastron", name: "Plastron brodé", art: "kf-brod-plastron" },
+      { slug: "pointilles", name: "Lignes pointillées", art: "kf-brod-pointilles" },
+      { slug: "sans", name: "Sans broderie", art: "kf-brod-sans" },
+    ],
+  },
+  {
+    slug: "poche",
+    name: "Poche",
+    options: [
+      { slug: "sans", name: "Sans poche", art: "kf-poche-sans" },
+      { slug: "poitrine", name: "Poche poitrine", art: "kf-poche-poitrine" },
+      { slug: "passepoilee", name: "Poche passepoilée", art: "kf-poche-passepoilee" },
+      { slug: "cotes", name: "Poches côtés", art: "kf-poche-cotes" },
+    ],
+  },
+  {
+    slug: "manches",
+    name: "Manches",
+    options: [
+      { slug: "poignet", name: "Longues à poignet", art: "kf-manche-poignet" },
+      { slug: "simple", name: "Manches longues", art: "kf-manche-simple" },
+      { slug: "courtes", name: "Manches courtes", art: "kf-manche-courtes" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "coulisse", name: "Taille coulissée", art: "kf-pantalon-coulisse" },
+      { slug: "costume", name: "Pantalon de costume", art: "kf-pantalon-costume" },
+      { slug: "saroual", name: "Large / saroual", art: "kf-pantalon-saroual" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Kaftan 3 pièces (slug `kaftan-brode`) — le kaftan, son pantalon, et par-
+// dessus un long gilet SANS MANCHES, ouvert (ni bouton ni fermeture) ou fermé.
+// Planches de l'ensemble et du gilet : `kaftan-trois-pieces-detail-icons.tsx` ;
+// col, manches et pantalon du kaftan : celles du kaftan 2 pièces (`kf-*`).
+// ---------------------------------------------------------------------------
+
+const KAFTAN_TROIS_PIECES_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "genou", name: "Gilet au genou", art: "k3-coupe-genou" },
+      { slug: "cuisse", name: "Gilet mi-cuisse", art: "k3-coupe-cuisse" },
+      { slug: "cheville", name: "Gilet aux chevilles", art: "k3-coupe-cheville" },
+    ],
+  },
+  {
+    slug: "gilet",
+    name: "Le gilet",
+    options: [
+      { slug: "ouvert", name: "Ouvert, sans fermeture", art: "k3-gilet-ouvert" },
+      { slug: "ferme", name: "Fermé", art: "k3-gilet-ferme" },
+    ],
+  },
+  {
+    slug: "encolure",
+    name: "Encolure du gilet",
+    options: [
+      { slug: "ronde", name: "Ronde", art: "k3-encolure-ronde" },
+      { slug: "v", name: "En V", art: "k3-encolure-v" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "sans", name: "Sans broderie", art: "k3-brod-sans" },
+      { slug: "gilet", name: "Bords du gilet brodés", art: "k3-brod-gilet" },
+      { slug: "kaftan", name: "Col du kaftan brodé", art: "k3-brod-kaftan" },
+      { slug: "tout", name: "Gilet et kaftan brodés", art: "k3-brod-tout" },
+    ],
+  },
+  {
+    slug: "kaftan-col",
+    name: "Col du kaftan",
+    options: [
+      { slug: "rond", name: "Col rond", art: "kf-col-rond" },
+      { slug: "mao", name: "Col Mao", art: "kf-col-mao" },
+      { slug: "chemise", name: "Col chemise", art: "kf-col-chemise" },
+    ],
+  },
+  {
+    slug: "kaftan-manches",
+    name: "Manches du kaftan",
+    options: [
+      { slug: "poignet", name: "Longues à poignet", art: "kf-manche-poignet" },
+      { slug: "simple", name: "Manches longues", art: "kf-manche-simple" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Pantalon",
+    options: [
+      { slug: "coulisse", name: "Taille coulissée", art: "kf-pantalon-coulisse" },
+      { slug: "costume", name: "Pantalon de costume", art: "kf-pantalon-costume" },
+      { slug: "saroual", name: "Large / saroual", art: "kf-pantalon-saroual" },
+    ],
+  },
+  {
+    slug: "bonnet",
+    name: "Bonnet",
+    options: [
+      { slug: "sans", name: "Sans bonnet", art: "ag-bonnet-sans" },
+      { slug: "avec", name: "Avec bonnet", art: "ag-bonnet-avec" },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -758,6 +1394,373 @@ const ROBE_SOIREE_EUROPE_GROUPS: StyleGroup[] = [
 // bretelles fines, col montant) et la finition (perles, dentelle, drapé).
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Tenue de cérémonie FEMME (JALOFA AFRIQUE) — les vraies coupes de cérémonie :
+// grand boubou, sirène, taille basse, ndokette, robe à cape, kaftan brodé.
+// Dessins `cf-*` de `ceremony-detail-icons.tsx` (+ décolletés et longueurs
+// `gw-*` de la robe).
+// ---------------------------------------------------------------------------
+
+/** Les coupes à corsage ajusté : les seules où l'on choisit des manches. */
+const CEREMONIE_FEMME_FITTED = ["sirene", "taille-basse", "ndokette"];
+
+const CEREMONIE_FEMME_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "grand-boubou", name: "Grand boubou", art: "cf-coupe-grand-boubou" },
+      { slug: "sirene", name: "Robe sirène", art: "cf-coupe-sirene" },
+      { slug: "taille-basse", name: "Taille basse", art: "cf-coupe-taille-basse" },
+      { slug: "ndokette", name: "Ndokette", art: "cf-coupe-ndokette" },
+      { slug: "cape", name: "Robe à cape", art: "cf-coupe-cape" },
+      { slug: "kaftan", name: "Kaftan brodé", art: "cf-coupe-kaftan" },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Encolure",
+    options: [
+      { slug: "rond", name: "Ronde", art: "gw-col-rond" },
+      { slug: "v", name: "En V", art: "gw-col-v" },
+      { slug: "bateau", name: "Bateau", art: "gw-col-bateau" },
+      { slug: "carre", name: "Carrée", art: "gw-col-carre" },
+      { slug: "montant", name: "Col montant", art: "gw-col-montant" },
+    ],
+  },
+  {
+    slug: "manches",
+    name: "Manches",
+    // Le grand boubou, le kaftan et la cape ont déjà leurs manches.
+    showIf: { group: "coupe", in: CEREMONIE_FEMME_FITTED },
+    options: [
+      { slug: "trois-quarts", name: "Trois-quarts", art: "cf-manche-trois-quarts" },
+      { slug: "longues", name: "Longues", art: "cf-manche-longues" },
+      { slug: "evasees", name: "Évasées", art: "cf-manche-evasees" },
+      { slug: "papillon", name: "Papillon", art: "cf-manche-papillon" },
+      { slug: "courtes", name: "Courtes", art: "cf-manche-courtes" },
+      { slug: "sans", name: "Sans manches", art: "cf-manche-sans" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "encolure", name: "Encolure brodée", art: "cf-brod-encolure" },
+      { slug: "plastron", name: "Plastron brodé", art: "cf-brod-plastron" },
+      { slug: "manches", name: "Encolure et manches", art: "cf-brod-manches" },
+      { slug: "complete", name: "Broderie riche", art: "cf-brod-complete" },
+      { slug: "strass", name: "Perles et strass", art: "cf-brod-strass" },
+      { slug: "sans", name: "Sans broderie", art: "cf-brod-sans" },
+    ],
+  },
+  {
+    slug: "longueur",
+    name: "Longueur",
+    options: [
+      { slug: "sol", name: "Au sol", art: "gw-longueur-sol" },
+      { slug: "cheville", name: "Cheville", art: "gw-longueur-cheville" },
+      { slug: "traine", name: "Avec traîne", art: "gw-longueur-traine" },
+    ],
+  },
+  {
+    slug: "foulard",
+    name: "Foulard",
+    options: [
+      { slug: "moussor", name: "Foulard assorti", art: "cf-tete-moussor" },
+      { slug: "chale", name: "Châle assorti", art: "cf-tete-chale" },
+      { slug: "sans", name: "Sans foulard", art: "cf-tete-sans" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Pantalon tailleur FEMME (JALOFA AFRIQUE) — le pantalon SEUL, sans haut : la
+// coupe, la taille, la longueur, les plis, les poches et la broderie.
+// Dessins `tp-*` de `pantsuit-detail-icons.tsx`.
+// ---------------------------------------------------------------------------
+
+const TAILLEUR_PANTALON_FEMME_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "palazzo", name: "Palazzo", art: "tp-coupe-palazzo" },
+      { slug: "pans", name: "Palazzo à pans plissés", art: "tp-coupe-pans" },
+      { slug: "droit", name: "Droit", art: "tp-coupe-droit" },
+      { slug: "cigarette", name: "Cigarette", art: "tp-coupe-cigarette" },
+      { slug: "evase", name: "Évasé", art: "tp-coupe-evase" },
+    ],
+  },
+  {
+    slug: "taille",
+    name: "Ceinture",
+    options: [
+      { slug: "nouer", name: "Ceinture à nouer", art: "tp-taille-nouer" },
+      { slug: "haute", name: "Taille haute", art: "tp-taille-haute" },
+      { slug: "elastique", name: "Élastique", art: "tp-taille-elastique" },
+    ],
+  },
+  {
+    slug: "longueur",
+    name: "Longueur",
+    options: [
+      { slug: "longue", name: "Longue", art: "tp-longueur-longue" },
+      { slug: "sol", name: "Au sol", art: "tp-longueur-sol" },
+      { slug: "cheville", name: "Cheville", art: "tp-longueur-cheville" },
+    ],
+  },
+  {
+    slug: "plis",
+    name: "Plis devant",
+    options: [
+      { slug: "sans", name: "Sans pli", art: "tp-plis-0" },
+      { slug: "un", name: "Un pli", art: "tp-plis-1" },
+      { slug: "deux", name: "Deux plis", art: "tp-plis-2" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "italiennes", name: "Poches en biais", art: "tp-poche-italiennes" },
+      { slug: "plaquees", name: "Poches plaquées", art: "tp-poche-plaquees" },
+      { slug: "sans", name: "Sans poches", art: "tp-poche-sans" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "sans", name: "Sans broderie", art: "tp-brod-sans" },
+      { slug: "bas", name: "Bas du pantalon", art: "tp-brod-bas" },
+      { slug: "cotes", name: "Le long des jambes", art: "tp-brod-cotes" },
+      { slug: "taille", name: "Sur la ceinture", art: "tp-brod-taille" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Jupe (JALOFA AFRIQUE) — la jupe SEULE, sans haut : coupe, longueur, taille,
+// fente, poches, broderie. Dessins `jp-*` de `skirt-detail-icons.tsx`.
+// ---------------------------------------------------------------------------
+
+const JUPE_GROUPS: StyleGroup[] = [
+  {
+    slug: "coupe",
+    name: "Coupe",
+    options: [
+      { slug: "droite", name: "Droite", art: "jp-coupe-droite" },
+      { slug: "crayon", name: "Crayon", art: "jp-coupe-crayon" },
+      { slug: "evasee", name: "Évasée", art: "jp-coupe-evasee" },
+      { slug: "plissee", name: "Plissée", art: "jp-coupe-plissee" },
+      { slug: "patineuse", name: "Patineuse", art: "jp-coupe-patineuse" },
+      { slug: "portefeuille", name: "Portefeuille", art: "jp-coupe-portefeuille" },
+      { slug: "sirene", name: "Sirène", art: "jp-coupe-sirene" },
+      { slug: "volants", name: "À volants", art: "jp-coupe-volants" },
+    ],
+  },
+  {
+    slug: "longueur",
+    name: "Longueur",
+    options: [
+      { slug: "mini", name: "Mini", art: "jp-longueur-mini" },
+      { slug: "dessus-genou", name: "Au-dessus du genou", art: "jp-longueur-dessus-genou" },
+      { slug: "genou", name: "Au genou", art: "jp-longueur-genou" },
+      { slug: "midi", name: "Mi-mollet", art: "jp-longueur-midi" },
+      { slug: "cheville", name: "Cheville", art: "jp-longueur-cheville" },
+      { slug: "sol", name: "Longue, au sol", art: "jp-longueur-sol" },
+    ],
+  },
+  {
+    slug: "taille",
+    name: "Ceinture",
+    options: [
+      { slug: "normale", name: "Taille normale", art: "jp-taille-normale" },
+      { slug: "haute", name: "Taille haute", art: "jp-taille-haute" },
+      { slug: "nouer", name: "Ceinture à nouer", art: "jp-taille-nouer" },
+      { slug: "elastique", name: "Élastique", art: "jp-taille-elastique" },
+    ],
+  },
+  {
+    slug: "fente",
+    name: "Fente",
+    options: [
+      { slug: "sans", name: "Sans fente", art: "jp-fente-sans" },
+      { slug: "devant", name: "Fente devant", art: "jp-fente-devant" },
+      { slug: "cote", name: "Fente sur le côté", art: "jp-fente-cote" },
+    ],
+  },
+  {
+    slug: "poches",
+    name: "Poches",
+    options: [
+      { slug: "sans", name: "Sans poches", art: "jp-poche-sans" },
+      { slug: "biais", name: "Poches en biais", art: "jp-poche-biais" },
+    ],
+  },
+  {
+    slug: "broderie",
+    name: "Broderie",
+    options: [
+      { slug: "sans", name: "Sans broderie", art: "jp-brod-sans" },
+      { slug: "bas", name: "Bas de la jupe", art: "jp-brod-bas" },
+      { slug: "ceinture", name: "Sur la ceinture", art: "jp-brod-ceinture" },
+      { slug: "cote", name: "Sur les côtés", art: "jp-brod-cote" },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Ensemble FEMME (JALOFA AFRIQUE) — d'abord les pièces, puis les détails de
+// chaque pièce choisie : col et manches de la chemise (`sh-*`), style du gilet
+// (`en-*`), de la veste (`tf-*`), coupe et longueur de la jupe (`jp-*`), coupe
+// du pantalon (`tp-*`).
+// ---------------------------------------------------------------------------
+
+/** Les combinaisons de pièces qui contiennent chaque pièce. */
+const ENSEMBLE_WITH = {
+  chemise: [
+    "chemise-jupe",
+    "chemise-pantalon",
+    "chemise-gilet-jupe",
+    "chemise-gilet-pantalon",
+    "veste-chemise-jupe",
+    "veste-chemise-pantalon",
+  ],
+  gilet: ["gilet-jupe", "gilet-pantalon", "chemise-gilet-jupe", "chemise-gilet-pantalon"],
+  veste: ["veste-jupe", "veste-pantalon", "veste-chemise-jupe", "veste-chemise-pantalon"],
+  jupe: [
+    "gilet-jupe",
+    "chemise-jupe",
+    "chemise-gilet-jupe",
+    "veste-jupe",
+    "veste-chemise-jupe",
+  ],
+  pantalon: [
+    "gilet-pantalon",
+    "chemise-pantalon",
+    "chemise-gilet-pantalon",
+    "veste-pantalon",
+    "veste-chemise-pantalon",
+  ],
+};
+
+const ENSEMBLE_FEMME_GROUPS: StyleGroup[] = [
+  {
+    slug: "pieces",
+    name: "Les pièces",
+    options: [
+      { slug: "gilet-jupe", name: "Gilet + jupe", art: "en-pieces-gilet-jupe" },
+      { slug: "gilet-pantalon", name: "Gilet + pantalon", art: "en-pieces-gilet-pantalon" },
+      { slug: "chemise-jupe", name: "Chemise + jupe", art: "en-pieces-chemise-jupe" },
+      { slug: "chemise-pantalon", name: "Chemise + pantalon", art: "en-pieces-chemise-pantalon" },
+      {
+        slug: "chemise-gilet-jupe",
+        name: "Chemise + gilet + jupe",
+        art: "en-pieces-chemise-gilet-jupe",
+      },
+      {
+        slug: "chemise-gilet-pantalon",
+        name: "Chemise + gilet + pantalon",
+        art: "en-pieces-chemise-gilet-pantalon",
+      },
+      { slug: "veste-jupe", name: "Veste + jupe", art: "en-pieces-veste-jupe" },
+      { slug: "veste-pantalon", name: "Veste + pantalon", art: "en-pieces-veste-pantalon" },
+      {
+        slug: "veste-chemise-jupe",
+        name: "Veste + chemise + jupe",
+        art: "en-pieces-veste-chemise-jupe",
+      },
+      {
+        slug: "veste-chemise-pantalon",
+        name: "Veste + chemise + pantalon",
+        art: "en-pieces-veste-chemise-pantalon",
+      },
+    ],
+  },
+  {
+    slug: "col",
+    name: "Col de la chemise",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.chemise },
+    options: [
+      { slug: "classique", name: "Classique", art: "sh-col-classique" },
+      { slug: "rond", name: "Col Claudine", art: "sh-col-rond" },
+      { slug: "mao", name: "Col Mao", art: "sh-col-mao" },
+      { slug: "lavalliere", name: "Lavallière (nœud)", art: "sh-col-lavalliere" },
+    ],
+  },
+  {
+    slug: "manches",
+    name: "Manches de la chemise",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.chemise },
+    options: [
+      { slug: "longues", name: "Longues", art: "sh-manche-longues" },
+      { slug: "trois-quarts", name: "Trois-quarts", art: "sh-manche-trois-quarts" },
+      { slug: "courtes", name: "Courtes", art: "sh-manche-courtes" },
+      { slug: "sans", name: "Sans manches", art: "sh-manche-sans" },
+    ],
+  },
+  {
+    slug: "gilet",
+    name: "Style du gilet",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.gilet },
+    options: [
+      { slug: "droit", name: "Droit", art: "en-gilet-droit" },
+      { slug: "croise", name: "Croisé", art: "en-gilet-croise" },
+      { slug: "long", name: "Long", art: "en-gilet-long" },
+      { slug: "ceinture", name: "Ceinturé", art: "en-gilet-ceinture" },
+    ],
+  },
+  {
+    slug: "veste",
+    name: "Style de la veste",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.veste },
+    options: [
+      { slug: "essentielle", name: "Essentielle", art: "tf-veste-essentielle" },
+      { slug: "heritage", name: "Courte cintrée", art: "tf-veste-heritage" },
+      { slug: "croisee", name: "Croisée longue", art: "tf-veste-croisee" },
+    ],
+  },
+  {
+    slug: "jupe",
+    name: "Coupe de la jupe",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.jupe },
+    options: [
+      { slug: "droite", name: "Droite", art: "jp-coupe-droite" },
+      { slug: "crayon", name: "Crayon", art: "jp-coupe-crayon" },
+      { slug: "evasee", name: "Évasée", art: "jp-coupe-evasee" },
+      { slug: "plissee", name: "Plissée", art: "jp-coupe-plissee" },
+      { slug: "portefeuille", name: "Portefeuille", art: "jp-coupe-portefeuille" },
+      { slug: "sirene", name: "Sirène", art: "jp-coupe-sirene" },
+    ],
+  },
+  {
+    slug: "longueur-jupe",
+    name: "Longueur de la jupe",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.jupe },
+    options: [
+      { slug: "dessus-genou", name: "Au-dessus du genou", art: "jp-longueur-dessus-genou" },
+      { slug: "genou", name: "Au genou", art: "jp-longueur-genou" },
+      { slug: "midi", name: "Mi-mollet", art: "jp-longueur-midi" },
+      { slug: "cheville", name: "Cheville", art: "jp-longueur-cheville" },
+      { slug: "sol", name: "Longue, au sol", art: "jp-longueur-sol" },
+    ],
+  },
+  {
+    slug: "pantalon",
+    name: "Coupe du pantalon",
+    showIf: { group: "pieces", in: ENSEMBLE_WITH.pantalon },
+    options: [
+      { slug: "droit", name: "Droit", art: "tp-coupe-droit" },
+      { slug: "palazzo", name: "Palazzo", art: "tp-coupe-palazzo" },
+      { slug: "cigarette", name: "Cigarette", art: "tp-coupe-cigarette" },
+      { slug: "evase", name: "Évasé", art: "tp-coupe-evase" },
+      { slug: "pans", name: "Palazzo à pans plissés", art: "tp-coupe-pans" },
+    ],
+  },
+];
+
 const ROBE_CEREMONIE_EUROPE_GROUPS: StyleGroup[] = [
   {
     slug: "silhouette",
@@ -1112,7 +2115,9 @@ const ROBE_MARIAGE_EUROPE_GROUPS: StyleGroup[] = [
 // ---------------------------------------------------------------------------
 
 export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
-  "grand-boubou": BOUBOU_GROUPS,
+  // Grand boubou HOMME : ses planches redessinées (coupe, col, broderie,
+  // poches, manches, pantalon).
+  "grand-boubou": GRAND_BOUBOU_GROUPS,
 
   // JALOFA EUROPE — chaque pièce a SES planches, rattachées à son slug exact :
   // aucune règle par mot-clé n'y mène, on n'y arrive qu'en personnalisant
@@ -1139,20 +2144,8 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
   // Tenue détente FEMME : seulement depuis /modeles/europe-detente-femme.
   "europe-detente-femme": TENUE_DETENTE_FEMME_GROUPS,
 
-  "kaftan": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "droit", name: "Kaftan droit", icon: "kaftan-droit" },
-        { slug: "cintre", name: "Kaftan cintré", icon: "kaftan-cintre" },
-        { slug: "long", name: "Kaftan long", icon: "kaftan-long" },
-      ],
-    },
-    COL_HOMME,
-    BRODERIE_COMPLETE,
-    MANCHES_STANDARD,
-  ],
+  // Kaftan 2 pièces : ses planches à lui (coupe, col, patte, broderie, poche, manches, pantalon).
+  "kaftan": KAFTAN_GROUPS,
 
   "chemise": [
     {
@@ -1169,19 +2162,9 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_COURTES_LONGUES,
   ],
 
-  "costume": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "mao", name: "Costume col Mao", icon: "costume-mao" },
-        { slug: "senghor", name: "Veste Senghor", icon: "senghor" },
-        { slug: "classique", name: "Costume classique", icon: "costume-classique" },
-      ],
-    },
-    COL_COSTUME,
-    BRODERIE_MINIMALE,
-  ],
+  // Tout autre costume (« Costume Africain Moderne », un costume de tailleur…)
+  // prend les mêmes planches que le costume africain.
+  "costume": COSTUME_AFRICAIN_GROUPS,
 
   "ensemble-bazin": [
     {
@@ -1198,23 +2181,11 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_AMPLES,
   ],
 
-  // Agbada et baye lahat sont des grands boubous : mêmes planches.
-  "agbada": BOUBOU_GROUPS,
+  // L'agbada a ses propres planches (trois pièces + bonnet).
+  "agbada": AGBADA_GROUPS,
 
-  "kaftan-brode": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "droit", name: "Kaftan droit", icon: "kaftan-droit" },
-        { slug: "cintre", name: "Kaftan cintré", icon: "kaftan-cintre" },
-        { slug: "long", name: "Kaftan long", icon: "kaftan-long" },
-      ],
-    },
-    COL_HOMME,
-    BRODERIE_COMPLETE,
-    MANCHES_STANDARD,
-  ],
+  // Kaftan 3 pièces : kaftan + long gilet sans manches (ouvert ou fermé) + pantalon.
+  "kaftan-brode": KAFTAN_TROIS_PIECES_GROUPS,
 
   "tenue-ceremonie": [
     {
@@ -1231,19 +2202,8 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_AMPLES,
   ],
 
-  "costume-africain": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "mao", name: "Costume col Mao", icon: "costume-mao" },
-        { slug: "senghor", name: "Veste Senghor", icon: "senghor" },
-        { slug: "classique", name: "Costume classique", icon: "costume-classique" },
-      ],
-    },
-    COL_COSTUME,
-    BRODERIE_MINIMALE,
-  ],
+  // Costume africain : ses planches à lui (coupe, col, fermeture, décor, poches, manches, pantalon).
+  "costume-africain": COSTUME_AFRICAIN_GROUPS,
 
   // Une veste-blazer a des manches, mais pas de longueur à choisir.
   "veste-africaine": [
@@ -1261,19 +2221,8 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_COURTES_LONGUES,
   ],
 
-  // Un gilet n'a pas de manches — le groupe n'existe pas ici.
-  "gilet": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "droit", name: "Gilet droit", icon: "costume-classique" },
-        { slug: "cintre", name: "Gilet cintré", icon: "chemise-cintree" },
-      ],
-    },
-    COL_COSTUME,
-    BRODERIE_SOBRE,
-  ],
+  // Gilet homme : ses planches à lui (coupe, col, boutonnage, bas, poches, dos).
+  "gilet": GILET_HOMME_GROUPS,
 
   // Un pantalon n'a ni col ni manches — comme la jupe.
   "pantalon": [
@@ -1289,22 +2238,11 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     BRODERIE_MINIMALE,
   ],
 
-  "dashiki": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "classique", name: "Dashiki classique", icon: "dashiki" },
-        { slug: "droite", name: "Coupe droite", icon: "chemise-droite" },
-        { slug: "cintree", name: "Coupe cintrée", icon: "chemise-cintree" },
-      ],
-    },
-    COL_HOMME,
-    BRODERIE_SOBRE,
-    MANCHES_STANDARD,
-  ],
+  // Dashiki : ses planches à lui (coupe, col, broderie, manches, poches, pantalon).
+  "dashiki": DASHIKI_GROUPS,
 
-  "baye-lahat": BOUBOU_GROUPS,
+  // Baye Lahat : ses planches à lui (coupe, col, broderie, poches, pantalon, écharpe).
+  "baye-lahat": BAYE_LAHAT_GROUPS,
 
   // Un thiaya est un pantalon : ni col ni manches, comme la jupe.
   "thiaya": [
@@ -1444,19 +2382,9 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "tailleur-pantalon": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "classique", name: "Tailleur classique", icon: "costume-classique" },
-        { slug: "cintre", name: "Veste cintrée", icon: "chemise-cintree" },
-      ],
-    },
-    COL_FEMME,
-    BRODERIE_MINIMALE,
-    MANCHES_COURTES_LONGUES,
-  ],
+  // Tailleur pantalon FEMME : ses vraies coupes, dessinées une par une
+  // (`pantsuit-detail-icons.tsx`). Seulement depuis le tailleur pantalon.
+  "tailleur-pantalon": TAILLEUR_PANTALON_FEMME_GROUPS,
 
   "veste-femme": [
     {
@@ -1487,21 +2415,9 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "ceremonie-femme": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "grande-robe", name: "Grande robe", icon: "boubou" },
-        { slug: "trois-pieces", name: "Ensemble 3 pièces", icon: "boubou-3pieces" },
-        { slug: "ample", name: "Ensemble ample", icon: "ensemble-ample" },
-      ],
-    },
-    LONGUEUR_LONGUE,
-    COL_FEMME,
-    BRODERIE_COMPLETE,
-    MANCHES_AMPLES,
-  ],
+  // Tenue de cérémonie FEMME : ses vraies coupes, dessinées une par une
+  // (`ceremony-detail-icons.tsx`). Seulement depuis la tenue de cérémonie femme.
+  "ceremonie-femme": CEREMONIE_FEMME_GROUPS,
 
   "thiaya-femme": [
     {
@@ -1519,35 +2435,13 @@ export const STYLE_GROUPS_BY_SLUG: Record<string, StyleGroup[]> = {
     MANCHES_FEMME,
   ],
 
-  "ensemble": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "droit", name: "Ensemble droit", icon: "ensemble-droit" },
-        { slug: "ample", name: "Ensemble ample", icon: "ensemble-ample" },
-      ],
-    },
-    COL_FEMME,
-    BRODERIE_SOBRE,
-    MANCHES_FEMME,
-  ],
+  // Ensemble FEMME : on choisit d'abord les pièces (gilet + jupe, chemise +
+  // pantalon, les trois…), puis seulement les détails des pièces choisies.
+  "ensemble": ENSEMBLE_FEMME_GROUPS,
 
-  // A skirt has no collar and no sleeves — those groups simply do not exist here.
-  "jupe": [
-    {
-      slug: "coupe",
-      name: "Coupe",
-      options: [
-        { slug: "droite", name: "Jupe droite", icon: "jupe-droite" },
-        { slug: "crayon", name: "Jupe crayon", icon: "jupe-crayon" },
-        { slug: "plissee", name: "Jupe plissée", icon: "jupe-plissee" },
-        { slug: "evasee", name: "Jupe évasée", icon: "jupe-evasee" },
-      ],
-    },
-    LONGUEUR_COMPLETE,
-    BRODERIE_SOBRE,
-  ],
+  // Jupe : la jupe SEULE (pas de col, pas de manches, pas de haut), ses vraies
+  // coupes dessinées une par une (`skirt-detail-icons.tsx`).
+  "jupe": JUPE_GROUPS,
 
   "boubou-enfant": [
     {
@@ -1600,13 +2494,16 @@ const BY_KEYWORD: [RegExp, string][] = [
   [/c[ée]r[ée]monie.*femme|femme.*c[ée]r[ée]monie/, "ceremonie-femme"],
   // Grandes tenues homme.
   [/agbada/, "agbada"],
-  [/boubou|baye.?lahat/, "grand-boubou"],
+  [/baye.?lahat/, "baye-lahat"],
+  [/boubou/, "grand-boubou"],
   [/c[ée]r[ée]monie|mariage/, "tenue-ceremonie"],
+  [/(kaftan|caftan).*(3|trois)|kaftan.?brod/, "kaftan-brode"],
   [/kaftan|caftan/, "kaftan"],
   [/dashiki/, "dashiki"],
   [/bazin/, "ensemble-bazin"],
   // Costumes, vestes, hauts et bas.
   [/tailleur.?pantalon/, "tailleur-pantalon"],
+  [/costume.?africain/, "costume-africain"],
   [/costume/, "costume"],
   [/veste|blazer/, "veste-africaine"],
   [/gilet/, "gilet"],
@@ -1630,6 +2527,14 @@ const FALLBACK_GROUPS: StyleGroup[] = [COL_HOMME, BRODERIE_COMPLETE, MANCHES_STA
  */
 export function garmentStyleKey(model: GarmentModel | null | undefined): string | null {
   if (!model) return null;
+  const key = garmentStyleKeyRaw(model);
+  // Le gilet femme porte le même nom que celui d'homme : seule la catégorie
+  // les sépare.
+  if (key === "gilet" && model.category_slug === "femme") return "gilet-femme";
+  return key;
+}
+
+function garmentStyleKeyRaw(model: GarmentModel): string | null {
   if (model.slug && STYLE_GROUPS_BY_SLUG[model.slug]) return model.slug;
 
   const haystack = `${model.slug ?? ""} ${model.name}`.toLowerCase();

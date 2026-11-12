@@ -21,7 +21,7 @@ export const HOMME_OCCASIONS: CollectionOccasion[] = [
     id: "ceremonie",
     title: "Cérémonie",
     intro: "Mariage, baptême, Tabaski, Korité. Le jour où tout le monde vous regarde.",
-    models: ["baye-lahat", "grand-boubou", "agbada", "ensemble-bazin", "tenue-de-ceremonie"],
+    models: ["baye-lahat", "grand-boubou", "agbada"],
   },
   {
     id: "vendredi",
@@ -33,13 +33,7 @@ export const HOMME_OCCASIONS: CollectionOccasion[] = [
     id: "bureau",
     title: "Bureau",
     intro: "Réunion, rendez-vous, signature. Sérieux dès le premier regard.",
-    models: ["costume-africain", "chemise-africaine", "costume", "veste-africaine", "gilet"],
-  },
-  {
-    id: "quotidien",
-    title: "Tous les jours",
-    intro: "Confortable. Et toujours bien habillé.",
-    models: ["relax", "pantalon", "thiaya"],
+    models: ["costume-africain", "gilet"],
   },
 ];
 
@@ -48,7 +42,7 @@ export const FEMME_OCCASIONS: CollectionOccasion[] = [
     id: "ceremonie",
     title: "Cérémonie",
     intro: "Mariage, baptême, Tabaski, Korité. Le jour dont on parlera encore.",
-    models: ["tenue-de-ceremonie", "boubou-femme", "grande-robe", "robe-de-soiree", "thiaya"],
+    models: ["tenue-de-ceremonie", "grande-robe", "robe-de-soiree"],
   },
   {
     id: "bureau",
@@ -60,7 +54,7 @@ export const FEMME_OCCASIONS: CollectionOccasion[] = [
     id: "quotidien",
     title: "Tous les jours",
     intro: "Belle, même un jour ordinaire.",
-    models: ["robe", "ensemble", "jupe", "pantalon-large", "chemise", "gilet"],
+    models: ["ensemble", "jupe", "pantalon-large", "chemise", "gilet"],
   },
 ];
 

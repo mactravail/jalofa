@@ -30,13 +30,13 @@ on conflict (slug) do nothing;
 -- Models (garment templates) ------------------------------------------------
 insert into public.models (name, category_slug, description, difficulty, avg_days, image_url) values
   ('Grand Boubou', 'homme', 'Ample tenue traditionnelle en trois pièces, symbole d''élégance.', 'moyen', 10, '/collection%20homme/style/grand%20boubou.jpg'),
-  ('Kaftan', 'homme', 'Tunique longue et fluide, confortable et raffinée.', 'facile', 7, '/collection%20homme/style/kaftan.avif'),
+  ('Kaftan 2 pièces', 'homme', 'Tunique longue et fluide, confortable et raffinée.', 'facile', 7, '/collection%20homme/style/kaftan.avif'),
   ('Chemise Africaine', 'homme', 'Chemise à motifs, coupe moderne ou classique.', 'facile', 5, '/collection%20homme/style/chemise.avif'),
   ('Costume', 'homme', 'Costume sur mesure, veste et pantalon.', 'difficile', 14, '/collection%20homme/style/costume%20crois%C3%A9.jpg'),
   ('Relax', 'homme', 'Tenue décontractée : tunique fluide et pantalon confort, coupe ample facile à vivre, du week-end aux moments détente.', 'facile', 6, '/collection%20homme/e.jpg'),
   ('Ensemble Bazin', 'homme', 'Ensemble deux-pièces en bazin riche : haut brodé et pantalon assorti, l''élégance sénégalaise du quotidien aux grandes occasions.', 'moyen', 9, '/collection%20homme/style/grand%20boubou%20ghana.avif'),
   ('Agbada', 'homme', 'Grande robe d''apparat brodée, portée sur un boubou et un pantalon — la pièce maîtresse des cérémonies ouest-africaines.', 'difficile', 12, '/collection%20homme/style/agbada.jpg'),
-  ('Kaftan Brodé', 'homme', 'Kaftan tunique longue rehaussée de broderies au col et au plastron, raffiné pour les fêtes et le vendredi.', 'moyen', 8, '/collection%20homme/style/kaftan%20ghana.jpg'),
+  ('Kaftan 3 pièces', 'homme', 'Kaftan tunique longue rehaussée de broderies au col et au plastron, raffiné pour les fêtes et le vendredi.', 'moyen', 8, '/collection%20homme/style/kaftan%20ghana.jpg'),
   ('Tenue de Cérémonie', 'homme', 'Grand ensemble de cérémonie, broderie riche et finitions soignées, pour mariages, baptêmes et grandes fêtes.', 'difficile', 12, '/collection%20homme/style/diomaye.jpg'),
   ('Costume Africain', 'homme', 'Costume à coupe africaine — veste col Mao ou Senghor et pantalon — l''allure business, en tissu local ou importé.', 'difficile', 12, '/collection%20homme/style/costume%20africain%20(2).jpg'),
   ('Veste Africaine', 'homme', 'Veste-blazer d''inspiration africaine, à porter sur une chemise ou un tee-shirt pour un style habillé décontracté.', 'moyen', 8, '/collection%20homme/style/pantalon%20veste.avif'),
@@ -64,7 +64,7 @@ on conflict do nothing;
 update public.models set slug = 'grand-boubou'     where name = 'Grand Boubou'       and category_slug = 'homme' and slug is null;
 update public.models set slug = 'agbada'           where name = 'Agbada'             and category_slug = 'homme' and slug is null;
 update public.models set slug = 'baye-lahat'       where name = 'Baye Lahat'         and category_slug = 'homme' and slug is null;
-update public.models set slug = 'kaftan'           where name = 'Kaftan'             and category_slug = 'homme' and slug is null;
+update public.models set slug = 'kaftan'           where name = 'Kaftan 2 pièces'    and category_slug = 'homme' and slug is null;
 update public.models set slug = 'chemise'          where name = 'Chemise Africaine'  and category_slug = 'homme' and slug is null;
 update public.models set slug = 'costume'          where name = 'Costume'            and category_slug = 'homme' and slug is null;
 update public.models set slug = 'relax'            where name = 'Relax'              and category_slug = 'homme' and slug is null;
@@ -88,9 +88,9 @@ join (values
   ('Grand Boubou', '/collection%20homme/a2.avif', 1),
   ('Grand Boubou', '/collection%20homme/a3.avif', 2),
   ('Grand Boubou', '/collection%20homme/a4.avif', 3),
-  ('Kaftan', '/collection%20homme/c1.avif', 0),
-  ('Kaftan', '/collection%20homme/c.avif', 1),
-  ('Kaftan', '/collection%20homme/c2.avif', 2),
+  ('Kaftan 2 pièces', '/collection%20homme/c1.avif', 0),
+  ('Kaftan 2 pièces', '/collection%20homme/c.avif', 1),
+  ('Kaftan 2 pièces', '/collection%20homme/c2.avif', 2),
   ('Chemise Africaine', '/collection%20homme/b1.avif', 0),
   ('Chemise Africaine', '/collection%20homme/b.avif', 1),
   ('Chemise Africaine', '/collection%20homme/b2.avif', 2),

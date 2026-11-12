@@ -3,17 +3,20 @@ import Image from "next/image";
 import Link from "@/components/i18n/link";
 
 import { Price } from "@/components/cart/price";
+import type { CollectionTile } from "@/components/home/collection-marquee";
+import { modelHref } from "@/components/catalog/model-card";
 import {
-  FEMME,
-  HOMME,
-  type CollectionTile,
-} from "@/components/home/collection-marquee";
+  FEMME_OCCASIONS,
+  HOMME_OCCASIONS,
+  orderForPicker,
+  wornCover,
+} from "@/lib/collection-occasions";
 import { EUROPE_SLOGAN, EUROPE_TYPES } from "@/lib/europe";
 import { EUROPE_HERO, EUROPE_TYPE_IMAGES } from "@/lib/europe-images";
 import { HeroVideo } from "@/components/home/hero-video";
-import { getFabrics } from "@/lib/data";
+import { getFabrics, getModels } from "@/lib/data";
 import { isLaunchPromoOpen } from "@/lib/launch-promo";
-import type { Fabric } from "@/lib/types";
+import type { Fabric, GarmentModel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
 
@@ -196,8 +199,37 @@ function alternate<T>(a: T[], b: T[]): T[] {
   );
 }
 
-/** JALOFA AFRIQUE : les habits africains, homme et femme mêlés. */
-const AFRIQUE_TILES = alternate(HOMME, FEMME).slice(0, 10);
+/**
+ * JALOFA AFRIQUE : les habits africains des collections Homme et Femme, mêlés.
+ * Tirés du catalogue réel (`getModels` écarte déjà les modèles retirés, cf.
+ * `retired-models.ts`) : un habit supprimé du site disparaît aussi d'ici.
+ */
+async function getAfriqueTiles(): Promise<CollectionTile[]> {
+  const [homme, femme] = await Promise.all([
+    getModels({ category: "homme" }),
+    getModels({ category: "femme" }),
+  ]);
+  const toTiles = (
+    models: GarmentModel[],
+    occasions: typeof HOMME_OCCASIONS,
+    audience: CollectionTile["audience"],
+  ): CollectionTile[] =>
+    orderForPicker(
+      models.filter(
+        (m) => m.tailor_id === null && !m.origin?.europe && !m.slug?.startsWith("europe-"),
+      ),
+      occasions,
+    ).flatMap(({ model }) => {
+      const src = wornCover(model);
+      return src
+        ? [{ name: model.name, audience, src, href: modelHref(model), alt: model.name }]
+        : [];
+    });
+  return alternate(
+    toTiles(homme, HOMME_OCCASIONS, "Homme"),
+    toTiles(femme, FEMME_OCCASIONS, "Femme"),
+  );
+}
 
 /** JALOFA EUROPE : chaque catégorie avec sa photo, homme et femme mêlés. */
 const EUROPE_TILES: CollectionTile[] = (() => {
@@ -311,7 +343,8 @@ async function Grid({
 }
 
 export default async function HomePage() {
-  const fabrics = (await getFabrics()).slice(0, 8);
+  const [allFabrics, afriqueTiles] = await Promise.all([getFabrics(), getAfriqueTiles()]);
+  const fabrics = allFabrics.slice(0, 8);
   const t = await getT();
   // Offre de lancement (novembre) : la bannière « Rejoignez-nous » l'annonce.
   const promoOpen = isLaunchPromoOpen();
@@ -322,13 +355,13 @@ export default async function HomePage() {
 
       <Banner
         images={[{ src: "/collection femme/bgcolfem.jpg", alt: t("Deux femmes en manteau devant une porte sombre") }]}
-        eyebrow={t("Homme · Femme")}
+        eyebrow={t("La tradition, portée avec élégance")}
         title={t("Afrique")}
         href="/afrique"
       />
-      <Grid label={t("Grand boubou, robe, kaftan, cérémonie")} href="/afrique">
-        {AFRIQUE_TILES.map((tile) => (
-          <GarmentCard key={tile.name} tile={tile} />
+      <Grid label={t("Entrez, et tout le monde se retourne")} href="/afrique">
+        {afriqueTiles.map((tile) => (
+          <GarmentCard key={tile.href} tile={tile} />
         ))}
       </Grid>
 
@@ -345,7 +378,7 @@ export default async function HomePage() {
         title="Europe"
         href="/europe"
       />
-      <Grid label={t("Costume, robe, smoking, chemise")} href="/europe">
+      <Grid label={t("Taillé pour vous, porté comme une signature")} href="/europe">
         {EUROPE_TILES.map((tile) => (
           <GarmentCard key={tile.src} tile={tile} />
         ))}

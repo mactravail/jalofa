@@ -9,5 +9,6 @@ import { redirect } from "next/navigation";
  * La route reste en place pour ne pas casser les liens déjà partagés.
  */
 export default function PersonnaliserRobePage() {
-  redirect("/femme/robe-sur-mesure?type=robe");
+  // La « Robe » africaine est retirée du site : la page ouvre sur la grande robe.
+  redirect("/femme/robe-sur-mesure");
 }

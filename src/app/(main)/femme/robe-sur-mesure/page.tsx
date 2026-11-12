@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("Robe sur mesure"),
     description: t(
-      "La robe sur mesure, dans ses différents types — Robe, Grande Robe, Robe de Soirée, Boubou Femme... Prenez-la telle qu'elle est présentée ou personnalisez chaque détail.",
+      "La robe sur mesure, dans ses différents types — Grande Robe, Robe de Soirée, Robe coupée... Prenez-la telle qu'elle est présentée ou personnalisez chaque détail.",
     ),
   };
 }

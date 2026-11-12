@@ -25,11 +25,9 @@ export const DEDICATED_HREF: Record<string, string> = {
   "baye-lahat": "/homme/grand-boubou-sur-mesure",
   "fatou-boubou-ceremonie": "/homme/grand-boubou-sur-mesure",
   "ibrahima-boubou": "/homme/grand-boubou-sur-mesure",
-  robe: "/femme/robe-sur-mesure",
   "grande-robe": "/femme/robe-sur-mesure",
   "robe-soiree": "/femme/robe-sur-mesure",
   "robe-coupee": "/femme/robe-sur-mesure",
-  "boubou-femme": "/femme/robe-sur-mesure",
 };
 
 // Il n'y a plus de configurateur « maison » par vêtement : TOUS les habits se
@@ -48,11 +46,9 @@ export const GRAND_BOUBOU_TYPES = [
   "ibrahima-boubou",
 ];
 
-/** The robe family, in display order for the type switcher (by slug). */
-export const ROBE_TYPES = [
-  "robe",
-  "grande-robe",
-  "robe-soiree",
-  "robe-coupee",
-  "boubou-femme",
-];
+/**
+ * The robe family, in display order for the type switcher (by slug). La
+ * « Robe » africaine et le « Boubou femme » sont retirés du site
+ * (cf. `retired-models.ts`).
+ */
+export const ROBE_TYPES = ["grande-robe", "robe-soiree", "robe-coupee"];

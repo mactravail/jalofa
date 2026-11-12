@@ -274,7 +274,7 @@ const MODELS_RAW: Omit<GarmentModel, "slug" | "price">[] = [
   {
     id: "demo-kaftan",
     tailor_id: null,
-    name: "Kaftan",
+    name: "Kaftan 2 pièces",
     category_slug: "homme",
     description: "Tunique longue et fluide, confortable et raffinée.",
     difficulty: "facile",
@@ -349,7 +349,7 @@ const MODELS_RAW: Omit<GarmentModel, "slug" | "price">[] = [
   {
     id: "demo-kaftan-brode",
     tailor_id: null,
-    name: "Kaftan Brodé",
+    name: "Kaftan 3 pièces",
     category_slug: "homme",
     description:
       "Kaftan tunique longue rehaussée de broderies au col et au plastron, raffiné pour les fêtes et le vendredi.",

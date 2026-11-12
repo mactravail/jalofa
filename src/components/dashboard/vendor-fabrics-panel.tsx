@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Layers, Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Layers, Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { FabricFormDialog } from "@/components/dashboard/fabric-form-dialog";
@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/constants";
-import { deleteFabric, setFabricInStock } from "@/lib/actions/fabrics";
+import { deleteFabric, setFabricActive, setFabricInStock } from "@/lib/actions/fabrics";
 import { unwrap } from "@/lib/action-result";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import type { Fabric, FabricCategory } from "@/lib/types";
@@ -75,6 +75,26 @@ export function VendorFabricsPanel({
         toast.error(translateNow(e instanceof Error ? e.message : "Erreur, réessayez."));
       } finally {
         setStockChangingId(null);
+      }
+    });
+  }
+
+  const [visibilityChangingId, setVisibilityChangingId] = useState<string | null>(null);
+  const [, startVisibilityChange] = useTransition();
+
+  function toggleVisible(fabric: Fabric) {
+    const next = !fabric.is_active;
+    setVisibilityChangingId(fabric.id);
+    startVisibilityChange(async () => {
+      try {
+        unwrap(await setFabricActive(fabric.id, next));
+        toast.success(
+          translateNow(next ? "Tissu remis en boutique." : "Tissu masqué : les clients ne le voient plus."),
+        );
+      } catch (e) {
+        toast.error(translateNow(e instanceof Error ? e.message : "Erreur, réessayez."));
+      } finally {
+        setVisibilityChangingId(null);
       }
     });
   }
@@ -225,6 +245,20 @@ export function VendorFabricsPanel({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => openEdit(fabric)}>
                       <Pencil className="size-4" /> <T>Modifier</T>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => toggleVisible(fabric)}
+                      disabled={visibilityChangingId === fabric.id}
+                    >
+                      {fabric.is_active ? (
+                        <>
+                          <EyeOff className="size-4" /> <T>Masquer</T>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="size-4" /> <T>Afficher en boutique</T>
+                        </>
+                      )}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"

@@ -13,6 +13,7 @@ import {
 } from "@/lib/fixtures";
 import { isEuropeCountry, type ProductOrigin } from "@/lib/europe";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { isRetiredModel } from "@/lib/retired-models";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type {
@@ -326,14 +327,18 @@ export async function getModels(filters: { category?: string } = {}): Promise<
 > {
   if (!isSupabaseConfigured()) {
     return MODELS.filter(
-      (m) => !filters.category || m.category_slug === filters.category,
+      (m) =>
+        (!filters.category || m.category_slug === filters.category) && !isRetiredModel(m),
     );
   }
   const supabase = await createClient();
   let query = supabase.from("models").select(await modelSelect()).eq("is_active", true);
   if (filters.category) query = query.eq("category_slug", filters.category);
   const { data } = await query.order("name");
-  return ((data as ModelRow[]) ?? []).filter(isOrderable).map(toModel);
+  return ((data as ModelRow[]) ?? [])
+    .filter(isOrderable)
+    .map(toModel)
+    .filter((m) => !isRetiredModel(m));
 }
 
 /**
@@ -344,7 +349,7 @@ export async function getModels(filters: { category?: string } = {}): Promise<
  */
 export async function getModelSuggestions(): Promise<GarmentModel[]> {
   if (!isSupabaseConfigured()) {
-    return MODELS.filter((m) => m.tailor_id === null);
+    return MODELS.filter((m) => m.tailor_id === null && !isRetiredModel(m));
   }
   const supabase = await createClient();
   const { data } = await supabase
@@ -353,7 +358,7 @@ export async function getModelSuggestions(): Promise<GarmentModel[]> {
     .is("tailor_id", null)
     .eq("is_active", true)
     .order("name");
-  return ((data as ModelRow[]) ?? []).map(toModel);
+  return ((data as ModelRow[]) ?? []).map(toModel).filter((m) => !isRetiredModel(m));
 }
 
 /**
@@ -397,12 +402,13 @@ export async function getTailorModels(): Promise<GarmentModel[]> {
 
 export async function getModelById(id: string): Promise<GarmentModel | null> {
   if (!isSupabaseConfigured()) {
-    return MODELS.find((m) => m.id === id) ?? null;
+    return MODELS.find((m) => m.id === id && !isRetiredModel(m)) ?? null;
   }
   const supabase = await createClient();
   const { data } = await supabase.from("models").select(await modelSelect()).eq("id", id).single();
   if (!data || !isOrderable(data as ModelRow)) return null;
-  return toModel(data as ModelRow);
+  const model = toModel(data as ModelRow);
+  return isRetiredModel(model) ? null : model;
 }
 
 /**
@@ -415,7 +421,7 @@ export async function getModelById(id: string): Promise<GarmentModel | null> {
  */
 export async function getModelBySlug(slug: string): Promise<GarmentModel | null> {
   if (!isSupabaseConfigured()) {
-    return MODELS.find((m) => m.slug === slug) ?? null;
+    return MODELS.find((m) => m.slug === slug && !isRetiredModel(m)) ?? null;
   }
   const supabase = await createClient();
   const { data } = await supabase
@@ -424,7 +430,8 @@ export async function getModelBySlug(slug: string): Promise<GarmentModel | null>
     .eq("slug", slug)
     .maybeSingle();
   if (!data || !isOrderable(data as ModelRow)) return null;
-  return toModel(data as ModelRow);
+  const model = toModel(data as ModelRow);
+  return isRetiredModel(model) ? null : model;
 }
 
 /**

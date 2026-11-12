@@ -191,33 +191,6 @@ async function Inspirations() {
   );
 }
 
-async function FinalCall() {
-  const t = await getT();
-  return (
-    <section className="mx-auto mt-20 grid max-w-7xl px-4 md:mt-32 md:grid-cols-2 md:px-8">
-      <div className="relative aspect-4/5 overflow-hidden rounded-xl md:aspect-auto md:min-h-[42rem]">
-        <Image
-          src="/collection%20femme/odobe.jpg"
-          alt={t("Portrait d'une femme de profil, voile sombre sur la tête, dans une lumière douce")}
-          fill
-          sizes="(min-width: 768px) 50vw, 100vw"
-          className="object-cover object-[50%_15%]"
-        />
-      </div>
-      <div className="flex flex-col justify-center py-12 md:pl-16">
-        <h2 className={HEADING}>{t("Votre grand jour approche ?")}</h2>
-        <p className="text-muted-foreground mt-4 max-w-sm text-lg">
-          {t("Commandez tôt. Votre tailleur a le temps de bien faire.")}
-        </p>
-        <a href="#choisir" className={cn(COLLECTION_CTA, "mt-8 sm:self-start")}>
-          {t("Choisir mon habit")}
-          <ArrowRight className="size-5" aria-hidden />
-        </a>
-      </div>
-    </section>
-  );
-}
-
 export function FemmeCollection({
   models,
   context,
@@ -245,7 +218,6 @@ export function FemmeCollection({
       <div id="reve" className="scroll-mt-16">
         <Opening />
         <Tableaux models={models} context={context} />
-        <UpcomingEvent event={UPCOMING_EVENT} />
         <Inspirations />
       </div>
       <GarmentChooser
@@ -258,7 +230,8 @@ export function FemmeCollection({
       {/* Une page de rêve ne s'excuse pas de ne pas encore avoir d'avis : la section
           n'apparaît qu'avec de vrais avis. */}
       {reviews.count > 0 && <CustomerReviews data={reviews} headingClassName={HEADING} />}
-      <FinalCall />
+      {/* L'événement à venir ferme la page, juste avant le pied de page. */}
+      <UpcomingEvent event={UPCOMING_EVENT} />
     </div>
   );
 }

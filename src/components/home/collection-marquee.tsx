@@ -30,7 +30,7 @@ export const HOMME: CollectionTile[] = [
     alt: "Homme en grand boubou traditionnel sur mesure",
   },
   {
-    name: "Kaftan",
+    name: "Kaftan 2 pièces",
     audience: "Homme",
     src: "/collection%20homme/style/kaftan.avif",
     href: "/modeles/kaftan",
@@ -66,21 +66,9 @@ export const HOMME: CollectionTile[] = [
   },
 ];
 
+// Robe africaine, Boubou femme et Thiaya femme sont retirés du site
+// (cf. `retired-models.ts`) : pas de tuile pour eux.
 export const FEMME: CollectionTile[] = [
-  {
-    name: "Robe",
-    audience: "Femme",
-    src: "/collection%20femme/robe/w.avif",
-    href: "/femme/robe-sur-mesure",
-    alt: "Femme en robe sur mesure",
-  },
-  {
-    name: "Boubou femme",
-    audience: "Femme",
-    src: "/collection%20femme/ceremonie/k.avif",
-    href: "/femme/robe-sur-mesure?type=boubou-femme",
-    alt: "Femme en boubou brodé sur mesure",
-  },
   {
     name: "Cérémonie",
     audience: "Femme",
@@ -101,13 +89,6 @@ export const FEMME: CollectionTile[] = [
     src: "/collection%20femme/robe/o.avif",
     href: "/modeles/ensemble",
     alt: "Femme en ensemble coordonné sur mesure",
-  },
-  {
-    name: "Thiaya",
-    audience: "Femme",
-    src: "/collection%20femme/thiaya/thiaya%20femme.jpg",
-    href: "/modeles/thiaya-femme",
-    alt: "Femme en thiaya traditionnel deux-pièces",
   },
 ];
 

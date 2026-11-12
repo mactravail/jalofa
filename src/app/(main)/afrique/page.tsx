@@ -5,7 +5,6 @@ import { ArrowRight, BadgeCheck, Ruler, Scissors, ShieldCheck } from "lucide-rea
 
 import { CollectionHero } from "@/components/catalog/collection-hero";
 import { COLLECTION_CTA, COLLECTION_HEADING } from "@/components/catalog/collection-sections";
-import { display } from "@/lib/display-font";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
 
@@ -24,7 +23,7 @@ const AUDIENCES = [
   {
     id: "homme",
     eyebrow: "Homme",
-    title: "L'homme africain",
+    title: "L'excellence du sur-mesure africain commence ici.",
     text: "Avant même que vous parliez, on sait qui vous êtes. Un habit taillé pour votre corps, qui impose le respect et vous donne la prestance d'un chef.",
     image: {
       src: "/collection%20homme/mallem.jpg",
@@ -38,8 +37,8 @@ const AUDIENCES = [
   {
     id: "femme",
     eyebrow: "Femme",
-    title: "La femme africaine",
-    text: "Quand vous entrez, tous les regards se tournent vers vous. Une tenue coupée pour votre corps, qui sublime votre allure et vous fait vous sentir reine.",
+    title: "Votre style mérite un tailleur d'exception.",
+    text: "Ne confiez plus vos tenues au hasard. Trouvez des tailleurs qualifiés et sélectionnés pour transformer vos envies en pièces uniques.",
     image: {
       src: "/collection%20femme/tella.jpg",
       alt: "Portrait en noir et blanc d'une femme souriante, bras levé, en robe noire",
@@ -48,25 +47,6 @@ const AUDIENCES = [
     },
     href: "/modeles?category=femme",
     cta: "Voir la collection Femme",
-  },
-];
-
-/** Ce que porte un habit africain : trois valeurs de la tradition. */
-const TRADITION = [
-  {
-    number: "01",
-    title: "Un savoir transmis",
-    text: "La coupe d'un grand boubou s'apprend à l'atelier, de maître à apprenti. Chaque tenue garde ce geste vivant.",
-  },
-  {
-    number: "02",
-    title: "Un tissu qui parle",
-    text: "Bazin, wax, broderie : les couleurs et les motifs disent la fête, la famille, la région d'où l'on vient.",
-  },
-  {
-    number: "03",
-    title: "Une fierté portée",
-    text: "Au mariage, à la Tabaski, le vendredi : l'habit africain se porte avec dignité, et se transmet.",
   },
 ];
 
@@ -105,9 +85,9 @@ export default async function AfriquePage() {
     <>
       <CollectionHero
         number="06"
-        eyebrow="Homme · Femme"
-        title="Afrique"
-        titleClassName="text-[18vw] md:text-[11vw]"
+        eyebrow="Votre style mérite un tailleur d'exception"
+        title="Prestige et exclusivité"
+        titleClassName="text-[11vw] leading-[0.95] md:text-[6.5vw]"
         image={{
           src: "/models/afrique.jpg",
           alt: "Les mains d'un tailleur cousent un tissu à l'aiguille",
@@ -156,62 +136,6 @@ export default async function AfriquePage() {
             </div>
           </section>
         ))}
-
-        {/* L'habit africain et la valeur de la tradition, puis Homme / Femme. */}
-        <section className="pt-16 md:pt-28">
-          <div className="grid gap-8 md:grid-cols-2 md:gap-14">
-            <div>
-              <p className="text-muted-foreground text-sm tracking-[0.2em] uppercase">
-                {t("L'habit africain")}
-              </p>
-              <h2 className={cn(COLLECTION_HEADING, "mt-3")}>{t("Porter la tradition")}</h2>
-            </div>
-            <div className="space-y-5 text-lg md:text-xl">
-              <p>
-                {t(
-                  "Le grand boubou, le kaftan, la thiaya, la robe de cérémonie : ces habits ne sont pas de simples vêtements. Ils racontent une histoire, une famille, un pays.",
-                )}
-              </p>
-              <p className="text-muted-foreground">
-                {t(
-                  "Ils sont coupés à la main par des tailleurs qui tiennent leur métier de leurs aînés. Porter un habit africain sur mesure, c'est garder cette tradition vivante.",
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-12 grid gap-8 md:mt-16 md:grid-cols-3 md:gap-6">
-            {TRADITION.map((item) => (
-              <div key={item.number} className="border-t border-white/15 pt-5">
-                <p className="text-muted-foreground text-sm tracking-[0.2em]">{item.number}</p>
-                <h3 className={cn(display.className, "mt-2 text-2xl tracking-[0.04em] uppercase")}>
-                  {t(item.title)}
-                </h3>
-                <p className="text-muted-foreground mt-2 text-lg">{t(item.text)}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 flex flex-col gap-4 sm:flex-row md:mt-16">
-            <Link href="/modeles?category=homme" className={COLLECTION_CTA}>
-              {t("Habits pour homme")}
-              <ArrowRight className="size-5" aria-hidden />
-            </Link>
-            <Link href="/modeles?category=femme" className={COLLECTION_CTA}>
-              {t("Habits pour femme")}
-              <ArrowRight className="size-5" aria-hidden />
-            </Link>
-          </div>
-
-          <p
-            className={cn(
-              display.className,
-              "mt-16 text-center text-3xl leading-tight tracking-[0.03em] uppercase md:mt-24 md:text-5xl",
-            )}
-          >
-            {t("Cousu à Dakar. Porté partout dans le monde.")}
-          </p>
-        </section>
 
         {/* La promesse */}
         <section className="pt-16 md:pt-28">

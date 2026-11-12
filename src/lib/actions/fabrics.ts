@@ -170,6 +170,33 @@ async function setFabricInStockImpl(id: string, inStock: boolean): Promise<void>
   revalidatePath("/modeles", "layout");
 }
 
+/** Le pro masque son tissu (retiré de la boutique) ou le remet en ligne. */
+async function setFabricActiveImpl(id: string, active: boolean): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Vous devez être connecté.");
+
+  const { data, error } = await supabase
+    .from("fabrics")
+    .update({ is_active: active })
+    .eq("id", id)
+    .eq("vendor_id", user.id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error("Tissu introuvable.");
+
+  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/tissus");
+  revalidatePath("/europe");
+  revalidatePath(`/tissus/${id}`);
+  revalidatePath("/modeles", "layout");
+}
+
 /** Delete a fabric owned by the signed-in seller. */
 async function deleteFabricImpl(id: string): Promise<void> {
   if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
@@ -218,4 +245,8 @@ export async function deleteFabric(id: string): Promise<ActionResult> {
 
 export async function setFabricInStock(id: string, inStock: boolean): Promise<ActionResult> {
   return runAction(() => setFabricInStockImpl(id, inStock));
+}
+
+export async function setFabricActive(id: string, active: boolean): Promise<ActionResult> {
+  return runAction(() => setFabricActiveImpl(id, active));
 }
