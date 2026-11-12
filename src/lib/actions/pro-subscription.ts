@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  grantSelectionAccess,
   OFFER_PAGE,
   setProAutoRenew,
   startProCheckout,
@@ -67,4 +68,35 @@ export async function toggleProRenewal(formData: FormData): Promise<void> {
   }
   revalidatePath(OFFER_PAGE);
   redirect(`${OFFER_PAGE}?${on ? "reprise" : "arret"}=1`);
+}
+
+/**
+ * Sélection JALOFA (cf. `selection.ts`) : un pro inscrit avant la sélection
+ * (offre Gratuit à commission, ou Pro avec échéance) passe sur l'accès PRO
+ * offert, sans échéance — plus de commission, plus rien de retenu.
+ */
+export async function claimSelectionAccess(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/connexion?redirect=${encodeURIComponent(OFFER_PAGE)}`);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (profile?.role !== "tailor" && profile?.role !== "vendor") {
+    redirect("/compte");
+  }
+
+  let ok = false;
+  try {
+    ok = await grantSelectionAccess(user.id);
+  } catch (err) {
+    console.error("[selection access]", err);
+  }
+  revalidatePath(OFFER_PAGE);
+  redirect(`${OFFER_PAGE}?${ok ? "selection=1" : "erreur=selection"}`);
 }

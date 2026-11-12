@@ -3,30 +3,43 @@ import Link from "@/components/i18n/link";
 
 import { FABRIC_SHIP_HOURS, PRO_RESPONSE_HOURS } from "@/lib/after-sale";
 import { APP_NAME } from "@/lib/constants";
+import { getLocale } from "@/lib/i18n/server";
+import { CONDITIONS_CHROME_IT, CONDITIONS_PARTS_IT } from "@/lib/legal/conditions-it";
+import type { LegalChrome, LegalClause, LegalPart } from "@/lib/legal/types";
 
-export const metadata: Metadata = {
-  title: "Conditions générales d'utilisation",
-  description: `Conditions générales d'utilisation de ${APP_NAME} : règles communes, conditions pour les clients et conditions pour les tailleurs et vendeurs.`,
+// Texte de référence en français ; la version italienne vit dans
+// `src/lib/legal/conditions-it.ts` (même structure) — reporter toute
+// modification dans les deux.
+
+const CHROME_FR: LegalChrome = {
+  metaTitle: "Conditions générales d'utilisation",
+  metaDescription: `Conditions générales d'utilisation de ${APP_NAME} : règles communes, conditions pour les clients et conditions pour les tailleurs et vendeurs.`,
+  heading: "Conditions générales d'utilisation",
+  intro: `Les règles de ${APP_NAME}, en deux temps : d'abord les dispositions communes à tous, puis les conditions propres aux clients et celles propres aux tailleurs et vendeurs.`,
+  updatedLabel: "Dernière mise à jour :",
+  updated: "12 novembre 2026",
+  toc: "Sommaire",
+  seeAlso: "Voir aussi notre",
+  and: "et nos",
+  links: {
+    conditions: "conditions générales",
+    confidentialite: "politique de confidentialité",
+    mentions: "mentions légales",
+  },
 };
 
-const LAST_UPDATED = "10 novembre 2026";
+async function content(): Promise<{ chrome: LegalChrome; parts: LegalPart[] }> {
+  return (await getLocale()) === "it"
+    ? { chrome: CONDITIONS_CHROME_IT, parts: CONDITIONS_PARTS_IT }
+    : { chrome: CHROME_FR, parts: PARTS };
+}
 
-type Clause = {
-  title: string;
-  body: string;
-  /** Puces optionnelles, affichées sous le paragraphe. */
-  list?: string[];
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { chrome } = await content();
+  return { title: chrome.metaTitle, description: chrome.metaDescription };
+}
 
-type Part = {
-  id: string;
-  eyebrow: string;
-  title: string;
-  intro: string;
-  sections: Clause[];
-};
-
-const PARTS: Part[] = [
+const PARTS: LegalPart[] = [
   // ---------------------------------------------------------------------------
   // Dispositions communes
   // ---------------------------------------------------------------------------
@@ -46,7 +59,7 @@ const PARTS: Part[] = [
         list: [
           `« Plateforme » ou « ${APP_NAME} » : le site et l'application, ainsi que les services associés.`,
           "« Client » : toute personne qui commande un vêtement, une prestation de couture ou du tissu.",
-          "« Professionnel » ou « Pro » : un tailleur ou un vendeur de tissus inscrit avec un abonnement.",
+          "« Professionnel » ou « Pro » : un tailleur ou un vendeur de tissus inscrit sur la plateforme.",
           "« Commande » : un achat passé et payé sur la plateforme (vêtement complet, tissu seul, ou couture sur tissu fourni).",
           `« Fonds en attente » (séquestre) : la somme payée par le client, conservée par ${APP_NAME} avant d'être reversée au professionnel.`,
           `« Manquement avéré » : un manquement d'un professionnel constaté par ${APP_NAME} après vérification, preuves à l'appui et les deux parties entendues.`,
@@ -97,7 +110,7 @@ const PARTS: Part[] = [
       },
       {
         title: "12. Modification des conditions, droit applicable et contact",
-        body: `${APP_NAME} peut faire évoluer ces conditions ; la version en vigueur est celle publiée sur cette page, avec sa date de mise à jour. Les présentes conditions sont régies par le droit sénégalais. Pour toute question, contactez l'équipe depuis votre espace personnel ou à mactravail23@gmail.com.`,
+        body: `${APP_NAME} peut faire évoluer ces conditions ; la version en vigueur est celle publiée sur cette page, avec sa date de mise à jour. Les présentes conditions sont régies par le droit sénégalais. En cas de divergence entre les versions linguistiques, la version française fait foi. Pour toute question, contactez l'équipe depuis votre espace personnel ou à mactravail23@gmail.com.`,
       },
     ],
   },
@@ -195,15 +208,15 @@ const PARTS: Part[] = [
     id: "pros",
     eyebrow: "Partie 2",
     title: "Conditions pour les tailleurs et vendeurs",
-    intro: `En tant que professionnel, vous exercez sur ${APP_NAME} avec un abonnement. Vous vous engagez à la sincérité et au respect des délais. Ces règles — et le barème de sanctions qui les accompagne — protègent les clients et l'ensemble des professionnels sérieux. Le principe est simple : faites et dites seulement ce que vous pouvez faire.`,
+    intro: `En tant que professionnel, vous exercez sur ${APP_NAME} en vous engageant à la sincérité et au respect des délais. Ces règles — et le barème de sanctions qui les accompagne — protègent les clients et l'ensemble des professionnels sérieux. Le principe est simple : faites et dites seulement ce que vous pouvez faire.`,
     sections: [
       {
         title: "B1. S'inscrire comme professionnel",
-        body: `Pour vendre sur ${APP_NAME}, vous créez un compte professionnel (tailleur, vendeur de tissus, ou les deux) et souscrivez un abonnement. Votre inscription est validée par l'administration avant l'ouverture de votre boutique. Vous garantissez l'exactitude des informations de votre activité (nom de boutique, ville, catalogue, prix).`,
+        body: `Pour vendre sur ${APP_NAME}, vous créez un compte professionnel (tailleur, vendeur de tissus, ou les deux) : c'est votre candidature à la Sélection ${APP_NAME}. ${APP_NAME} retient les professionnels sérieux et qualifiés (qualité des créations, finitions, prix cohérents, service client, respect des délais) et peut à tout moment fermer la boutique d'un professionnel qui ne répond plus à ces critères. Vous garantissez l'exactitude des informations de votre activité (nom de boutique, ville, catalogue, prix).`,
       },
       {
-        title: "B2. Abonnements et commissions",
-        body: `Vous choisissez votre formule sur la page des abonnements : le plan Gratuit (sans abonnement mensuel, mais avec une commission par vente) ou un plan payant Standard ou Premium (sans commission). Les abonnements payants sont sans engagement et résiliables à tout moment ; ils se règlent par Wave. Les tarifs et commissions en vigueur sont ceux affichés sur la page « Abonnements ». Aucune commission n'est prélevée sur la livraison. En cas d'exclusion pour faute, l'abonnement déjà payé n'est pas remboursé.`,
+        title: "B2. Accès PRO offert et futures offres",
+        body: `Pendant la phase de sélection actuelle, les professionnels sélectionnés par ${APP_NAME} bénéficient gratuitement de l'accès PRO : aucun abonnement à payer et aucune commission sur leurs ventes. Cette gratuité n'est pas définitive : à l'avenir, les offres ne seront pas toutes gratuites. ${APP_NAME} pourra proposer, selon les formules, un abonnement mensuel, un abonnement annuel, ou une formule à 0 FCFA avec une commission sur chaque vente. Les nouvelles offres et leurs tarifs vous seront présentés à l'avance et ne s'appliqueront qu'avec votre accord ; si vous les refusez, vous pourrez fermer votre boutique.`,
       },
       {
         title: "B3. Vos engagements fondamentaux",
@@ -274,7 +287,7 @@ const PARTS: Part[] = [
   },
 ];
 
-function Clauses({ sections }: { sections: Clause[] }) {
+function Clauses({ sections }: { sections: LegalClause[] }) {
   return (
     <div className="mt-6 space-y-8">
       {sections.map((section) => (
@@ -296,29 +309,21 @@ function Clauses({ sections }: { sections: Clause[] }) {
   );
 }
 
-export default function ConditionsPage() {
+export default async function ConditionsPage() {
+  const { chrome, parts } = await content();
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-        Conditions générales d&apos;utilisation
-      </h1>
-      <p className="text-muted-foreground mt-3">
-        Les règles de {APP_NAME}, en deux temps : d&apos;abord les dispositions
-        communes à tous, puis les conditions propres aux clients et celles
-        propres aux tailleurs et vendeurs.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{chrome.heading}</h1>
+      <p className="text-muted-foreground mt-3">{chrome.intro}</p>
       <p className="text-muted-foreground mt-2 text-sm">
-        Dernière mise à jour : {LAST_UPDATED}
+        {chrome.updatedLabel} {chrome.updated}
       </p>
 
       {/* Sommaire */}
-      <nav
-        aria-label="Sommaire"
-        className="bg-muted/40 mt-8 rounded-xl border p-5"
-      >
-        <p className="text-sm font-semibold">Sommaire</p>
+      <nav aria-label={chrome.toc} className="bg-muted/40 mt-8 rounded-xl border p-5">
+        <p className="text-sm font-semibold">{chrome.toc}</p>
         <ol className="mt-3 space-y-2 text-sm">
-          {PARTS.map((part, index) => (
+          {parts.map((part, index) => (
             <li key={part.id}>
               <a
                 href={`#${part.id}`}
@@ -332,36 +337,26 @@ export default function ConditionsPage() {
       </nav>
 
       <div className="mt-12 space-y-14">
-        {PARTS.map((part) => (
+        {parts.map((part) => (
           <section key={part.id} id={part.id} className="scroll-mt-24">
             <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
               {part.eyebrow}
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              {part.title}
-            </h2>
-            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-              {part.intro}
-            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">{part.title}</h2>
+            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{part.intro}</p>
             <Clauses sections={part.sections} />
           </section>
         ))}
       </div>
 
       <p className="text-muted-foreground mt-14 border-t pt-8 text-sm">
-        Voir aussi notre{" "}
-        <Link
-          href="/confidentialite"
-          className="text-foreground underline underline-offset-4"
-        >
-          politique de confidentialité
+        {chrome.seeAlso}{" "}
+        <Link href="/confidentialite" className="text-foreground underline underline-offset-4">
+          {chrome.links.confidentialite}
         </Link>{" "}
-        et nos{" "}
-        <Link
-          href="/mentions-legales"
-          className="text-foreground underline underline-offset-4"
-        >
-          mentions légales
+        {chrome.and}{" "}
+        <Link href="/mentions-legales" className="text-foreground underline underline-offset-4">
+          {chrome.links.mentions}
         </Link>
         .
       </p>

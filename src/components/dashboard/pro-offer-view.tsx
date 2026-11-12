@@ -1,12 +1,10 @@
-import { Check, ChevronDown, CircleAlert, CircleCheck, Crown, Star } from "lucide-react";
+import { Check, CircleAlert, CircleCheck, Crown, Star } from "lucide-react";
 
 import { Price } from "@/components/cart/price";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { payProSubscription, toggleProRenewal } from "@/lib/actions/pro-subscription";
-import { formatPrice } from "@/lib/constants";
-import { isPaydunyaConfigured } from "@/lib/paydunya";
+import { claimSelectionAccess } from "@/lib/actions/pro-subscription";
 import {
   readDeferredFee,
   readProSubscription,
@@ -14,36 +12,12 @@ import {
   type ProSubscription,
 } from "@/lib/pro-subscription";
 import { isSupabaseConfigured } from "@/lib/queries";
-import {
-  dailyPrice,
-  FREE_COMMISSION_RATE,
-  getPlan,
-  OFFER_PITCH,
-  PAID_PLAN_ID,
-  type OfferPoint,
-} from "@/lib/subscriptions";
+import { SELECTION_CRITERIA, SELECTION_SUBTITLE } from "@/lib/selection";
+import { getPlan, PAID_PLAN_ID } from "@/lib/subscriptions";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
-import { T } from "@/components/i18n/t";
-import { getLocale } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/config";
 
 const PAID_PLAN = getPlan(PAID_PLAN_ID)!;
-
-/** Arguments visibles avant « Voir tout ». */
-const POINTS_SHOWN = 4;
-
-function PitchRow({ point }: { point: OfferPoint }) {
-  return (
-    <li className="flex items-start gap-2">
-      <Check className="mt-0.5 size-4 shrink-0 text-orange-400" />
-      <span>
-        <span className="block text-sm font-semibold"><T>{point.title}</T></span>
-        <span className="text-muted-foreground block text-sm"><T>{point.text}</T></span>
-      </span>
-    </li>
-  );
-}
 
 export type OfferSearchParams = {
   token?: string;
@@ -53,6 +27,8 @@ export type OfferSearchParams = {
   lancement?: string;
   /** Ancien retour d'inscription « payée à la première vente » (comptes existants). */
   differe?: string;
+  /** Le pro vient de rejoindre la Sélection JALOFA (accès PRO offert). */
+  selection?: string;
   /** Le pro vient d'arrêter / de reprendre le renouvellement. */
   arret?: string;
   reprise?: string;
@@ -63,8 +39,8 @@ export type OfferSearchParams = {
  * les deux). C'est aussi la page où PayDunya renvoie le pro après paiement
  * (`?token=…`) : on y règle la facture avant d'afficher l'offre.
  *
- * Offre Pro : 1er mois payé à l'inscription, les suivants retenus sur les
- * ventes ; un mois sans vente ne coûte rien ; arrêt en un clic.
+ * Sélection JALOFA : l'accès PRO est offert (offre Pro sans échéance). Le
+ * retour PayDunya reste géré pour les comptes payants existants.
  */
 export async function ProOfferView({ params }: { params: OfferSearchParams }) {
   let sub: ProSubscription = {
@@ -76,7 +52,6 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
   let notice: { ok: boolean; text: string } | null = null;
   let feeDue = 0;
   const t = await getT();
-  const locale = intlLocale(await getLocale());
   const plan = PAID_PLAN.name;
 
   if (isSupabaseConfigured()) {
@@ -112,14 +87,14 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
     }
   }
 
-  if (!notice && params.annule) {
-    notice = { ok: false, text: t("Paiement annulé. Vous restez sur l'offre Gratuit.") };
-  }
-  if (!notice && params.lancement) {
+  if (!notice && (params.selection || params.lancement)) {
     notice = {
       ok: true,
-      text: t("Bienvenue ! Offre de lancement : l'offre {plan} vous est offerte jusqu'au 1er décembre. Ensuite, vous ne payez qu'après votre première vente.", { plan }),
+      text: t("Bienvenue dans la Sélection JALOFA ! Votre accès PRO est offert : publiez vos créations dès maintenant."),
     };
+  }
+  if (!notice && params.annule) {
+    notice = { ok: false, text: t("Paiement annulé.") };
   }
   if (!notice && params.differe) {
     notice = { ok: true, text: t("L'offre {plan} est active.", { plan }) };
@@ -139,29 +114,18 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
       text:
         params.erreur === "indisponible"
           ? t("Le paiement en ligne n'est pas encore disponible. Réessayez plus tard.")
+          : params.erreur === "selection"
+            ? t("L'accès PRO n'a pas pu être activé. Réessayez.")
           : params.erreur === "renouvellement"
             ? t("Le changement n'a pas pu être enregistré. Réessayez.")
             : t("Le paiement n'a pas pu démarrer. Réessayez."),
     };
   }
 
-  const isPaid = sub.plan !== "free";
-  const until = sub.expiresAt
-    ? new Date(sub.expiresAt).toLocaleDateString(locale, {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-  const canPay = isSupabaseConfigured() && isPaydunyaConfigured();
-
-  const statusLine = !isPaid
-    ? t("Aucun abonnement — {pct}% de commission sur chaque vente, hors livraison.", { pct: Math.round(FREE_COMMISSION_RATE * 100) })
-    : sub.waitingForSale
-      ? t("Votre mois {plan} est terminé. Payez le mois suivant en mobile money, ou il sera retenu ({price}) sur votre prochaine vente.", { plan, price: formatPrice(PAID_PLAN.monthlyPrice) })
-      : !sub.autoRenew
-        ? t("0% de commission jusqu'au {date}. Ensuite : offre Gratuit.", { date: until ?? "" })
-        : t("0% de commission jusqu'au {date}. Ensuite, payez le mois suivant en mobile money, ou il sera retenu sur votre prochaine vente.", { date: until ?? "" });
+  // Sélection JALOFA (cf. `selection.ts`) : l'accès PRO offert = offre Pro
+  // sans échéance. Rien d'autre n'est proposé : ni offre Gratuit à commission,
+  // ni prix de l'offre Pro (le parcours PayDunya reste dans le code).
+  const selected = sub.plan === PAID_PLAN_ID && !sub.expiresAt;
 
   return (
     <DashboardPage
@@ -186,115 +150,57 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
           </p>
         )}
 
-        <Card>
-          <CardContent className="space-y-2">
-            <p className="text-muted-foreground text-xs font-medium uppercase">
-              {t("Offre actuelle")}
+        <Card className="relative overflow-visible border-2 border-orange-500 bg-orange-500/10">
+          <span className="absolute -top-3 left-4 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-bold tracking-wide text-black uppercase">
+            <Star aria-hidden className="size-3.5 fill-current" />
+            {t("Sélection JALOFA")}
+          </span>
+          <CardContent className="space-y-4 pt-2">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-heading flex items-center gap-2 text-xl font-bold">
+                <Crown className="size-5 text-orange-400" />
+                {t("Accès PRO offert")}
+              </p>
+              <p className="shrink-0 text-2xl leading-none font-black whitespace-nowrap text-orange-400">
+                0 FCFA
+              </p>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              {selected
+                ? t("Vous faites partie des professionnels sélectionnés par JALOFA : aucun abonnement à payer, aucune commission sur vos ventes.")
+                : t(SELECTION_SUBTITLE)}
             </p>
-            <p className="font-heading flex items-center gap-2 text-xl font-bold">
-              {isPaid && <Crown className="size-5 text-orange-400" />}
-              {isPaid ? PAID_PLAN.name : t("Gratuit")}
-            </p>
-            <p className="text-muted-foreground text-sm">{statusLine}</p>
             {feeDue > 0 && (
               <p className="rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-300">
                 <Price amount={feeDue} className="font-semibold" />{" "}
                 {t("seront retenus sur l'argent de vos prochaines ventes.")}
               </p>
             )}
-            {isPaid && (
-              <form action={toggleProRenewal} className="pt-1">
-                <input type="hidden" name="on" value={sub.autoRenew ? "false" : "true"} />
-                <button
-                  type="submit"
-                  className="text-muted-foreground hover:text-foreground min-h-11 text-sm underline underline-offset-4"
-                >
-                  {sub.autoRenew
-                    ? t("Arrêter l'offre {plan}", { plan })
-                    : t("Continuer l'offre {plan}", { plan })}
-                </button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-
-        {!isPaid && (
-          <Card className="relative overflow-visible border-2 border-orange-500 bg-orange-500/10">
-            <span className="absolute -top-3 left-4 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-bold tracking-wide text-black uppercase">
-              <Star aria-hidden className="size-3.5 fill-current" />
-              {t("Recommandé")}
-            </span>
-            <CardContent className="space-y-4 pt-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-heading text-lg font-semibold">
-                    {t("Offre {plan}", { plan })}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {t(OFFER_PITCH.premium.lead)}
-                  </p>
-                </div>
-                <p className="shrink-0 text-right">
-                  <Price amount={PAID_PLAN.monthlyPrice} className="text-xl font-bold" />
-                  <span className="text-muted-foreground block text-xs">
-                    {t("{price} par jour", { price: formatPrice(dailyPrice(PAID_PLAN.monthlyPrice)) })}
-                  </span>
-                </p>
-              </div>
-              <ul className="space-y-2">
-                {OFFER_PITCH.premium.points.slice(0, POINTS_SHOWN).map((p) => (
-                  <PitchRow key={p.title} point={p} />
+            <div>
+              <p className="text-sm font-semibold">{t("Ce que nous attendons de vous :")}</p>
+              <ul className="mt-2 space-y-1.5">
+                {SELECTION_CRITERIA.map((line) => (
+                  <li key={line} className="flex items-start gap-2 text-sm">
+                    <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-orange-400" />
+                    <span>{t(line)}</span>
+                  </li>
                 ))}
               </ul>
-              {OFFER_PITCH.premium.points.length > POINTS_SHOWN && (
-                <details className="group">
-                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold underline underline-offset-4 [&::-webkit-details-marker]:hidden">
-                    <span className="group-open:hidden">
-                      {t("Voir tout (+{n})", { n: OFFER_PITCH.premium.points.length - POINTS_SHOWN })}
-                    </span>
-                    <span className="hidden group-open:inline">{t("Voir moins")}</span>
-                    <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
-                  </summary>
-                  <ul className="space-y-2 pt-1">
-                    {OFFER_PITCH.premium.points.slice(POINTS_SHOWN).map((p) => (
-                      <PitchRow key={p.title} point={p} />
-                    ))}
-                  </ul>
-                </details>
-              )}
-              <form action={payProSubscription}>
+            </div>
+            {!selected && (
+              <form action={claimSelectionAccess}>
                 <Button
                   type="submit"
                   size="lg"
                   className="h-12 w-full bg-orange-500 text-base font-semibold text-black hover:bg-orange-400"
-                  disabled={!canPay}
+                  disabled={!isSupabaseConfigured()}
                 >
-                  {t("Passer à l'offre {plan}", { plan })}
+                  {t("Activer mon accès PRO offert")}
                 </Button>
               </form>
-              <p className="text-muted-foreground text-center text-xs">
-                {t("1er mois maintenant : Orange Money, Wave, Free Money ou carte (PayDunya). Ensuite, au choix : retenu sur vos ventes ou payé en mobile money.")}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {isPaid && sub.autoRenew && (
-          <form action={payProSubscription} className="space-y-2">
-            <Button
-              type="submit"
-              size="lg"
-              className="h-12 w-full bg-orange-500 text-base font-semibold text-black hover:bg-orange-400"
-              disabled={!canPay}
-            >
-              {feeDue > 0 ? t("Régler maintenant") : t("Payer le mois suivant")} —{" "}
-              <Price amount={PAID_PLAN.monthlyPrice} />
-            </Button>
-            <p className="text-muted-foreground text-center text-xs">
-              {t("Orange Money, Wave, Free Money ou carte (PayDunya). Sans paiement, le mois est retenu sur votre prochaine vente.")}
-            </p>
-          </form>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardPage>
   );

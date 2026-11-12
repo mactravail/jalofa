@@ -62,6 +62,8 @@ export const it: Record<string, string> = {
   "Collection": "Collezione",
   "Grand boubou, kaftan, costume": "Grand boubou, caftano, abito",
   "Deux femmes en manteau devant une porte sombre": "Due donne in cappotto davanti a una porta scura",
+  "Un homme en grand boubou brodé et une femme en robe drapée devant une porte sombre":
+    "Un uomo in grand boubou ricamato e una donna in abito drappeggiato davanti a una porta scura",
   "Robe, boubou, cérémonie": "Abito, boubou, cerimonia",
   "Rouleaux de tissus jaunes, orange et rouges": "Rotoli di tessuti gialli, arancioni e rossi",
   "Wax, bazin, broderie": "Wax, bazin, ricamo",
@@ -2335,5 +2337,53 @@ export const it: Record<string, string> = {
   "Mantille": "Mantiglia",
   "Sans voile": "Senza velo",
   "Ceinture bijou": "Cintura gioiello",
+  "Rejoignez gratuitement les professionnels sélectionnés par JALOFA !":
+    "Unisciti gratuitamente ai professionisti selezionati da JALOFA!",
+  "Bénéficiez gratuitement de l'accès PRO et rejoignez une marketplace qui valorise les meilleurs tailleurs et vendeurs de tissus, sélectionnés pour leur savoir-faire, leur sérieux et leur excellent rapport qualité-prix.":
+    "Ottieni gratuitamente l'accesso PRO e unisciti a un marketplace che valorizza i migliori sarti e venditori di tessuti, selezionati per la loro maestria, la loro serietà e l'ottimo rapporto qualità-prezzo.",
+  "CANDIDATER À LA SÉLECTION":
+    "CANDIDATI ALLA SELEZIONE",
+  "Candidater à la sélection":
+    "Candidati alla selezione",
+  "Des créations de qualité":
+    "Creazioni di qualità",
+  "Des finitions soignées, un vrai savoir-faire":
+    "Finiture curate, vera maestria",
+  "Des prix justes pour la qualité":
+    "Prezzi giusti per la qualità",
+  "Un service client sérieux":
+    "Un servizio clienti serio",
+  "Les engagements et les délais respectés":
+    "Impegni e tempi rispettati",
+  "Sélection JALOFA":
+    "Selezione JALOFA",
+  "Accès PRO offert":
+    "Accesso PRO in regalo",
+  "Ce que nous recherchons :":
+    "Cosa cerchiamo:",
+  "Ce que nous attendons de vous :":
+    "Cosa ci aspettiamo da te:",
+  "Accès PRO offert aux professionnels sélectionnés.":
+    "Accesso PRO in regalo ai professionisti selezionati.",
+  "Sélection JALOFA · Accès PRO offert":
+    "Selezione JALOFA · Accesso PRO in regalo",
+  "Sélection JALOFA : accès PRO offert":
+    "Selezione JALOFA: accesso PRO in regalo",
+  "Tailleurs et vendeurs de tissus : candidatez à la Sélection JALOFA, accès PRO offert":
+    "Sarti e venditori di tessuti: candidati alla Selezione JALOFA, accesso PRO in regalo",
+  "Vous faites partie des professionnels sélectionnés par JALOFA : aucun abonnement à payer, aucune commission sur vos ventes.":
+    "Fai parte dei professionisti selezionati da JALOFA: nessun abbonamento da pagare, nessuna commissione sulle tue vendite.",
+  "Activer mon accès PRO offert":
+    "Attiva il mio accesso PRO in regalo",
+  "Bienvenue dans la Sélection JALOFA ! Votre accès PRO est offert : publiez vos créations dès maintenant.":
+    "Benvenuto nella Selezione JALOFA! Il tuo accesso PRO è in regalo: pubblica subito le tue creazioni.",
+  "L'accès PRO n'a pas pu être activé. Réessayez.":
+    "Non è stato possibile attivare l'accesso PRO. Riprova.",
+  "Paiement annulé.":
+    "Pagamento annullato.",
+  "Candidatez à la Sélection JALOFA en créant un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes. JALOFA garde les professionnels sérieux et qualifiés : qualité des créations, finitions soignées, prix justes, service client sérieux, délais respectés.":
+    "Candidati alla Selezione JALOFA creando un account pro: un solo account per essere sarto e venditore di tessuti. Accedi subito al tuo spazio per indicare il metodo di pagamento, pubblicare il catalogo e ricevere ordini. JALOFA tiene i professionisti seri e qualificati: qualità delle creazioni, finiture curate, prezzi giusti, servizio clienti serio, tempi rispettati.",
+  "Rien. Les professionnels sélectionnés par JALOFA ont l'accès PRO offert : 0 FCFA, sans commission sur leurs ventes. Si JALOFA propose un jour une offre payante, elle vous sera présentée à l'avance et vous serez libre de l'accepter ou non. Vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.":
+    "Niente. I professionisti selezionati da JALOFA hanno l'accesso PRO in regalo: 0 FCFA, senza commissioni sulle vendite. Se un giorno JALOFA proporrà un'offerta a pagamento, ti sarà presentata in anticipo e sarai libero di accettarla o no. Indichi il tuo metodo di pagamento (Orange Money, Wave, Free Money o bonifico) nel tuo spazio e vieni pagato lì.",
   // @@END
 };

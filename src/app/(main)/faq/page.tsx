@@ -119,11 +119,11 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Comment devenir tailleur ou vendeur de tissus ?",
-        a: "Créez un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes.",
+        a: "Candidatez à la Sélection JALOFA en créant un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes. JALOFA garde les professionnels sérieux et qualifiés : qualité des créations, finitions soignées, prix justes, service client sérieux, délais respectés.",
       },
       {
         q: "Combien ça coûte de vendre sur JALOFA ?",
-        a: "Deux offres au choix. Gratuit : aucun abonnement, 5% de commission sur chaque vente, jamais sur la livraison. Pro : 9 900 FCFA par mois (soit 330 FCFA par jour), 0% de commission — vous gardez 100% de vos ventes. Le 1er mois se paie à l'inscription en mobile money (via PayDunya) ; ensuite, chaque mois se paie au choix en mobile money depuis votre espace, ou est retenu automatiquement sur votre prochaine vente. Sans engagement : vous arrêtez quand vous voulez. Dans les deux cas, vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
+        a: "Rien. Les professionnels sélectionnés par JALOFA ont l'accès PRO offert : 0 FCFA, sans commission sur leurs ventes. Si JALOFA propose un jour une offre payante, elle vous sera présentée à l'avance et vous serez libre de l'accepter ou non. Vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
       },
       {
         q: "Comment est fixé le prix d'une tenue ?",

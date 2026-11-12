@@ -15,7 +15,7 @@ import { EUROPE_SLOGAN, EUROPE_TYPES } from "@/lib/europe";
 import { EUROPE_HERO, EUROPE_TYPE_IMAGES } from "@/lib/europe-images";
 import { HeroVideo } from "@/components/home/hero-video";
 import { getFabrics, getModels } from "@/lib/data";
-import { isLaunchPromoOpen } from "@/lib/launch-promo";
+import { SELECTION_CTA, SELECTION_SUBTITLE, SELECTION_TITLE } from "@/lib/selection";
 import type { Fabric, GarmentModel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
@@ -346,15 +346,13 @@ export default async function HomePage() {
   const [allFabrics, afriqueTiles] = await Promise.all([getFabrics(), getAfriqueTiles()]);
   const fabrics = allFabrics.slice(0, 8);
   const t = await getT();
-  // Offre de lancement (novembre) : la bannière « Rejoignez-nous » l'annonce.
-  const promoOpen = isLaunchPromoOpen();
 
   return (
     <div>
       <VideoHero />
 
       <Banner
-        images={[{ src: "/collection femme/bgcolfem.jpg", alt: t("Deux femmes en manteau devant une porte sombre") }]}
+        images={[{ src: "/collection femme/coppia.png", alt: t("Un homme en grand boubou brodé et une femme en robe drapée devant une porte sombre"), position: "object-[center_25%]" }]}
         eyebrow={t("La tradition, portée avec élégance")}
         title={t("Afrique")}
         href="/afrique"
@@ -409,23 +407,15 @@ export default async function HomePage() {
             position: "object-[30%_center] md:object-bottom",
           },
         ]}
-        eyebrow={
-          promoOpen
-            ? t("Offre de novembre · Course aux 100 premiers")
-            : t("Tailleur ou vendeur de tissus")
-        }
+        // Sélection JALOFA (cf. `selection.ts`) : accès PRO offert, sans
+        // prix ni durée affichés.
+        eyebrow={t("Sélection JALOFA · Accès PRO offert")}
         title={t("Rejoignez-nous")}
-        highlight={promoOpen}
-        note={
-          promoOpen
-            ? t("Les 100 premiers tailleurs et vendeurs de tissus ont l'offre Pro offerte : 0 FCFA au lieu de 9 900 FCFA par mois.")
-            : undefined
-        }
-        text={t(
-          "Recevez des commandes de clients au Sénégal et dans la diaspora, présentez vos créations sur Internet et développez votre atelier sans avoir à créer votre propre site.",
-        )}
+        highlight
+        text={t(SELECTION_TITLE)}
+        note={t(SELECTION_SUBTITLE)}
         href="/inscription?role=pro"
-        cta={t("Nous rejoindre")}
+        cta={t(SELECTION_CTA)}
       />
     </div>
   );

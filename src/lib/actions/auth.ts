@@ -8,8 +8,7 @@ import { parseCountry } from "@/lib/europe";
 import { passwordIssue } from "@/lib/password";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { safeRedirect } from "@/lib/safe-redirect";
-import { grantLaunchPromo, OFFER_PAGE, startProCheckout } from "@/lib/pro-subscription";
-import { PAID_PLAN_ID } from "@/lib/subscriptions";
+import { grantSelectionAccess, OFFER_PAGE } from "@/lib/pro-subscription";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error: string } | null;
@@ -106,15 +105,10 @@ export async function signUp(
   // Deux comptes : Client ou Pro. Un compte Pro ouvre les DEUX métiers (atelier
   // + boutique de tissus — cf. `handle_new_user`) ; il est enregistré en base
   // avec le rôle `tailor`, l'espace vendeur s'ouvre via le sélecteur d'espace.
-  // Tout pro naît sur l'offre Gratuit ; l'offre Pro (payante) ne s'active
-  // qu'après le paiement PayDunya confirmé (cf. `settleProPayment`).
+  // Tout pro reçoit ensuite l'accès PRO offert de la Sélection JALOFA.
   const rawRole = String(formData.get("role") ?? "client");
   const isPro = rawRole === "pro" || rawRole === "tailor" || rawRole === "vendor";
   const role = isPro ? "tailor" : "client";
-  // Offre Pro : le 1er mois se paie à l'inscription (PayDunya) — un compte peut
-  // être supprimé à tout moment, il ne doit donc pas naître avec une dette. Les
-  // mois suivants sont retenus sur les ventes (cf. `renewProFromSale`).
-  const wantsPaidOffer = isPro && String(formData.get("offer") ?? "") === PAID_PLAN_ID;
 
   // Où se trouve l'atelier (pros seulement). Un pays d'Europe range ses
   // produits dans JALOFA EUROPE (cf. `europe.ts`).
@@ -154,6 +148,21 @@ export async function signUp(
   const landing =
     role === "client" ? safeRedirect(redirectTo, fallbackLanding) : fallbackLanding;
 
+  // Sélection JALOFA (cf. `selection.ts`) : tout pro qui candidate reçoit
+  // l'accès PRO offert, sans échéance — rien à payer, aucune commission.
+  // L'équipe désactive ensuite depuis l'admin ceux qui ne sont pas retenus.
+  // Fait AVANT le test de session : même si la confirmation par e-mail est
+  // réactivée, le compte (créé par `handle_new_user`) reçoit son accès.
+  // (L'ancien parcours payant `startProCheckout` reste dans « Mon offre ».)
+  let selectionGranted = false;
+  if (isPro && data.user) {
+    try {
+      selectionGranted = await grantSelectionAccess(data.user.id);
+    } catch (err) {
+      console.error("[selection access]", err);
+    }
+  }
+
   // If email confirmation is disabled the user is signed in immediately.
   if (data.session) {
     // Le pays et la ville rejoignent l'atelier et la boutique créés par
@@ -171,34 +180,9 @@ export async function signUp(
       }
     }
     revalidatePath("/", "layout");
-    // Offre Pro choisie : on part directement payer sur PayDunya. Si la
-    // passerelle échoue, le compte existe déjà (offre Gratuit) et la page
-    // « Mon offre » permet de réessayer.
-    if (wantsPaidOffer && data.user) {
-      // Offre de lancement (novembre) : Pro offert jusqu'au 1er décembre, rien
-      // à payer maintenant. Plus de place → paiement du 1er mois comme d'habitude.
-      let promo = false;
-      try {
-        promo = await grantLaunchPromo(data.user.id);
-      } catch (err) {
-        console.error("[launch promo]", err);
-      }
-      if (promo) redirect(`${OFFER_PAGE}?lancement=1`);
-
-      let checkoutUrl: string | null = null;
-      try {
-        checkoutUrl = await startProCheckout({
-          id: data.user.id,
-          name: fullName,
-          email,
-          phone,
-        });
-      } catch (err) {
-        console.error("[paydunya checkout]", err);
-      }
-      redirect(checkoutUrl ?? `${OFFER_PAGE}?erreur=1`);
-    }
-    redirect(landing);
+    // Le pro arrive dans son espace, sur « Mon offre », avec le message de
+    // bienvenue de la Sélection.
+    redirect(isPro && selectionGranted ? `${OFFER_PAGE}?selection=1` : landing);
   }
 
   // Confirmation par e-mail requise : on conserve la destination pour la

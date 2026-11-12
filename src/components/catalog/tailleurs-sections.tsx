@@ -3,7 +3,6 @@ import Link from "@/components/i18n/link";
 import {
   ArrowRight,
   Check,
-  ChevronDown,
   Eye,
   Scale,
   ShieldCheck,
@@ -14,28 +13,19 @@ import {
 } from "lucide-react";
 
 import { COLLECTION_HEADING } from "@/components/catalog/collection-sections";
-import { formatPrice } from "@/lib/constants";
 import { display } from "@/lib/display-font";
 import {
-  dailyPrice,
-  FREE_COMMISSION_RATE,
-  getPlan,
-  OFFER_PITCH,
-  PAID_PLAN_ID,
-  proBreakEven,
-  type OfferPoint,
-} from "@/lib/subscriptions";
+  SELECTION_CRITERIA,
+  SELECTION_CTA,
+  SELECTION_SUBTITLE,
+  SELECTION_TITLE,
+} from "@/lib/selection";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
-import { getLocale } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/config";
 
 // Les sections de /tailleurs qui s'adressent aux deux publics : pourquoi un client
 // passe par JALOFA, comment l'argent est gardé, pourquoi un tailleur nous rejoint.
 // Le délai de reversement doit rester celui de /conditions (articles 5 et B8).
-
-const PAID_PLAN = getPlan(PAID_PLAN_ID)!;
-const COMMISSION_PCT = Math.round(FREE_COMMISSION_RATE * 100);
 
 /** Le grain du fond charbon : un bruit SVG léger, sans fichier image à charger. */
 const CHARCOAL_GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.2 0 0 0 -0.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E")`;
@@ -96,113 +86,46 @@ const TAILOR_REASONS = [
   },
 ];
 
-/** Arguments visibles par offre avant « Voir tout ». */
-const POINTS_SHOWN = 4;
-
-async function OfferPointRow({ point, highlighted }: { point: OfferPoint; highlighted: boolean }) {
+/**
+ * Sélection JALOFA (cf. `selection.ts`) : une seule formule, l'accès PRO
+ * offert — ni prix habituel, ni durée, ni commission affichés.
+ */
+async function SelectionCard() {
   const t = await getT();
   return (
-    <div
-      className={cn(
-        "flex items-start gap-3 border-t py-4",
-        highlighted ? "border-black/30" : "border-white/25",
-      )}
-    >
-      <Check className="mt-1 size-5 shrink-0" aria-hidden />
-      <div>
-        <p className="text-lg leading-snug font-semibold">{t(point.title)}</p>
-        <p className={cn("text-base", highlighted ? "text-black/75" : "text-white/60")}>
-          {t(point.text)}
+    <div className="relative flex flex-col rounded-xl bg-orange-500 p-6 text-black md:p-10">
+      <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-black px-3 py-1 text-xs font-bold tracking-wide text-orange-400 uppercase md:left-10">
+        <Star aria-hidden className="size-3.5 fill-current" />
+        {t("Sélection JALOFA")}
+      </span>
+      <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-start">
+        <div>
+          <p className={cn(display.className, "text-lg tracking-[0.15em] uppercase")}>
+            {t("Accès PRO offert")}
+          </p>
+          <h3 className="mt-3 max-w-2xl text-3xl leading-tight font-bold tracking-tight md:text-4xl">
+            {t(SELECTION_TITLE)}
+          </h3>
+          <p className="mt-4 max-w-2xl text-lg text-black/75">{t(SELECTION_SUBTITLE)}</p>
+        </div>
+        <p className={cn(display.className, "text-7xl leading-none whitespace-nowrap md:text-8xl")}>
+          0 <span className="text-3xl md:text-4xl">FCFA</span>
         </p>
       </div>
-    </div>
-  );
-}
-
-/** Une offre : le prix en très grand, puis deux phrases. Même structure pour les deux. */
-async function OfferCard({
-  name,
-  amount,
-  note,
-  lead,
-  points,
-  href,
-  cta,
-  highlighted = false,
-}: {
-  name: string;
-  amount: number;
-  note?: string;
-  lead: string;
-  points: OfferPoint[];
-  href: string;
-  cta: string;
-  highlighted?: boolean;
-}) {
-  const t = await getT();
-  const locale = intlLocale(await getLocale());
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col rounded-xl p-6 md:p-10",
-        highlighted ? "bg-orange-500 text-black" : "border border-white/20",
-      )}
-    >
-      {highlighted && (
-        <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-black px-3 py-1 text-xs font-bold tracking-wide text-orange-400 uppercase md:left-10">
-          <Star aria-hidden className="size-3.5 fill-current" />
-          {t("Recommandé")}
-        </span>
-      )}
-      <p className={cn(display.className, "text-lg tracking-[0.15em] uppercase")}>{t(name)}</p>
-      <p className={cn("mt-1 text-base", highlighted ? "text-black/75" : "text-white/60")}>
-        {t(lead)}
-      </p>
-      <p className={cn(display.className, "mt-6 text-7xl leading-none md:text-8xl")}>
-        {amount.toLocaleString(locale)}
-      </p>
-      <p className={cn("mt-2 text-lg", highlighted ? "text-black/75" : "text-white/60")}>
-        {t("FCFA par mois")}
-      </p>
-      {note && (
-        <p className="mt-3 inline-block self-start rounded-lg bg-black/10 px-3 py-1.5 text-base font-semibold">
-          {note}
-        </p>
-      )}
-      <div className="mt-8 mb-8 flex-1">
-        {points.slice(0, POINTS_SHOWN).map((p) => (
-          <OfferPointRow key={p.title} point={p} highlighted={highlighted} />
+      <p className="mt-8 text-lg font-semibold">{t("Ce que nous recherchons :")}</p>
+      <ul className="mt-2 mb-8 grid gap-x-10 md:grid-cols-2">
+        {SELECTION_CRITERIA.map((line) => (
+          <li key={line} className="flex items-start gap-3 border-t border-black/30 py-4">
+            <Check className="mt-1 size-5 shrink-0" aria-hidden />
+            <span className="text-lg leading-snug font-semibold">{t(line)}</span>
+          </li>
         ))}
-        {points.length > POINTS_SHOWN && (
-          <details className="group">
-            <summary
-              className={cn(
-                "flex min-h-11 cursor-pointer list-none items-center gap-1 border-t pt-4 text-base font-semibold underline underline-offset-4 [&::-webkit-details-marker]:hidden",
-                highlighted ? "border-black/30" : "border-white/25",
-              )}
-            >
-              <span className="group-open:hidden">
-                {t("Voir tout (+{n})", { n: points.length - POINTS_SHOWN })}
-              </span>
-              <span className="hidden group-open:inline">{t("Voir moins")}</span>
-              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
-            </summary>
-            {points.slice(POINTS_SHOWN).map((p) => (
-              <OfferPointRow key={p.title} point={p} highlighted={highlighted} />
-            ))}
-          </details>
-        )}
-      </div>
+      </ul>
       <Link
-        href={href}
-        className={cn(
-          "flex h-14 w-full items-center justify-center gap-2 rounded-lg px-6 text-base font-semibold transition-colors",
-          highlighted
-            ? "border border-black hover:bg-black hover:text-white"
-            : "border border-white hover:bg-white hover:text-black",
-        )}
+        href="/inscription?role=pro"
+        className="flex h-14 w-full items-center justify-center gap-2 rounded-lg border border-black px-6 text-base font-semibold transition-colors hover:bg-black hover:text-white md:w-auto md:self-start"
       >
-        {cta}
+        {t(SELECTION_CTA)}
         <ArrowRight className="size-5" aria-hidden />
       </Link>
     </div>
@@ -296,34 +219,9 @@ export async function JoinTailors() {
           ))}
         </ul>
 
-        <h3 className={cn(COLLECTION_HEADING, "mt-16 md:mt-24 md:text-5xl")}>{t("Nos deux offres")}</h3>
-        <p className="text-muted-foreground mt-3 max-w-2xl text-lg">
-          {t("Dans les deux cas : votre boutique, vos commandes et vos messages. Vous pouvez coudre et vendre du tissu.")}
-        </p>
-
-        <div className="mt-8 grid gap-4 md:mt-10 md:grid-cols-2">
-          <OfferCard
-            highlighted
-            name={PAID_PLAN.name}
-            amount={PAID_PLAN.monthlyPrice}
-            note={t("{price} par jour", { price: formatPrice(dailyPrice(PAID_PLAN.monthlyPrice)) })}
-            lead={OFFER_PITCH.premium.lead}
-            points={OFFER_PITCH.premium.points}
-            href="/inscription?role=pro&offre=premium"
-            cta={t("Choisir l'offre {name}", { name: PAID_PLAN.name })}
-          />
-          <OfferCard
-            name="Gratuit"
-            amount={0}
-            lead={OFFER_PITCH.free.lead}
-            points={OFFER_PITCH.free.points}
-            href="/inscription?role=pro&offre=free"
-            cta={t("Commencer gratuitement")}
-          />
+        <div className="mt-16 md:mt-24">
+          <SelectionCard />
         </div>
-        <p className="text-muted-foreground mt-4 text-base">
-          {t("L'offre {name} est rentable dès {amount} de ventes par mois : au-delà, elle vous coûte moins que la commission de {pct}%.", { name: PAID_PLAN.name, amount: formatPrice(proBreakEven(PAID_PLAN.monthlyPrice)), pct: COMMISSION_PCT })}
-        </p>
       </div>
     </section>
   );

@@ -214,6 +214,22 @@ export async function grantLaunchPromo(proId: string): Promise<boolean> {
   return !tailor.error && (tailor.data?.length ?? 0) > 0;
 }
 
+/**
+ * Sélection JALOFA (cf. `selection.ts`) : l'accès PRO offert, **sans échéance**,
+ * à un pro qui vient de candidater. Sans échéance, `renewProFromSale` ne
+ * facture jamais rien et le plan Pro ne prend aucune commission. Renvoie `true`
+ * si l'atelier a bien été mis à jour.
+ */
+export async function grantSelectionAccess(proId: string): Promise<boolean> {
+  const admin = db();
+  const patch = { plan: PAID_PLAN_ID, plan_expires_at: null };
+  const [tailor] = await Promise.all([
+    admin.from("tailors").update(patch).eq("id", proId).select("id"),
+    admin.from("vendors").update(patch).eq("id", proId),
+  ]);
+  return !tailor.error && (tailor.data?.length ?? 0) > 0;
+}
+
 /** « Sans engagement » : arrêter (ou reprendre) le renouvellement de l'offre Pro. */
 export async function setProAutoRenew(proId: string, on: boolean): Promise<void> {
   const admin = db();

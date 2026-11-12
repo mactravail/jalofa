@@ -2,21 +2,44 @@ import type { Metadata } from "next";
 import Link from "@/components/i18n/link";
 
 import { APP_NAME } from "@/lib/constants";
+import { getLocale } from "@/lib/i18n/server";
+import {
+  CONFIDENTIALITE_CHROME_IT,
+  CONFIDENTIALITE_SECTIONS_IT,
+} from "@/lib/legal/confidentialite-it";
+import type { LegalChrome, LegalClause } from "@/lib/legal/types";
 
-export const metadata: Metadata = {
-  title: "Politique de confidentialité",
-  description: `Comment ${APP_NAME} collecte, utilise et protège vos données personnelles, y compris vos mesures corporelles.`,
+// Texte de référence en français ; la version italienne vit dans
+// `src/lib/legal/confidentialite-it.ts` — reporter toute modification.
+
+const CHROME_FR: LegalChrome = {
+  metaTitle: "Politique de confidentialité",
+  metaDescription: `Comment ${APP_NAME} collecte, utilise et protège vos données personnelles, y compris vos mesures corporelles.`,
+  heading: "Politique de confidentialité",
+  intro: `Comment ${APP_NAME} collecte, utilise et protège vos données personnelles, y compris vos mesures corporelles.`,
+  updatedLabel: "Dernière mise à jour :",
+  updated: "25 juillet 2026",
+  seeAlso: "Voir aussi nos",
+  and: "et nos",
+  links: {
+    conditions: "conditions générales",
+    confidentialite: "politique de confidentialité",
+    mentions: "mentions légales",
+  },
 };
 
-const LAST_UPDATED = "25 juillet 2026";
+async function content(): Promise<{ chrome: LegalChrome; sections: LegalClause[] }> {
+  return (await getLocale()) === "it"
+    ? { chrome: CONFIDENTIALITE_CHROME_IT, sections: CONFIDENTIALITE_SECTIONS_IT }
+    : { chrome: CHROME_FR, sections: SECTIONS };
+}
 
-type Clause = {
-  title: string;
-  body: string;
-  list?: string[];
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { chrome } = await content();
+  return { title: chrome.metaTitle, description: chrome.metaDescription };
+}
 
-const SECTIONS: Clause[] = [
+const SECTIONS: LegalClause[] = [
   {
     title: "1. Responsable du traitement",
     body: `${APP_NAME} est responsable du traitement des données personnelles collectées sur la plateforme. Pour toute question relative à vos données ou pour exercer vos droits, contactez-nous depuis votre espace personnel ou à mactravail23@gmail.com.`,
@@ -114,27 +137,21 @@ const SECTIONS: Clause[] = [
   },
 ];
 
-export default function ConfidentialitePage() {
+export default async function ConfidentialitePage() {
+  const { chrome, sections } = await content();
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-        Politique de confidentialité
-      </h1>
-      <p className="text-muted-foreground mt-3">
-        Comment {APP_NAME} collecte, utilise et protège vos données
-        personnelles, y compris vos mesures corporelles.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{chrome.heading}</h1>
+      <p className="text-muted-foreground mt-3">{chrome.intro}</p>
       <p className="text-muted-foreground mt-2 text-sm">
-        Dernière mise à jour : {LAST_UPDATED}
+        {chrome.updatedLabel} {chrome.updated}
       </p>
 
       <div className="mt-10 space-y-8">
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <section key={section.title}>
             <h2 className="text-lg font-semibold">{section.title}</h2>
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-              {section.body}
-            </p>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{section.body}</p>
             {section.list ? (
               <ul className="text-muted-foreground mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
                 {section.list.map((item) => (
@@ -147,19 +164,13 @@ export default function ConfidentialitePage() {
       </div>
 
       <p className="text-muted-foreground mt-10 border-t pt-8 text-sm">
-        Voir aussi nos{" "}
-        <Link
-          href="/conditions"
-          className="text-foreground underline underline-offset-4"
-        >
-          conditions générales
+        {chrome.seeAlso}{" "}
+        <Link href="/conditions" className="text-foreground underline underline-offset-4">
+          {chrome.links.conditions}
         </Link>{" "}
-        et nos{" "}
-        <Link
-          href="/mentions-legales"
-          className="text-foreground underline underline-offset-4"
-        >
-          mentions légales
+        {chrome.and}{" "}
+        <Link href="/mentions-legales" className="text-foreground underline underline-offset-4">
+          {chrome.links.mentions}
         </Link>
         .
       </p>
