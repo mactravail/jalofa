@@ -67,7 +67,7 @@ function Header({
           {t("Sélection JALOFA : accès PRO offert")}
         </span>
         <span className="truncate max-md:hidden">
-          {t("Tailleurs et vendeurs de tissus : candidatez à la Sélection JALOFA, accès PRO offert")}
+          {t("Accès PRO offert")}
         </span>
       </Link>
 

@@ -2369,8 +2369,6 @@ export const it: Record<string, string> = {
     "Selezione JALOFA · Accesso PRO in regalo",
   "Sélection JALOFA : accès PRO offert":
     "Selezione JALOFA: accesso PRO in regalo",
-  "Tailleurs et vendeurs de tissus : candidatez à la Sélection JALOFA, accès PRO offert":
-    "Sarti e venditori di tessuti: candidati alla Selezione JALOFA, accesso PRO in regalo",
   "Vous faites partie des professionnels sélectionnés par JALOFA : aucun abonnement à payer, aucune commission sur vos ventes.":
     "Fai parte dei professionisti selezionati da JALOFA: nessun abbonamento da pagare, nessuna commissione sulle tue vendite.",
   "Activer mon accès PRO offert":
