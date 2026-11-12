@@ -66,7 +66,8 @@ export const it: Record<string, string> = {
     "Un uomo in grand boubou ricamato e una donna in abito drappeggiato davanti a una porta scura",
   "Robe, boubou, cérémonie": "Abito, boubou, cerimonia",
   "Rouleaux de tissus jaunes, orange et rouges": "Rotoli di tessuti gialli, arancioni e rossi",
-  "Wax, bazin, broderie": "Wax, bazin, ricamo",
+  "Choisissez votre tissu parmi les meilleurs":
+    "Scegli il tuo tessuto tra i migliori",
   "Choisissez votre étoffe": "Scegli la tua stoffa",
   "Pied-de-biche d'une machine à coudre sur un tissu noir": "Piedino di una macchina da cucire su un tessuto nero",
   "Nos artisans": "I nostri artigiani",

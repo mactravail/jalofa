@@ -386,7 +386,7 @@ export default async function HomePage() {
         <>
           <Banner
             images={[{ src: "/look/karola.jpg", alt: t("Rouleaux de tissus jaunes, orange et rouges") }]}
-            eyebrow={t("Wax, bazin, broderie")}
+            eyebrow={t("Choisissez votre tissu parmi les meilleurs")}
             title={t("Tissus")}
             href="/tissus"
           />
