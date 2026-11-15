@@ -54,7 +54,7 @@ const PROMISES = [
   {
     icon: Scissors,
     title: "Des tailleurs d'expérience",
-    text: "Des ateliers du Sénégal, notés par leurs clients.",
+    text: "Les meilleurs ateliers du monde, notés par leurs clients.",
   },
   {
     icon: Ruler,
@@ -68,8 +68,8 @@ const PROMISES = [
   },
   {
     icon: ShieldCheck,
-    title: "Payé après la livraison",
-    text: "Le tailleur est payé seulement quand vous avez reçu votre tenue.",
+    title: "Paiement protégé",
+    text: "Payez comme vous le souhaitez : Wave, Orange Money ou carte bancaire.",
   },
 ];
 
@@ -165,12 +165,12 @@ export default async function AfriquePage() {
             <p className="text-muted-foreground text-sm tracking-[0.2em] uppercase">
               {t("Tailleur ou vendeur de tissus")}
             </p>
-            <h2 className={cn(COLLECTION_HEADING, "mt-3")}>{t("Votre atelier est en Afrique ?")}</h2>
+            <h2 className={cn(COLLECTION_HEADING, "mt-3")}>{t("Vous êtes un pro de la couture ?")}</h2>
             <p className="mt-4 max-w-2xl text-lg">
-              {t("Ouvrez votre boutique sur JALOFA : vos créations sont vues au Sénégal, en Europe et dans la diaspora.")}
+              {t("Vendez gratuitement vos créations sur JALOFA, à des clients du monde entier.")}
             </p>
             <Link href="/inscription?role=pro" className={cn(COLLECTION_CTA, "mt-8")}>
-              {t("Créer mon compte pro")}
+              {t("Vendre")}
               <ArrowRight className="size-5" aria-hidden />
             </Link>
           </div>

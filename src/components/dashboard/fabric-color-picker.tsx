@@ -14,9 +14,12 @@ import { useT } from "@/components/i18n/locale-provider";
 export function FabricColorPicker({
   defaultValue,
   name = "color",
+  onChange,
 }: {
   defaultValue?: string | null;
   name?: string;
+  /** Prévient le formulaire (prix / photo par couleur). */
+  onChange?: (colors: string[]) => void;
 }) {
   const [selected, setSelected] = useState<string[]>(() =>
     parseFabricColors(defaultValue),
@@ -25,9 +28,11 @@ export function FabricColorPicker({
   const t = useT();
 
   function toggle(color: string) {
-    setSelected((s) =>
-      s.includes(color) ? s.filter((c) => c !== color) : [...s, color],
-    );
+    const next = selected.includes(color)
+      ? selected.filter((c) => c !== color)
+      : [...selected, color];
+    setSelected(next);
+    onChange?.(next);
   }
 
   // Une ancienne couleur saisie à la main reste gardée (et décochable).

@@ -7,7 +7,9 @@
 insert into public.fabric_categories (slug, name, sort_order) values
   ('laine', 'Laine', 1),
   ('coton', 'Coton', 2),
-  ('lin', 'Lin', 3)
+  ('lin', 'Lin', 3),
+  ('wax', 'Wax', 4),
+  ('bazin', 'Bazin', 5)
 on conflict (slug) do nothing;
 
 -- Model categories ----------------------------------------------------------

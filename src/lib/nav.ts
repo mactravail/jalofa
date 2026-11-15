@@ -23,7 +23,10 @@ export const NAV_LINKS: NavLink[] = [
 // tailleurs et les vendeurs (aucun abonnement, aucune commission). La page
 // `/abonnements` reste en place, non liée, pour un retour éventuel des forfaits.
 export const FOOTER_LINKS: NavLink[] = [
-  ...NAV_LINKS,
+  // Dans le pied de page, on précise : « Vendeurs de tissu », pas seulement « Vendeurs ».
+  ...NAV_LINKS.map((l) =>
+    l.href === "/vendeurs" ? { ...l, label: "Vendeurs de tissu" } : l,
+  ),
   { href: "/modeles", label: "Tous les modèles" },
   // La FAQ n'est plus affichée sur l'accueil : on y accède depuis le footer.
   { href: "/faq", label: "Questions fréquentes (FAQ)" },

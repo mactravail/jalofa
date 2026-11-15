@@ -6,6 +6,7 @@ import {
   moneyHeldForReceipt,
   moneyReleased,
 } from "@/lib/pipeline";
+import { completionShares, toWorkflowOrder } from "@/lib/order-workflow";
 import {
   planCommission,
   planMonthlyPrice,
@@ -60,7 +61,26 @@ export type Payout = {
   pending: number;
   /** Vendeur : payé par le client, retenu jusqu'à la réception du tissu. */
   held: number;
+  /** Déjà versé d'après le registre (`order_ledger`, type `payout`). */
+  alreadyPaid: number;
+  /**
+   * Ce qui reste à verser, commande par commande (net de commission et de
+   * `proFee`) — ce que « Marquer versé » inscrit au registre.
+   */
+  lines: { orderId: string; amount: number }[];
 };
+
+/** Une écriture du registre, telle que la lit l'administration. */
+export type PayoutLedgerEntry = {
+  order_id: string;
+  entry_type: string;
+  party: string;
+  party_id: string | null;
+  amount: number;
+};
+
+/** Ces parts reviennent entières à celui qui livre : jamais de commission. */
+const NO_COMMISSION_KINDS = new Set(["delivery_out", "delivery_garment", "delivery_return", "compensation"]);
 
 /** Cumul d'une liste de reversements, pour les totaux d'en-tête. */
 export type PayoutTotals = {
@@ -104,18 +124,25 @@ export function buildPayouts(
   role: ProRole,
   orders: OrderListItem[],
   directory: Map<string, ProInfo>,
+  ledger: PayoutLedgerEntry[] = [],
 ): Payout[] {
   const proIdOf = (o: OrderListItem) =>
     role === "vendor" ? o.vendor_id : o.tailor_id;
 
+  // Registre : parts décidées à l'annulation, et versements déjà faits, par commande.
+  const decided = new Map<string, PayoutLedgerEntry[]>();
+  const paidOut = new Map<string, number>();
+  for (const e of ledger) {
+    if (e.party !== role || !e.party_id) continue;
+    const key = `${e.order_id}:${e.party_id}`;
+    if (e.entry_type === "payout") paidOut.set(key, (paidOut.get(key) ?? 0) + e.amount);
+    else if (!["payment", "refund", "provider_fee", "payout_fee", "adjustment"].includes(e.entry_type)) {
+      decided.set(key, [...(decided.get(key) ?? []), e]);
+    }
+  }
+
   const rows = new Map<string, Payout>();
-
-  for (const order of orders) {
-    const id = proIdOf(order);
-    if (!id) continue;
-    const share = amountFor(role, order);
-    if (share <= 0) continue;
-
+  const rowFor = (id: string) => {
     const info = directory.get(id);
     const row =
       rows.get(id) ??
@@ -133,25 +160,66 @@ export function buildPayouts(
         net: 0,
         pending: 0,
         held: 0,
+        alreadyPaid: 0,
+        lines: [],
       } satisfies Payout);
+    rows.set(id, row);
+    return row;
+  };
 
-    if (moneyReleased(role, order)) {
+  for (const order of orders) {
+    const id = proIdOf(order);
+    if (!id) continue;
+    const key = `${order.id}:${id}`;
+
+    // Ce que la commande doit à ce pro : ses parts si elle aboutit (tissu et
+    // couture distincts, aller du tissu compris), sinon ce que JALOFA a décidé
+    // à l'annulation (indemnité 35 %, tissu dû, trajet effectué).
+    let parts: { kind: string; amount: number }[];
+    let released: boolean;
+    if (decided.has(key)) {
+      parts = decided.get(key)!.map((e) => ({ kind: e.entry_type, amount: e.amount }));
+      released = true;
+    } else {
+      parts = completionShares(toWorkflowOrder(order))
+        .filter((l) => l.party === role && l.partyId === id)
+        .map((l) => ({ kind: l.kind, amount: l.amount }));
+      // Repli sur l'ancien calcul pour une commande sans ventilation (démo).
+      if (parts.length === 0 && amountFor(role, order) > 0) {
+        parts = [{ kind: role === "vendor" ? "fabric" : "tailoring", amount: amountFor(role, order) }];
+        const delivery = deliveryShareFor(role, order);
+        if (delivery > 0) {
+          parts[0].amount -= delivery;
+          parts.push({ kind: "delivery_garment", amount: delivery });
+        }
+      }
+      released = moneyReleased(role, order);
+    }
+
+    const share = parts.reduce((s, p) => s + p.amount, 0);
+    if (share <= 0) continue;
+    const row = rowFor(id);
+
+    if (released) {
+      const delivery = parts.filter((p) => NO_COMMISSION_KINDS.has(p.kind)).reduce((s, p) => s + p.amount, 0);
+      const commission = Math.round((share - delivery) * planCommission(row.plan));
+      const already = paidOut.get(key) ?? 0;
       row.paidOrders += 1;
       row.gross += share;
-      row.delivery += deliveryShareFor(role, order);
+      row.delivery += delivery;
+      row.commission += commission;
+      row.alreadyPaid += already;
+      const left = share - commission - already;
+      if (left > 0) row.lines.push({ orderId: order.id, amount: left });
     } else if (moneyHeldForReceipt(role, order)) {
       row.held += share;
     } else if (order.payment_status === "pending") {
       row.pending += share;
     }
-
-    rows.set(id, row);
   }
 
   for (const row of rows.values()) {
-    // Pas de commission sur la livraison : elle revient entière à celui qui livre.
-    row.commission = Math.round((row.gross - row.delivery) * planCommission(row.plan));
-    row.net = row.gross - row.commission;
+    row.net = row.lines.reduce((s, l) => s + l.amount, 0);
   }
 
   return [...rows.values()].sort((a, b) => b.net - a.net);
@@ -177,6 +245,15 @@ export function applyDeferredFees(
       row.proFee += take;
       row.net -= take;
       left.set(row.id, due - take);
+      // La retenue réduit aussi les lignes à verser, des plus grosses aux plus petites.
+      let rest = take;
+      for (const line of [...row.lines].sort((a, b) => b.amount - a.amount)) {
+        if (rest <= 0) break;
+        const cut = Math.min(rest, line.amount);
+        line.amount -= cut;
+        rest -= cut;
+      }
+      row.lines = row.lines.filter((l) => l.amount > 0);
     }
     rows.sort((a, b) => b.net - a.net);
   }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "@/components/i18n/link";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { ProductPrice } from "@/components/europe/europe-price";
 import { EuropeBadge } from "@/components/europe/europe-badge";
@@ -27,6 +27,8 @@ const SORTS: { value: Sort; label: string }[] = [
   { value: "fastest", label: "Le plus rapide" },
 ];
 
+const FILTER_CATEGORIES = ["homme", "femme"] as const;
+
 const HERO = {
   src: "/models/mood-hero.jpg",
   alt: "Trois personnes en tenue, sous un faisceau de lumière dans le noir",
@@ -48,16 +50,21 @@ export function ModelsCatalog({
   const [category, setCategory] = useState<string | null>(
     initialCategory ?? null,
   );
-  const [query, setQuery] = useState(initialQuery ?? "");
+  const query = initialQuery ?? "";
   const t = useT();
   const [sort, setSort] = useState<Sort>("featured");
-  const [filtersOpen, setFiltersOpen] = useState(Boolean(initialQuery));
 
-  // Seules les catégories qui ont au moins un modèle méritent un bouton.
+  // Pour l'instant le filtre ne propose que Homme et Femme.
   const usedCategories = useMemo(
     () =>
-      categories.filter((c) => models.some((m) => m.category_slug === c.slug)),
-    [categories, models],
+      FILTER_CATEGORIES.map(
+        (slug) =>
+          categories.find((c) => c.slug === slug) ?? {
+            slug,
+            name: slug === "homme" ? "Homme" : "Femme",
+          },
+      ),
+    [categories],
   );
 
   const categoryNames = useMemo(
@@ -86,8 +93,6 @@ export function ModelsCatalog({
         return list;
     }
   }, [models, category, query, sort]);
-
-  const activeFilters = (category ? 1 : 0) + (query.trim() ? 1 : 0);
 
   return (
     <div className="bg-black text-white">
@@ -135,19 +140,25 @@ export function ModelsCatalog({
             "mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 text-sm tracking-[0.12em] uppercase md:px-8",
           )}
         >
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((o) => !o)}
-            aria-expanded={filtersOpen}
-            className="flex h-10 items-center gap-2 transition-opacity hover:opacity-70"
-          >
-            {t("Filtrer")}
-            {activeFilters > 0 && (
-              <span className="grid size-5 place-items-center rounded-full bg-white text-[11px] text-black">
-                {activeFilters}
-              </span>
-            )}
-          </button>
+          <label className="flex items-center gap-3">
+            <span className="hidden sm:inline">{t("Filtrer :")}</span>
+            <span className="relative">
+              <select
+                value={category ?? ""}
+                onChange={(e) => setCategory(e.target.value || null)}
+                aria-label={t("Filtrer")}
+                className="h-10 appearance-none rounded-md border border-white/25 bg-black py-0 pr-9 pl-3 tracking-[0.12em] uppercase outline-none focus-visible:border-white sm:min-w-40"
+              >
+                <option value="">{t("Tous")}</option>
+                {usedCategories.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {t(c.name)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2" />
+            </span>
+          </label>
 
           <label className="ml-auto flex items-center gap-3">
             <span className="hidden sm:inline">{t("Trier par :")}</span>
@@ -172,44 +183,6 @@ export function ModelsCatalog({
           </span>
         </div>
       </div>
-
-      {filtersOpen && (
-        <div className="mx-auto max-w-7xl space-y-4 border-b border-white/10 px-4 py-5 md:px-8">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("Rechercher un modèle…")}
-            className="h-11 w-full max-w-sm rounded-md border border-white/25 bg-black px-3 text-base outline-none placeholder:text-white/50 focus-visible:border-white"
-          />
-          <div className="flex flex-wrap gap-2">
-            <FilterChip active={!category} onClick={() => setCategory(null)}>
-              {t("Tous")}
-            </FilterChip>
-            {usedCategories.map((c) => (
-              <FilterChip
-                key={c.slug}
-                active={category === c.slug}
-                onClick={() => setCategory(c.slug)}
-              >
-                {t(c.name)}
-              </FilterChip>
-            ))}
-            {activeFilters > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory(null);
-                  setQuery("");
-                }}
-                className="flex h-10 items-center gap-1.5 px-2 text-sm text-white/70 hover:text-white"
-              >
-                <X className="size-4" /> {t("Effacer")}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Grille ------------------------------------------------------------ */}
       {visible.length === 0 ? (
@@ -315,27 +288,3 @@ export function CatalogTile({
   );
 }
 
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-10 rounded-md border px-4 text-sm transition-colors",
-        active
-          ? "border-white bg-white text-black"
-          : "border-white/25 hover:border-white",
-      )}
-    >
-      {children}
-    </button>
-  );
-}

@@ -8,6 +8,7 @@ import { saveFabric } from "@/lib/actions/fabrics";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
 import { FabricColorPicker } from "@/components/dashboard/fabric-color-picker";
+import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,10 +30,28 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENCY, formatPrice } from "@/lib/constants";
 import { eurToXof, xofToEur } from "@/lib/europe";
+import {
+  BRAND_SUGGESTIONS,
+  CARE_INSTRUCTIONS,
+  DRAPES,
+  OPACITIES,
+  PATTERNS,
+  SALES_UNITS,
+  SALES_UNIT_KEYS,
+  STRETCHES,
+  USAGES,
+  WEIGHTS,
+  fabricUnitPrice,
+  parseSalesUnit,
+  type SalesUnit,
+} from "@/lib/fabric-specs";
 import type { Fabric, FabricCategory } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 
 const NONE = "__none__";
+
+type Picked = { file: File; url: string } | null;
 
 export function FabricFormDialog({
   open,
@@ -51,31 +70,65 @@ export function FabricFormDialog({
   /** Boutique en Europe (JALOFA EUROPE) : prix saisi en €, livraison « Europe ». */
   europe?: boolean;
 }) {
+  const initialUnitPrice = fabric ? fabricUnitPrice(fabric) : null;
   const [priceEur, setPriceEur] = useState<string>(
-    fabric?.price_per_meter != null ? String(xofToEur(fabric.price_per_meter)) : "",
+    initialUnitPrice != null ? String(xofToEur(initialUnitPrice)) : "",
   );
   const isEdit = Boolean(fabric);
   const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
-  const [category, setCategory] = useState<string>(
-    fabric?.category_slug ?? NONE,
-  );
+  const [category, setCategory] = useState<string>(fabric?.category_slug ?? NONE);
+  const [unit, setUnit] = useState<SalesUnit>(parseSalesUnit(fabric?.sales_unit));
   // File + its preview URL move together so the URL is revoked on replacement.
-  const [picked, setPicked] = useState<{ file: File; url: string } | null>(null);
+  const [picked, setPicked] = useState<Picked>(null);
+  const [pickedDetail, setPickedDetail] = useState<Picked>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Par couleur, facultatif : un prix différent et/ou une photo.
+  const [colorList, setColorList] = useState<string[]>(() => parseFabricColors(fabric?.color));
+  const [colorPrices, setColorPrices] = useState<Record<string, string>>(() =>
+    initialColorPrices(fabric, europe),
+  );
+  const [colorFiles, setColorFiles] = useState<Record<string, Picked>>({});
+
+  function pickColorFile(color: string, next: File | null) {
+    setColorFiles((m) => {
+      const prev = m[color];
+      if (prev) URL.revokeObjectURL(prev.url);
+      return { ...m, [color]: next ? { file: next, url: URL.createObjectURL(next) } : null };
+    });
+  }
+
+  /** Ce qui part au serveur : prix (FCFA) et photo déjà en ligne, par couleur. */
+  const variantsJson = JSON.stringify(
+    Object.fromEntries(
+      colorList.map((c) => {
+        const raw = Number(String(colorPrices[c] ?? "").replace(",", "."));
+        const price = Number.isFinite(raw) && raw > 0 ? (europe ? eurToXof(raw) : Math.round(raw)) : null;
+        return [c, { price, image_url: fabric?.color_variants?.[c]?.image_url ?? null }];
+      }),
+    ),
+  );
+
   const file = picked?.file ?? null;
+  const detailFile = pickedDetail?.file ?? null;
   const preview = picked?.url ?? fabric?.image_url ?? null;
+  const detailPreview = pickedDetail?.url ?? fabric?.detail_image_url ?? null;
+  const per = t(SALES_UNITS[unit].per);
 
   const itemsMap: Record<string, string> = {
-    [NONE]: t("Aucune catégorie"),
-    ...Object.fromEntries(categories.map((c) => [c.slug, c.name])),
+    [NONE]: t("Choisir…"),
+    ...Object.fromEntries(categories.map((c) => [c.slug, t(c.name)])),
   };
 
   function pick(next: File | null) {
     if (picked) URL.revokeObjectURL(picked.url);
     setPicked(next ? { file: next, url: URL.createObjectURL(next) } : null);
+  }
+  function pickDetail(next: File | null) {
+    if (pickedDetail) URL.revokeObjectURL(pickedDetail.url);
+    setPickedDetail(next ? { file: next, url: URL.createObjectURL(next) } : null);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -86,20 +139,64 @@ export function FabricFormDialog({
       setError(t("Ajoutez une photo du tissu."));
       return;
     }
+    if (!detailFile && !fabric?.detail_image_url) {
+      setError(t("Ajoutez une 2e photo : un gros plan sur le tissage."));
+      return;
+    }
+
+    // La catégorie est obligatoire : l'acheteur doit savoir ce qu'il achète.
+    if (category === NONE) {
+      setError(t("Choisissez la catégorie du tissu."));
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
     formData.set("category_slug", category === NONE ? "" : category);
 
+    // Tous les choix à boutons sont obligatoires, comme les champs texte.
+    const missing = (
+      [
+        ["weight", "Choisissez l'épaisseur."],
+        ["opacity", "Choisissez l'opacité."],
+        ["drape", "Choisissez le tombé."],
+        ["stretch", "Choisissez l'élasticité."],
+        ["color", "Choisissez au moins une couleur."],
+        ["pattern", "Choisissez le motif."],
+        ["care_instructions", "Choisissez l'entretien."],
+        ["recommended_usages", "Choisissez au moins un usage (Idéal pour)."],
+      ] as const
+    ).find(([field]) => !String(formData.get(field) ?? "").trim());
+    if (missing) {
+      setError(t(missing[1]));
+      return;
+    }
+
     startTransition(async () => {
       // Shrink here rather than server-side: a raw phone shot exceeds the
       // Server Action body limit and would be rejected before upload.
-      if (file) {
-        const image = await resizeImage(file);
+      for (const [field, f] of [
+        ["image", file],
+        ["detail_image", detailFile],
+      ] as const) {
+        if (!f) continue;
+        const image = await resizeImage(f);
         if (image.size > MAX_UPLOAD_BYTES) {
           setError(t("Cette photo est trop lourde. Choisissez-en une plus légère."));
           return;
         }
-        formData.set("image", image);
+        formData.set(field, image);
+      }
+      // Photos par couleur : le fichier et sa couleur partent dans le même ordre.
+      for (const c of colorList) {
+        const f = colorFiles[c]?.file;
+        if (!f) continue;
+        const image = await resizeImage(f);
+        if (image.size > MAX_UPLOAD_BYTES) {
+          setError(t("Cette photo est trop lourde. Choisissez-en une plus légère."));
+          return;
+        }
+        formData.append("color_image", image);
+        formData.append("color_image_for", c);
       }
 
       const res = await saveFabric(null, formData);
@@ -123,75 +220,44 @@ export function FabricFormDialog({
   function handleOpenChange(next: boolean) {
     if (next) {
       setCategory(fabric?.category_slug ?? NONE);
+      setUnit(parseSalesUnit(fabric?.sales_unit));
       pick(null);
+      pickDetail(null);
       setError(null);
+      setColorList(parseFabricColors(fabric?.color));
+      setColorPrices(initialColorPrices(fabric, europe));
+      setColorFiles({});
     }
     onOpenChange(next);
   }
 
+  // Les choix à boutons sont remontés à chaque ouverture (valeurs du tissu).
+  const k = `${fabric?.id ?? "new"}-${open}`;
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? t("Modifier le tissu") : t("Ajouter un tissu")}
-          </DialogTitle>
+          <DialogTitle>{isEdit ? t("Modifier le tissu") : t("Ajouter un tissu")}</DialogTitle>
           <DialogDescription>
             {isEdit
               ? t("Mettez à jour les informations de ce tissu.")
-              : t("Renseignez les informations du tissu à mettre en vente.")}
+              : t("Renseignez les informations du tissu à mettre en vente.")}{" "}
+            {t("Tous les champs sont obligatoires, sauf la description.")}
           </DialogDescription>
         </DialogHeader>
 
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" key={k}>
           {fabric && <input type="hidden" name="id" value={fabric.id} />}
-          {/* Falls back to the current swatch when the vendor doesn't re-pick one. */}
-          <input
-            type="hidden"
-            name="image_url"
-            value={fabric?.image_url ?? ""}
-          />
+          {/* Falls back to the current swatches when the vendor doesn't re-pick them. */}
+          <input type="hidden" name="image_url" value={fabric?.image_url ?? ""} />
+          <input type="hidden" name="detail_image_url" value={fabric?.detail_image_url ?? ""} />
 
           {error && (
             <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
               {t(error)}
             </p>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="fabric-image">{t("Photo du tissu")}</Label>
-            <div className="flex items-center gap-3">
-              <div className="bg-muted size-20 shrink-0 overflow-hidden rounded-lg border">
-                {preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={preview}
-                    alt=""
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <div className="text-muted-foreground flex size-full items-center justify-center">
-                    <ImagePlus className="size-6" />
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <Input
-                  id="fabric-image"
-                  name="image"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/avif"
-                  onChange={(e) => pick(e.target.files?.[0] ?? null)}
-                  className="h-auto py-1.5"
-                />
-                <p className="text-muted-foreground text-xs">
-                  {isEdit
-                    ? t("Laissez vide pour garder la photo actuelle.")
-                    : t("JPEG, PNG ou WebP. La photo est redimensionnée automatiquement.")}
-                </p>
-              </div>
-            </div>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="fabric-name">{t("Nom du tissu")}</Label>
@@ -204,62 +270,131 @@ export function FabricFormDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            {europe ? (
-              <>
-                <Label htmlFor="fabric-price">{t("Prix / mètre")} (€)</Label>
-                <Input
-                  id="fabric-price"
-                  type="number"
-                  min={0}
-                  step={1}
-                  required
-                  value={priceEur}
-                  onChange={(e) => setPriceEur(e.target.value)}
-                  placeholder="0"
-                />
-                {/* Enregistré et payé en FCFA : c'est la devise de JALOFA. */}
-                <input
-                  type="hidden"
-                  name="price_per_meter"
-                  value={priceEur.trim() ? String(eurToXof(Number(priceEur) || 0)) : ""}
-                />
-                {priceEur.trim() && (
-                  <p className="text-muted-foreground text-xs">
-                    {t("Soit {price} le mètre.", { price: formatPrice(eurToXof(Number(priceEur) || 0)) })}
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <Label htmlFor="fabric-price">{t("Prix / mètre")} ({CURRENCY})</Label>
-                <Input
-                  id="fabric-price"
-                  name="price_per_meter"
-                  type="number"
-                  min={0}
-                  step={1}
-                  required
-                  defaultValue={fabric?.price_per_meter ?? ""}
-                  placeholder="0"
-                />
-              </>
-            )}
-          </div>
-
-          <div className="space-y-2">
+          {/* 1. Vente & dimensions */}
+          <Section n={1} title={t("Vente & dimensions")}>
             <div className="space-y-2">
-              <Label>{t("Catégorie")}</Label>
+              <Label>{t("Vendu")}</Label>
+              <Chips
+                name="sales_unit"
+                options={SALES_UNIT_KEYS.map((u) => ({ value: u, label: t(SALES_UNITS[u].label) }))}
+                value={unit}
+                onChange={(v) => setUnit(v as SalesUnit)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              {europe ? (
+                <>
+                  <Label htmlFor="fabric-price">
+                    {t("Prix")} / {per} (€)
+                  </Label>
+                  <Input
+                    id="fabric-price"
+                    type="number"
+                    min={0}
+                    step={1}
+                    required
+                    value={priceEur}
+                    onChange={(e) => setPriceEur(e.target.value)}
+                    placeholder="0"
+                  />
+                  {/* Enregistré et payé en FCFA : c'est la devise de JALOFA. */}
+                  <input
+                    type="hidden"
+                    name="price_per_unit"
+                    value={priceEur.trim() ? String(eurToXof(Number(priceEur) || 0)) : ""}
+                  />
+                  {priceEur.trim() && (
+                    <p className="text-muted-foreground text-xs">
+                      {t("Soit {price}", { price: formatPrice(eurToXof(Number(priceEur) || 0)) })} / {per}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Label htmlFor="fabric-price">
+                    {t("Prix")} / {per} ({CURRENCY})
+                  </Label>
+                  <Input
+                    id="fabric-price"
+                    name="price_per_unit"
+                    type="number"
+                    min={0}
+                    step={1}
+                    required
+                    defaultValue={initialUnitPrice ?? ""}
+                    placeholder="0"
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="fabric-width">{t("Laize (cm)")}</Label>
+                <Input
+                  id="fabric-width"
+                  name="width_cm"
+                  type="number"
+                  min={30}
+                  max={400}
+                  step={1}
+                  required
+                  defaultValue={fabric?.width_cm ?? ""}
+                  placeholder="150"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fabric-min">{t("Minimum")}</Label>
+                <Input
+                  id="fabric-min"
+                  name="min_order_qty"
+                  type="number"
+                  min={0.5}
+                  max={30}
+                  step={0.5}
+                  required
+                  defaultValue={fabric?.min_order_qty ?? 1}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fabric-stock">{t("Stock")}</Label>
+                <Input
+                  id="fabric-stock"
+                  name="stock_quantity"
+                  type="number"
+                  min={isEdit ? 0 : 0.5}
+                  step={0.5}
+                  required
+                  defaultValue={fabric ? (fabric.stock_meters ?? 0) : ""}
+                  placeholder="50"
+                />
+              </div>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {t("Laize = largeur du tissu. Standard Wax : 115 cm, Lin/Coton/Bazin : 140-150 cm.")}{" "}
+              {t("Minimum et stock en {unit}.", { unit: t(SALES_UNITS[unit].many) })}
+            </p>
+          </Section>
+
+          {/* 2. Matière & origine */}
+          <Section n={2} title={t("Matière & origine")}>
+            <div className="space-y-2">
+              <Label>
+                {t("Catégorie")} <span className="text-destructive">*</span>
+              </Label>
               <Select
                 value={category}
                 onValueChange={(v) => setCategory(v as string)}
                 items={itemsMap}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger
+                  className={cn("w-full", category === NONE && "text-muted-foreground")}
+                  aria-required
+                >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>{t("Aucune catégorie")}</SelectItem>
+                <SelectContent className="max-h-80">
                   {categories.map((c) => (
                     <SelectItem key={c.slug} value={c.slug}>
                       {t(c.name)}
@@ -268,38 +403,235 @@ export function FabricFormDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fabric-composition">{t("Composition")}</Label>
+                <Input
+                  id="fabric-composition"
+                  name="composition"
+                  required
+                  defaultValue={fabric?.composition ?? fabric?.material ?? ""}
+                  placeholder={t("Ex. 100% Coton")}
+                />
+                {/* Ancien champ, toujours lu par le catalogue. */}
+                <input type="hidden" name="material" value={fabric?.material ?? ""} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fabric-brand">
+                  {t("Marque / Origine")}
+                </Label>
+                <Input
+                  id="fabric-brand"
+                  name="origin_brand"
+                  required
+                  list="fabric-brand-suggestions"
+                  defaultValue={fabric?.origin_brand ?? ""}
+                  placeholder="Vlisco, Uniwax…"
+                />
+                <datalist id="fabric-brand-suggestions">
+                  {BRAND_SUGGESTIONS.map((b) => (
+                    <option key={b} value={t(b)} />
+                  ))}
+                </datalist>
+              </div>
+            </div>
+          </Section>
 
-          <div className="space-y-2">
-            <Label>{t("Couleurs")}</Label>
-            <FabricColorPicker
-              key={`${fabric?.id ?? "new"}-${open}`}
-              defaultValue={fabric?.color}
+          {/* 3. Propriétés physiques */}
+          <Section n={3} title={t("Toucher & tombé")}>
+            <ChipField
+              label={t("Épaisseur")}
+              name="weight"
+              defaultValue={fabric?.weight}
+              options={Object.entries(WEIGHTS).map(([value, w]) => ({
+                value,
+                label: t(w.label),
+                hint: t(w.hint),
+              }))}
             />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="fabric-gsm">
+                {t("Grammage (g/m²)")}
+              </Label>
+              <Input
+                id="fabric-gsm"
+                name="grammage_gsm"
+                type="number"
+                min={10}
+                max={1500}
+                step={1}
+                required
+                className="max-w-32"
+                defaultValue={fabric?.grammage_gsm ?? ""}
+              />
+            </div>
+            <ChipField
+              label={t("Opacité")}
+              name="opacity"
+              defaultValue={fabric?.opacity}
+              options={Object.entries(OPACITIES).map(([value, o]) => ({
+                value,
+                label: t(o.label),
+                hint: o.hint ? t(o.hint) : undefined,
+              }))}
+            />
+            <ChipField
+              label={t("Tombé")}
+              name="drape"
+              defaultValue={fabric?.drape}
+              options={Object.entries(DRAPES).map(([value, d]) => ({ value, label: t(d.label) }))}
+            />
+            <ChipField
+              label={t("Élasticité")}
+              name="stretch"
+              defaultValue={fabric?.stretch}
+              options={Object.entries(STRETCHES).map(([value, s]) => ({ value, label: t(s.label) }))}
+            />
+          </Section>
 
-          <div className="space-y-2">
-            <Label htmlFor="fabric-material">{t("Matière")}</Label>
-            <Input
-              id="fabric-material"
-              name="material"
-              defaultValue={fabric?.material ?? ""}
-              placeholder={t("Ex. Coton, laine, lin…")}
+          {/* 4. Visuel & couleurs */}
+          <Section n={4} title={t("Photos & couleurs")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PhotoField
+                id="fabric-image"
+                label={t("Vue d'ensemble du motif")}
+                preview={preview}
+                onPick={pick}
+                isEdit={isEdit}
+              />
+              <PhotoField
+                id="fabric-detail-image"
+                label={t("Gros plan sur le tissage")}
+                preview={detailPreview}
+                onPick={pickDetail}
+                isEdit={isEdit}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("Couleurs")}</Label>
+              <p className="text-muted-foreground text-xs">
+                {t("Touchez d'abord la couleur dominante.")}
+              </p>
+              <FabricColorPicker key={k} defaultValue={fabric?.color} onChange={setColorList} />
+            </div>
+            <input type="hidden" name="color_variants" value={variantsJson} />
+            {colorList.length > 1 && (
+              <div className="space-y-2">
+                <Label>
+                  {t("Prix ou photo par couleur")}{" "}
+                  <span className="text-muted-foreground text-xs font-normal">({t("facultatif")})</span>
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  {t("Même tissu, autre couleur : pas besoin de photo. Mettez un prix seulement si cette couleur coûte plus ou moins cher.")}
+                </p>
+                <ul className="divide-y rounded-lg border">
+                  {colorList.map((c) => {
+                    const preview = colorFiles[c]?.url ?? fabric?.color_variants?.[c]?.image_url ?? null;
+                    const inputId = `color-photo-${c.replace(/\W+/g, "-")}`;
+                    return (
+                      <li key={c} className="flex items-center gap-3 p-2">
+                        <span
+                          className="size-6 shrink-0 rounded-full border border-white/20"
+                          style={{ backgroundColor: fabricColorHex(c) ?? undefined }}
+                        />
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{t(c)}</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          aria-label={t("Prix de {c}", { c: t(c) })}
+                          value={colorPrices[c] ?? ""}
+                          onChange={(e) => setColorPrices((m) => ({ ...m, [c]: e.target.value }))}
+                          placeholder={t("Même prix")}
+                          className="w-28"
+                        />
+                        <span className="text-muted-foreground w-10 text-xs">
+                          {europe ? "€" : CURRENCY}
+                        </span>
+                        <label
+                          htmlFor={inputId}
+                          className="bg-muted relative flex size-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed"
+                          title={t("Photo de cette couleur")}
+                        >
+                          {preview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={preview} alt="" className="size-full object-cover" />
+                          ) : (
+                            <ImagePlus className="text-muted-foreground size-4" />
+                          )}
+                          <input
+                            id={inputId}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/avif"
+                            className="sr-only"
+                            onChange={(e) => {
+                              pickColorFile(c, e.target.files?.[0] ?? null);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            <ChipField
+              label={t("Motif")}
+              name="pattern"
+              defaultValue={fabric?.pattern}
+              options={Object.entries(PATTERNS).map(([value, p]) => ({ value, label: t(p.label) }))}
             />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="fabric-finish">
+                {t("Finition")}
+              </Label>
+              <Input
+                id="fabric-finish"
+                name="finish"
+                required
+                defaultValue={fabric?.finish ?? ""}
+                placeholder={t("Ex. Amidonné, Brillant, Mat, Sequins")}
+              />
+            </div>
+          </Section>
+
+          {/* 5. Entretien & usages */}
+          <Section n={5} title={t("Entretien & usages")}>
+            <ChipField
+              multiple
+              label={t("Entretien")}
+              name="care_instructions"
+              defaultValues={fabric?.care_instructions ?? []}
+              options={Object.entries(CARE_INSTRUCTIONS).map(([value, c]) => ({
+                value,
+                label: t(c.label),
+              }))}
+            />
+            <ChipField
+              multiple
+              label={t("Idéal pour")}
+              name="recommended_usages"
+              defaultValues={fabric?.recommended_usages ?? []}
+              options={Object.entries(USAGES).map(([value, u]) => ({ value, label: t(u.label) }))}
+            />
+            <div className="space-y-2">
+              <Label htmlFor="fabric-description">
+                {t("Description")}{" "}
+                <span className="text-muted-foreground text-xs font-normal">({t("facultatif")})</span>
+              </Label>
+              <Textarea
+                id="fabric-description"
+                name="description"
+                rows={2}
+                defaultValue={fabric?.description ?? ""}
+                placeholder={t("Détails, tissage, usage recommandé…")}
+              />
+            </div>
+          </Section>
 
           <DeliveryZoneField defaultValue={fabric?.delivery_zone} europe={europe} />
-
-          <div className="space-y-2">
-            <Label htmlFor="fabric-description">{t("Description")}</Label>
-            <Textarea
-              id="fabric-description"
-              name="description"
-              rows={2}
-              defaultValue={fabric?.description ?? ""}
-              placeholder={t("Détails, tissage, usage recommandé…")}
-            />
-          </div>
 
           <label className="flex items-start gap-2 text-sm">
             <input
@@ -333,5 +665,189 @@ export function FabricFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function initialColorPrices(fabric: Fabric | null, europe: boolean): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(fabric?.color_variants ?? {}).flatMap(([c, v]) =>
+      v?.price ? [[c, String(europe ? xofToEur(v.price) : v.price)]] : [],
+    ),
+  );
+}
+
+function Section({
+  n,
+  title,
+  children,
+}: {
+  n: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset className="space-y-4 rounded-xl border p-4">
+      <legend className="flex items-center gap-2 px-1 text-sm font-semibold">
+        <span className="bg-primary text-primary-foreground grid size-6 place-items-center rounded-full text-xs">
+          {n}
+        </span>
+        {title}
+      </legend>
+      {children}
+    </fieldset>
+  );
+}
+
+type ChipOption = { value: string; label: string; hint?: string };
+
+/** Boutons radio contrôlés (l'unité de vente change le libellé du prix). */
+function Chips({
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  name: string;
+  options: ChipOption[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => (
+        <label key={o.value} className={chipClass(value === o.value)}>
+          <input
+            type="radio"
+            name={name}
+            value={o.value}
+            checked={value === o.value}
+            onChange={() => onChange(o.value)}
+            className="sr-only"
+          />
+          {o.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Un choix à gros boutons — un seul (radio, re-touchable pour décocher) ou
+ * plusieurs (cases). La valeur part dans le formulaire par les inputs natifs.
+ */
+function ChipField({
+  label,
+  name,
+  options,
+  multiple = false,
+  defaultValue,
+  defaultValues,
+}: {
+  label: string;
+  name: string;
+  options: ChipOption[];
+  multiple?: boolean;
+  defaultValue?: string | null;
+  defaultValues?: string[];
+}) {
+  const [selected, setSelected] = useState<string[]>(
+    multiple ? (defaultValues ?? []) : defaultValue ? [defaultValue] : [],
+  );
+
+  function toggle(v: string) {
+    setSelected((s) =>
+      s.includes(v) ? s.filter((x) => x !== v) : multiple ? [...s, v] : [v],
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => {
+          const on = selected.includes(o.value);
+          return (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(o.value)}
+              className={chipClass(on)}
+            >
+              <span>{o.label}</span>
+              {o.hint && (
+                <span className={cn("text-[11px] font-normal", on ? "opacity-80" : "text-muted-foreground")}>
+                  {o.hint}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {selected.map((v) => (
+        <input key={v} type="hidden" name={name} value={v} />
+      ))}
+    </div>
+  );
+}
+
+function chipClass(on: boolean) {
+  return cn(
+    "flex min-h-10 cursor-pointer flex-col items-start justify-center rounded-lg border px-3 py-1.5 text-left text-sm font-medium transition-colors",
+    on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted",
+  );
+}
+
+/**
+ * Tout le carré est le bouton : c'est là qu'on touche pour choisir la photo.
+ * Le fichier part redimensionné (cf. handleSubmit), donc l'input n'a pas de `name`.
+ */
+function PhotoField({
+  id,
+  label,
+  preview,
+  onPick,
+  isEdit,
+}: {
+  id: string;
+  label: string;
+  preview: string | null;
+  onPick: (file: File | null) => void;
+  isEdit: boolean;
+}) {
+  const t = useT();
+  return (
+    <label htmlFor={id} className="flex cursor-pointer items-center gap-3 rounded-lg border p-2">
+      <span className="bg-muted hover:bg-muted/70 relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed">
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="" className="size-full object-cover" />
+        ) : (
+          <ImagePlus className="text-muted-foreground size-6" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 space-y-1">
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="border-input hover:bg-muted inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium">
+          <ImagePlus className="size-3.5" />
+          {preview ? t("Changer la photo") : t("Ajouter une photo")}
+        </span>
+        {isEdit && preview && (
+          <span className="text-muted-foreground block text-[11px]">
+            {t("Laissez vide pour garder la photo actuelle.")}
+          </span>
+        )}
+      </span>
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif"
+        className="sr-only"
+        onChange={(e) => {
+          onPick(e.target.files?.[0] ?? null);
+          e.target.value = "";
+        }}
+      />
+    </label>
   );
 }

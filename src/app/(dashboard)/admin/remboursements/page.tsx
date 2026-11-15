@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { MessageCircle, Undo2 } from "lucide-react";
 
-import { MarkRefundedButton } from "@/components/admin/after-sale-buttons";
+import { BictorysRefundButton, MarkRefundedButton } from "@/components/admin/after-sale-buttons";
 import { AdminPage } from "@/components/admin/admin-page";
 import { whatsappHref } from "@/lib/after-sale";
 import { getRefundsDue } from "@/lib/admin-data";
@@ -25,7 +25,7 @@ export default async function AdminRefundsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {refunds.map(({ order, amount, reason }) => {
+          {refunds.map(({ order, amount, reason, kept }) => {
             const whatsapp = whatsappHref(
               order.contact_phone ?? order.client?.phone,
               `Bonjour, c'est JALOFA, au sujet du remboursement de votre commande ${order.order_number}.`,
@@ -48,6 +48,11 @@ export default async function AdminRefundsPage() {
                   <p className="text-primary mt-1 text-lg font-bold whitespace-nowrap">
                     {formatPrice(amount)}
                   </p>
+                  {kept > 0 && (
+                    <p className="text-muted-foreground text-xs">
+                      {formatPrice(kept)} retenus (indemnité, trajets, retour) — voir la décision dans Annulations.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2 sm:items-end">
@@ -61,6 +66,7 @@ export default async function AdminRefundsPage() {
                       <MessageCircle className="size-4" /> WhatsApp
                     </a>
                   )}
+                  {order.payment_id && kept === 0 && <BictorysRefundButton orderId={order.id} />}
                   <MarkRefundedButton orderId={order.id} />
                 </div>
               </div>

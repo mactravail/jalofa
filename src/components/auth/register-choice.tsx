@@ -62,11 +62,11 @@ export async function RegisterChoice({ redirect }: { redirect?: string }) {
             {t("Accès PRO offert aux professionnels sélectionnés.")}
           </p>
 
-          <div className="mt-4 mb-6 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+          <div className="mt-4 mb-6 flex flex-nowrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
               <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
               <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
             </span>
           </div>

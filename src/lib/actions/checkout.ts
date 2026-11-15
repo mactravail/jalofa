@@ -2,17 +2,32 @@
 
 import { revalidatePath } from "next/cache";
 
+import { createCheckoutCharge, isBictorysConfigured } from "@/lib/bictorys";
 import { getFabricById } from "@/lib/data";
-import { isFabricAvailable } from "@/lib/fabric-metrage";
+import { quoteLines, type DeliveryLine } from "@/lib/delivery-fees";
+import type { DeliveryOption } from "@/lib/order-workflow";
+import { parseFabricColors } from "@/lib/fabric-colors";
+import { isFabricOnSale } from "@/lib/fabric-metrage";
+import {
+  fabricLinePrice,
+  fabricMinQty,
+  fabricStock,
+  fabricUnit,
+  formatUnits,
+  unitsToMeters,
+} from "@/lib/fabric-specs";
 import { recordDemoFabricSales, type DemoFabricSale } from "@/lib/notifications-demo";
 import { saveOrderContact } from "@/lib/order-contact";
 import { resolveTailoringPrice } from "@/lib/order-pricing";
 import { stripContactInfo } from "@/lib/privacy";
-import { renewProFromSale } from "@/lib/pro-subscription";
+import { renewProFromSale, siteOrigin } from "@/lib/pro-subscription";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { ensureClientAccount } from "@/lib/supabase/guest";
 import { createClient } from "@/lib/supabase/server";
+import { writeSavedContact } from "@/lib/saved-profile-db";
 import { MEASUREMENT_FIELDS, type OrderType, type PaymentMethod } from "@/lib/constants";
+import { demoFabricError, findUnapprovedSeller, isDemoFabric } from "@/lib/sales-approval";
 import type { Fabric } from "@/lib/types";
 
 // A single basket line handed over from the cart. `qty` bespoke garments are
@@ -24,6 +39,10 @@ export type CheckoutItem = {
   style_slug: string | null;
   fabric_id: string | null;
   fabric_meters: number | null;
+  /** Couleur choisie (tissu seul) — vérifiée contre les couleurs du vendeur. */
+  fabric_color?: string | null;
+  /** Couleur du prêt-à-porter — son prix propre est relu sur le modèle. */
+  ready_color?: string | null;
   tailor_id: string | null;
   measurement: {
     mode: "manual" | "standard";
@@ -89,11 +108,59 @@ export type CheckoutPayload = {
     region: string | null;
     country?: string | null;
   } | null;
-  payment_method: PaymentMethod | null;
+  /** Choisi sur la page Bictorys (renseigné au webhook) ; null à la caisse. */
+  payment_method?: PaymentMethod | null;
+  /** A (économique) ou B (express), cahier des charges §3. */
+  delivery_option?: DeliveryOption | null;
+  /** « Enregistrer mon téléphone et mon adresse pour mes prochaines commandes ». */
+  save_profile?: boolean;
 };
 
+/** Ce que coûte la livraison d'un panier dans chaque option, aux tarifs des pros. */
+export type BasketDeliveryQuote = Record<
+  DeliveryOption,
+  { total: number; unknown: boolean } | null
+>;
+
+/**
+ * Les frais de livraison du panier, affichés AVANT le paiement (§3.8). Mêmes
+ * calculs que `placeOrders` (`quoteLines`) : ce qui est montré est ce qui sera payé.
+ */
+export async function quoteBasketDelivery(
+  lines: (DeliveryLine & { qty: number })[],
+): Promise<BasketDeliveryQuote> {
+  const none: BasketDeliveryQuote = { economy: { total: 0, unknown: true }, express: null };
+  if (!isSupabaseConfigured() || !Array.isArray(lines) || lines.length === 0) return none;
+  const safe = lines.slice(0, MAX_ITEMS).map((l) => ({
+    type: l.type,
+    fabric_id: typeof l.fabric_id === "string" ? l.fabric_id : null,
+    tailor_id: typeof l.tailor_id === "string" ? l.tailor_id : null,
+    qty: safeQty(l.qty),
+  }));
+  const supabase = await createClient();
+  const quotes = await quoteLines(supabase, safe);
+  const sum = (option: DeliveryOption) => {
+    let total = 0;
+    let unknown = false;
+    for (const [i, q] of quotes.entries()) {
+      const fees = q[option];
+      if (!fees) return null;
+      total += (fees.fabric + fees.garment) * safe[i].qty;
+      unknown ||= fees.unknown;
+    }
+    return { total, unknown };
+  };
+  return { economy: sum("economy"), express: sum("express") };
+}
+
 export type PlaceOrdersState =
-  | { ok: true; demo: boolean; orderNumbers: string[] }
+  | {
+      ok: true;
+      demo: boolean;
+      orderNumbers: string[];
+      /** Bictorys : la page où le client paie. Les commandes attendent le webhook. */
+      redirectUrl?: string;
+    }
   | { ok: false; error: string }
   | null;
 
@@ -137,6 +204,9 @@ export async function placeOrders(
   _prev: PlaceOrdersState,
   formData: FormData,
 ): Promise<PlaceOrdersState> {
+  if (formData.get("accept_terms") !== "1") {
+    return { ok: false, error: "Acceptez les conditions pour payer" };
+  }
   let payload: CheckoutPayload;
   try {
     payload = JSON.parse(String(formData.get("payload") ?? "{}"));
@@ -161,9 +231,6 @@ export async function placeOrders(
     fabric_meters: safeMeters(item.fabric_meters),
     qty: safeQty(item.qty),
   }));
-  if (!payload.payment_method) {
-    return { ok: false, error: "Choisissez un moyen de paiement." };
-  }
 
   const contact = {
     first_name: payload.contact?.first_name?.trim() ?? "",
@@ -225,7 +292,10 @@ export async function placeOrders(
           fabric_name: fabric.name,
           fabric_image: fabric.image_url,
           fabric_meters: meters,
-          fabric_price: fabric.price_per_meter * meters,
+          fabric_price:
+            item.type === "fabric_only"
+              ? fabricLinePrice(fabric, meters)
+              : fabric.price_per_meter * meters,
         });
       }
     }
@@ -259,12 +329,28 @@ export async function placeOrders(
       .from("fabrics")
       .select("*")
       .in("id", basketFabricIds);
-    const soldOut = ((basketFabrics ?? []) as Fabric[]).find((f) => !isFabricAvailable(f));
+    const demo = ((basketFabrics ?? []) as Fabric[]).find((f) => isDemoFabric(f));
+    if (demo) return { ok: false, error: demoFabricError(demo.name) };
+    const soldOut = ((basketFabrics ?? []) as Fabric[]).find((f) => !isFabricOnSale(f));
     if (soldOut) {
       return {
         ok: false,
         error: `Le tissu « ${soldOut.name} » est épuisé. Retirez-le de votre panier.`,
       };
+    }
+    // Le panier ne peut pas demander plus que le stock du vendeur.
+    for (const f of (basketFabrics ?? []) as Fabric[]) {
+      const stock = fabricStock(f);
+      if (stock == null) continue;
+      const wantedMeters = payload.items
+        .filter((it) => it.fabric_id === f.id && it.type !== "own_fabric")
+        .reduce((sum, it) => sum + (it.fabric_meters ?? 0) * Math.max(1, it.qty), 0);
+      if (wantedMeters / fabricUnit(f).meters > stock + 0.01) {
+        return {
+          ok: false,
+          error: `Il ne reste que ${formatUnits(f, stock)} du tissu « ${f.name} ». Réduisez la quantité.`,
+        };
+      }
     }
   }
 
@@ -292,20 +378,81 @@ export async function placeOrders(
   /** Les pros payés par ce panier — pour renouveler leur offre Pro échue. */
   const soldBy: (string | null)[] = [];
 
-  for (const item of payload.items) {
-    // Recompute prices from authoritative DB rows. The fabric also carries the
-    // vendor the order belongs to — without it the sale would reach neither
-    // their board nor their notifications.
+  // --- Option de livraison et tarifs des pros (§3) --------------------------
+  const option: DeliveryOption = payload.delivery_option === "express" ? "express" : "economy";
+  const deliveryQuotes = await quoteLines(
+    supabase,
+    payload.items.map((it) => ({ type: it.type, fabric_id: it.fabric_id, tailor_id: it.tailor_id })),
+  );
+  if (option === "express" && deliveryQuotes.some((q) => !q.express)) {
+    return {
+      ok: false,
+      error: "Un des pros de votre panier ne propose pas l'express. Choisissez la livraison économique.",
+    };
+  }
+
+  // Prix recalculés depuis la base, AVANT d'ouvrir le paiement : le montant
+  // encaissé est la somme exacte des commandes créées.
+  const priced: {
+    item: CheckoutItem;
+    fabricPrice: number;
+    vendorId: string | null;
+    tailoringPrice: number;
+    fabricFee: number;
+    garmentFee: number;
+  }[] = [];
+  for (const [index, item] of payload.items.entries()) {
+    // The fabric also carries the vendor the order belongs to — without it the
+    // sale would reach neither their board nor their notifications.
     let fabricPrice = 0;
     let vendorId: string | null = null;
     if (item.fabric_id && item.type !== "own_fabric") {
-      const { data: fabric } = await supabase
+      const { data } = await supabase
         .from("fabrics")
-        .select("price_per_meter, vendor_id")
+        .select("*")
         .eq("id", item.fabric_id)
         .single();
-      fabricPrice = Number(fabric?.price_per_meter ?? 0) * (item.fabric_meters ?? 0);
-      vendorId = (fabric?.vendor_id as string | null) ?? null;
+      const fabric = data as Fabric | null;
+      // Seule une couleur réellement proposée par le vendeur est gardée : c'est
+      // elle qui fixe le prix quand il diffère.
+      item.fabric_color =
+        fabric && typeof item.fabric_color === "string" &&
+        parseFabricColors(fabric.color).includes(item.fabric_color)
+          ? item.fabric_color
+          : null;
+      if (item.fabric_color) {
+        const line = `Couleur : ${item.fabric_color}`;
+        item.notes = item.notes ? `${line}\n${item.notes}` : line;
+      }
+      // Tissu seul vendu au yard / pagne / complet : N × prix de l’unité, exact.
+      fabricPrice = !fabric
+        ? 0
+        : item.type === "fabric_only"
+          ? fabricLinePrice(fabric, item.fabric_meters ?? 0, item.fabric_color)
+          : Math.round(Number(fabric.price_per_meter ?? 0) * (item.fabric_meters ?? 0));
+      // Quantité minimum du vendeur (tissu acheté seul).
+      if (
+        fabric &&
+        item.type === "fabric_only" &&
+        (item.fabric_meters ?? 0) + 0.01 < unitsToMeters(fabric, fabricMinQty(fabric))
+      ) {
+        return {
+          ok: false,
+          error: `Le tissu « ${fabric.name} » se vend à partir de ${formatUnits(fabric, fabricMinQty(fabric))}.`,
+        };
+      }
+      vendorId = fabric?.vendor_id ?? null;
+    }
+
+    // Prêt-à-porter : la couleur payée est toujours écrite pour le tailleur.
+    item.ready_color =
+      !item.fabric_id && typeof item.ready_color === "string" && item.ready_color.trim()
+        ? item.ready_color.trim().slice(0, 40)
+        : null;
+    if (item.ready_color && !item.notes?.includes(`Couleur : ${item.ready_color}`)) {
+      const line = `Couleur : ${item.ready_color}`;
+      item.notes = item.notes ? `${line}
+${item.notes}` : line;
     }
 
     let tailoringPrice = 0;
@@ -314,8 +461,77 @@ export async function placeOrders(
         supabase,
         item.model_id,
         item.tailor_id,
+        item.ready_color,
       );
     }
+    const fees = deliveryQuotes[index][option] ?? { fabric: 0, garment: 0 };
+    priced.push({
+      item,
+      fabricPrice,
+      vendorId,
+      tailoringPrice,
+      fabricFee: fees.fabric,
+      garmentFee: fees.garment,
+    });
+  }
+
+  // Anti-arnaque : un pro dont JALOFA n'a pas encore validé les ventes ne peut
+  // rien encaisser (aussi bloqué en base par orders_guard_sellers_approved).
+  const unapproved = await findUnapprovedSeller(supabase, {
+    tailorIds: priced.map((p) => (p.item.type !== "fabric_only" ? p.item.tailor_id : null)),
+    vendorIds: priced.map((p) => p.vendorId),
+  });
+  if (unapproved) return { ok: false, error: unapproved };
+
+  const basketTotal = priced.reduce(
+    (sum, p) =>
+      sum + (p.fabricPrice + p.tailoringPrice + p.fabricFee + p.garmentFee) * Math.max(1, p.item.qty),
+    0,
+  );
+
+  // Un seul paiement pour tout le panier. La clé vient du formulaire : un double
+  // envoi retrouve le même paiement, et les commandes déjà créées (§12).
+  const checkoutKey = String(formData.get("checkout_key") ?? "");
+  if (!/^[\w-]{8,80}$/.test(checkoutKey)) {
+    return { ok: false, error: "Rechargez la page puis réessayez." };
+  }
+  // Bictorys configuré : paiement réel, les commandes attendent le webhook.
+  // Sinon : paiement `manual` (stub), payé tout de suite comme avant.
+  const viaBictorys = isBictorysConfigured();
+  if (viaBictorys && basketTotal < 100) {
+    return { ok: false, error: "Montant minimum : 100 FCFA." };
+  }
+  const { data: paymentId, error: payErr } = await (supabase as unknown as {
+    rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: string | null; error: { message: string } | null }>;
+  }).rpc("open_payment", {
+    p_amount: basketTotal,
+    p_idempotency_key: checkoutKey,
+    p_provider: viaBictorys ? "bictorys" : "manual",
+  });
+  if (payErr || !paymentId) {
+    return { ok: false, error: "Le paiement n'a pas pu être ouvert. Réessayez." };
+  }
+  const { data: already } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("payment_id" as never, paymentId);
+  if (already && already.length > 0) {
+    // Double envoi : mêmes commandes, même page de paiement.
+    const { data: pay } = await supabase
+      .from("payments" as never)
+      .select("checkout_url, status")
+      .eq("id", paymentId)
+      .maybeSingle();
+    const p = pay as { checkout_url: string | null; status: string } | null;
+    return {
+      ok: true,
+      demo: false,
+      orderNumbers: (already as { order_number: string }[]).map((o) => o.order_number),
+      ...(viaBictorys && p?.status === "pending" && p.checkout_url ? { redirectUrl: p.checkout_url } : {}),
+    };
+  }
+
+  for (const { item, fabricPrice, vendorId, tailoringPrice, fabricFee, garmentFee } of priced) {
 
     // Une seule photo par ligne, partagée par chaque exemplaire.
     const bodyPhotoPath =
@@ -346,9 +562,9 @@ export async function placeOrders(
         measurementId = measurement.id as string;
       }
 
-      // JALOFA n'ajoute aucun frais de livraison à un achat direct : chaque pro a dit
-      // sur son produit si elle est gratuite ; sinon le client paie le GP ou le livreur.
-      const total = fabricPrice + tailoringPrice;
+      // Livraison au tarif du pro pour l'option choisie (aller du tissu, vêtement).
+      // Tarif non renseigné en économique : à régler au livreur, comme avant.
+      const total = fabricPrice + tailoringPrice + fabricFee + garmentFee;
 
       const { data: order, error } = await supabase
         .from("orders")
@@ -369,10 +585,18 @@ export async function placeOrders(
           delivery_country: payload.address ? payload.address.country?.trim() || "Sénégal" : null,
           fabric_price: fabricPrice,
           tailoring_price: tailoringPrice,
-          delivery_fee: 0,
+          delivery_fee: garmentFee,
           total_amount: total,
-          payment_method: payload.payment_method,
-          payment_status: "paid", // Payment gateway integration is stubbed for the MVP.
+          payment_method: null,
+          // Bictorys : la commande naît « en attente » ; `confirm_payment`
+          // (webhook vérifié) la passera « payée » et la base posera `paid_at`.
+          // Stub `manual` (Bictorys non configuré) : payée tout de suite.
+          payment_status: viaBictorys ? "pending" : "paid",
+          ...({
+            payment_id: paymentId,
+            delivery_option: option,
+            fabric_delivery_fee: fabricFee,
+          } as Record<string, unknown>),
           notes: item.notes ? stripContactInfo(item.notes) : item.notes,
         })
         .select("id, order_number")
@@ -395,10 +619,65 @@ export async function placeOrders(
     }
   }
 
-  // Offre Pro échue : la vente rouvre un mois, retenu sur le reversement.
-  await renewProFromSale(soldBy);
+  // Téléphone et adresse gardés pour la prochaine fois, si le client l'a
+  // demandé. Un échec ici ne doit jamais faire échouer la commande.
+  if (payload.save_profile === true) {
+    try {
+      await writeSavedContact(supabase, user.id, {
+        phone: contact.phone,
+        address:
+          payload.address && payload.delivery_method === "home"
+            ? {
+                address_line: payload.address.address_line,
+                city: payload.address.city,
+                region: payload.address.region,
+                country: payload.address.country?.trim() || "Sénégal",
+              }
+            : null,
+      });
+    } catch {
+      // Sans effet sur la commande.
+    }
+  }
 
   // Le compte vient peut-être de naître : l'en-tête (« Mon compte ») change.
   revalidatePath("/", "layout");
+
+  if (viaBictorys) {
+    // La page de paiement Bictorys. Le renouvellement d'offre Pro se fera au
+    // paiement confirmé (`settleBictorysEvent`).
+    try {
+      const origin = await siteOrigin();
+      const charge = await createCheckoutCharge({
+        amount: basketTotal,
+        paymentReference: paymentId,
+        customer: {
+          name: `${contact.first_name} ${contact.last_name}`,
+          email: contact.email,
+          phone: contact.phone,
+        },
+        successUrl: `${origin}/paiement/retour?p=${paymentId}`,
+        errorUrl: `${origin}/paiement/retour?p=${paymentId}&e=1`,
+      });
+      await createAdminClient()
+        .from("payments" as never)
+        .update({ checkout_url: charge.link, provider_charge_id: charge.chargeId } as never)
+        .eq("id", paymentId);
+      return { ok: true, demo: false, orderNumbers, redirectUrl: charge.link };
+    } catch (e) {
+      // Pas de page de paiement : les commandes ne doivent pas rester ouvertes.
+      try {
+        await (createAdminClient() as unknown as {
+          rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<unknown>;
+        }).rpc("fail_payment", { p_payment_id: paymentId, p_provider_status: "charge_creation_failed" });
+      } catch {
+        // Clé de service absente : les commandes restent « en attente de paiement ».
+      }
+      return { ok: false, error: e instanceof Error ? e.message : "Le paiement n'a pas pu être ouvert." };
+    }
+  }
+
+  // Offre Pro échue : la vente rouvre un mois, retenu sur le reversement.
+  await renewProFromSale(soldBy);
   return { ok: true, demo: false, orderNumbers };
 }

@@ -6,42 +6,45 @@ import { useRouter } from "@/lib/i18n/navigation";
 import { toast } from "sonner";
 
 import { PasswordField } from "@/components/auth/password-field";
+import { TermsCheckbox } from "@/components/auth/signup-verification";
 import { checkPassword } from "@/lib/password";
 import {
   CheckCircle2,
-  CreditCard,
+  Clock,
   Loader2,
   MapPin,
   ShoppingBag,
-  Smartphone,
   Store,
   Truck,
+  ShieldCheck,
   User,
+  Zap,
 } from "lucide-react";
 
-import {
-  CardPaymentForm,
-  EMPTY_CARD,
-  isCardComplete,
-  type CardDetails,
-} from "@/components/cart/card-payment-form";
-import { WaveMark, WaveQrPayment } from "@/components/cart/wave-payment";
 import { useCart } from "@/components/cart/cart-context";
 import { Field, OptionCard } from "@/components/order/configurator-ui";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Price } from "@/components/cart/price";
-import { placeOrders, type PlaceOrdersState } from "@/lib/actions/checkout";
+import {
+  placeOrders,
+  quoteBasketDelivery,
+  type BasketDeliveryQuote,
+  type PlaceOrdersState,
+} from "@/lib/actions/checkout";
+import type { DeliveryOption } from "@/lib/order-workflow";
 import {
   DELIVERY_METHOD_LABELS,
-  PAYMENT_METHOD_LABELS,
+  formatPrice,
   type DeliveryMethod,
-  type PaymentMethod,
+  type OrderType,
 } from "@/lib/constants";
-import { CANCEL_WINDOW_HOURS, RETURN_WINDOW_DAYS } from "@/lib/after-sale";
+import { RETURN_WINDOW_DAYS } from "@/lib/after-sale";
 import { deliveryPolicy } from "@/lib/delivery";
 import { basketHasFreeDelivery } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
+import { SavedInfoPrompt, type SavedChoice } from "@/components/account/saved-info-prompt";
+import { hasSavedContact, type SavedProfile } from "@/lib/saved-profile";
 
 // Always collected — a pickup order still needs someone to hand the piece to.
 const EMPTY_CONTACT = {
@@ -60,23 +63,6 @@ const EMPTY_ADDRESS = {
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
-// Moyens de paiement proposés à la caisse (Orange Money / Free Money restent
-// dans le type et la DB, mais ne sont pas encore ouverts au public).
-const VISIBLE_PAYMENT_METHODS: PaymentMethod[] = ["wave", "card"];
-
-const PAYMENT_METHOD_ICONS: Record<PaymentMethod, React.ComponentType<{ className?: string }>> =
-  {
-    orange_money: Smartphone,
-    wave: WaveMark,
-    free_money: Smartphone,
-    card: CreditCard,
-  };
-
-const PAYMENT_METHOD_DESCS: Partial<Record<PaymentMethod, string>> = {
-  wave: "Paiement par QR code",
-  card: "Visa, Mastercard, Amex",
-};
-
 export type CheckoutAccount = typeof EMPTY_CONTACT;
 
 // Pas d'inscription séparée : un nouveau client choisit son mot de passe ici,
@@ -84,10 +70,13 @@ export type CheckoutAccount = typeof EMPTY_CONTACT;
 // commande, puis on ouvre directement sa page « Mes commandes ».
 export function CheckoutView({
   account = null,
+  saved = null,
   accountsEnabled = false,
 }: {
   /** Client déjà connecté : coordonnées pré-remplies, pas de mot de passe. */
   account?: CheckoutAccount | null;
+  /** Téléphone et adresse enregistrés du client connecté. */
+  saved?: SavedProfile | null;
   /** Base branchée : un nouveau client doit choisir un mot de passe. */
   accountsEnabled?: boolean;
 }) {
@@ -99,25 +88,84 @@ export function CheckoutView({
   // Une tenue est livrée par le tailleur à l'adresse du client : pas de retrait.
   const hasGarment = items.some((it) => it.type !== "fabric_only");
   const deliveryMethod: DeliveryMethod = hasGarment ? "home" : chosenDelivery;
-  const [contact, setContact] = useState(account ?? EMPTY_CONTACT);
+
+  // Client connecté avec des informations enregistrées : on lui demande s'il
+  // les reprend. Il a pu changer d'adresse ou de numéro, ou commander pour
+  // quelqu'un d'autre — l'e-mail du compte, lui, reste le sien.
+  const offerSaved = Boolean(account && hasSavedContact(saved));
+  const [savedChoice, setSavedChoice] = useState<SavedChoice>(null);
+  const [contact, setContact] = useState(
+    account ? (offerSaved ? { ...EMPTY_CONTACT, email: account.email } : account) : EMPTY_CONTACT,
+  );
   const needsPassword = accountsEnabled && !account;
   const [password, setPassword] = useState("");
   const [address, setAddress] = useState(EMPTY_ADDRESS);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-  // Card details stay client-side: the gateway is stubbed for the MVP and a PAN
-  // has no business reaching our server action or the orders table.
-  const [card, setCard] = useState<CardDetails>(EMPTY_CARD);
+  // « Enregistrer pour mes prochaines commandes » : coché d'office la première
+  // fois, décoché quand le client a refusé ses informations enregistrées.
+  const [saveForNext, setSaveForNext] = useState(accountsEnabled && !offerSaved);
+  const chooseSaved = (choice: "saved" | "other") => {
+    setSavedChoice(choice);
+    if (choice === "saved" && account) {
+      setContact({ ...account, phone: saved?.phone ?? account.phone });
+      if (saved?.address) {
+        setAddress({
+          address_line: saved.address.address_line,
+          city: saved.address.city,
+          region: saved.address.region ?? "",
+          country: saved.address.country,
+        });
+      }
+    } else {
+      setContact({ ...EMPTY_CONTACT, email: account?.email ?? "" });
+      setAddress(EMPTY_ADDRESS);
+      setSaveForNext(false);
+    }
+  };
 
   const [result, formAction, isPending] = useActionState<PlaceOrdersState, FormData>(
     placeOrders,
     null,
   );
 
+  // A (économique) ou B (express) — cahier des charges §3. Les frais sont ceux
+  // que chaque pro a fixés sur son profil, recalculés par le serveur.
+  const [deliveryOption, setDeliveryOption] = useState<DeliveryOption>("economy");
+  const [deliveryQuote, setDeliveryQuote] = useState<BasketDeliveryQuote | null>(null);
+  // Une clé par passage en caisse : un double envoi ne paie pas deux fois.
+  const [checkoutKey] = useState(() => crypto.randomUUID());
+  const quoteLinesKey = JSON.stringify(
+    items.map((it) => [it.type, it.fabricId, it.tailorId, it.qty]),
+  );
+  useEffect(() => {
+    let alive = true;
+    const lines = (JSON.parse(quoteLinesKey) as [string, string | null, string | null, number][]).map(
+      ([type, fabric_id, tailor_id, qty]) => ({ type: type as OrderType, fabric_id, tailor_id, qty }),
+    );
+    quoteBasketDelivery(lines)
+      .then((q) => {
+        if (!alive) return;
+        setDeliveryQuote(q);
+        if (!q.express) setDeliveryOption("economy");
+      })
+      .catch(() => alive && setDeliveryQuote(null));
+    return () => {
+      alive = false;
+    };
+  }, [quoteLinesKey]);
+  const chosenFees = deliveryQuote?.[deliveryOption] ?? null;
+  const deliveryTotal = chosenFees?.total ?? 0;
+
   // Commande enregistrée : on vide le panier et on ouvre directement la page
   // du client (son compte vient peut-être d'être créé). En démo, pas de
   // compte : on reste sur la confirmation.
   useEffect(() => {
     if (!result?.ok) return;
+    // Bictorys : le client paie sur sa page. Le panier ne se vide qu'une fois le
+    // paiement confirmé (page « /paiement/retour »).
+    if (result.redirectUrl) {
+      window.location.assign(result.redirectUrl);
+      return;
+    }
     clear();
     if (!result.demo) {
       toast.success(t("Commande confirmée"), {
@@ -133,7 +181,7 @@ export function CheckoutView({
   // JALOFA n'ajoute aucun frais : chaque pro a dit, sur son produit, si la livraison
   // est gratuite. Hors de sa zone, le client règle directement le GP ou le livreur.
   const freeHomeDelivery = basketHasFreeDelivery(items, address);
-  const total = subtotal;
+  const total = subtotal + deliveryTotal;
 
   const payload = useMemo(
     () =>
@@ -144,6 +192,8 @@ export function CheckoutView({
           style_slug: it.styleSlug,
           fabric_id: it.fabricId,
           fabric_meters: it.fabricMeters,
+          fabric_color: it.fabricColor ?? null,
+          ready_color: it.readyColor ?? null,
           tailor_id: it.tailorId,
           measurement: it.measurement,
           notes: it.notes,
@@ -156,9 +206,10 @@ export function CheckoutView({
           deliveryMethod === "home"
             ? { ...address, region: address.region || null }
             : null,
-        payment_method: paymentMethod,
+        delivery_option: deliveryOption,
+        save_profile: saveForNext && savedChoice !== "saved",
       }),
-    [items, deliveryMethod, contact, address, paymentMethod],
+    [items, deliveryMethod, contact, address, deliveryOption, saveForNext, savedChoice],
   );
 
   const contactComplete = Boolean(
@@ -172,17 +223,24 @@ export function CheckoutView({
   const cityComplete = Boolean(address.city.trim());
   const addressComplete =
     deliveryMethod === "pickup" || Boolean(address.address_line.trim());
-  const paymentComplete =
-    paymentMethod === "card" ? isCardComplete(card) : Boolean(paymentMethod);
   const passwordComplete = !needsPassword || checkPassword(password).valid;
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const canSubmit =
-    paymentComplete &&
     contactComplete &&
     passwordComplete &&
     cityComplete &&
-    addressComplete;
+    addressComplete &&
+    acceptedTerms;
 
   // --- Confirmation --------------------------------------------------------
+  if (result?.ok && result.redirectUrl) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-20 text-center">
+        <Loader2 className="text-primary size-8 animate-spin" />
+        <p className="mt-4 font-semibold">{t("Ouverture de la page de paiement…")}</p>
+      </div>
+    );
+  }
   if (result?.ok) {
     return <Confirmation orderNumbers={result.orderNumbers} demo={result.demo} />;
   }
@@ -218,8 +276,27 @@ export function CheckoutView({
 
       <form action={formAction} className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
         <input type="hidden" name="payload" value={payload} />
+        <input type="hidden" name="checkout_key" value={checkoutKey} />
+        <input type="hidden" name="accept_terms" value={acceptedTerms ? "1" : ""} />
 
         <div className="space-y-8">
+          {offerSaved && saved && (
+            <SavedInfoPrompt
+              title="Utiliser vos informations enregistrées ?"
+              summary={[
+                [saved.full_name, saved.phone].filter(Boolean).join(" · "),
+                saved.address
+                  ? [saved.address.address_line, saved.address.city, saved.address.country]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "",
+              ].filter(Boolean)}
+              choice={savedChoice}
+              onChoose={chooseSaved}
+              otherLabel="Autre adresse / personne"
+            />
+          )}
+
           {/* Contact */}
           <section>
             <h2 className="mb-1 text-lg font-semibold">{t("Vos coordonnées")}</h2>
@@ -274,6 +351,40 @@ export function CheckoutView({
                 </p>
               </div>
             )}
+          </section>
+
+          {/* Option de livraison : A économique / B express */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">{t("Rapidité")}</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <OptionCard
+                active={deliveryOption === "economy"}
+                onClick={() => setDeliveryOption("economy")}
+                icon={Clock}
+                title={t("Économique")}
+                desc={
+                  deliveryQuote?.economy && !deliveryQuote.economy.unknown
+                    ? t("24 h pour changer d'avis · Livraison {fee}", { fee: formatPrice(deliveryQuote.economy.total) })
+                    : t("24 h pour changer d'avis · Livraison à régler au livreur")
+                }
+              />
+              <OptionCard
+                active={deliveryOption === "express"}
+                onClick={() => deliveryQuote?.express && setDeliveryOption("express")}
+                icon={Zap}
+                title={t("Express")}
+                desc={
+                  deliveryQuote?.express
+                    ? t("Envoi le jour même · Livraison {fee} payée maintenant", { fee: formatPrice(deliveryQuote.express.total) })
+                    : t("Pas proposé par ces pros")
+                }
+              />
+            </div>
+            <p className="text-muted-foreground mt-2 text-xs">
+              {deliveryOption === "economy"
+                ? t("Le vendeur attend 24 h avant d'envoyer le tissu, puis le tailleur attend 24 h avant de le couper : vous pouvez demander l'annulation sans perte.")
+                : t("Tout part tout de suite. Le tailleur coupe 24 h après votre paiement : après la découpe, une annulation coûte 35 % du prix de la couture.")}
+            </p>
           </section>
 
           {/* Delivery */}
@@ -351,32 +462,37 @@ export function CheckoutView({
             <p className="text-muted-foreground mt-2 text-xs">
               {t("La ville nous aide à regrouper et accélérer les livraisons.")}
             </p>
+            {accountsEnabled && savedChoice !== "saved" && (
+              <label className="bg-muted/40 mt-3 flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={saveForNext}
+                  onChange={(e) => setSaveForNext(e.target.checked)}
+                  className="accent-primary mt-0.5 size-4 shrink-0"
+                />
+                <span>
+                  <span className="font-medium">
+                    {t("Enregistrer mon téléphone et mon adresse pour mes prochaines commandes")}
+                  </span>
+                  <span className="text-muted-foreground block text-xs">
+                    {t("Vous pourrez les modifier dans « Mes coordonnées ».")}
+                  </span>
+                </span>
+              </label>
+            )}
             <p className="text-muted-foreground mt-1 text-xs">
-              {t("Annulation possible pendant {h} h. Un tissu peut être rendu pendant {d} jours, envoi à votre charge. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { h: CANCEL_WINDOW_HOURS, d: RETURN_WINDOW_DAYS })}
+              {t("Annulation possible jusqu'au départ de votre tenue : JALOFA examine et vous rembourse selon l'avancement. Un tissu peut être rendu pendant {d} jours, envoi à votre charge. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { d: RETURN_WINDOW_DAYS })}
             </p>
           </section>
 
-          {/* Payment */}
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">{t("Paiement")}</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {VISIBLE_PAYMENT_METHODS.map((pm) => (
-                <OptionCard
-                  key={pm}
-                  active={paymentMethod === pm}
-                  onClick={() => setPaymentMethod(pm)}
-                  icon={PAYMENT_METHOD_ICONS[pm]}
-                  title={t(PAYMENT_METHOD_LABELS[pm])}
-                  desc={PAYMENT_METHOD_DESCS[pm] && t(PAYMENT_METHOD_DESCS[pm])}
-                />
-              ))}
-            </div>
-
-            {paymentMethod === "wave" && <WaveQrPayment total={total} />}
-
-            {paymentMethod === "card" && (
-              <CardPaymentForm card={card} onChange={setCard} />
-            )}
+          {/* Paiement : la page Bictorys propose Wave, Orange Money, carte… */}
+          <section className="bg-muted/40 rounded-xl border p-4">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <ShieldCheck className="size-5 text-emerald-500" /> {t("Paiement sécurisé")}
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {t("Vous payez sur une page de paiement sécurisée : Wave, Orange Money ou carte bancaire.")}
+            </p>
           </section>
         </div>
 
@@ -423,7 +539,13 @@ export function CheckoutView({
                   {t(DELIVERY_METHOD_LABELS[deliveryMethod])}
                 </dt>
                 <dd className="font-medium whitespace-nowrap">
-                  {deliveryMethod === "pickup" || freeHomeDelivery ? t("Gratuite") : t("Selon le pro")}
+                  {deliveryTotal > 0 ? (
+                    <Price amount={deliveryTotal} />
+                  ) : deliveryMethod === "pickup" || freeHomeDelivery || (chosenFees && !chosenFees.unknown) ? (
+                    t("Gratuite")
+                  ) : (
+                    t("Selon le pro")
+                  )}
                 </dd>
               </div>
             </dl>
@@ -440,10 +562,35 @@ export function CheckoutView({
               </div>
             )}
 
+            {/* Avant de payer, le client accepte les conditions. */}
+            <div className="mt-5">
+              <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms}>
+                <span className="text-xs">
+                  {t("J'accepte les")}{" "}
+                  <Link
+                    href="/conditions"
+                    target="_blank"
+                    className="text-foreground underline underline-offset-4"
+                  >
+                    {t("conditions d'utilisation")}
+                  </Link>{" "}
+                  {t("et la")}{" "}
+                  <Link
+                    href="/confidentialite"
+                    target="_blank"
+                    className="text-foreground underline underline-offset-4"
+                  >
+                    {t("politique de confidentialité")}
+                  </Link>
+                  .
+                </span>
+              </TermsCheckbox>
+            </div>
+
             <Button
               type="submit"
               size="lg"
-              className="mt-5 w-full"
+              className="mt-4 w-full"
               disabled={!canSubmit || isPending}
             >
               {isPending && <Loader2 className="size-4 animate-spin" />}
@@ -458,9 +605,9 @@ export function CheckoutView({
                       ? "Indiquez la ville de livraison."
                       : !addressComplete
                         ? "Complétez l'adresse de livraison."
-                        : !paymentMethod
-                          ? "Choisissez un moyen de paiement."
-                          : "Complétez les détails de votre carte.",
+                        : !passwordComplete
+                          ? "Choisissez votre mot de passe."
+                          : "Acceptez les conditions pour payer",
                 )}
               </p>
             )}

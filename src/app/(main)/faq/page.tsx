@@ -63,7 +63,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "Puis-je utiliser mon propre tissu ?",
-        a: "Oui. Au moment de choisir le tissu, sélectionnez l'option « J'ai déjà mon tissu » : vous convenez alors avec le tailleur de la remise du tissu.",
+        a: "Oui. Sur la page du vêtement, touchez « Sur mesure » puis « J'envoie mon tissu » : vous ne payez que la couture. Le tailleur vous dit combien de mètres il faut, et l'adresse de son atelier s'affiche dans votre commande après le paiement.",
       },
       {
         q: "Puis-je commander un vêtement sans le personnaliser ?",
@@ -127,7 +127,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "Comment est fixé le prix d'une tenue ?",
-        a: "Chaque modèle affiche un prix « à partir de ». Si le client le prend tel quel, il paie ce prix. S'il personnalise la tenue, vous recevez sa demande et lui envoyez un devis avec le vrai prix ; il accepte, puis paie.",
+        a: "Chaque modèle affiche un prix « à partir de ». Si vous l'avez en prêt-à-porter et que le client le prend tel quel, il paie ce prix. S'il personnalise la tenue, vous recevez sa demande et lui envoyez un devis avec le vrai prix ; il accepte, puis paie.",
       },
     ],
   },

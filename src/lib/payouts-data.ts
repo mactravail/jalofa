@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAllOrders, getAllTailors, getAllVendors } from "@/lib/admin-data";
+import { getAllOrders, getAllTailors, getAllVendors, getOrderLedger } from "@/lib/admin-data";
 import { readDeferredFees } from "@/lib/pro-subscription";
 import {
   applyDeferredFees,
@@ -29,15 +29,16 @@ export type PayoutBoard = {
 };
 
 export async function getPayoutBoard(): Promise<PayoutBoard> {
-  const [orders, vendors, tailors, dues] = await Promise.all([
+  const [orders, vendors, tailors, dues, ledger] = await Promise.all([
     getAllOrders(),
     getAllVendors(),
     getAllTailors(),
     safeDeferredFees(),
+    getOrderLedger(),
   ]);
 
-  const vendorRows = buildPayouts("vendor", orders, proDirectory(vendors));
-  const tailorRows = buildPayouts("tailor", orders, proDirectory(tailors));
+  const vendorRows = buildPayouts("vendor", orders, proDirectory(vendors), ledger);
+  const tailorRows = buildPayouts("tailor", orders, proDirectory(tailors), ledger);
   applyDeferredFees([tailorRows, vendorRows], dues);
 
   const vendorTotals = sumPayouts(vendorRows);
@@ -84,18 +85,19 @@ export type PlatformFinance = {
 };
 
 export async function getPlatformFinance(): Promise<PlatformFinance> {
-  const [orders, vendors, tailors, dues] = await Promise.all([
+  const [orders, vendors, tailors, dues, ledger] = await Promise.all([
     getAllOrders(),
     getAllVendors(),
     getAllTailors(),
     safeDeferredFees(),
+    getOrderLedger(),
   ]);
 
   const paid = orders.filter((o) => o.payment_status === "paid");
   const pending = orders.filter((o) => o.payment_status === "pending");
 
-  const vendorRows = buildPayouts("vendor", orders, proDirectory(vendors));
-  const tailorRows = buildPayouts("tailor", orders, proDirectory(tailors));
+  const vendorRows = buildPayouts("vendor", orders, proDirectory(vendors), ledger);
+  const tailorRows = buildPayouts("tailor", orders, proDirectory(tailors), ledger);
   applyDeferredFees([tailorRows, vendorRows], dues);
   const vendorTotals = sumPayouts(vendorRows);
   const tailorTotals = sumPayouts(tailorRows);

@@ -13,7 +13,6 @@ import { getFabrics, getModels, getTailors, getVendors } from "@/lib/data";
 import { display } from "@/lib/display-font";
 import {
   EUROPE_LABEL,
-  EUROPE_SLOGAN,
   EUROPE_TYPES,
   isEuropeCountry,
 } from "@/lib/europe";
@@ -40,7 +39,7 @@ const PROMISES = [
   {
     icon: Scissors,
     title: "Le savoir-faire des ateliers",
-    text: "Des tailleurs et créateurs installés en Europe, en Italie d'abord.",
+    text: "Les tailleurs, créateurs et stylistes italiens.",
   },
   {
     icon: Gem,
@@ -54,8 +53,8 @@ const PROMISES = [
   },
   {
     icon: ShieldCheck,
-    title: "Payé après la livraison",
-    text: "L'atelier est payé seulement quand vous avez reçu votre tenue.",
+    title: "Paiement protégé",
+    text: "Payez comme vous le souhaitez : Wave, Orange Money ou carte bancaire.",
   },
 ];
 
@@ -90,11 +89,10 @@ export default async function EuropePage() {
     <>
       <CollectionHero
         number="05"
-        eyebrow={EUROPE_SLOGAN}
+        eyebrow="Vous voulez la qualité européenne ? Elle est ici."
         title="Europe"
         image={EUROPE_HERO}
         target="categories"
-        secondaryLink={{ href: "#rejoindre", label: "Ateliers : rejoindre" }}
       />
 
       <div className="mx-auto max-w-7xl px-4 md:px-8">
@@ -103,7 +101,7 @@ export default async function EuropePage() {
         {/* Les catégories de lancement */}
         <section id="categories" className="scroll-mt-16 pt-14 md:pt-24">
           <p className="text-muted-foreground text-sm tracking-[0.2em] uppercase">
-            {EUROPE_LABEL}
+            {t("Faites par des tailleurs européens")}
           </p>
           <h2 className={cn(COLLECTION_HEADING, "mt-3")}>{t("L'élégance européenne")}</h2>
           <p className="mt-3 max-w-xl text-lg">
@@ -292,7 +290,7 @@ export default async function EuropePage() {
             href="/inscription?role=pro"
             className={cn(COLLECTION_CTA, "mt-8")}
           >
-            {t("Créer mon compte pro")}
+            {t("Vendre")}
             <ArrowRight className="size-5" aria-hidden />
           </Link>
           </div>

@@ -23,7 +23,13 @@ import { bodyTypeLabel, heightBandLabel, type BodyType } from "@/lib/body-types"
 import { MEASUREMENT_FIELDS, type MeasurementMode, type OrderType } from "@/lib/constants";
 import { DEFAULT_METRAGE, metrageFor } from "@/lib/fabric-metrage";
 import { computePrice, type PriceBreakdown } from "@/lib/pricing";
-import { styleDetailDefaults, styleDetailSummary, styleExtraTotal } from "@/lib/style-options";
+import {
+  styleDetailDefaults,
+  styleDetailSummary,
+  styleExtraTotal,
+  visibleStyleGroups,
+  wantsCustomEmbroidery,
+} from "@/lib/style-options";
 import type { StyleRef } from "@/lib/style-refs";
 import type { Fabric, GarmentModel, HeightBand, Style, Tailor } from "@/lib/types";
 
@@ -88,7 +94,7 @@ export const STEP_HELP: Record<StepKey, string> = {
   style: "Choisissez la coupe et les finitions.",
   body: "Touchez le corps qui vous ressemble, puis indiquez votre taille.",
   meters:"Combien de tissu faut-il couper pour votre tenue ?",
-  tailor: "L'atelier qui va coudre votre tenue.",
+  tailor: "Choisissez votre tailleur : l'atelier qui va coudre votre tenue.",
   measurements: "Une taille standard suffit — les mesures détaillées affinent la coupe.",
   review: "Vérifiez votre tenue avant de l'ajouter au panier.",
 };
@@ -191,6 +197,13 @@ export type ConfiguratorState = {
    * silhouette. Facultative. Le tailleur la voit une fois la commande payée.
    */
   bodyPhoto: StyleRef | null;
+  /**
+   * Broderie « Je choisis » : la photo de la broderie voulue, sa description et
+   * sa couleur, saisies au récap. Le tailleur les reçoit avec le devis.
+   */
+  embroideryPhoto: StyleRef | null;
+  embroideryNote: string;
+  embroideryColor: string;
   manual: Record<string, string>;
   notes: string;
   /** Le tailleur les voit dès le devis, pour le prix de la livraison. */
@@ -206,6 +219,15 @@ export type ConfiguratorState = {
   contactPasswordConfirm: string;
   /** Un accord se donne à chaque fois : pas gardé dans le brouillon non plus. */
   contactAcceptTerms: boolean;
+  /** Au récap : « J'ai déjà un compte » (connexion) au lieu de « Créer un compte ». */
+  contactHasAccount: boolean;
+  /**
+   * Client connecté : a-t-il repris ses mesures / son adresse enregistrées
+   * (« saved ») ou en donne-t-il d'autres (« other », pour quelqu'un d'autre…) ?
+   * `null` : la question n'a pas encore été posée.
+   */
+  savedMeasurementChoice: "saved" | "other" | null;
+  savedAddressChoice: "saved" | "other" | null;
 };
 
 function defaultState(): ConfiguratorState {
@@ -224,6 +246,9 @@ function defaultState(): ConfiguratorState {
     measurementMode: "standard",
     standardSize: "M",
     bodyPhoto: null,
+    embroideryPhoto: null,
+    embroideryNote: "",
+    embroideryColor: "",
     manual: {},
     notes: "",
     deliveryAddress: "",
@@ -235,6 +260,9 @@ function defaultState(): ConfiguratorState {
     contactPassword: "",
     contactPasswordConfirm: "",
     contactAcceptTerms: false,
+    contactHasAccount: false,
+    savedMeasurementChoice: null,
+    savedAddressChoice: null,
   };
 }
 
@@ -268,6 +296,51 @@ export function stepCanProceed(step: StepKey, s: ConfiguratorState): boolean {
 }
 
 /**
+ * « Tissu différent » (costume, smoking) : la veste prend le tissu principal de
+ * la commande, le pantalon le sien, gardé dans les choix de style sous cette clé.
+ */
+export const TROUSERS_FABRIC_KEY = "tissu-pantalon";
+
+export function wantsTwoFabrics(details: Record<string, string>): boolean {
+  return details.tissus === "different";
+}
+
+/** Costume 3 pièces : le gilet peut prendre un troisième tissu. */
+export const VEST_FABRIC_KEY = "tissu-gilet";
+
+/** « Tissu différent » sur un habit qui a un gilet (costume 3 pièces). */
+export function wantsVestFabric(
+  model: GarmentModel | null | undefined,
+  details: Record<string, string>,
+): boolean {
+  return (
+    wantsTwoFabrics(details) &&
+    details.gilet !== "sans" &&
+    visibleStyleGroups(model, details).some((g) => g.slug === "gilet")
+  );
+}
+
+/** Les tissus choisis, en lignes lisibles pour le récap et le tailleur. */
+export function fabricPairing(
+  details: Record<string, string>,
+  fabrics: Fabric[],
+  mainFabric: Fabric | null,
+  model?: GarmentModel | null,
+): { group: string; option: string; photo?: string }[] {
+  if (!wantsTwoFabrics(details) || !mainFabric) return [];
+  const trousers = fabrics.find((f) => f.id === details[TROUSERS_FABRIC_KEY]) ?? mainFabric;
+  const lines = [
+    { group: "Tissu de la veste", option: mainFabric.name },
+    { group: "Tissu du pantalon", option: trousers.name },
+  ];
+  if (wantsVestFabric(model, details)) {
+    const vest = fabrics.find((f) => f.id === details[VEST_FABRIC_KEY]) ?? mainFabric;
+    lines.push({ group: "Tissu du gilet", option: vest.name });
+  }
+  return lines;
+}
+
+/**
  * La note transmise au tailleur : personnalisation, silhouette, taille, puis le
  * mot du client. Aucun n'a de colonne dédiée.
  */
@@ -278,9 +351,19 @@ export function tailorNotes(
 ): string | null {
   const body = bodyTypeLabel(s.bodyType);
   const height = heightBandLabel(model?.category_slug, s.heightBand);
+  const embroidery = wantsCustomEmbroidery(model, s.styleDetails)
+    ? [
+        s.embroideryNote.trim(),
+        s.embroideryColor.trim() ? `Couleur : ${s.embroideryColor.trim()}` : "",
+        s.embroideryPhoto ? "Photo jointe" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
   return (
     [
       personalisationText ? `Personnalisation — ${personalisationText}` : null,
+      embroidery ? `Broderie voulue — ${embroidery}` : null,
       body ? `Silhouette — ${body}` : null,
       height ? `Taille estimée — ${height}` : null,
       s.notes.trim() || null,
@@ -302,6 +385,8 @@ export function buildCartItem(
     tailor: Tailor | null;
     styleName: string | null;
     price: PriceBreakdown;
+    /** Le catalogue de tissus, pour nommer le tissu du pantalon. */
+    fabrics?: Fabric[];
   },
 ): NewCartItem {
   const { model, fabric, tailor, styleName, price } = ctx;
@@ -309,7 +394,12 @@ export function buildCartItem(
 
   // Structured personalisation for display; also folded into the tailor notes
   // (there is no dedicated column yet) so it reaches the atelier.
-  const personalisation = isFabricOnly ? [] : styleDetailSummary(model, s.styleDetails);
+  const personalisation = isFabricOnly
+    ? []
+    : [
+        ...styleDetailSummary(model, s.styleDetails),
+        ...fabricPairing(s.styleDetails, ctx.fabrics ?? [], fabric, model),
+      ];
   const personalisationText = personalisation
     .map((d) => `${d.group} : ${d.option}`)
     .join(" · ");
@@ -392,6 +482,9 @@ type ConfiguratorContextValue = {
   price: PriceBreakdown;
   previewPhoto: string | null;
   setPreviewPhoto: (photo: string | null) => void;
+  /** Groupes de style touchés par le client : le mannequin ne porte qu'eux. */
+  dressedGroups: string[];
+  dressGroup: (group: string) => void;
 };
 
 const ConfiguratorContext = createContext<ConfiguratorContextValue | null>(null);
@@ -512,6 +605,27 @@ export function ConfiguratorProvider({
   // La photo du dernier choix touché, montrée en grand à l'étape Style.
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
+  // Le mannequin de la robe commence nu : chaque planche touchée l'habille.
+  // Lié au modèle — changer d'habit redonne un mannequin vide.
+  const [dressed, setDressed] = useState<{ modelId: string | null; groups: string[] }>({
+    modelId: null,
+    groups: [],
+  });
+  const dressedGroups = useMemo(
+    () => (dressed.modelId === state.modelId ? dressed.groups : []),
+    [dressed, state.modelId],
+  );
+  const dressGroup = useCallback(
+    (group: string) =>
+      setDressed((prev) => {
+        const groups = prev.modelId === state.modelId ? prev.groups : [];
+        return groups.includes(group)
+          ? prev
+          : { modelId: state.modelId, groups: [...groups, group] };
+      }),
+    [state.modelId],
+  );
+
   // Delivery is priced once at the caisse, not per garment — exclude it here.
   // Les suppléments du tailleur s'ajoutent à la confection, en direct.
   const price = useMemo(() => {
@@ -543,8 +657,10 @@ export function ConfiguratorProvider({
       price,
       previewPhoto,
       setPreviewPhoto,
+      dressedGroups,
+      dressGroup,
     }),
-    [data, state, update, seed, model, fabric, tailor, price, previewPhoto],
+    [data, state, update, seed, model, fabric, tailor, price, previewPhoto, dressedGroups, dressGroup],
   );
 
   return (

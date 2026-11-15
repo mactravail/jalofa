@@ -34,11 +34,14 @@ const LABELS: Record<View, string> = {
  */
 export function FabricShowcase({
   image,
+  detailImage = null,
   fabricName,
   colorLabel,
   uses,
 }: {
   image: string | null;
+  /** Gros plan photographié par le vendeur — sinon on zoome dans la photo. */
+  detailImage?: string | null;
   fabricName: string;
   colorLabel: string | null;
   uses: FilmUse[];
@@ -115,11 +118,11 @@ export function FabricShowcase({
               )}
             >
               <Image
-                src={image}
+                src={detailImage ?? image}
                 alt={`${t("Gros plan sur le tissage")} — ${fabricName}`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 45vw"
-                className="scale-[2.6] object-cover"
+                className={cn("object-cover", !detailImage && "scale-[2.6]")}
               />
             </div>
 

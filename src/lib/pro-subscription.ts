@@ -29,7 +29,11 @@ export const OFFER_PAGE = "/tailleur/espace/offre";
 /** Origine publique du site (https://jalofa.com en prod, localhost en dev). */
 export async function siteOrigin(): Promise<string> {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL;
-  if (fromEnv && !fromEnv.includes("localhost")) return fromEnv.replace(/\/$/, "");
+  // En développement, on revient toujours sur la machine locale : sinon un
+  // paiement de test renvoie sur le site en ligne, qui n'a pas ce code.
+  if (fromEnv && !fromEnv.includes("localhost") && process.env.NODE_ENV === "production") {
+    return fromEnv.replace(/\/$/, "");
+  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "jalofa.com";
   const proto =

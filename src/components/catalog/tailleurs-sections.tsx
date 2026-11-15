@@ -50,8 +50,18 @@ const CLIENT_REASONS = [
     icon: Undo2,
     title: "Parole non tenue ? Remboursé",
     text: "Grand retard, défaut, mauvais habit : ouvrez une réclamation.",
+    // Les règles d'annulation et de remboursement : partie « Clients » des conditions.
+    link: {
+      href: "/conditions#clients",
+      label: "Lire la politique de remboursement et d'annulation",
+    },
   },
-];
+] as const satisfies {
+  icon: typeof Undo2;
+  title: string;
+  text: string;
+  link?: { href: string; label: string };
+}[];
 
 const MONEY_STEPS = [
   {
@@ -59,7 +69,9 @@ const MONEY_STEPS = [
     text: "Il paie sur JALOFA, avant que le tailleur commence.",
   },
   {
-    title: "JALOFA garde l'argent",
+    // JALOFA ne détient pas l'argent (il reste chez le prestataire de paiement,
+    // qu'on ne nomme pas) : on dit seulement qu'il attend en sécurité.
+    title: "L'argent attend en sécurité",
     text: "Le tailleur coud sans crainte : le client a déjà payé. Le client est tranquille : son argent n'est pas encore parti.",
   },
   {
@@ -138,13 +150,26 @@ export async function WhyJalofa() {
     <section className="mx-auto max-w-7xl px-4 pt-16 md:px-8 md:pt-28">
       <h2 className={COLLECTION_HEADING}>{t("Pourquoi passer par JALOFA")}</h2>
       <ul className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 md:mt-14 lg:grid-cols-4">
-        {CLIENT_REASONS.map(({ icon: Icon, title, text }) => (
+        {CLIENT_REASONS.map((reason) => {
+          const { icon: Icon, title, text } = reason;
+          const link = "link" in reason ? reason.link : null;
+          return (
           <li key={title} className="border-t border-white/25 pt-5">
             <Icon className="size-7" strokeWidth={1.5} aria-hidden />
             <h3 className="mt-4 text-xl leading-snug font-medium tracking-tight">{t(title)}</h3>
             <p className="text-muted-foreground mt-1 text-base">{t(text)}</p>
+            {link && (
+              <Link
+                href={link.href}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:no-underline"
+              >
+                {t(link.label)}
+                <ArrowRight className="size-4 shrink-0" aria-hidden />
+              </Link>
+            )}
           </li>
-        ))}
+          );
+        })}
       </ul>
       <p className="text-muted-foreground mt-8 text-sm">
         <Link

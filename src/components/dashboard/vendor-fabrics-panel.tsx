@@ -1,10 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Eye, EyeOff, Layers, Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Layers,
+  Loader2,
+  MoreVertical,
+  Package,
+  Palette,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { FabricColorPicker } from "@/components/dashboard/fabric-color-picker";
 import { FabricFormDialog } from "@/components/dashboard/fabric-form-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +36,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/constants";
-import { deleteFabric, setFabricActive, setFabricInStock } from "@/lib/actions/fabrics";
+import {
+  addFabricColors,
+  deleteFabric,
+  restockFabric,
+  setFabricActive,
+  setFabricInStock,
+} from "@/lib/actions/fabrics";
 import { unwrap } from "@/lib/action-result";
+import { parseFabricColors } from "@/lib/fabric-colors";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
+import { fabricStock, fabricUnit, fabricUnitPrice, formatUnits } from "@/lib/fabric-specs";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { T } from "@/components/i18n/t";
@@ -64,8 +86,16 @@ export function VendorFabricsPanel({
   const [stockChangingId, setStockChangingId] = useState<string | null>(null);
   const [, startStockChange] = useTransition();
 
+  const [restockTarget, setRestockTarget] = useState<Fabric | null>(null);
+  const [colorsTarget, setColorsTarget] = useState<Fabric | null>(null);
+
   function toggleStock(fabric: Fabric) {
     const next = !isFabricAvailable(fabric);
+    // Épuisé → disponible : c'est un nouveau stock, on demande seulement la quantité.
+    if (next) {
+      setRestockTarget(fabric);
+      return;
+    }
     setStockChangingId(fabric.id);
     startStockChange(async () => {
       try {
@@ -154,7 +184,7 @@ export function VendorFabricsPanel({
 
       {fabrics.length > 0 && (
         <p className="text-muted-foreground mb-3 text-sm">
-          <T>Un tissu fini ? Touchez « Disponible » pour le marquer « Épuisé ».</T>
+          <T>Le stock baisse tout seul à chaque vente. À zéro, le tissu passe « Épuisé ». Nouveau stock ? Touchez « Épuisé » ou « + Stock ».</T>
         </p>
       )}
 
@@ -195,7 +225,7 @@ export function VendorFabricsPanel({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="truncate font-medium">{fabric.name}</p>
                     {!fabric.is_active && (
                       <Badge className="bg-muted text-muted-foreground border-0">
@@ -207,13 +237,14 @@ export function VendorFabricsPanel({
                     {[fabric.material, fabric.color].filter(Boolean).join(" · ") ||
                       "—"}
                   </p>
+                  <StockLine fabric={fabric} />
                 </div>
 
                 <div className="hidden text-right sm:block">
                   <p className="text-sm font-medium">
-                    {formatPrice(fabric.price_per_meter)}
+                    {formatPrice(fabricUnitPrice(fabric))}
                   </p>
-                  <p className="text-muted-foreground text-xs"><T>le mètre</T></p>
+                  <p className="text-muted-foreground text-xs">/ <T>{fabricUnit(fabric).per}</T></p>
                 </div>
 
                 <Button
@@ -243,6 +274,12 @@ export function VendorFabricsPanel({
                     <MoreVertical className="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setRestockTarget(fabric)}>
+                      <Package className="size-4" /> <T>+ Stock</T>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setColorsTarget(fabric)}>
+                      <Palette className="size-4" /> <T>Ajouter des couleurs</T>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => openEdit(fabric)}>
                       <Pencil className="size-4" /> <T>Modifier</T>
                     </DropdownMenuItem>
@@ -283,6 +320,9 @@ export function VendorFabricsPanel({
         europe={europe}
       />
 
+      <RestockDialog fabric={restockTarget} onClose={() => setRestockTarget(null)} />
+      <AddColorsDialog fabric={colorsTarget} onClose={() => setColorsTarget(null)} />
+
       <Dialog
         open={Boolean(deleteTarget)}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
@@ -314,5 +354,168 @@ export function VendorFabricsPanel({
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+function StockLine({ fabric }: { fabric: Fabric }) {
+  const stock = fabricStock(fabric);
+  if (stock == null) {
+    return (
+      <p className="text-muted-foreground text-xs font-medium">
+        <T>{isFabricAvailable(fabric) ? "Stock : non renseigné" : "Stock : 0"}</T>
+      </p>
+    );
+  }
+  return (
+    <p className={cn("text-xs font-medium", stock <= 5 ? "text-amber-500" : "text-emerald-500")}>
+      <T vars={{ q: formatUnits(fabric, stock) }}>{"Stock : {q}"}</T>
+    </p>
+  );
+}
+
+/** Nouveau stock : seule la quantité reçue est demandée. */
+function RestockDialog({ fabric, onClose }: { fabric: Fabric | null; onClose: () => void }) {
+  const [qty, setQty] = useState("");
+  const [pending, start] = useTransition();
+  const stock = fabric ? fabricStock(fabric) : null;
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fabric) return;
+    const n = Number(qty.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) {
+      toast.error(translateNow("Indiquez la quantité reçue."));
+      return;
+    }
+    start(async () => {
+      try {
+        unwrap(await restockFabric(fabric.id, n));
+        toast.success(translateNow("Stock mis à jour : le tissu est en vente."));
+        setQty("");
+        onClose();
+      } catch (err) {
+        toast.error(translateNow(err instanceof Error ? err.message : "Erreur, réessayez."));
+      }
+    });
+  }
+
+  return (
+    <Dialog open={Boolean(fabric)} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <form onSubmit={submit} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>
+              <T>Nouveau stock</T>
+            </DialogTitle>
+            <DialogDescription>
+              {fabric?.name}
+              {" · "}
+              {fabric && stock != null ? (
+                <T vars={{ q: formatUnits(fabric, stock) }}>{"il reste {q}"}</T>
+              ) : (
+                <T>stock vide</T>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="restock-qty">
+              <T vars={{ unit: fabric ? fabricUnit(fabric).many : "" }}>
+                {"Combien de {unit} avez-vous reçu ?"}
+              </T>
+            </Label>
+            <Input
+              id="restock-qty"
+              type="number"
+              inputMode="decimal"
+              min={0.5}
+              step={0.5}
+              required
+              autoFocus
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              placeholder="50"
+              className="h-12 text-lg"
+            />
+            <p className="text-muted-foreground text-xs">
+              <T>{"La quantité s'ajoute à ce qui reste. Rien d'autre à remplir."}</T>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+              <T>Annuler</T>
+            </Button>
+            <Button
+              type="submit"
+              disabled={pending}
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              {pending && <Loader2 className="size-4 animate-spin" />}
+              <T>Ajouter au stock</T>
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Nouvelles couleurs d'un tissu déjà publié : rien d'autre à ressaisir. */
+function AddColorsDialog({ fabric, onClose }: { fabric: Fabric | null; onClose: () => void }) {
+  const [pending, start] = useTransition();
+  const current = parseFabricColors(fabric?.color);
+
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!fabric) return;
+    const picked = String(new FormData(e.currentTarget).get("new_colors") ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c && !current.includes(c));
+    if (picked.length === 0) {
+      toast.error(translateNow("Choisissez au moins une nouvelle couleur."));
+      return;
+    }
+    start(async () => {
+      try {
+        unwrap(await addFabricColors(fabric.id, picked));
+        toast.success(translateNow("Couleurs ajoutées."));
+        onClose();
+      } catch (err) {
+        toast.error(translateNow(err instanceof Error ? err.message : "Erreur, réessayez."));
+      }
+    });
+  }
+
+  return (
+    <Dialog open={Boolean(fabric)} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={submit} className="space-y-4" key={fabric?.id ?? "none"}>
+          <DialogHeader>
+            <DialogTitle>
+              <T>Ajouter des couleurs</T>
+            </DialogTitle>
+            <DialogDescription>
+              {fabric?.name}
+              {current.length > 0 && (
+                <>
+                  {" · "}
+                  <T>Déjà en vente :</T> {current.join(", ")}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <FabricColorPicker name="new_colors" />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+              <T>Annuler</T>
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="size-4 animate-spin" />}
+              <T>Ajouter</T>
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -15,6 +15,14 @@ export function isFabricAvailable(fabric: { in_stock?: boolean }): boolean {
   return fabric.in_stock !== false;
 }
 
+/**
+ * En vente : en stock ET en ligne. Un tissu que le vendeur a retiré du
+ * catalogue ne doit plus s'acheter, même par un lien gardé de côté.
+ */
+export function isFabricOnSale(fabric: { in_stock?: boolean; is_active?: boolean }): boolean {
+  return fabric.is_active !== false && isFabricAvailable(fabric);
+}
+
 /** Pas de coupe : un vendeur taille au demi-mètre, jamais au centimètre. */
 export const METERS_STEP = 0.5;
 /** Garde-fou haut : au-delà, c'est un rouleau, il se commande auprès du vendeur. */

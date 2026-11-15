@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 
 import { runAction, type ActionResult } from "@/lib/action-result";
+import { parseModelQuoteSettings } from "@/lib/auto-quote";
 import { parseDeliveryZone } from "@/lib/delivery";
 import { europeTypeInfo, parseEuropeType, parseMakingType } from "@/lib/europe";
 
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
-import { modelBodyFitProblem, parseModelBodyFits } from "@/lib/model-body-fit";
+import { parseModelBodyFits, tailorBodyFitProblem } from "@/lib/model-body-fit";
+import { loadOneTailorBodyFits } from "@/lib/tailor-body-fits";
+import { parseReadyColorPrices, parseReadyColors } from "@/lib/ready-to-wear";
 import {
   MAX_CARE_TIPS_LENGTH,
   modelStyleProblem,
@@ -15,11 +18,12 @@ import {
   styleGroupPhotos,
 } from "@/lib/model-style";
 import type { OrderStatus } from "@/lib/constants";
+import { garmentStyleKey, parseStyleBase, STYLE_BASE_REQUESTED } from "@/lib/style-options";
 import { isTerminal } from "@/lib/pipeline";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { ModelBodyFit, ModelStyleGroup } from "@/lib/types";
+import type { GarmentModel, ModelBodyFit, ModelStyleGroup } from "@/lib/types";
 
 export type ModelFormState = { ok: true } | { ok: false; error: string } | null;
 
@@ -161,6 +165,20 @@ export async function saveModel(
     : { data: [] };
   const fabricRows = (ownedFabrics ?? []) as { id: string; is_active: boolean }[];
 
+  // « Tel quel » = prêt-à-porter : le tailleur dit s'il l'a déjà cousu et en
+  // quelles couleurs. Le prix payé est le prix du modèle, donc il est requis.
+  const sendsReady = formData.has("ready_form");
+  const readyToWear = sendsReady && formData.get("ready_to_wear") === "on";
+  const readyColors = readyToWear ? parseReadyColors(formData.getAll("ready_colors")) : [];
+  // Un prix par couleur, facultatif : case vide = prix du modèle.
+  const readyColorPrices = parseReadyColorPrices(formData.get("ready_color_prices"), readyColors);
+  if (readyToWear && readyColors.length === 0) {
+    return { ok: false, error: "Prêt-à-porter : choisissez au moins une couleur." };
+  }
+  if (readyToWear && price(formData.get("price")) === null) {
+    return { ok: false, error: "Prêt-à-porter : indiquez le prix du modèle, c'est le prix payé « tel quel »." };
+  }
+
   // Les champs de l'atelier n'apparaissent que s'il n'est pas encore renseigné.
   const atelierAddress = text(formData.get("atelier_address"));
   const atelierPhone = text(formData.get("atelier_phone"));
@@ -177,8 +195,43 @@ export async function saveModel(
   // d'un atelier européen : les autres sauvegardes n'y touchent pas.
   const sendsEurope = formData.has("europe_type");
   const europeType = sendsEurope ? parseEuropeType(formData.get("europe_type")) : null;
-  const categorySlug = europeTypeInfo(europeType)?.category ?? text(formData.get("category_slug"));
+
+  // Chaque création est rangée sous un modèle du catalogue JALOFA : elle
+  // s'affiche sur sa page, prend sa catégorie et reprend ses planches dessinées.
+  const sendsCatalog = formData.has("catalog_model_id");
+  const catalogModelId = text(formData.get("catalog_model_id"));
+  let catalogModel: GarmentModel | null = null;
+  if (catalogModelId) {
+    const { data: picked } = await supabase
+      .from("models")
+      .select("*")
+      .eq("id", catalogModelId)
+      .is("tailor_id", null)
+      .maybeSingle();
+    if (!picked) return { ok: false, error: "Ce vêtement n'est pas dans le catalogue JALOFA." };
+    catalogModel = picked as GarmentModel;
+  }
+  if (sendsCatalog && !catalogModel && formData.get("is_active") === "on") {
+    return {
+      ok: false,
+      error: "Choisissez le vêtement de notre catalogue auquel correspond votre modèle.",
+    };
+  }
+
+  const categorySlug =
+    europeTypeInfo(europeType)?.category ??
+    catalogModel?.category_slug ??
+    text(formData.get("category_slug"));
+  // Le métrage vit dans « Mes métrages » : le formulaire n'en envoie plus. Celui
+  // déjà enregistré sur un ancien modèle reste en place, en repli.
+  const sendsBodyFits = formData.has("body_fits");
   const bodyFits = parseModelBodyFits(formData.get("body_fits"), categorySlug);
+  const styleBase = catalogModel
+    ? garmentStyleKey(catalogModel)
+    : parseStyleBase(formData.get("style_base"));
+  // Devis manuel ou automatique (prix fixe, livraison, délai).
+  const quote = parseModelQuoteSettings(formData);
+  if (!quote.ok) return { ok: false, error: quote.error };
 
   // Pour publier : un style complet, le tissu de chaque silhouette, au moins un
   // tissu en ligne, et une adresse où envoyer les tissus des autres vendeurs. Un
@@ -187,11 +240,23 @@ export async function saveModel(
   if (formData.get("is_active") === "on") {
     const styleProblem = modelStyleProblem(styleGroups);
     if (styleProblem) return { ok: false, error: styleProblem };
-    const fitProblem = modelBodyFitProblem(bodyFits, categorySlug);
-    if (fitProblem) return { ok: false, error: fitProblem };
-    if (!fabricRows.some((f) => f.is_active)) {
-      return { ok: false, error: "Choisissez au moins un tissu pour publier ce modèle." };
+    let savedFits: ModelBodyFit[] = bodyFits;
+    if (!sendsBodyFits && id) {
+      const { data: current } = await supabase
+        .from("models")
+        .select("body_fits")
+        .eq("id", id)
+        .eq("tailor_id", user.id)
+        .maybeSingle();
+      savedFits = (current as { body_fits: ModelBodyFit[] | null } | null)?.body_fits ?? [];
     }
+    const fitProblem = tailorBodyFitProblem(
+      savedFits,
+      await loadOneTailorBodyFits(supabase, user.id),
+      categorySlug,
+    );
+    if (fitProblem) return { ok: false, error: fitProblem };
+    // Les tissus sont facultatifs : un tailleur peut publier sans en avoir.
     if (!atelierAddress && !(await hasAtelier(supabase, user.id))) {
       return { ok: false, error: "Indiquez l'adresse de votre atelier pour publier ce modèle." };
     }
@@ -250,10 +315,20 @@ export async function saveModel(
     delivery_zone: parseDeliveryZone(formData.get("delivery_zone")),
     care_tips: text(formData.get("care_tips"))?.slice(0, MAX_CARE_TIPS_LENGTH) ?? null,
     style_groups: styleGroups,
-    body_fits: bodyFits,
+    ...(formData.has("style_base") || catalogModel ? { style_base: styleBase } : {}),
+    ...(sendsCatalog ? { catalog_model_id: catalogModel?.id ?? null } : {}),
+    ...(sendsBodyFits ? { body_fits: bodyFits } : {}),
     difficulty: difficulty(formData.get("difficulty")),
     avg_days: avgDays(formData.get("avg_days")),
     price: price(formData.get("price")),
+    ...(sendsReady
+      ? {
+          ready_to_wear: readyToWear,
+          ready_colors: readyColors,
+          ready_color_prices: readyColorPrices,
+        }
+      : {}),
+    ...(formData.has("quote_mode") ? quote.settings : {}),
     image_url: finalUrls[0],
     is_active: formData.get("is_active") === "on",
     ...(sendsEurope
@@ -270,6 +345,7 @@ export async function saveModel(
     finalUrls.map((image_url, sort_order) => ({ model_id: modelId, image_url, sort_order }));
 
   let savedModelId = id;
+  let previousStyleBase: string | null = null;
   if (id) {
     // Current gallery, kept to prune the storage objects the tailor dropped and
     // to swap rows without ever leaving the model photo-less mid-update.
@@ -285,12 +361,19 @@ export async function saveModel(
       model_photos: { id: string; image_url: string }[];
     } | null;
 
-    // RLS also enforces ownership, but scope the query explicitly.
-    const { error } = await supabase
+    // À part : tant que la colonne manque, la requête du dessus doit marcher.
+    const { data: prevBase } = await supabase
       .from("models")
-      .update(payload)
+      .select("style_base")
       .eq("id", id)
-      .eq("tailor_id", user.id);
+      .eq("tailor_id", user.id)
+      .maybeSingle();
+    previousStyleBase = (prevBase as { style_base: string | null } | null)?.style_base ?? null;
+
+    // RLS also enforces ownership, but scope the query explicitly.
+    const { error } = await withoutMissingStyleBase(payload, (row) =>
+      supabase.from("models").update(row).eq("id", id).eq("tailor_id", user.id),
+    );
     if (error) {
       await rollback();
       return { ok: false, error: error.message };
@@ -317,11 +400,13 @@ export async function saveModel(
     ].filter((u) => !kept.has(u));
     await Promise.all(orphaned.map((u) => removeImage(supabase, BUCKET, u)));
   } else {
-    const { data: created, error } = await supabase
-      .from("models")
-      .insert({ ...payload, tailor_id: user.id })
-      .select("id")
-      .single();
+    const { data: created, error } = await withoutMissingStyleBase(payload, (row) =>
+      supabase
+        .from("models")
+        .insert({ ...row, tailor_id: user.id })
+        .select("id")
+        .single(),
+    );
     if (error || !created) {
       await rollback();
       return { ok: false, error: error?.message ?? "Création impossible." };
@@ -359,10 +444,101 @@ export async function saveModel(
 
   if (payload.is_active) await openShop(supabase, user.id);
 
+  if (styleBase === STYLE_BASE_REQUESTED && previousStyleBase !== STYLE_BASE_REQUESTED && savedModelId) {
+    await requestStyleDrawing(supabase, user.id, savedModelId, name);
+  }
+
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath("/modeles");
   revalidatePath("/europe");
   return { ok: true };
+}
+
+const QUOTE_COLUMNS = ["quote_mode", "quote_price", "quote_delivery_fee", "quote_ready_days"];
+
+/**
+ * Tant que les migrations `20260821000001_model_style_base` et
+ * `20260822000001_model_auto_quote` ne sont pas passées, leurs colonnes
+ * n'existent pas : on enregistre le reste plutôt que de bloquer le tailleur. Un
+ * devis automatique, lui, ne peut pas être perdu en silence : il bloque.
+ */
+async function withoutMissingStyleBase<P extends Record<string, unknown>, R extends { error: { code?: string; message: string } | null }>(
+  payload: P,
+  run: (row: P) => PromiseLike<R>,
+): Promise<R> {
+  let row: Record<string, unknown> = payload;
+  let res = await run(payload);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const err = res.error;
+    if (!err || (err.code !== "42703" && err.code !== "PGRST204")) return res;
+    const missing = ["style_base", "catalog_model_id", ...QUOTE_COLUMNS].filter(
+      (col) => col in row && err.message.includes(col),
+    );
+    if (missing.length === 0) return res;
+    const dropsQuote = missing.some((col) => QUOTE_COLUMNS.includes(col));
+    if (dropsQuote && row.quote_mode === "auto") {
+      return {
+        ...res,
+        error: {
+          ...err,
+          message: "Le devis automatique n'est pas encore disponible. Choisissez « Devis manuel » pour l'instant.",
+        },
+      };
+    }
+    const next = { ...row };
+    for (const col of dropsQuote ? [...missing, ...QUOTE_COLUMNS] : missing) delete next[col];
+    row = next;
+    res = await run(row as P);
+  }
+  return res;
+}
+
+/**
+ * Le modèle n'est dans aucune liste du catalogue : le tailleur demande à JALOFA
+ * de dessiner sa personnalisation. La demande arrive dans « Retours » et sonne
+ * chez l'administration. Best-effort : l'enregistrement du modèle est déjà fait.
+ */
+async function requestStyleDrawing(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  modelId: string,
+  name: string,
+) {
+  try {
+    const { data: tailor } = await supabase
+      .from("tailors")
+      .select("shop_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const shop = (tailor as { shop_name: string | null } | null)?.shop_name ?? "Un tailleur";
+    const message = `Dessin de personnalisation demandé pour le modèle « ${name} » (${shop}). Ce vêtement n'est pas dans le catalogue : dessiner ses planches (col, manches, broderie…). Fiche : /modeles/${modelId}`;
+
+    await supabase.from("feedback").insert({
+      author_id: userId,
+      author_name: shop,
+      author_role: "tailor",
+      space: "tailor",
+      category: "amelioration",
+      message,
+    });
+
+    const db = createAdminClient();
+    const { data: admins } = await db.from("profiles").select("id").eq("role", "admin");
+    if (admins?.length) {
+      await db.from("notifications").insert(
+        (admins as { id: string }[]).map((a) => ({
+          user_id: a.id,
+          type: "style_drawing_request",
+          title: "Dessin de personnalisation demandé",
+          body: `${shop} demande les planches de « ${name} ».`,
+          link: "/admin/feedback",
+        })),
+      );
+    }
+    revalidatePath("/admin/feedback");
+  } catch {
+    // Clé de service absente : la demande reste dans « Retours ».
+  }
 }
 
 /**
@@ -439,18 +615,13 @@ async function setModelPublishedImpl(id: string, published: boolean): Promise<vo
     } | null;
     const publishProblem =
       modelStyleProblem(row?.style_groups ?? []) ??
-      modelBodyFitProblem(row?.body_fits ?? [], row?.category_slug);
+      tailorBodyFitProblem(
+        row?.body_fits ?? [],
+        await loadOneTailorBodyFits(supabase, user.id),
+        row?.category_slug,
+      );
     if (publishProblem) throw new Error(`Touchez « Modifier ». ${publishProblem}`);
 
-    const { data: links } = await supabase
-      .from("model_fabrics")
-      .select("fabric:fabrics!inner(is_active)")
-      .eq("model_id", id)
-      .eq("fabric.is_active", true)
-      .limit(1);
-    if (!links?.length) {
-      throw new Error("Touchez « Modifier » et choisissez au moins un tissu pour ce modèle.");
-    }
     if (!(await hasAtelier(supabase, user.id))) {
       throw new Error("Touchez « Modifier » et indiquez l'adresse de votre atelier.");
     }

@@ -42,6 +42,55 @@ import {
 import { cn } from "@/lib/utils";
 import { T } from "@/components/i18n/t";
 import { translateNow } from "@/lib/i18n/translate";
+import { ProofUploadButton } from "@/components/dashboard/proof-upload-button";
+import { confirmClientFabricReceived } from "@/lib/actions/order-workflow";
+import {
+  CUT_BLOCK_LABELS,
+  SHIP_BLOCK_LABELS,
+  cuttingStatus,
+  fabricOwnerOf,
+  shippingStatus,
+  type WorkflowOrder,
+} from "@/lib/order-workflow";
+
+/** « 14 nov. 08:00 », heure de Dakar. */
+function whenLabel(ms: number): string {
+  return new Date(ms).toLocaleString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Dakar",
+  });
+}
+
+/** Un message d'attente ou de blocage : on comprend sans lire beaucoup. */
+function WorkflowNotice({ tone, text, at }: { tone: "wait" | "stop"; text: string; at?: number | null }) {
+  return (
+    <div
+      className={cn(
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 sm:w-auto",
+        tone === "stop" ? "bg-red-500/10" : "bg-amber-500/10",
+      )}
+    >
+      {tone === "stop" ? (
+        <X className="size-5 shrink-0 text-red-500" />
+      ) : (
+        <Hourglass className="size-5 shrink-0 text-amber-500" />
+      )}
+      <div className="min-w-0 text-sm leading-snug">
+        <p className={cn("font-semibold", tone === "stop" ? "text-red-500" : "text-amber-500")}>
+          <T>{text}</T>
+        </p>
+        {at ? (
+          <p className="text-muted-foreground">
+            <T vars={{ date: whenLabel(at) }}>{"Possible à partir du {date}"}</T>
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 /** Faits pour le pouce : on ne doit pas pouvoir les rater. */
 const BIG = "h-12 flex-1 rounded-xl px-5 text-base font-semibold sm:flex-none";
@@ -82,9 +131,13 @@ export function OrderStatusControl({
   deliveryZone = "none",
   paymentStatus,
   readyDays = null,
+  autoQuoted = false,
   courierName = null,
   courierPhone = null,
+  workflow: workflowProp = null,
 }: {
+  /** Délais, réception et blocages (cf. `src/lib/order-workflow.ts`). */
+  workflow?: WorkflowOrder | null;
   orderId: string;
   status: OrderStatus;
   type: OrderType;
@@ -103,11 +156,17 @@ export function OrderStatusControl({
   paymentStatus?: PaymentStatus;
   /** Devis envoyé : « prêt dans N jours ». */
   readyDays?: number | null;
+  /** Devis parti tout seul, depuis le prix fixe du modèle. */
+  autoQuoted?: boolean;
   /** Le livreur, une fois la tenue en route. */
   courierName?: string | null;
   courierPhone?: string | null;
 }) {
   const { role, demo, move, reject, quote } = usePipeline();
+  // Démo (sans base) : pas d'horodatages serveur, donc aucun délai à appliquer.
+  const workflow = demo ? null : workflowProp;
+  // L'heure de l'affichage : les délais sont revérifiés par le serveur à chaque geste.
+  const [now] = useState(() => Date.now());
   const [isPending, startTransition] = useTransition();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -190,7 +249,7 @@ export function OrderStatusControl({
         <div className="flex w-full items-center gap-3 rounded-lg bg-amber-500/10 px-3 py-2.5">
           <Hourglass className="size-5 shrink-0 text-amber-500" />
           <div className="min-w-0 text-sm leading-snug">
-            <p className="font-semibold text-amber-500"><T>Devis envoyé</T></p>
+            <p className="font-semibold text-amber-500">{autoQuoted ? <T>Devis automatique envoyé</T> : <T>Devis envoyé</T>}</p>
             <p className="text-muted-foreground">
               {readyDays ? <><T vars={{ n: readyDays }}>{readyDays > 1 ? "Prête en {n} jours" : "Prête en {n} jour"}</T>{" · "}</> : ""}
               <T>En attente de la réponse du client.</T>
@@ -248,6 +307,21 @@ export function OrderStatusControl({
     );
   }
 
+  // Demande d'annulation ou litige : plus aucun geste tant que JALOFA examine.
+  if (workflow?.cancellation_pending) {
+    return <WorkflowNotice tone="stop" text={CUT_BLOCK_LABELS.cancellation_pending} />;
+  }
+  if (workflow?.on_hold) {
+    return <WorkflowNotice tone="stop" text={CUT_BLOCK_LABELS.on_hold} />;
+  }
+
+  const confirmClientFabric = () =>
+    startTransition(async () => {
+      const res = await confirmClientFabricReceived(orderId);
+      if (res.ok) toast.success(translateNow("Réception enregistrée. Attendez 24 h avant de couper."));
+      else toast.error(translateNow(res.error));
+    });
+
   // A fresh order — accept or decline (whoever it belongs to).
   if (status === "received" && needsAction(role, status, type)) {
     const accepted = nextStatus(status, type);
@@ -291,14 +365,22 @@ export function OrderStatusControl({
   if (role === "tailor") {
     // Le tissu est chez le fournisseur ou en route : confirmer la réception.
     if (tailorAwaitingFabric(status, type)) {
+      // Le vendeur n'a pas dit « Tissu envoyé » : le tailleur peut quand même
+      // confirmer s'il a le tissu en main. JALOFA vérifie ensuite avec le vendeur.
+      const notDeclared =
+        !!workflow && fabricOwnerOf(workflow) === "vendor" && !workflow.fabric_shipped_at;
       const waiting = ownerOf(status, type) === "vendor";
       return (
         <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
-          {waiting && (
+          {notDeclared ? (
+            <span className="text-muted-foreground text-sm">
+              <T>{"Vous avez le tissu ? Dites-le. JALOFA vérifie avec le vendeur."}</T>
+            </span>
+          ) : waiting ? (
             <span className="text-muted-foreground text-sm">
               <T>En attente du fournisseur</T>
             </span>
-          )}
+          ) : null}
           <Button
             className={BIG}
             variant="outline"
@@ -337,8 +419,35 @@ export function OrderStatusControl({
 
     if (tailorInWorkshop(status, type)) {
       const step = workshopStep(status);
+      // Premier geste de couture = la découpe : seulement quand le serveur l'autorise.
+      const cut = workflow && step.next === "sewing" ? cuttingStatus(workflow, now) : null;
+      if (cut && !cut.allowed && cut.reason !== "already_started") {
+        if (cut.reason === "fabric_not_received" && fabricOwnerOf(workflow!) === "client") {
+          return (
+            <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
+              <span className="text-muted-foreground text-sm">
+                <T>Le client vous envoie son tissu.</T>
+              </span>
+              <Button className={BIG} variant="outline" onClick={confirmClientFabric} disabled={isPending}>
+                {isPending ? <Loader2 className="size-4 animate-spin" /> : <PackageCheck className="size-4" />}
+                <T>{"J'ai reçu le tissu du client"}</T>
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <WorkflowNotice
+            tone={cut.reason === "waiting" ? "wait" : "stop"}
+            text={CUT_BLOCK_LABELS[cut.reason!]}
+            at={cut.reason === "waiting" ? cut.availableAt : null}
+          />
+        );
+      }
       return (
-        <>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          {step.next === "shipped" && (
+            <ProofUploadButton orderId={orderId} kind="cut_after" label="Photo du tissu coupé" />
+          )}
           <Button
             className={cn(BIG, YES)}
             onClick={() => (step.next === "shipped" ? setCourierOpen(true) : run(step.next))}
@@ -357,31 +466,44 @@ export function OrderStatusControl({
             onConfirm={confirmCourier}
             isPending={isPending}
           />
-        </>
+        </div>
       );
     }
   }
 
-  // --- Vendeur d'une commande complète : un seul geste -----------------------
-  // Le tissu part à l'atelier ; l'adresse est affichée juste au-dessus.
+  // --- Vendeur : envoyer le tissu ------------------------------------------
+  // Économique : 24 h d'attente après le paiement ; express : tout de suite.
   if (
     role === "vendor" &&
-    type === "full" &&
+    (type === "full" || type === "fabric_only") &&
     (status === "accepted" || status === "fabric_prepared")
   ) {
+    const ship = workflow ? shippingStatus(workflow, now) : null;
+    if (ship && !ship.allowed && ship.reason !== "not_applicable") {
+      return (
+        <WorkflowNotice
+          tone={ship.reason === "waiting" ? "wait" : "stop"}
+          text={SHIP_BLOCK_LABELS[ship.reason!]}
+          at={ship.reason === "waiting" ? ship.availableAt : null}
+        />
+      );
+    }
     return (
-      <Button
-        className={cn(BIG, YES)}
-        onClick={() => run("fabric_shipped")}
-        disabled={isPending}
-      >
-        {isPending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Truck className="size-4" />
-        )}
-        <T>Tissu envoyé</T>
-      </Button>
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <ProofUploadButton orderId={orderId} kind="shipping" label="Photo du colis" />
+        <Button
+          className={cn(BIG, YES)}
+          onClick={() => run("fabric_shipped")}
+          disabled={isPending}
+        >
+          {isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Truck className="size-4" />
+          )}
+          <T>Tissu envoyé</T>
+        </Button>
+      </div>
     );
   }
 
@@ -392,6 +514,15 @@ export function OrderStatusControl({
         <T>Tissu envoyé. JALOFA confirme la réception avec le client.</T>
       </span>
     );
+  }
+
+  // Le tailleur a reçu le tissu sans que le vendeur ait dit « Tissu envoyé » :
+  // JALOFA appelle le vendeur avant de le payer.
+  if (role === "vendor" && workflow?.vendor_check === "pending") {
+    return <WorkflowNotice tone="wait" text="Le tailleur a reçu le tissu. JALOFA va vous appeler pour confirmer l'envoi." />;
+  }
+  if (role === "vendor" && workflow?.vendor_check === "denied") {
+    return <WorkflowNotice tone="stop" text="Envoi non confirmé : pas de paiement pour ce tissu. Contactez JALOFA." />;
   }
 
   // --- Vendeur (et repli) : étape par étape -------------------------------

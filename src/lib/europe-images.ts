@@ -52,8 +52,8 @@ export const EUROPE_BUSINESS = {
     {
       src: `${DIR}/business.jpg`,
       alt: "Une femme souriante en tailleur noir cintré",
-      title: "Le conseil d'administration",
-      text: "Un tailleur net et précis, pour les femmes qui dirigent.",
+      title: "La femme d'affaires",
+      text: "Un tailleur net et précis, pour les femmes d'affaires.",
     },
     {
       src: `${DIR}/james.jpg`,

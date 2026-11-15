@@ -58,7 +58,8 @@ function actionFor(order: OrderListItem): Action | null {
 }
 
 const isDone = (o: OrderListItem) =>
-  o.status === "delivered" || o.status === "cancelled";
+  o.status === "delivered";
+const isCancelled = (o: OrderListItem) => o.status === "cancelled";
 
 // Les cinq étapes que le client comprend, et les statuts internes de chacune.
 const PHASES = [
@@ -143,9 +144,11 @@ export function ClientOrdersBoard({
   /** Glissé avant l'appel « Une nouvelle tenue ? » (ex. les notifications). */
   children?: React.ReactNode;
 }) {
-  const todo = orders.filter((o) => actionFor(o));
-  const ongoing = orders.filter((o) => !actionFor(o) && !isDone(o));
-  const done = orders.filter((o) => !actionFor(o) && isDone(o));
+  // Les annulées ont leur propre page (`/compte/annulees`).
+  const live = orders.filter((o) => !isCancelled(o));
+  const todo = live.filter((o) => actionFor(o));
+  const ongoing = live.filter((o) => !actionFor(o) && !isDone(o));
+  const done = live.filter((o) => !actionFor(o) && isDone(o));
 
   return (
     <div className="space-y-12">
@@ -457,5 +460,24 @@ function DoneRow({ order }: { order: OrderListItem }) {
         </div>
       </Link>
     </li>
+  );
+}
+
+/** La page « Annulées » du client : ses commandes et devis annulés. */
+export function ClientCancelledList({ orders }: { orders: OrderListItem[] }) {
+  const cancelled = orders.filter(isCancelled);
+  if (cancelled.length === 0) {
+    return (
+      <p className="text-muted-foreground rounded-2xl border border-dashed p-10 text-center text-sm">
+        <T>Aucune commande annulée.</T>
+      </p>
+    );
+  }
+  return (
+    <ul className="divide-border divide-y rounded-2xl border">
+      {cancelled.map((o) => (
+        <DoneRow key={o.id} order={o} />
+      ))}
+    </ul>
   );
 }

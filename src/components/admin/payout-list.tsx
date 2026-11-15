@@ -1,6 +1,7 @@
 import { MapPin } from "lucide-react";
 
 import { PlanBadge } from "@/components/admin/status-badges";
+import { RecordPayoutButton } from "@/components/admin/record-payout-button";
 import { formatPrice } from "@/lib/constants";
 import type { Payout } from "@/lib/payouts";
 import { planCommission } from "@/lib/subscriptions";
@@ -88,6 +89,9 @@ function PayoutCard({ row, grossLabel }: { row: Payout; grossLabel: string }) {
             muted
           />
         )}
+        {row.alreadyPaid > 0 && (
+          <Line label="Déjà versé (registre)" value={`− ${formatPrice(row.alreadyPaid)}`} muted />
+        )}
       </dl>
 
       <div className="mt-2 flex items-center justify-between border-t pt-2">
@@ -108,6 +112,10 @@ function PayoutCard({ row, grossLabel }: { row: Payout; grossLabel: string }) {
           En attente d’encaissement : {formatPrice(row.pending)}
         </p>
       )}
+
+      <div className="mt-3">
+        <RecordPayoutButton proId={row.id} role={row.role === "vendor" ? "vendor" : "tailor"} amount={row.net} />
+      </div>
     </div>
   );
 }

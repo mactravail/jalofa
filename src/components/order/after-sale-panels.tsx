@@ -40,23 +40,26 @@ function useAfterSaleAction(done: string) {
   return { run, isPending };
 }
 
-/** Annuler dans le délai. Le bouton demande une confirmation : le geste est définitif. */
+/**
+ * Demander l'annulation. Payée : la commande est bloquée tout de suite et JALOFA
+ * examine (remboursement selon l'avancement). Pas payée : annulée tout de suite.
+ */
 export function CancelOrderPanel({
   orderId,
   paid,
-  deadlineLabel,
   lateSince,
 }: {
   orderId: string;
   paid: boolean;
-  /** « 12 novembre à 14:30 » ; absent quand aucun délai ne s'applique. */
-  deadlineLabel: string | null;
   /** Date promise dépassée de plus d'une semaine : l'annulation est due au retard. */
   lateSince?: string | null;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [reason, setReason] = useState("");
   const t = useT();
-  const { run, isPending } = useAfterSaleAction("Commande annulée.");
+  const { run, isPending } = useAfterSaleAction(
+    paid ? "Demande envoyée. Votre commande est bloquée." : "Commande annulée.",
+  );
 
   return (
     <div className={cn("rounded-xl border p-4", lateSince && "border-red-500/60")}>
@@ -67,29 +70,90 @@ export function CancelOrderPanel({
         {lateSince
           ? t("Votre habit devait être prêt le {date}. Vous pouvez annuler : JALOFA vous rembourse tout.", { date: lateSince })
           : paid
-          ? t("Annulez et JALOFA vous rembourse.")
+          ? t("Votre commande est bloquée tout de suite. JALOFA regarde et vous dit combien vous êtes remboursé.")
           : t("Vous pouvez annuler cette demande.")}
-        {!lateSince && deadlineLabel && ` ${t("Possible jusqu'au {date}.", { date: deadlineLabel })}`}
       </p>
+      {paid && !lateSince && (
+        <p className="text-muted-foreground mt-1 text-xs">
+          {t("Tissu déjà coupé : le tailleur garde 35 % du prix de la couture. Tissu déjà envoyé : le retour est à votre charge.")}
+        </p>
+      )}
       {confirming ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 space-y-2">
+          {paid && (
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("Pourquoi ? (facultatif)")}
+              maxLength={500}
+              rows={2}
+            />
+          )}
+          <div className="flex flex-wrap gap-2">
           <Button
             variant="destructive"
             disabled={isPending}
-            onClick={() => run(() => cancelOrder(orderId))}
+            onClick={() => run(() => cancelOrder(orderId, reason))}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            {t("Oui, annuler")}
+            {paid ? t("Oui, demander l'annulation") : t("Oui, annuler")}
           </Button>
           <Button variant="outline" disabled={isPending} onClick={() => setConfirming(false)}>
             {t("Non, garder")}
           </Button>
+          </div>
         </div>
       ) : (
         <Button variant="outline" className="mt-3" onClick={() => setConfirming(true)}>
           {t("Annuler ma commande")}
         </Button>
       )}
+    </div>
+  );
+}
+
+/** Où en est la demande d'annulation du client. */
+export function CancellationStatusPanel({
+  status,
+  refundAmount,
+  decisionReason,
+  refunded,
+}: {
+  status: "pending" | "accepted" | "rejected";
+  refundAmount: number | null;
+  decisionReason: string | null;
+  refunded: boolean;
+}) {
+  const t = useT();
+  if (status === "pending") {
+    return (
+      <div className="rounded-xl border border-amber-500/60 p-4">
+        <p className="font-semibold">{t("Demande d'annulation envoyée")}</p>
+        <p className="text-muted-foreground mt-0.5 text-sm">
+          {t("Votre commande est bloquée : rien n'est coupé ni envoyé. JALOFA vous répond vite.")}
+        </p>
+      </div>
+    );
+  }
+  if (status === "accepted") {
+    return (
+      <div className="rounded-xl border p-4">
+        <p className="font-semibold">{t("Annulation acceptée")}</p>
+        <p className="text-muted-foreground mt-0.5 text-sm">
+          {refunded
+            ? t("Vous avez été remboursé.")
+            : t("Vous serez remboursé de {amount} FCFA.", {
+                amount: new Intl.NumberFormat("fr-FR").format(refundAmount ?? 0),
+              })}
+        </p>
+        {decisionReason && <p className="text-muted-foreground mt-1 text-xs">{decisionReason}</p>}
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border p-4">
+      <p className="font-semibold">{t("Annulation refusée : votre commande continue")}</p>
+      {decisionReason && <p className="text-muted-foreground mt-0.5 text-sm">{decisionReason}</p>}
     </div>
   );
 }

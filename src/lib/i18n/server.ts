@@ -12,7 +12,30 @@ import {
   PATH_HEADER,
   type Locale,
 } from "@/lib/i18n/config";
-import { makeTranslate, type Translate } from "@/lib/i18n/translate";
+import { it } from "@/lib/i18n/dictionaries/it";
+import {
+  makeTranslateWith,
+  translateWith,
+  type Dictionary,
+  type Translate,
+  type TranslateVars,
+} from "@/lib/i18n/translate";
+
+// Les dictionnaires ne vivent que côté serveur (cf. `translate.ts`).
+const DICTIONARIES: Partial<Record<Locale, Dictionary>> = { it };
+
+/** Le dictionnaire d'une langue (`null` pour le français, langue source). */
+export function getDictionary(locale: Locale): Dictionary | null {
+  return locale === DEFAULT_LOCALE ? null : (DICTIONARIES[locale] ?? null);
+}
+
+export function translate(locale: Locale, text: string, vars?: TranslateVars): string {
+  return translateWith(getDictionary(locale), text, vars);
+}
+
+export function makeTranslate(locale: Locale): Translate {
+  return makeTranslateWith(getDictionary(locale));
+}
 
 /** Langue de la requête en cours (posée par le proxy). */
 export const getLocale = cache(async (): Promise<Locale> => {

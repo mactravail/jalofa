@@ -41,7 +41,7 @@ const STEPS = [
   },
   {
     title: "Payez sans risque",
-    text: "Par Wave ou par carte. JALOFA garde l'argent jusqu'à la livraison.",
+    text: "Par Wave ou par carte. L'argent attend en sécurité jusqu'à la livraison.",
   },
   {
     title: "Le tailleur coud",
@@ -79,19 +79,6 @@ const QUESTIONS = [
   {
     q: "Combien ça coûte ?",
     a: "Chaque tailleur donne son prix. Vous comparez, puis vous choisissez.",
-  },
-];
-
-const GUARANTEES = [
-  {
-    icon: ShieldCheck,
-    title: "Votre argent est protégé",
-    text: "Le tailleur est payé seulement après la livraison.",
-  },
-  {
-    icon: Undo2,
-    title: "Parole non tenue ? Remboursé",
-    text: "Grand retard, défaut, mauvais habit : ouvrez une réclamation.",
   },
 ];
 
@@ -178,18 +165,7 @@ export async function HowItWorks({
           ))}
         </ol>
 
-        <div className="mt-12 grid gap-3 md:mt-16 md:grid-cols-2">
-          {GUARANTEES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex gap-4 rounded-xl border border-white/15 p-5 md:p-8">
-              <Icon className="size-7 shrink-0" strokeWidth={1.5} aria-hidden />
-              <div className="min-w-0">
-                <h3 className="text-xl leading-snug font-medium tracking-tight">{t(title)}</h3>
-                <p className="text-muted-foreground mt-1 text-base">{t(text)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-muted-foreground mt-6 text-sm">
+        <p className="text-muted-foreground mt-12 text-sm md:mt-16">
           <Link href="/conditions" className="hover:text-foreground underline underline-offset-4">
             {t("Lire nos conditions")}
           </Link>

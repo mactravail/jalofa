@@ -14,6 +14,7 @@ import type { OrderListItem } from "@/lib/orders-data";
 import { amountFor } from "@/lib/pipeline";
 import { T } from "@/components/i18n/t";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { toWorkflowOrder } from "@/lib/order-workflow";
 
 /**
  * Le fil des nouvelles commandes : qui, quoi, quand, combien — puis les deux
@@ -117,6 +118,8 @@ function NewOrderCard({
           deliveryZone={order.model?.delivery_zone}
           paymentStatus={order.payment_status}
           readyDays={order.quote_ready_days}
+          autoQuoted={order.quote_auto}
+          workflow={toWorkflowOrder(order)}
         />
       </div>
     </article>

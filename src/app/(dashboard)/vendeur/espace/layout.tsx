@@ -4,6 +4,8 @@ import { DashboardDenied } from "@/components/dashboard/dashboard-denied";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PipelineProvider } from "@/components/dashboard/pipeline-store";
 import { ProPending } from "@/components/dashboard/pro-pending";
+import { SalesPendingBanner } from "@/components/dashboard/sales-pending-banner";
+import { canSell } from "@/lib/sales-approval";
 import { getProFabricSales, getProOrders } from "@/lib/dashboard-data";
 import {
   activatedCapabilities,
@@ -50,6 +52,11 @@ export default async function VendorDashboardLayout({
 
   // Les commandes sont chargées ici, une fois pour tout l'espace : le menu et
   // les pages du pipeline y puisent (cf. pipeline-store).
+  // Anti-arnaque : tant que JALOFA n'a pas validé le compte, rien ne se vend.
+  const salesPending =
+    (access.tailor !== null && !canSell(access.tailor)) ||
+    (access.vendor !== null && !canSell(access.vendor));
+
   return (
     <PipelineProvider role="vendor" orders={orders} demo={!configured}>
       <DashboardShell
@@ -58,6 +65,7 @@ export default async function VendorDashboardLayout({
         badges={{ sales: sales.filter((s) => !s.is_read).length }}
         capabilities={activatedCapabilities(access)}
       >
+        {configured && salesPending && <SalesPendingBanner />}
         {children}
       </DashboardShell>
     </PipelineProvider>

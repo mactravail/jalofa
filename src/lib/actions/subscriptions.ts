@@ -97,3 +97,53 @@ export async function setProPlan(
   revalidatePros();
   return { ok: true };
 }
+
+/**
+ * Valide (ou retire) les VENTES d'un pro — la garde anti-arnaque de la
+ * Sélection (cf. `@/lib/sales-approval`). Un pro non validé publie et reste
+ * visible, mais aucun client ne peut lui acheter. Comme l'activation, la
+ * décision vaut pour tout le compte : les deux boutiques d'un coup.
+ */
+export async function setProSalesApproval(
+  userId: string,
+  approved: boolean,
+): Promise<Result> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+  const supabase = await adminClient();
+  if (!supabase) return { ok: false, error: FORBIDDEN };
+
+  const patch = {
+    sales_approved: approved,
+    sales_approved_at: approved ? new Date().toISOString() : null,
+  };
+  const [t, v] = await Promise.all([
+    supabase.from("tailors").update(patch).eq("id", userId),
+    supabase.from("vendors").update(patch).eq("id", userId),
+  ]);
+  const error = t.error ?? v.error;
+  if (error) {
+    return {
+      ok: false,
+      error: /sales_approved/.test(error.message)
+        ? "La migration 20260904000001 (ventes validées) n'est pas encore appliquée en base."
+        : error.message,
+    };
+  }
+
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    type: approved ? "sales_approved" : "sales_suspended",
+    title: approved ? "Votre boutique est validée !" : "Vos ventes sont en pause",
+    body: approved
+      ? "Les clients peuvent maintenant acheter vos articles et commander chez vous."
+      : "JALOFA a mis vos ventes en pause. Vos articles restent visibles. Contactez-nous.",
+    link: "/tailleur/espace",
+  });
+
+  revalidatePros();
+  revalidatePath("/admin/validations");
+  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/tissus");
+  return { ok: true };
+}

@@ -68,6 +68,7 @@ const BUCKET_PATH: Record<OrderBucket, string> = {
   todo: "a-traiter",
   ongoing: "en-cours",
   done: "terminees",
+  cancelled: "annulees",
 };
 
 const DAY_OPTIONS: Intl.DateTimeFormatOptions = {

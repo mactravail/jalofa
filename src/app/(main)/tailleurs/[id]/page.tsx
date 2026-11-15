@@ -1,25 +1,53 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, MapPin, Scissors, Star } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Scissors, Shirt, Star } from "lucide-react";
 
 import {
   CertifiedBadge,
   FoundingMemberBadge,
 } from "@/components/admin/status-badges";
 import { DemoBanner } from "@/components/demo-banner";
-import { ModelCard } from "@/components/catalog/model-card";
 import { ReviewList } from "@/components/catalog/review-list";
 import { ReviewStars } from "@/components/catalog/review-stars";
+import { SalesPendingNotice } from "@/components/catalog/sales-pending-notice";
+import { ShopModelCard } from "@/components/catalog/shop-model-card";
+import { canSell } from "@/lib/sales-approval";
 import { TailorReviewForm } from "@/components/catalog/tailor-review-form";
 import { TrustScorePanel } from "@/components/catalog/trust-score";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/constants";
 import { getModelsByTailor, getTailorById, getTailorReviews } from "@/lib/data";
-import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
 
+// L'aperçu du lien partagé (TikTok, WhatsApp) : le nom de l'atelier et sa photo.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const t = await getT();
+  const tailor = await getTailorById(id);
+  if (!tailor || tailor.is_suspended) return { title: t("Tailleur") };
+  const title = tailor.shop_name ?? t("Tailleur");
+  const description =
+    tailor.bio ?? t("Les modèles de {name}, à commander sur mesure sur JALOFA.", { name: title });
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(tailor.cover_url ? { images: [tailor.cover_url] } : {}),
+    },
+  };
+}
+
+// La boutique d'un tailleur — aussi la page où arrivent les clients de ses lives
+// TikTok : ses modèles à lui, et seulement les siens, tout en haut, chacun avec
+// « Personnaliser » et (s'il l'a déjà cousu) « Prêt-à-porter ».
 export default async function TailorProfilePage({
   params,
 }: {
@@ -37,7 +65,7 @@ export default async function TailorProfilePage({
   ]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="mx-auto max-w-5xl px-4 py-8">
       <DemoBanner />
       <Link
         href="/tailleurs"
@@ -74,29 +102,58 @@ export default async function TailorProfilePage({
               {tailor.is_founding_member && <FoundingMemberBadge />}
             </div>
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
-              <span className="flex items-center gap-1">
-                <Star className="size-4 fill-amber-400 text-amber-400" />
-                <span className="text-foreground font-medium">
-                  {tailor.rating.toFixed(1)}
+              {tailor.rating_count > 0 && (
+                <span className="flex items-center gap-1">
+                  <Star className="size-4 fill-amber-400 text-amber-400" />
+                  <span className="text-foreground font-medium">
+                    {tailor.rating.toFixed(1)}
+                  </span>
+                  ({t("{n} avis", { n: tailor.rating_count })})
                 </span>
-                ({t("{n} avis", { n: tailor.rating_count })})
-              </span>
+              )}
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" /> {tailor.city}
               </span>
+              <span className="flex items-center gap-1">
+                <Shirt className="size-4" />{" "}
+                {models.length > 1
+                  ? t("{n} modèles", { n: models.length })
+                  : t("{n} modèle", { n: models.length })}
+              </span>
             </div>
           </div>
-          <Link
-            href={`/modeles?tailor=${tailor.id}`}
-            className={cn(buttonVariants({ size: "lg" }), "h-11 text-base")}
-          >
-            <Scissors className="size-4" /> {t("Commander chez ce tailleur")}
-          </Link>
         </div>
       </div>
 
+      {/* Anti-arnaque : pas encore validé par JALOFA → visible, pas en vente. */}
+      {!canSell(tailor) && <SalesPendingNotice className="mt-6" />}
+
+      {/* Les modèles d'abord : c'est pour eux que le client est venu. */}
+      <section id="creations" className="mt-8">
+        <h2 className="text-xl font-bold tracking-tight">
+          {t("Les modèles de l'atelier")}
+          <span className="text-muted-foreground ml-2 text-base font-normal">
+            ({models.length})
+          </span>
+        </h2>
+
+        {models.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-dashed p-10 text-center">
+            <p className="text-muted-foreground text-sm">
+              {t("Ce tailleur n'a pas encore publié de modèle.")}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {models.map((model) => (
+              <ShopModelCard key={model.id} model={model} salesPending={!canSell(tailor)} />
+            ))}
+          </div>
+        )}
+      </section>
+
       {tailor.bio && (
-        <p className="text-muted-foreground mt-6 text-center sm:text-left">
+        <p className="text-muted-foreground mt-10 text-center sm:text-left">
           {tailor.bio}
         </p>
       )}
@@ -135,42 +192,6 @@ export default async function TailorProfilePage({
         </Card>
       </div>
 
-      <section id="creations" className="mt-12">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight">
-              {t("Créations de l'atelier")}
-              <span className="text-muted-foreground ml-2 text-base font-normal">
-                ({models.length})
-              </span>
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {t("Les modèles proposés par ce tailleur. Choisissez-en un pour le commander directement chez lui.")}
-            </p>
-          </div>
-        </div>
-
-        {models.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-dashed p-10 text-center">
-            <p className="text-muted-foreground text-sm">
-              {t("Ce tailleur n'a pas encore publié de modèle. Vous pouvez tout de même lui confier une commande sur mesure.")}
-            </p>
-            <Link
-              href={`/modeles?tailor=${tailor.id}`}
-              className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
-            >
-              <Scissors className="size-4" /> {t("Commander sur mesure")}
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {models.map((model) => (
-              <ModelCard key={model.id} model={model} />
-            ))}
-          </div>
-        )}
-      </section>
-
       <section id="avis" className="mt-12">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">
@@ -179,10 +200,12 @@ export default async function TailorProfilePage({
               ({tailor.rating_count})
             </span>
           </h2>
-          <span className="flex items-center gap-1.5 text-sm">
-            <ReviewStars value={tailor.rating} />
-            <span className="font-medium">{tailor.rating.toFixed(1)}</span>
-          </span>
+          {tailor.rating_count > 0 && (
+            <span className="flex items-center gap-1.5 text-sm">
+              <ReviewStars value={tailor.rating} />
+              <span className="font-medium">{tailor.rating.toFixed(1)}</span>
+            </span>
+          )}
         </div>
 
         {reviews.length === 0 ? (

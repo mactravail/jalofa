@@ -19,7 +19,13 @@ import {
 
 import { useCart } from "@/components/cart/cart-context";
 import { requestGarmentQuote } from "@/lib/actions/orders";
-import { styleDetailSummary } from "@/lib/style-options";
+import { modelAutoQuote } from "@/lib/auto-quote";
+import {
+  garmentStyleKey,
+  styleDetailSummary,
+  styleExtraTotal,
+  wantsCustomEmbroidery,
+} from "@/lib/style-options";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
@@ -31,7 +37,11 @@ import {
   STEP_HELP,
   STEP_ICONS,
   STEP_LABELS,
+  fabricPairing,
   STEP_REQUIREMENT,
+  TROUSERS_FABRIC_KEY,
+  VEST_FABRIC_KEY,
+  wantsTwoFabrics,
   stepCanProceed,
   stepUrl,
   tailorNotes,
@@ -39,7 +49,10 @@ import {
   type StepKey,
 } from "@/components/order/configurator-context";
 import { PriceRow, SelectionChip } from "@/components/order/configurator-ui";
+import { DressMannequin, dressesOnMannequin } from "@/components/order/dress-mannequin";
+import { GarmentAvatar, hasGarmentAvatar } from "@/components/order/garment-avatar";
 import { useT } from "@/components/i18n/locale-provider";
+import { DEMO_FABRIC_TITLE, isDemoFabric } from "@/lib/sales-approval";
 
 export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -61,10 +74,29 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   const isFabricOnly = state.type === "fabric_only";
   const [isPending, startTransition] = useTransition();
 
+  // Devis automatique : le tailleur a fixé son prix, sa livraison et son délai
+  // sur ce modèle. Le client voit le prix ferme, et le devis lui arrive
+  // aussitôt la demande envoyée (le serveur recalcule tout de son côté).
+  const autoQuote =
+    !isFabricOnly && model?.tailor_id && model.tailor_id === state.tailorId
+      ? modelAutoQuote(model)
+      : null;
+  const autoTailoring = autoQuote ? autoQuote.price + styleExtraTotal(model, state.styleDetails) : 0;
+  const shownTotal = autoQuote
+    ? price.fabricPrice + autoTailoring + autoQuote.deliveryFee
+    : price.total;
+
   const styleName = cfg.data.styles.find((s) => s.slug === state.styleSlug)?.name ?? null;
 
   const addToCart = () => {
-    addItem(buildCartItem(state, { model, fabric, tailor, styleName, price }));
+    addItem(buildCartItem(state, {
+        model,
+        fabric,
+        tailor,
+        styleName,
+        price,
+        fabrics: cfg.data.fabrics,
+      }),);
     toast.success(t("Ajouté au panier"));
     router.push("/panier");
   };
@@ -73,7 +105,10 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   // est repliée dans la note transmise au tailleur (il n'y a pas de colonne
   // dédiée), comme le fait `buildCartItem` pour le panier.
   const requestDevis = () => {
-    const personalisation = styleDetailSummary(model, state.styleDetails);
+    const personalisation = [
+      ...styleDetailSummary(model, state.styleDetails),
+      ...fabricPairing(state.styleDetails, cfg.data.fabrics, fabric, model),
+    ];
     const personalisationText = personalisation
       .map((d) => `${d.group} : ${d.option}`)
       .join(" · ");
@@ -84,8 +119,14 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const mode = cfg.data.contactMode;
-    if (mode && !(state.contactName.trim() && state.contactPhone.trim())) {
+    // Client connecté qui commande pour quelqu'un d'autre : on lui demande
+    // le nom et le téléphone de cette personne (cf. le récap).
+    const mode = cfg.data.contactMode ?? (state.savedAddressChoice === "other" ? "contact" : null);
+    if (mode === "account" && state.contactHasAccount) {
+      toast.error(t("Connectez-vous d'abord avec votre e-mail et votre mot de passe."));
+      return;
+    }
+    if (mode &&!(state.contactName.trim() && state.contactPhone.trim())) {
       toast.error(t("Indiquez votre nom et votre téléphone."));
       return;
     }
@@ -107,6 +148,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         type: state.type,
         modelId: state.modelId,
         styleSlug: state.styleSlug,
+        styleDetails: state.styleDetails,
         fabricId: state.fabricId,
         fabricMeters: state.fabricMeters,
         tailorId: state.tailorId,
@@ -130,6 +172,9 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
           country: state.deliveryCountry,
         },
         notes,
+        embroideryPhoto: wantsCustomEmbroidery(model, state.styleDetails)
+          ? (state.embroideryPhoto?.dataUrl ?? null)
+          : null,
         contact: mode
           ? {
               name: state.contactName,
@@ -152,8 +197,10 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         } catch {
           // Stockage indisponible — sans effet.
         }
-        toast.success(t("Demande de devis envoyée"), {
-          description: res.demo
+        toast.success(res.autoQuoted ? t("Votre devis est prêt") : t("Demande de devis envoyée"), {
+          description: res.autoQuoted
+            ? t("Vérifiez le prix et le délai, puis payez pour lancer la confection.")
+            : res.demo
             ? t("Démo — le tailleur vous répondrait avec un prix.")
             : t("{name} vous répondra avec un prix.", { name: tailor?.shop_name ?? t("Le tailleur") }),
         });
@@ -182,8 +229,17 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     panelRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
-  const deliveryDays = tailor?.avg_delivery_days ?? model?.avg_days ?? 14;
-  const weeks = Math.max(1, Math.round(deliveryDays / 7));
+  // En jours, comme sur la fiche du modèle et les cartes des tailleurs : un
+  // arrondi en semaines faisait dire « 1 semaine » à un modèle de ~10 jours.
+  // Chez le créateur du modèle, c'est le délai écrit sur CE modèle (celui de la
+  // fiche) ; chez un autre tailleur, son délai habituel.
+  const isModelCreator = Boolean(model?.tailor_id) && model?.tailor_id === state.tailorId;
+  const deliveryDays =
+    autoQuote?.readyDays ??
+    (isModelCreator ? model?.avg_days : undefined) ??
+    tailor?.avg_delivery_days ??
+    model?.avg_days ??
+    14;
 
   const panelTitle =
     state.type === "fabric_only" ? fabric?.name ?? t("Tissu") : model?.name ?? t("Votre tenue");
@@ -210,6 +266,20 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
     ? [previewPhoto, ...photos.filter((p) => p !== previewPhoto)]
     : photos;
 
+  // Une robe s'habille sur le mannequin : nu au départ, chaque planche touchée
+  // à l'étape Style ajoute sa pièce ; aux étapes suivantes, la robe entière.
+  // La vraie photo d'un choix de tailleur reste prioritaire.
+  const onMannequin =
+    wearsGarment && dressesOnMannequin(garmentStyleKey(model)) && !previewPhoto;
+  const mannequinDressed =
+    step === "style" ? cfg.dressedGroups : Object.keys(state.styleDetails);
+  // Tous les autres vêtements se voient portés par un avatar (homme, femme,
+  // enfant) : chaque planche choisie le change en direct, le tissu l'habille.
+  const onAvatar = wearsGarment && !previewPhoto && !onMannequin && hasGarmentAvatar(model);
+  const trousersFabric = wantsTwoFabrics(state.styleDetails)
+    ? (cfg.data.fabrics.find((f) => f.id === state.styleDetails[TROUSERS_FABRIC_KEY]) ?? null)
+    : null;
+
   // Ce qui est déjà choisi, en une ligne — sur téléphone c'est le seul rappel
   // de la tenue, le grand bandeau photo n'y tient pas.
   const summaryLine = [
@@ -223,6 +293,14 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   // Reusable CTA used by both the desktop card and the mobile bottom bar.
   // Dernière étape : un tissu s'ajoute au panier (achat direct), une tenue part
   // en demande de devis. Avant : « Continuer ».
+  // Tissu de démonstration (catalogue JALOFA, sans vrai vendeur) : on peut
+  // configurer la tenue pour essayer, mais pas l'acheter ni demander un devis.
+  const usesDemoFabric =
+    state.type !== "own_fabric" &&
+    [fabric, ...[TROUSERS_FABRIC_KEY, VEST_FABRIC_KEY].map(
+      (key) => cfg.data.fabrics.find((f) => f.id === state.styleDetails[key]) ?? null,
+    )].some((f) => f && isDemoFabric(f));
+
   const cta = (idSuffix: string, className?: string) =>
     !isLast ? (
       <Button
@@ -235,6 +313,15 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
       >
         {t("Continuer")} <ChevronRight className="size-4" />
       </Button>
+    ) : usesDemoFabric ? (
+      <div className={cn("w-full", className)} data-cta={idSuffix}>
+        <Button type="button" size="lg" className="w-full" disabled>
+          {t(DEMO_FABRIC_TITLE)}
+        </Button>
+        <p className="text-muted-foreground mt-1.5 text-center text-xs">
+          {t("Pas en vente : choisissez un tissu d'un vendeur pour commander.")}
+        </p>
+      </div>
     ) : isFabricOnly ? (
       <Button
         type="button"
@@ -259,7 +346,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         ) : (
           <MessageSquareQuote className="size-4" />
         )}
-        {t("Demander un devis")}
+        {autoQuote ? t("Recevoir mon devis") : t("Demander un devis")}
       </Button>
     );
 
@@ -270,9 +357,6 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         <Link href="/" aria-label={t("JALOFA — accueil")} className="flex items-center">
           <Wordmark size="sm" />
         </Link>
-        <span className="bg-muted text-muted-foreground ml-1 hidden rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline">
-          {t("Démo")}
-        </span>
 
         <Link
           href="/"
@@ -402,7 +486,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-sm font-semibold">{panelTitle}</p>
               <p className="text-muted-foreground truncate text-xs">{summaryLine}</p>
               <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[11px]">
-                <Clock className="size-3" /> {weeks > 1 ? t("Livré en {n} semaines", { n: weeks }) : t("Livré en {n} semaine", { n: weeks })}
+                <Clock className="size-3" /> {t("~{n} jours de confection", { n: deliveryDays })}
               </p>
             </div>
             {wearsGarment && fabric?.image_url && (
@@ -420,7 +504,13 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               {t("Étape {n} sur {total}", { n: stepIndex + 1, total: steps.length })}
             </p>
             <h2 className="mt-0.5 text-2xl font-semibold tracking-tight">{t(STEP_LABELS[step])}</h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-snug">{t(STEP_HELP[step])}</p>
+            <p className="text-muted-foreground mt-1 text-sm leading-snug">
+              {step === "review" && !isFabricOnly
+                ? autoQuote
+                  ? t("Vérifiez votre tenue, puis recevez votre devis tout de suite.")
+                  : t("Vérifiez votre tenue, puis demandez votre devis : le tailleur confirme le prix avant tout paiement.")
+                : t(STEP_HELP[step])}
+            </p>
           </div>
           {children}
         </section>
@@ -438,14 +528,34 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               {tailor && <SelectionChip label={tailor.shop_name ?? ""} />}
             </div>
 
-            <GarmentGallery
-              key={previewPhoto ?? "model"}
-              photos={galleryPhotos}
-              alt={wearsGarment ? model?.name ?? t("Votre tenue") : panelTitle}
-              emptyLabel={wearsGarment ? undefined : t("Sélectionnez pour visualiser")}
-              sizes="(max-width: 1024px) 40vw, 45vw"
-              className="h-full w-full"
-            />
+            {onAvatar ? (
+              <div className="flex h-full w-full items-center justify-center py-2">
+                <GarmentAvatar
+                  model={model}
+                  details={state.styleDetails}
+                  fabricImage={fabric?.image_url}
+                  trousersFabricImage={trousersFabric?.image_url}
+                  className="max-h-full"
+                />
+              </div>
+            ) : onMannequin ? (
+              <div className="flex h-full w-full items-center justify-center py-2">
+                <DressMannequin
+                  details={state.styleDetails}
+                  dressed={mannequinDressed}
+                  className="max-h-full"
+                />
+              </div>
+            ) : (
+              <GarmentGallery
+                key={previewPhoto ?? "model"}
+                photos={galleryPhotos}
+                alt={wearsGarment ? model?.name ?? t("Votre tenue") : panelTitle}
+                emptyLabel={wearsGarment ? undefined : t("Sélectionnez pour visualiser")}
+                sizes="(max-width: 1024px) 40vw, 45vw"
+                className="h-full w-full"
+              />
+            )}
           </div>
 
           {/* Floating panel — desktop only */}
@@ -460,16 +570,18 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
 
             {!isFabricOnly && (
               <p className="text-muted-foreground mt-4 text-xs font-medium">
-                {t("À partir de")}
+                {autoQuote ? t("Prix fixe") : t("À partir de")}
               </p>
             )}
             <div className={cn("flex items-end gap-2", isFabricOnly && "mt-4")}>
-              <span className="text-primary text-3xl font-bold">{formatPrice(price.total)}</span>
+              <span className="text-primary text-3xl font-bold">{formatPrice(shownTotal)}</span>
             </div>
             <p className="text-muted-foreground text-xs">
               {isFabricOnly
                 ? t("TVA incluse · hors livraison")
-                : t("Prix indicatif — le tailleur confirme par devis")}
+                : autoQuote
+                  ? t("Livraison comprise · prête en {n} jours après le paiement", { n: autoQuote.readyDays })
+                  : t("Prix indicatif — le tailleur confirme par devis")}
             </p>
 
             <div className="mt-5">{cta("desktop")}</div>
@@ -488,18 +600,30 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
 
             <div className="text-muted-foreground mt-5 space-y-1.5 border-t pt-4 text-sm">
               <p>
-                {t("Commandez aujourd'hui, recevez en")}{" "}
+                {t("Confection")}{" "}
                 <span className="text-foreground font-medium">
-                  {weeks > 1 ? t("{n} semaines", { n: weeks }) : t("{n} semaine", { n: weeks })}
+                  {t("~{n} jours", { n: deliveryDays })}
                 </span>
+                {", "}
+                {t("puis la livraison.")}
               </p>
               <p className="font-medium">{t("Livraison choisie à la caisse")}</p>
             </div>
 
             <dl className="mt-4 space-y-1.5 border-t pt-4 text-sm">
               {price.fabricPrice > 0 && <PriceRow label={t("Tissu")} value={formatPrice(price.fabricPrice)} />}
-              {price.tailoringPrice > 0 && (
-                <PriceRow label={t("Confection")} value={formatPrice(price.tailoringPrice)} />
+              {autoQuote ? (
+                <>
+                  <PriceRow label={t("Confection")} value={formatPrice(autoTailoring)} />
+                  <PriceRow
+                    label={t("Livraison")}
+                    value={autoQuote.deliveryFee > 0 ? formatPrice(autoQuote.deliveryFee) : t("Gratuite")}
+                  />
+                </>
+              ) : (
+                price.tailoringPrice > 0 && (
+                  <PriceRow label={t("Confection")} value={formatPrice(price.tailoringPrice)} />
+                )
               )}
             </dl>
           </div>
@@ -514,7 +638,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               {panelTitle} · {panelSubtitle}
             </p>
             <p className="text-primary shrink-0 text-xl font-bold leading-none whitespace-nowrap">
-              {formatPrice(price.total)}
+              {formatPrice(shownTotal)}
             </p>
           </div>
 

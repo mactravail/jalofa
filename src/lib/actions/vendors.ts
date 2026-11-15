@@ -105,7 +105,6 @@ export async function saveVendorProfile(
       bio: text(formData.get("bio")),
       city: text(formData.get("city")),
       cover_url,
-      is_active: formData.get("is_active") === "on",
     })
     .eq("id", user.id);
   if (error) {

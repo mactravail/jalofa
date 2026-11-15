@@ -174,21 +174,6 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
         />
       </div>
 
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="is_active"
-          defaultChecked={vendor.is_active}
-          className="accent-primary mt-0.5 size-4 rounded"
-        />
-        <span>
-          <T>{"Afficher ma boutique dans l'annuaire"}</T>
-          <span className="text-muted-foreground block text-xs">
-            <T>{"Décochez pour retirer votre fiche publique le temps de la compléter. Les clients ne pourront pas vous trouver tant qu'elle est masquée."}</T>
-          </span>
-        </span>
-      </label>
-
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="size-4 animate-spin" />}

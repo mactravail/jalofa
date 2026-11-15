@@ -8,6 +8,7 @@ import type { KaftanDetailIconName } from "@/components/order/kaftan-detail-icon
 import type { KaftanTroisPiecesDetailIconName } from "@/components/order/kaftan-trois-pieces-detail-icons";
 import type { BoubouDetailIconName } from "@/components/order/boubou-detail-icons";
 import type { CeremonyDetailIconName } from "@/components/order/ceremony-detail-icons";
+import type { DressPieceIconName } from "@/components/order/dress-piece-icons";
 import type { PantsuitDetailIconName } from "@/components/order/pantsuit-detail-icons";
 import type { SkirtDetailIconName } from "@/components/order/skirt-detail-icons";
 import type { EnsembleDetailIconName } from "@/components/order/ensemble-detail-icons";
@@ -58,6 +59,7 @@ export type StyleGroupOption = (
         | ShirtDetailIconName
         | TuxedoDetailIconName
         | GownDetailIconName
+        | DressPieceIconName
         | WomensSuitDetailIconName
         | LoungeDetailIconName
         | CeremonyDetailIconName
@@ -1401,14 +1403,105 @@ const ROBE_SOIREE_EUROPE_GROUPS: StyleGroup[] = [
 // `gw-*` de la robe).
 // ---------------------------------------------------------------------------
 
+/**
+ * Broderie « Je choisis » : le client montre et décrit lui-même sa broderie au
+ * récap (photo, description, couleur). Valeur du groupe `broderie`.
+ */
+export const EMBROIDERY_CUSTOM = "choisir";
+
+/** Le client a pris « Je choisis ma broderie » sur un vêtement qui le propose. */
+export function wantsCustomEmbroidery(
+  model: GarmentModel | null | undefined,
+  details: Record<string, string>,
+): boolean {
+  if (details.broderie !== EMBROIDERY_CUSTOM) return false;
+  return visibleStyleGroups(model, details).some(
+    (g) => g.slug === "broderie" && g.options.some((o) => o.slug === EMBROIDERY_CUSTOM),
+  );
+}
+
 /** Les coupes à corsage ajusté : les seules où l'on choisit des manches. */
 const CEREMONIE_FEMME_FITTED = ["sirene", "taille-basse", "ndokette"];
+
+/** « Robe à composer » : la robe se monte pièce par pièce, corsage, manches, jupe. */
+const COMPOSEE = { group: "coupe", in: ["composee"] };
+/** Toutes les autres coupes gardent leur encolure. */
+const NON_COMPOSEE = {
+  group: "coupe",
+  in: ["grand-boubou", "sirene", "taille-basse", "ndokette", "cape", "kaftan"],
+};
+
+// Les pièces de la robe à composer — dessins `dp-*` de `dress-piece-icons.tsx`.
+const ROBE_PIECES_GROUPS: StyleGroup[] = [
+  {
+    slug: "corsage",
+    name: "Corsage",
+    showIf: COMPOSEE,
+    options: [
+      { slug: "tiffany-fronce", name: "Tiffany froncé", art: "dp-corsage-tiffany-fronce" },
+      { slug: "coeur-fronce", name: "Cœur froncé", art: "dp-corsage-coeur-fronce" },
+      { slug: "rond-profond-fronce", name: "Rond profond froncé", art: "dp-corsage-rond-profond-fronce" },
+      { slug: "rond-fronce", name: "Rond froncé", art: "dp-corsage-rond-fronce" },
+      { slug: "cupidon-fronce", name: "Arc de Cupidon froncé", art: "dp-corsage-cupidon-fronce" },
+      { slug: "bustier-drape", name: "Bustier drapé", art: "dp-corsage-bustier-drape" },
+      { slug: "tiffany-pinces", name: "Tiffany à pinces", art: "dp-corsage-tiffany-pinces" },
+      { slug: "v-profond", name: "Col en V", art: "dp-corsage-v-profond" },
+      { slug: "rond-profond-pinces", name: "Rond profond à pinces", art: "dp-corsage-rond-profond-pinces" },
+      { slug: "rond-pinces", name: "Rond à pinces", art: "dp-corsage-rond-pinces" },
+      { slug: "cupidon-pinces", name: "Arc de Cupidon à pinces", art: "dp-corsage-cupidon-pinces" },
+      { slug: "carre-arrondi", name: "Carré arrondi", art: "dp-corsage-carre-arrondi" },
+      { slug: "bettina", name: "Bettina volantée", art: "dp-corsage-bettina" },
+      { slug: "princesse-dentelle", name: "Princesse dentelle", art: "dp-corsage-princesse-dentelle" },
+      { slug: "grace", name: "Grace dentelle", art: "dp-corsage-grace" },
+      { slug: "grace-coeur", name: "Grace cœur", art: "dp-corsage-grace-coeur" },
+      { slug: "bandeau-grace", name: "Bandeau Grace", art: "dp-corsage-bandeau-grace" },
+    ],
+  },
+  {
+    // Slug distinct des « manches » des autres coupes (dessins `cf-*`).
+    slug: "manches-robe",
+    name: "Manches",
+    showIf: COMPOSEE,
+    options: [
+      { slug: "sans", name: "Sans manches", art: "dp-manche-sans" },
+      { slug: "cap", name: "Mancherons", art: "dp-manche-cap" },
+      { slug: "courte-ajustee", name: "Courte ajustée", art: "dp-manche-courte-ajustee" },
+      { slug: "courte-volant", name: "Courte volantée", art: "dp-manche-courte-volant" },
+      { slug: "courte-papillon", name: "Courte papillon", art: "dp-manche-courte-papillon" },
+      { slug: "coude-ajustee", name: "Au coude ajustée", art: "dp-manche-coude-ajustee" },
+      { slug: "coude-cloche", name: "Au coude évasée", art: "dp-manche-coude-cloche" },
+      { slug: "coude-volant", name: "Au coude volantée", art: "dp-manche-coude-volant" },
+      { slug: "coude-papillon", name: "Au coude papillon", art: "dp-manche-coude-papillon" },
+      { slug: "trois-quarts", name: "Trois-quarts ajustée", art: "dp-manche-trois-quarts" },
+      { slug: "longue", name: "Longue ajustée", art: "dp-manche-longue" },
+      { slug: "longue-cloche", name: "Longue évasée", art: "dp-manche-longue-cloche" },
+      { slug: "longue-volant", name: "Longue volantée", art: "dp-manche-longue-volant" },
+      { slug: "longue-bishop", name: "Longue bouffante", art: "dp-manche-longue-bishop" },
+    ],
+  },
+  {
+    slug: "jupe",
+    name: "Jupe",
+    showIf: COMPOSEE,
+    options: [
+      { slug: "cercle", name: "Cercle", art: "dp-jupe-cercle" },
+      { slug: "trois-quarts-cercle", name: "Trois-quarts de cercle", art: "dp-jupe-trois-quarts-cercle" },
+      { slug: "demi-cercle", name: "Demi-cercle", art: "dp-jupe-demi-cercle" },
+      { slug: "plongeant", name: "Ourlet plongeant", art: "dp-jupe-plongeant" },
+      { slug: "plissee", name: "Plissée", art: "dp-jupe-plissee" },
+      { slug: "panneaux", name: "À panneaux", art: "dp-jupe-panneaux" },
+      { slug: "ligne-a", name: "Trapèze ajustée", art: "dp-jupe-ligne-a" },
+      { slug: "crayon", name: "Crayon", art: "dp-jupe-crayon" },
+    ],
+  },
+];
 
 const CEREMONIE_FEMME_GROUPS: StyleGroup[] = [
   {
     slug: "coupe",
     name: "Coupe",
     options: [
+      { slug: "composee", name: "Robe à composer", art: "gw-silhouette-princesse" },
       { slug: "grand-boubou", name: "Grand boubou", art: "cf-coupe-grand-boubou" },
       { slug: "sirene", name: "Robe sirène", art: "cf-coupe-sirene" },
       { slug: "taille-basse", name: "Taille basse", art: "cf-coupe-taille-basse" },
@@ -1417,9 +1510,12 @@ const CEREMONIE_FEMME_GROUPS: StyleGroup[] = [
       { slug: "kaftan", name: "Kaftan brodé", art: "cf-coupe-kaftan" },
     ],
   },
+  ...ROBE_PIECES_GROUPS,
   {
     slug: "col",
     name: "Encolure",
+    // La robe à composer a son corsage, qui fait l'encolure.
+    showIf: NON_COMPOSEE,
     options: [
       { slug: "rond", name: "Ronde", art: "gw-col-rond" },
       { slug: "v", name: "En V", art: "gw-col-v" },
@@ -1445,12 +1541,11 @@ const CEREMONIE_FEMME_GROUPS: StyleGroup[] = [
   {
     slug: "broderie",
     name: "Broderie",
+    // « Je choisis » : au récap, le client joint une photo de la broderie
+    // voulue, la décrit et donne sa couleur (cf. EMBROIDERY_CUSTOM).
     options: [
-      { slug: "encolure", name: "Encolure brodée", art: "cf-brod-encolure" },
-      { slug: "plastron", name: "Plastron brodé", art: "cf-brod-plastron" },
-      { slug: "manches", name: "Encolure et manches", art: "cf-brod-manches" },
-      { slug: "complete", name: "Broderie riche", art: "cf-brod-complete" },
-      { slug: "strass", name: "Perles et strass", art: "cf-brod-strass" },
+      { slug: EMBROIDERY_CUSTOM, name: "Je choisis ma broderie", art: "cf-brod-complete" },
+      { slug: "tailleur", name: "Laisser le choix au tailleur", art: "cf-brod-plastron" },
       { slug: "sans", name: "Sans broderie", art: "cf-brod-sans" },
     ],
   },
@@ -2527,6 +2622,9 @@ const FALLBACK_GROUPS: StyleGroup[] = [COL_HOMME, BRODERIE_COMPLETE, MANCHES_STA
  */
 export function garmentStyleKey(model: GarmentModel | null | undefined): string | null {
   if (!model) return null;
+  // Le tailleur a dit lui-même de quel vêtement du catalogue il s'agit : son
+  // modèle peut porter son nom (« Ahmadou Tidiane Diouf »), il a nos planches.
+  if (model.style_base && STYLE_GROUPS_BY_SLUG[model.style_base]) return model.style_base;
   const key = garmentStyleKeyRaw(model);
   // Le gilet femme porte le même nom que celui d'homme : seule la catégorie
   // les sépare.
@@ -2557,12 +2655,115 @@ function tailorStyleGroups(model: GarmentModel): StyleGroup[] {
 }
 
 /**
- * The groups offered for one garment. Un modèle de tailleur n'a que les détails
- * que son tailleur a publiés : on ne lui invente jamais de col ou de manches.
+ * Le modèle d'un tailleur qui n'est dans aucune liste : il a demandé à JALOFA de
+ * dessiner sa personnalisation. En attendant, il se coud tel qu'il est présenté.
+ */
+export const STYLE_BASE_REQUESTED = "sur-demande";
+
+/**
+ * Les vêtements du catalogue dont un tailleur peut reprendre les planches
+ * dessinées pour son propre modèle, rangés comme sur le site.
+ */
+export const STYLE_BASES: { group: string; items: { value: string; label: string }[] }[] = [
+  {
+    group: "Homme",
+    items: [
+      { value: "grand-boubou", label: "Grand boubou" },
+      { value: "baye-lahat", label: "Baye Lahat" },
+      { value: "agbada", label: "Agbada" },
+      { value: "kaftan", label: "Kaftan 2 pièces" },
+      { value: "kaftan-brode", label: "Kaftan 3 pièces" },
+      { value: "dashiki", label: "Dashiki" },
+      { value: "ensemble-bazin", label: "Ensemble bazin" },
+      { value: "tenue-ceremonie", label: "Tenue de cérémonie homme" },
+      { value: "costume-africain", label: "Costume africain" },
+      { value: "veste-africaine", label: "Veste africaine" },
+      { value: "costume", label: "Costume" },
+      { value: "gilet", label: "Gilet homme" },
+      { value: "chemise", label: "Chemise homme" },
+      { value: "pantalon", label: "Pantalon homme" },
+      { value: "thiaya", label: "Thiaya homme" },
+    ],
+  },
+  {
+    group: "Femme",
+    items: [
+      { value: "robe", label: "Robe" },
+      { value: "grande-robe", label: "Grande robe" },
+      { value: "robe-coupee", label: "Robe coupée" },
+      { value: "robe-soiree", label: "Robe de soirée" },
+      { value: "boubou-femme", label: "Boubou femme" },
+      { value: "ceremonie-femme", label: "Tenue de cérémonie femme" },
+      { value: "ensemble", label: "Ensemble femme" },
+      { value: "bureau-femme", label: "Tenue de bureau femme" },
+      { value: "tailleur-pantalon", label: "Tailleur pantalon" },
+      { value: "veste-femme", label: "Veste femme" },
+      { value: "gilet-femme", label: "Gilet femme" },
+      { value: "chemise-femme", label: "Chemise femme" },
+      { value: "pantalon-large", label: "Pantalon large" },
+      { value: "thiaya-femme", label: "Thiaya femme" },
+      { value: "jupe", label: "Jupe" },
+    ],
+  },
+  {
+    group: "Enfant",
+    items: [
+      { value: "boubou-enfant", label: "Boubou enfant" },
+      { value: "ensemble-enfant", label: "Ensemble enfant" },
+    ],
+  },
+  {
+    group: "Europe",
+    items: [
+      { value: "europe-costume-2p-homme", label: "Costume 2 pièces" },
+      { value: "europe-costume-homme", label: "Costume 3 pièces" },
+      { value: "europe-smoking-homme", label: "Smoking" },
+      { value: "europe-chemise-homme", label: "Chemise homme sur mesure" },
+      { value: "europe-chemise-femme", label: "Chemise femme sur mesure" },
+      { value: "europe-costume-femme", label: "Costume femme" },
+      { value: "europe-robe", label: "Robe de cérémonie" },
+      { value: "europe-robe-soiree", label: "Robe de soirée (Europe)" },
+      { value: "europe-robe-mariage", label: "Robe de mariée" },
+      { value: "europe-detente-femme", label: "Tenue détente femme" },
+    ],
+  },
+];
+
+/** Une valeur reçue du formulaire : un vêtement connu, la demande de dessin, ou rien. */
+export function parseStyleBase(raw: unknown): string | null {
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (value === STYLE_BASE_REQUESTED) return value;
+  return value && STYLE_GROUPS_BY_SLUG[value] ? value : null;
+}
+
+/**
+ * Ce qu'on propose d'avance au tailleur d'après le nom et la catégorie qu'il a
+ * donnés — il garde la main : c'est une suggestion, pas une décision.
+ */
+export function guessStyleBase(name: string, categorySlug: string | null): string | null {
+  const key = garmentStyleKeyRaw({ slug: null, name } as GarmentModel);
+  if (key === "gilet" && categorySlug === "femme") return "gilet-femme";
+  return key;
+}
+
+/**
+ * The groups offered for one garment. Un modèle de tailleur a les détails que son
+ * tailleur a publiés en photo, plus — s'il a dit de quel vêtement du catalogue il
+ * s'agit — nos planches dessinées de ce vêtement. Sans ce choix, on reprend les
+ * planches seulement si son nom désigne clairement une pièce connue ; jamais de
+ * finitions génériques devinées.
  * Catalogue JALOFA : unknown garment → generic finishings.
  */
 export function styleGroupsFor(model: GarmentModel | null | undefined): StyleGroup[] {
-  if (model?.tailor_id) return tailorStyleGroups(model);
+  if (model?.tailor_id) {
+    const own = tailorStyleGroups(model);
+    if (model.style_base === STYLE_BASE_REQUESTED) return own;
+    const explicit = model.style_base ? STYLE_GROUPS_BY_SLUG[model.style_base] : undefined;
+    if (explicit) return [...explicit, ...own];
+    if (own.length > 0) return own;
+    const key = garmentStyleKey(model);
+    return key ? (STYLE_GROUPS_BY_SLUG[key] ?? []) : [];
+  }
   const key = garmentStyleKey(model);
   if (!key) return FALLBACK_GROUPS;
   return STYLE_GROUPS_BY_SLUG[key] ?? FALLBACK_GROUPS;

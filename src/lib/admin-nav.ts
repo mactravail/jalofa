@@ -1,13 +1,17 @@
 import {
+  BadgeCheck,
   Ban,
   Bell,
   LayoutDashboard,
   Layers,
   MessageCircle,
   MessageSquare,
+  OctagonX,
+  PackageSearch,
   ShoppingBag,
   Scissors,
   Shirt,
+  ShieldCheck,
   Sparkles,
   Star,
   ThumbsUp,
@@ -34,11 +38,15 @@ export type AdminNavId =
   | "orders"
   | "rejections"
   | "receipts"
+  | "shipmentChecks"
+  | "cancellations"
   | "refunds"
   | "users"
   | "subscriptions"
   | "tailors"
   | "vendors"
+  | "certifications"
+  | "validations"
   | "fabrics"
   | "models"
   | "reviews"
@@ -111,6 +119,19 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: "Tissus à confirmer",
         icon: MessageCircle,
       },
+      // Le tailleur a reçu un tissu que le vendeur n'a pas déclaré envoyé.
+      {
+        id: "shipmentChecks",
+        href: `${ADMIN_ROOT}/envois`,
+        label: "Envois à vérifier",
+        icon: PackageSearch,
+      },
+      {
+        id: "cancellations",
+        href: `${ADMIN_ROOT}/annulations`,
+        label: "Annulations",
+        icon: OctagonX,
+      },
       {
         id: "refunds",
         href: `${ADMIN_ROOT}/remboursements`,
@@ -139,6 +160,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "Prestataires",
     items: [
       {
+        // Anti-arnaque : un nouveau pro ne vend qu'une fois validé ici.
+        id: "validations",
+        href: `${ADMIN_ROOT}/validations`,
+        label: "Validations",
+        icon: ShieldCheck,
+      },
+      {
         id: "tailors",
         href: `${ADMIN_ROOT}/tailleurs`,
         label: "Tailleurs",
@@ -149,6 +177,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/vendeurs`,
         label: "Vendeurs",
         icon: Store,
+      },
+      {
+        id: "certifications",
+        href: `${ADMIN_ROOT}/certifications`,
+        label: "Certifications",
+        icon: BadgeCheck,
       },
     ],
   },

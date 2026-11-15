@@ -100,10 +100,13 @@ export function ModelBodyFitEditor({
   categorySlug,
   fits,
   onChange,
+  bare = false,
 }: {
   categorySlug: string | null;
   fits: DraftBodyFit[];
   onChange: (fits: DraftBodyFit[]) => void;
+  /** Sans titre ni explication : la page qui l'accueille les porte déjà. */
+  bare?: boolean;
 }) {
   const [openBody, setOpenBody] = useState<BodyType | null>(null);
   const t = useT();
@@ -116,10 +119,14 @@ export function ModelBodyFitEditor({
 
   return (
     <div className="space-y-2">
-      <Label>{t("Mètres de tissu nécessaires")}</Label>
-      <p className="text-muted-foreground text-xs">
-        {t("Pour chaque corps, écrivez les mètres de tissu qu'il vous faut selon la taille de la personne. Le client verra ce métrage.")}
-      </p>
+      {!bare && (
+        <>
+          <Label>{t("Mètres de tissu nécessaires")}</Label>
+          <p className="text-muted-foreground text-xs">
+            {t("Pour chaque corps, écrivez les mètres de tissu qu'il vous faut selon la taille de la personne. Le client verra ce métrage.")}
+          </p>
+        </>
+      )}
 
       <div className="space-y-2">
         {fits.map((fit) => {

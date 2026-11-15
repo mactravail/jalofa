@@ -79,6 +79,12 @@ import {
   type EnsembleDetailIconName,
 } from "@/components/order/ensemble-detail-icons";
 import {
+  DressPieceIcon,
+  dressPieceArtIsTall,
+  isDressPieceArt,
+  type DressPieceIconName,
+} from "@/components/order/dress-piece-icons";
+import {
   GownDetailIcon,
   gownArtIsTall,
   isGownArt,
@@ -113,6 +119,7 @@ export type PlancheArtName =
   | ShirtDetailIconName
   | TuxedoDetailIconName
   | GownDetailIconName
+  | DressPieceIconName
   | WomensSuitDetailIconName
   | LoungeDetailIconName
   | CeremonyDetailIconName
@@ -134,6 +141,7 @@ export function isPlancheArt(name: string): name is PlancheArtName {
     isShirtArt(name) ||
     isTuxedoArt(name) ||
     isGownArt(name) ||
+    isDressPieceArt(name) ||
     isWomensSuitArt(name) ||
     isLoungeArt(name) ||
     isCeremonyArt(name) ||
@@ -156,6 +164,7 @@ export function plancheArtIsTall(name: string): boolean {
   if (isShirtArt(name)) return shirtArtIsTall(name);
   if (isTuxedoArt(name)) return tuxedoArtIsTall(name);
   if (isGownArt(name)) return gownArtIsTall(name);
+  if (isDressPieceArt(name)) return dressPieceArtIsTall(name);
   if (isWomensSuitArt(name)) return womensSuitArtIsTall(name);
   if (isLoungeArt(name)) return loungeArtIsTall(name);
   if (isCeremonyArt(name)) return ceremonyArtIsTall();
@@ -177,6 +186,7 @@ export function PlancheArt({ name, className }: { name: string; className?: stri
   if (isShirtArt(name)) return <ShirtDetailIcon name={name} className={className} />;
   if (isTuxedoArt(name)) return <TuxedoDetailIcon name={name} className={className} />;
   if (isGownArt(name)) return <GownDetailIcon name={name} className={className} />;
+  if (isDressPieceArt(name)) return <DressPieceIcon name={name} className={className} />;
   if (isWomensSuitArt(name)) return <WomensSuitDetailIcon name={name} className={className} />;
   if (isLoungeArt(name)) return <LoungeDetailIcon name={name} className={className} />;
   if (isCeremonyArt(name)) return <CeremonyDetailIcon name={name} className={className} />;

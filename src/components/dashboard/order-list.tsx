@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronRight, Clock, PackageOpen } from "lucide-react";
+import { AlarmClock, ChevronRight, Clock, PackageOpen } from "lucide-react";
 
 import { AfterSaleProActions } from "@/components/dashboard/after-sale-pro-actions";
 import { FabricComesFrom, FabricShipTo } from "@/components/dashboard/fabric-ship-to";
 import { OrderDetailSheet } from "@/components/dashboard/order-detail-sheet";
 import { OrderStatusControl } from "@/components/dashboard/order-status-control";
-import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
+import { useBucket, useLateOrders, usePipeline } from "@/components/dashboard/pipeline-store";
+import { daysLate } from "@/lib/after-sale";
 import { OrderStatusBadge } from "@/components/order/order-status";
 import { clientNameOf } from "@/lib/clients";
 import { ORDER_TYPE_LABELS, formatPrice, formatReceivedAt } from "@/lib/constants";
@@ -24,6 +25,7 @@ import {
 import { T } from "@/components/i18n/t";
 import { useT } from "@/components/i18n/locale-provider";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { toWorkflowOrder } from "@/lib/order-workflow";
 
 /** Les commandes d'une pile du pipeline, avec le contrôle d'avancement. */
 export function OrderList({
@@ -31,13 +33,16 @@ export function OrderList({
   empty,
   max,
 }: {
-  bucket: OrderBucket;
+  /** Une pile du pipeline, ou « late » : les habits en retard, toutes piles confondues. */
+  bucket: OrderBucket | "late";
   empty: string;
   /** Vue d'ensemble : n'en montrer que les premières. */
   max?: number;
 }) {
   const { role } = usePipeline();
-  const orders = useBucket(bucket);
+  const bucketList = useBucket(bucket === "late" ? "ongoing" : bucket);
+  const lateList = useLateOrders();
+  const orders = bucket === "late" ? lateList : bucketList;
 
   if (orders.length === 0) {
     return (
@@ -82,6 +87,7 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
   const sendsToAtelier = role === "vendor" && flow === "full";
   const waitsForFabric =
     role === "tailor" && !quotePending && tailorAwaitingFabric(order.status, flow);
+  const late = role === "tailor" ? daysLate(order) : 0;
 
   return (
     <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:flex-wrap sm:items-center">
@@ -114,6 +120,15 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
               {t("Code")} {order.order_number}
             </span>
             <OrderStatusBadge status={order.status} />
+            {late > 0 && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white"
+                suppressHydrationWarning
+              >
+                <AlarmClock className="size-3" />
+                {late > 1 ? t("{n} jours de retard", { n: late }) : t("{n} jour de retard", { n: late })}
+              </span>
+            )}
           </div>
           <p className="mt-1 truncate font-medium">{t(title)}</p>
           <p className="text-muted-foreground truncate text-sm">
@@ -153,6 +168,8 @@ function OrderRow({ order, role }: { order: OrderListItem; role: ProRole }) {
         deliveryZone={order.model?.delivery_zone}
         paymentStatus={order.payment_status}
         readyDays={order.quote_ready_days}
+        autoQuoted={order.quote_auto}
+        workflow={toWorkflowOrder(order)}
         courierName={order.courier_name}
         courierPhone={order.courier_phone}
       />

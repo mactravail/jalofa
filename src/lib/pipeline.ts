@@ -199,7 +199,7 @@ export function legStage(
 // --- Dashboard buckets -----------------------------------------------------
 
 /** The three piles of the pro dashboard, each one its own page. */
-export type OrderBucket = "todo" | "ongoing" | "done";
+export type OrderBucket = "todo" | "ongoing" | "done" | "cancelled";
 
 /**
  * The first stage a role is responsible for — the moment the order lands on
@@ -226,6 +226,7 @@ export function bucketOf(
   status: OrderStatus,
   type: OrderType,
 ): OrderBucket {
+  if (status === "cancelled") return "cancelled";
   if (isTerminal(status)) return "done";
   return status === entryStatus(role, type) ? "todo" : "ongoing";
 }
@@ -315,6 +316,8 @@ type MoneyOrder = {
   status: OrderStatus;
   payment_status: string;
   fabric_return?: { status: string } | null;
+  /** Réception déclarée par le tailleur seul : payée après vérification JALOFA. */
+  fabric_vendor_check?: "pending" | "confirmed" | "denied" | null;
 };
 
 /**
@@ -325,6 +328,9 @@ export function moneyReleased(role: UserRole, order: MoneyOrder): boolean {
   if (order.payment_status !== "paid") return false;
   if (order.status === "rejected" || order.status === "cancelled") return false;
   if (role !== "vendor") return true;
+  // Le tailleur a dit « reçu » sans envoi déclaré : on paie le vendeur une fois
+  // que JALOFA l'a appelé et a confirmé l'envoi.
+  if (order.fabric_vendor_check === "pending" || order.fabric_vendor_check === "denied") return false;
   return fabricReceived(order) && !order.fabric_return;
 }
 

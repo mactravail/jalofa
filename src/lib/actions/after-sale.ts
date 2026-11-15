@@ -6,7 +6,6 @@ import {
   ALTERATION_REASON_LABELS,
   canAskAlteration,
   canCancelForLateness,
-  canCancelOrder,
   canReturnFabric,
   isSatisfactionIssue,
   SATISFACTION_ISSUES,
@@ -98,8 +97,14 @@ function revalidateOrder(orderId: string) {
   revalidatePath("/admin", "layout");
 }
 
-/** Le client annule dans le délai. Une commande payée sera remboursée par JALOFA. */
-export async function cancelOrder(orderId: string): Promise<AfterSaleResult> {
+/**
+ * Le client demande l'annulation. Depuis le cahier des charges du 2026-11-13,
+ * ce n'est plus une annulation directe : la commande est BLOQUÉE tout de suite
+ * (plus de découpe ni d'envoi, trigger `orders_workflow_guard`) et JALOFA
+ * examine (`/admin/annulations`), qui calcule le remboursement. Sans paiement,
+ * l'annulation reste immédiate. Plus d'une semaine de retard : le motif est noté.
+ */
+export async function cancelOrder(orderId: string, reason?: string): Promise<AfterSaleResult> {
   if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
 
   const loaded = await loadOrder(orderId);
@@ -107,35 +112,59 @@ export async function cancelOrder(orderId: string): Promise<AfterSaleResult> {
     return { ok: false, error: "Commande introuvable." };
   }
   const { supabase, order, history } = loaded;
-  // Deux portes : le délai de 24 h après paiement, ou plus d'une semaine de retard.
-  const late = !canCancelOrder(order, history) && canCancelForLateness(order, history);
-  if (!late && !canCancelOrder(order, history)) {
-    return { ok: false, error: "Le délai pour annuler cette commande est passé." };
-  }
+  const late = canCancelForLateness(order, history);
+  const motive = [late ? "Plus d'une semaine de retard." : null, reason?.trim() || null]
+    .filter(Boolean)
+    .join(" ");
 
-  const { error } = await supabase
-    .from("orders")
-    .update({ status: "cancelled" })
-    .eq("id", orderId)
-    .eq("client_id", loaded.userId)
-    .eq("status", order.status);
+  const { error } = await (supabase as unknown as {
+    rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>;
+  }).rpc("request_order_cancellation", {
+    p_order_id: orderId,
+    p_reason: motive.slice(0, 500) || null,
+  });
   if (error) return { ok: false, error: error.message };
 
-  const message = {
-    type: "order_cancelled",
-    title: late ? "Commande annulée pour retard" : "Commande annulée par le client",
-    body: late
-      ? `Plus d'une semaine de retard : le client a annulé la commande ${order.order_number} et sera remboursé.`
-      : `Ne travaillez plus sur la commande ${order.order_number}.`,
-    order_id: orderId,
-  };
-  const pros = [
-    { user_id: order.tailor_id, link: "/tailleur/espace/terminees" },
-    ...(order.vendor_id !== order.tailor_id
-      ? [{ user_id: order.vendor_id, link: "/vendeur/espace/terminees" }]
-      : []),
-  ];
-  await notify(pros.map((pro) => ({ ...message, ...pro })));
+  // Rien payé (devis, commande en attente de paiement) : la fonction SQL annule
+  // tout de suite mais ne prévient personne. Le tailleur (et le vendeur) doivent
+  // savoir que le client renonce, et JALOFA aussi.
+  if (order.payment_status === "pending" && order.status !== "rejected") {
+    const what = order.is_quote ? "la demande de devis" : "la commande";
+    const body = `Le client a annulé ${what} ${order.order_number}.${
+      reason?.trim() ? ` Motif : ${reason.trim().slice(0, 200)}` : ""
+    }`;
+    // Seul le tailleur voit un devis non payé (un achat non payé reste invisible
+    // des pros, cf. `unpaidPurchase`) : c'est lui qu'on prévient.
+    const pros = order.is_quote && order.tailor_id ? [order.tailor_id] : [];
+    let admins: string[] = [];
+    try {
+      const { data } = await createAdminClient().from("profiles").select("id").eq("role", "admin");
+      admins = ((data ?? []) as { id: string }[]).map((p) => p.id);
+    } catch {
+      // Clé de service absente : on prévient au moins les pros.
+    }
+    await notify([
+      ...pros.map((id) => ({
+        user_id: id,
+        type: "order_cancelled",
+        title: order.is_quote ? "Devis annulé par le client" : "Commande annulée par le client",
+        body,
+        link:
+          id === order.vendor_id && id !== order.tailor_id
+            ? "/vendeur/espace/annulees"
+            : "/tailleur/espace/annulees",
+        order_id: orderId,
+      })),
+      ...admins.map((id) => ({
+        user_id: id,
+        type: "order_cancelled",
+        title: order.is_quote ? "Devis annulé par le client" : "Commande annulée par le client",
+        body,
+        link: "/admin/annulations",
+        order_id: orderId,
+      })),
+    ]);
+  }
 
   revalidateOrder(orderId);
   return { ok: true };
@@ -470,31 +499,63 @@ export async function adminMarkFabricReceived(orderId: string): Promise<AfterSal
   return { ok: true };
 }
 
-/** JALOFA a remboursé le client. */
+/**
+ * JALOFA a remboursé au client tout ce qui lui reste dû (décision d'annulation,
+ * ou tout le payé pour un refus du tailleur). Inscrit au registre par
+ * `record_order_refund` : la clé fixe `full` empêche un double remboursement.
+ * Un remboursement partiel passe par `adminRecordRefund`.
+ */
 export async function adminMarkRefunded(orderId: string): Promise<AfterSaleResult> {
   if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
   const admin = await adminDbOrError();
   if ("error" in admin) return { ok: false, error: admin.error ?? "Action non autorisée." };
 
-  const { data: order, error } = await admin.db
-    .from("orders")
-    .update({ payment_status: "refunded" })
-    .eq("id", orderId)
-    .eq("payment_status", "paid")
-    .select("client_id")
-    .single();
-  if (error) return { ok: false, error: error.message };
-
-  await notify([
-    {
-      user_id: (order as { client_id: string }).client_id,
-      type: "order_refunded",
-      title: "Vous avez été remboursé",
-      body: "JALOFA vous a renvoyé votre argent.",
-      link: `/compte/commandes/${orderId}`,
-      order_id: orderId,
-    },
+  const [{ data: order }, { data: cancellation }, { data: refunds }, { data: fabricReturn }] = await Promise.all([
+    admin.db
+      .from("orders")
+      .select("amount_paid, total_amount, fabric_price, status" as "status")
+      .eq("id", orderId)
+      .single(),
+    admin.db
+      .from("order_cancellations" as never)
+      .select("refund_amount")
+      .eq("order_id", orderId)
+      .eq("status", "accepted")
+      .order("decided_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin.db.from("order_ledger" as never).select("amount").eq("order_id", orderId).eq("entry_type", "refund"),
+    admin.db.from("fabric_returns").select("status").eq("order_id", orderId).maybeSingle(),
   ]);
+  const o = order as unknown as
+    | { amount_paid: number | null; total_amount: number; fabric_price: number; status: string }
+    | null;
+  if (!o) return { ok: false, error: "Commande introuvable." };
+  const decided = (cancellation as { refund_amount: number | null } | null)?.refund_amount;
+  // Même règle que `record_order_refund` : décision d'annulation, sinon tout le
+  // payé (refus, ancienne annulation), sinon le tissu rendu.
+  const due =
+    decided != null
+      ? Number(decided)
+      : o.status === "cancelled" || o.status === "rejected"
+        ? Number(o.amount_paid ?? o.total_amount)
+        : (fabricReturn as { status: string } | null)?.status === "received"
+          ? Number(o.fabric_price)
+          : 0;
+  const done = ((refunds ?? []) as { amount: number }[]).reduce((s, r) => s + Number(r.amount), 0);
+  const left = Math.round(due - done);
+  if (left <= 0) return { ok: false, error: "Rien à rembourser sur cette commande." };
+
+  const supabase = await createClient();
+  const { error } = await (supabase as unknown as {
+    rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>;
+  }).rpc("record_order_refund", {
+    p_order_id: orderId,
+    p_amount: left,
+    p_external_ref: null,
+    p_idempotency_key: "full",
+  });
+  if (error) return { ok: false, error: error.message };
 
   revalidateOrder(orderId);
   return { ok: true };

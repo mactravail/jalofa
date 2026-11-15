@@ -55,7 +55,12 @@ export async function RevenueView({ role }: { role: ProRole }) {
   const pending =
     role === "vendor"
       ? orders.filter((o) => moneyHeldForReceipt(role, o))
-      : orders.filter((o) => o.payment_status === "pending");
+      : orders.filter(
+          (o) =>
+            o.payment_status === "pending" &&
+            o.status !== "rejected" &&
+            o.status !== "cancelled",
+        );
 
   return (
     <DashboardPage title="Ce que j'ai gagné" subtitle={copy.subtitle}>

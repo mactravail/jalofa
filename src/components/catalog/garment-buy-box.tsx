@@ -2,14 +2,16 @@
 
 import { useRouter } from "@/lib/i18n/navigation";
 import { useMemo, useState } from "react";
-import { ShoppingBag, Truck, Wand2 } from "lucide-react";
+import { toast } from "sonner";
+import { Check, Package, Palette, ShoppingBag, Truck, Wand2 } from "lucide-react";
 
 import { SizePicker, useAddAsIs, type AsIsPreset } from "@/components/catalog/garment-as-is";
 import { FabricPicker } from "@/components/catalog/garment-personalise";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/constants";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
-import { buildGenericAsIsPreset } from "@/lib/garment-preset";
+import { buildGenericAsIsPreset, buildReadyToWearPreset } from "@/lib/garment-preset";
+import { isReadyToWear, readyColorHex, readyPriceFor, readyPriceRange } from "@/lib/ready-to-wear";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
@@ -24,8 +26,6 @@ export type TailorOffer = {
     Tailor,
     "id" | "shop_name" | "base_price" | "free_delivery" | "free_delivery_zone"
   >;
-  /** Les tissus publiés pour ce modèle — le choix du « Tel quel ». */
-  asIsFabrics: Fabric[];
   /** Tous les tissus en ligne de ce tailleur — première rangée du « Sur mesure ». */
   tailorFabrics: Fabric[];
 };
@@ -34,7 +34,9 @@ export type TailorOffer = {
 // d'abord comment il le veut (« Tel quel » ou « Sur mesure »), et le bouton
 // suit ce choix. Deux boutons côte à côte prêtaient à confusion.
 //
-// - Tel quel  : un tissu du tailleur et la taille → « Ajouter au panier ».
+// - Tel quel  : le prêt-à-porter du tailleur (déjà cousu) — couleur + taille →
+//   « Ajouter au panier ». Seulement si le tailleur auteur l'a déclaré
+//   disponible ; le catalogue JALOFA ne se vend que sur mesure.
 // - Sur mesure : un tissu du tailleur ou d'un autre vendeur → « Personnaliser »
 //   (configurateur, puis demande de devis : le prix final est fixé par le tailleur).
 //
@@ -42,20 +44,24 @@ export type TailorOffer = {
 // récap du devis) avec un mot de passe — cf. `ensureClientAccount`.
 export function GarmentBuyBox({
   preset,
-  presentedIn,
   fabrics: allFabrics,
   orderParams,
   initialFabricId,
+  initialMode,
   offer,
 }: {
   preset: AsIsPreset;
-  /** Nom du tissu dans lequel le modèle est présenté. */
+  /** Nom du tissu dans lequel le modèle est présenté (plus affiché : le
+   *  « Tel quel » est désormais le prêt-à-porter du tailleur). */
   presentedIn?: string | null;
   fabrics: Fabric[];
   /** Query string du configurateur, sans `fabric` (type / model / tailor). */
   orderParams: string;
   /** Tissu déjà retenu en amont (ex. arrivé de /tissus) → ouvre « Sur mesure ». */
   initialFabricId?: string | null;
+  /** Choix déjà fait en amont (bouton « Personnaliser » / « Prêt-à-porter »
+   *  d'une boutique). « Tel quel » n'est retenu que si le modèle l'offre. */
+  initialMode?: Mode;
   /** Absent pour les aperçus du catalogue et les pages dédiées. */
   offer?: TailorOffer;
 }) {
@@ -67,15 +73,27 @@ export function GarmentBuyBox({
   const carriedFabricId = fabrics.some((f) => f.id === initialFabricId)
     ? initialFabricId
     : null;
-  // Sans tissu publié par le tailleur, « Tel quel » n'a rien à proposer.
-  const canAsIs = !offer || offer.asIsFabrics.length > 0;
+  // « Tel quel » = prêt-à-porter déclaré par le tailleur auteur (couleurs).
+  const readyPreset = useMemo(
+    () =>
+      offer && isReadyToWear(offer.model)
+        ? buildReadyToWearPreset({ model: offer.model, photos: offer.photos, tailor: offer.tailor })
+        : null,
+    [offer],
+  );
+  const readyColors = readyPreset ? (offer?.model.ready_colors ?? []) : [];
+  const canAsIs = Boolean(readyPreset);
+  const [color, setColor] = useState<string | null>(
+    readyColors.length === 1 ? readyColors[0] : null,
+  );
   const [mode, setMode] = useState<Mode>(
-    carriedFabricId || !canAsIs ? "custom" : "as_is",
+    initialMode === "custom" || carriedFabricId || !canAsIs ? "custom" : "as_is",
   );
   const [size, setSize] = useState<string | null>(null);
-  const [asIsFabricId, setAsIsFabricId] = useState<string | null>(
-    offer?.asIsFabrics[0]?.id ?? null,
-  );
+  // « J'envoie mon tissu » : le client apporte son tissu (commande `own_fabric`),
+  // il ne paie que la couture et l'envoie à l'atelier une fois le devis payé.
+  const [ownFabric, setOwnFabric] = useState(false);
+  const sendsOwnFabric = mode === "custom" && ownFabric;
   // Un tissu sans vendeur ne peut être envoyé par personne : il n'est pas proposé
   // sur le modèle d'un tailleur.
   const otherFabrics = offer
@@ -88,9 +106,8 @@ export function GarmentBuyBox({
         : (fabrics[0]?.id ?? null)),
   );
 
-  // Le prix suit le tissu choisi dans le mode courant.
-  const activeFabricId = mode === "as_is" ? asIsFabricId : fabricId;
-  const activeFabric = fabrics.find((f) => f.id === activeFabricId) ?? null;
+  // Sur mesure : le prix « à partir de » suit le tissu choisi.
+  const activeFabric = fabrics.find((f) => f.id === fabricId) ?? null;
   const shownPreset = useMemo(
     () =>
       offer && activeFabric
@@ -103,17 +120,38 @@ export function GarmentBuyBox({
         : preset,
     [offer, activeFabric, preset],
   );
-  const addAsIs = useAddAsIs(shownPreset);
+  // Prêt-à-porter : le tailleur peut fixer un prix par couleur.
+  const colorPreset = useMemo(() => {
+    if (!readyPreset || !offer) return null;
+    const p = readyPriceFor(offer.model, color, readyPreset.tailoringPrice);
+    return { ...readyPreset, tailoringPrice: p, total: p };
+  }, [readyPreset, offer, color]);
+  const readyRange =
+    readyPreset && offer ? readyPriceRange(offer.model, readyPreset.tailoringPrice) : null;
+  const priceVaries = Boolean(readyRange && readyRange.min !== readyRange.max);
+  const addAsIs = useAddAsIs(colorPreset ?? preset);
 
   const fabricGoesToAtelier =
     mode === "custom" &&
+    !ownFabric &&
     Boolean(
       offer && activeFabric?.vendor_id && activeFabric.vendor_id !== offer.tailor.id,
     );
 
   const onCta = () => {
     if (mode === "as_is") {
-      addAsIs(size);
+      if (readyColors.length > 0 && !color) {
+        toast.error(t("Choisissez d'abord la couleur"));
+        return;
+      }
+      addAsIs(size, color);
+      return;
+    }
+    if (ownFabric) {
+      const q = new URLSearchParams(orderParams);
+      q.set("type", "own_fabric");
+      q.delete("fabric");
+      router.push(`/commande/nouvelle?${q.toString()}`);
       return;
     }
     router.push(
@@ -124,7 +162,7 @@ export function GarmentBuyBox({
   };
 
   const options: { key: Mode; label: string; hint: string }[] = [
-    { key: "as_is", label: t("Tel quel"), hint: t("Juste votre taille") },
+    { key: "as_is", label: t("Tel quel"), hint: t("Prêt-à-porter") },
     { key: "custom", label: t("Sur mesure"), hint: t("Votre tissu, votre style") },
   ];
 
@@ -139,10 +177,18 @@ export function GarmentBuyBox({
     <div className="bg-card rounded-2xl border p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-muted-foreground text-sm">
-          {mode === "as_is" ? t("Prix") : t("À partir de")}
+          {mode === "as_is" && !(priceVaries && !color) ? t("Prix") : t("À partir de")}
         </span>
         <span className="text-primary text-xl font-bold whitespace-nowrap">
-          {formatPrice(shownPreset.total)}
+          {formatPrice(
+            mode === "as_is" && colorPreset
+              ? color
+                ? colorPreset.total
+                : (readyRange?.min ?? colorPreset.total)
+              : sendsOwnFabric
+                ? shownPreset.tailoringPrice
+                : shownPreset.total,
+          )}
         </span>
       </div>
 
@@ -174,37 +220,117 @@ export function GarmentBuyBox({
       <div className="mt-5">
         {mode === "as_is" ? (
           <>
-            {offer && (
+            {readyColors.length > 0 && (
               <div className="mb-5">
-                <FabricPicker
-                  fabrics={offer.asIsFabrics}
-                  value={asIsFabricId}
-                  onChange={setAsIsFabricId}
-                />
+                <p className="text-sm font-medium">{t("Choisissez la couleur")}</p>
+                <div role="radiogroup" aria-label={t("Couleur")} className="mt-2 flex flex-wrap gap-2">
+                  {readyColors.map((c) => {
+                    const active = color === c;
+                    const hex = readyColorHex(c);
+                    const cPrice =
+                      priceVaries && offer && readyPreset
+                        ? readyPriceFor(offer.model, c, readyPreset.tailoringPrice)
+                        : null;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => setColor(c)}
+                        className={cn(
+                          "flex items-center gap-2 rounded-full border-2 py-1 pr-3.5 pl-1 text-sm font-medium transition-colors",
+                          active ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
+                        )}
+                      >
+                        <span
+                          aria-hidden
+                          className="bg-muted grid size-7 place-items-center rounded-full border border-white/20"
+                          style={hex ? { background: hex } : undefined}
+                        >
+                          {active && <Check className="size-4 text-white mix-blend-difference" strokeWidth={3} />}
+                        </span>
+                        {t(c)}
+                        {cPrice !== null && (
+                          <span className="text-muted-foreground text-xs font-normal whitespace-nowrap">
+                            {formatPrice(cPrice)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
             <SizePicker
               value={size}
               onChange={setSize}
-              note={
-                offer
-                  ? t("Le modèle présenté, ajusté à votre taille.")
-                  : preset.note
-                    ? t(preset.note)
-                    : presentedIn
-                      ? t("Le modèle présenté, en {fabric}, ajusté à votre taille.", { fabric: presentedIn })
-                      : t("Le modèle présenté, ajusté à votre taille.")
-              }
+              note={t("Déjà cousu par {name}, prêt à partir à votre taille.", {
+                name: offer?.tailor.shop_name ?? t("l'atelier"),
+              })}
             />
           </>
         ) : (
           <>
-            <FabricPicker
-              fabrics={fabrics}
-              groups={customGroups}
-              value={fabricId}
-              onChange={setFabricId}
-            />
+            {/* D'où vient le tissu ? Celui du site, ou celui du client. */}
+            <div
+              role="radiogroup"
+              aria-label={t("Le tissu")}
+              className="mb-4 grid grid-cols-2 gap-2"
+            >
+              {[
+                {
+                  own: false,
+                  label: t("Je choisis un tissu"),
+                  hint: t("Parmi nos tissus"),
+                  Icon: Palette,
+                  tone: "text-amber-400",
+                  on: "border-amber-400 bg-amber-400/10",
+                },
+                {
+                  own: true,
+                  label: t("J'envoie mon tissu"),
+                  hint: t("Vous payez la couture"),
+                  Icon: Package,
+                  tone: "text-emerald-400",
+                  on: "border-emerald-400 bg-emerald-400/10",
+                },
+              ].map((o) => {
+                const active = ownFabric === o.own;
+                return (
+                  <button
+                    key={String(o.own)}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setOwnFabric(o.own)}
+                    className={cn(
+                      "rounded-xl border-2 px-3 py-2.5 text-left transition-colors",
+                      active ? o.on : "hover:bg-muted border-border",
+                    )}
+                  >
+                    <o.Icon aria-hidden className={cn("mb-1 size-5", o.tone)} />
+                    <span className={cn("block text-[13px] leading-tight font-semibold sm:text-sm", active && o.tone)}>
+                      {o.label}
+                    </span>
+                    <span className="text-muted-foreground mt-0.5 block text-[11px] leading-snug sm:text-xs">{o.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {ownFabric ? (
+              <p className="bg-muted/50 flex items-start gap-2 rounded-lg p-2.5 text-sm">
+                <Package className="text-primary mt-0.5 size-4 shrink-0" />
+                {t("Vous envoyez votre tissu à l'atelier du tailleur. Il vous dit combien de mètres il faut, et son adresse s'affiche après le paiement.")}
+              </p>
+            ) : (
+              <FabricPicker
+                fabrics={fabrics}
+                groups={customGroups}
+                value={fabricId}
+                onChange={setFabricId}
+              />
+            )}
             {fabricGoesToAtelier && (
               <p className="bg-muted/50 mt-3 flex items-start gap-2 rounded-lg p-2.5 text-sm">
                 <Truck className="text-primary mt-0.5 size-4 shrink-0" />

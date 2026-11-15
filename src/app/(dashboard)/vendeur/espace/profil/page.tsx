@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { VisibilityPanel } from "@/components/dashboard/visibility-panel";
 import Link from "@/components/i18n/link";
 import { ExternalLink } from "lucide-react";
 
 import { VendorAddressForm } from "@/components/dashboard/atelier-form";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { VendorProfileForm } from "@/components/dashboard/vendor-profile-form";
+import { ShippingFeesForm } from "@/components/dashboard/shipping-fees-form";
 import { getCurrentVendor, getMyVendorAddress } from "@/lib/data";
 import type { Vendor } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -43,6 +45,7 @@ export default async function VendorProfilePage() {
       title="Ma page publique"
       subtitle="La page que les clients voient avant d'acheter."
     >
+      <VisibilityPanel />
       {vendor.id && (
         <Link
           href={`/vendeurs/${vendor.id}`}
@@ -54,6 +57,13 @@ export default async function VendorProfilePage() {
       )}
       <VendorProfileForm vendor={vendor} />
       <VendorAddressForm address={address} />
+      <div className="mt-6">
+        <ShippingFeesForm
+          role="vendor"
+          economy={vendor.ship_fee_economy ?? null}
+          express={vendor.ship_fee_express ?? null}
+        />
+      </div>
     </DashboardPage>
   );
 }

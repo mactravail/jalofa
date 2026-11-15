@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 
 import { ModelFormDialog } from "@/components/dashboard/model-form-dialog";
+import { isReadyToWear } from "@/lib/ready-to-wear";
 import { ModelSuggestionPicker } from "@/components/dashboard/model-suggestion-picker";
 import { NEW_MODEL_EVENT } from "@/components/tailor-bottom-nav";
 import { Badge } from "@/components/ui/badge";
@@ -36,12 +37,11 @@ import {
 import { deleteModel, setModelPublished } from "@/lib/actions/models";
 import { unwrap } from "@/lib/action-result";
 import type {
-  Fabric,
-  FabricCategory,
   GarmentModel,
   ModelCategory,
   TailorAtelier,
 } from "@/lib/types";
+import type { TailorBodyFits } from "@/lib/model-body-fit";
 import { T } from "@/components/i18n/t";
 import { translateNow } from "@/lib/i18n/translate";
 
@@ -60,29 +60,20 @@ export function TailorModelsPanel({
   models,
   suggestions,
   categories,
-  fabrics,
-  fabricCategories,
-  fabricLinks,
   atelier,
+  bodyFits = {},
   europe = false,
 }: {
   models: GarmentModel[];
   suggestions: GarmentModel[];
   categories: ModelCategory[];
-  /** Les tissus du tailleur, y compris ceux en brouillon. */
-  fabrics: Fabric[];
-  fabricCategories: FabricCategory[];
-  /** Les tissus cochés pour chaque modèle. */
-  fabricLinks: Record<string, string[]>;
   atelier: TailorAtelier | null;
+  /** « Mes métrages » : les mètres de tissu, communs à tous les modèles. */
+  bodyFits?: TailorBodyFits;
   /** Atelier installé en Europe : le formulaire montre les champs JALOFA EUROPE. */
   europe?: boolean;
 }) {
-  const activeFabricIds = new Set(fabrics.filter((f) => f.is_active).map((f) => f.id));
-  const lacksFabric = (model: GarmentModel) =>
-    !(fabricLinks[model.id] ?? []).some((id) => activeFabricIds.has(id));
-  const needsSetup =
-    !atelier || models.some((m) => m.is_active && lacksFabric(m));
+  const needsSetup = !atelier;
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -96,6 +87,13 @@ export function TailorModelsPanel({
   const [isDeleting, startDelete] = useTransition();
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [, startPublish] = useTransition();
+
+  // Publier demande confirmation (« Êtes-vous sûr ? ») ; retirer du catalogue, non.
+  const [publishTarget, setPublishTarget] = useState<GarmentModel | null>(null);
+  function askPublish(model: GarmentModel) {
+    if (model.is_active) togglePublished(model);
+    else setPublishTarget(model);
+  }
 
   function togglePublished(model: GarmentModel) {
     const next = !model.is_active;
@@ -214,9 +212,7 @@ export function TailorModelsPanel({
 
       {models.length > 0 && needsSetup && (
         <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          <T>{!atelier
-            ? "Indiquez l'adresse de votre atelier : les vendeurs y envoient les tissus de vos clients. Touchez « Modifier » sur un modèle."
-            : "Certains modèles n'ont pas de tissu. Sans tissu, le client ne peut pas les acheter « Tel quel ». Touchez « Modifier » pour en ajouter."}</T>
+          <T>{"Indiquez l'adresse de votre atelier : les vendeurs y envoient les tissus de vos clients. Touchez « Modifier » sur un modèle."}</T>
         </p>
       )}
 
@@ -242,7 +238,7 @@ export function TailorModelsPanel({
       ) : (
         <div className="divide-y rounded-xl border">
           {models.map((model) => (
-            <div key={model.id} className="flex items-center gap-4 p-3">
+            <div key={model.id} className="flex items-start gap-3 p-3 sm:items-center sm:gap-4">
               <div className="bg-muted size-12 shrink-0 overflow-hidden rounded-lg">
                 {model.image_url && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -255,24 +251,41 @@ export function TailorModelsPanel({
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate font-medium">{model.name}</p>
-                  {!model.is_active && (
-                    <Badge className="bg-muted text-muted-foreground border-0">
-                      <T>Brouillon</T>
-                    </Badge>
-                  )}
-                  {lacksFabric(model) && (
-                    <Badge className="border-0 bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                      <T>Sans tissu</T>
-                    </Badge>
-                  )}
-                </div>
+                {/* Le nom a sa ligne ; les pastilles passent dessous (sur mobile,
+                    elles écrasaient le nom et le bouton « Publier »). */}
+                <p className="truncate font-medium">{model.name}</p>
                 <p className="text-muted-foreground truncate text-sm">
                   <T>{[categoryName(model.category_slug), model.difficulty && DIFFICULTY_LABEL[model.difficulty]]
                     .filter(Boolean)
                     .join(" · ") || "—"}</T>
                 </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+                  {!model.is_active && (
+                    <Badge className="bg-muted text-muted-foreground border-0">
+                      <T>Brouillon</T>
+                    </Badge>
+                  )}
+                  {isReadyToWear(model) && (
+                    <Badge className="border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                      <T>Prêt-à-porter</T>
+                    </Badge>
+                  )}
+                  {!model.is_active && (
+                    <Button
+                      size="sm"
+                      onClick={() => askPublish(model)}
+                      disabled={publishingId === model.id}
+                      className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 sm:hidden"
+                    >
+                      {publishingId === model.id ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Send className="size-4" />
+                      )}
+                      <T>Publier</T>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="text-muted-foreground hidden items-center gap-1.5 text-sm sm:flex">
@@ -282,9 +295,9 @@ export function TailorModelsPanel({
               {!model.is_active && (
                 <Button
                   size="sm"
-                  onClick={() => togglePublished(model)}
+                  onClick={() => askPublish(model)}
                   disabled={publishingId === model.id}
-                  className="shrink-0 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="hidden shrink-0 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 sm:inline-flex"
                 >
                   {publishingId === model.id ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -308,7 +321,7 @@ export function TailorModelsPanel({
                     <Pencil className="size-4" /> <T>Modifier</T>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => togglePublished(model)}
+                    onClick={() => askPublish(model)}
                     disabled={publishingId === model.id}
                   >
                     {model.is_active ? (
@@ -350,10 +363,9 @@ export function TailorModelsPanel({
         model={editing}
         suggestion={suggestion}
         categories={categories}
-        fabrics={fabrics}
-        fabricCategories={fabricCategories}
-        linkedFabricIds={editing ? (fabricLinks[editing.id] ?? []) : []}
+        catalog={suggestions}
         atelier={atelier}
+        bodyFits={bodyFits}
         europe={europe}
       />
 
@@ -383,6 +395,36 @@ export function TailorModelsPanel({
             >
               {isDeleting && <Loader2 className="size-4 animate-spin" />}
               <T>Supprimer</T>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(publishTarget)}
+        onOpenChange={(o) => !o && setPublishTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle><T>Publier ce modèle ?</T></DialogTitle>
+            <DialogDescription>
+              {publishTarget?.name} <T>sera visible par les clients dans le catalogue.</T>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPublishTarget(null)}>
+              <T>Annuler</T>
+            </Button>
+            <Button
+              onClick={() => {
+                const target = publishTarget;
+                setPublishTarget(null);
+                if (target) togglePublished(target);
+              }}
+              className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              <Send className="size-4" />
+              <T>Oui, publier</T>
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -11,6 +11,7 @@ import {
 
 import { quoteOrder, rejectOrder, updateOrderStatus } from "@/lib/actions/orders";
 import { unwrap } from "@/lib/action-result";
+import { daysLate } from "@/lib/after-sale";
 import type { OrderStatus, RejectionReason } from "@/lib/constants";
 import type { ProRole } from "@/lib/dashboard-nav";
 import type { OrderListItem } from "@/lib/orders-data";
@@ -174,6 +175,19 @@ export function usePipeline() {
   const ctx = useContext(PipelineContext);
   if (!ctx) throw new Error("usePipeline must be used within a PipelineProvider");
   return ctx;
+}
+
+/** Les habits en retard sur la date promise, le plus en retard d'abord. */
+export function useLateOrders(): OrderListItem[] {
+  const { orders } = usePipeline();
+  return useMemo(() => {
+    // Compté au jour près : l'heure du rendu ne change pas le résultat.
+    return orders
+      .map((o) => ({ o, late: daysLate(o) }))
+      .filter((x) => x.late > 0)
+      .sort((a, b) => b.late - a.late)
+      .map((x) => x.o);
+  }, [orders]);
 }
 
 /** Une pile du pipeline, telle que l'affiche sa page du menu. */

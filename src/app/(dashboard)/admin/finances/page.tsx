@@ -14,6 +14,8 @@ import { StatCard } from "@/components/admin/stat-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAllOrders } from "@/lib/admin-data";
+import { TONE, type Tone } from "@/lib/dashboard-tone";
+import { cn } from "@/lib/utils";
 import { getPlatformFinance } from "@/lib/payouts-data";
 import { getRevenueSeries } from "@/lib/revenue-data";
 import {
@@ -53,18 +55,21 @@ export default async function AdminFinancePage() {
           value={formatPrice(finance.gmv)}
           hint={`${finance.paidCount} commande${finance.paidCount > 1 ? "s" : ""} réglée${finance.paidCount > 1 ? "s" : ""}`}
           accent
+          tone="emerald"
         />
         <StatCard
           icon={Wallet}
           label="Revenus JALOFA"
           value={formatPrice(finance.platformTotal)}
           hint="Commissions + abonnements"
+          tone="emerald"
         />
         <StatCard
           icon={Clock}
           label="En attente de règlement"
           value={formatPrice(finance.pendingVolume)}
           hint={`${finance.pendingCount} commande${finance.pendingCount > 1 ? "s" : ""} non réglée${finance.pendingCount > 1 ? "s" : ""}`}
+          tone="amber"
         />
       </div>
 
@@ -74,6 +79,8 @@ export default async function AdminFinancePage() {
           title="Volume d'affaires encaissé"
           subtitle="Le total payé par les clients, par jour, par semaine ou par mois."
           unit="commande"
+          accent="#10b981"
+          colorful
         />
       </div>
 
@@ -85,6 +92,7 @@ export default async function AdminFinancePage() {
             label="Commissions"
             hint="5% sur les ventes des pros au plan Gratuit, hors livraison"
             value={finance.commission}
+            tone="emerald"
             total={finance.platformTotal}
           />
           <SourceRow
@@ -92,6 +100,7 @@ export default async function AdminFinancePage() {
             label="Abonnements"
             hint="Standard & Premium — 100% JALOFA"
             value={finance.subscriptions}
+            tone="violet"
             total={finance.platformTotal}
           />
         </CardContent>
@@ -101,7 +110,7 @@ export default async function AdminFinancePage() {
         href="/admin/reversements"
         className="bg-card hover:border-primary/40 mt-3 flex items-center gap-3 rounded-xl border p-4 transition-colors"
       >
-        <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", TONE.teal.soft)}>
           <HandCoins className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
@@ -110,7 +119,7 @@ export default async function AdminFinancePage() {
             Le reste du volume encaissé, dû aux vendeurs et aux tailleurs.
           </p>
         </div>
-        <span className="shrink-0 font-semibold">{formatPrice(finance.netOwed)}</span>
+        <span className={cn("shrink-0 font-semibold", TONE.teal.text)}>{formatPrice(finance.netOwed)}</span>
         <ArrowRight className="text-muted-foreground size-4 shrink-0" />
       </Link>
 
@@ -123,9 +132,9 @@ export default async function AdminFinancePage() {
       </p>
       <Card>
         <CardContent className="divide-y p-0">
-          <BreakdownRow label="Tissus (part vendeurs)" value={finance.fabricRevenue} total={finance.gmv} />
-          <BreakdownRow label="Confection (part tailleurs)" value={finance.tailoringRevenue} total={finance.gmv} />
-          <BreakdownRow label="Livraison (part de celui qui livre)" value={finance.delivery} total={finance.gmv} />
+          <BreakdownRow label="Tissus (part vendeurs)" value={finance.fabricRevenue} total={finance.gmv} bar="bg-fuchsia-500" />
+          <BreakdownRow label="Confection (part tailleurs)" value={finance.tailoringRevenue} total={finance.gmv} bar="bg-sky-500" />
+          <BreakdownRow label="Livraison (part de celui qui livre)" value={finance.delivery} total={finance.gmv} bar="bg-teal-500" />
         </CardContent>
       </Card>
 
@@ -139,7 +148,9 @@ export default async function AdminFinancePage() {
           {methods.map(([method, { total, count }]) => (
             <div key={method} className="flex items-center justify-between gap-4 p-4">
               <div className="flex items-center gap-3">
-                <CreditCard className="text-muted-foreground size-4" />
+                <span className={cn("flex size-8 items-center justify-center rounded-lg", TONE.indigo.soft)}>
+                  <CreditCard className="size-4" />
+                </span>
                 <div>
                   <p className="font-medium">
                     {method === "unknown"
@@ -151,7 +162,7 @@ export default async function AdminFinancePage() {
                   </p>
                 </div>
               </div>
-              <p className="font-semibold">{formatPrice(total)}</p>
+              <p className={cn("font-semibold", TONE.emerald.text)}>{formatPrice(total)}</p>
             </div>
           ))}
         </div>
@@ -166,24 +177,26 @@ function SourceRow({
   hint,
   value,
   total,
+  tone,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   hint: string;
   value: number;
   total: number;
+  tone: Tone;
 }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
 
   return (
     <div className="flex items-center gap-4 px-4 py-3.5">
-      <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", TONE[tone].soft)}>
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium">{label}</p>
-          <p className="text-sm font-semibold">{formatPrice(value)}</p>
+          <p className={cn("text-sm font-semibold", TONE[tone].text)}>{formatPrice(value)}</p>
         </div>
         <p className="text-muted-foreground text-xs">{hint}</p>
       </div>
@@ -198,10 +211,13 @@ function BreakdownRow({
   label,
   value,
   total,
+  bar,
 }: {
   label: string;
   value: number;
   total: number;
+  /** Couleur de la barre (classe Tailwind écrite en toutes lettres). */
+  bar: string;
 }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
 
@@ -212,9 +228,9 @@ function BreakdownRow({
           <p className="text-sm font-medium">{label}</p>
           <p className="text-sm font-semibold">{formatPrice(value)}</p>
         </div>
-        <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
+        <div className="bg-muted mt-2 h-2 overflow-hidden rounded-full">
           <div
-            className="bg-primary h-full rounded-full"
+            className={cn("h-full rounded-full", bar)}
             style={{ width: `${pct}%` }}
           />
         </div>

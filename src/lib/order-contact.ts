@@ -18,8 +18,9 @@ export type OrderContact = {
  * relie le code au client.
  *
  * Sans coordonnées, JALOFA ne pourrait ni joindre ni livrer le client : la
- * commande est annulée pour que le client recommence. Il ne peut pas la supprimer
- * lui-même (RLS), d'où le client de service.
+ * commande est annulée pour que le client recommence. Une commande n'est jamais
+ * supprimée (cahier des charges §2.3, trigger `orders_never_deleted`) : elle
+ * passe à « annulée », par le client de service (le client n'en a pas le droit).
  */
 export async function saveOrderContact(
   supabase: ServerClient,
@@ -32,7 +33,10 @@ export async function saveOrderContact(
   if (!error) return true;
 
   try {
-    await createAdminClient().from("orders").delete().eq("id", orderId);
+    await createAdminClient()
+      .from("orders")
+      .update({ status: "cancelled", notes: "Annulée automatiquement : coordonnées non enregistrées." })
+      .eq("id", orderId);
   } catch {
     // Clé de service absente : la commande reste, sans coordonnées.
   }

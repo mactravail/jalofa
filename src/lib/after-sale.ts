@@ -3,8 +3,9 @@ import type { OrderStatus, OrderType } from "@/lib/constants";
 /**
  * Les règles de l'après-vente. Les durées sont ici, et seulement ici.
  *
- * - Annulation : remboursée pendant `CANCEL_WINDOW_HOURS` après le paiement, tant
- *   que le tissu n'est pas parti.
+ * - Annulation : DEMANDÉE par le client jusqu'au départ de l'habit ; la commande
+ *   est bloquée et JALOFA décide (cf. `src/lib/order-workflow.ts`). Les délais
+ *   de 24 h avant envoi et avant découpe y sont définis.
  * - Tissu seul : il peut être rendu pendant `RETURN_WINDOW_DAYS` après réception.
  *   Le client paie le renvoi ; il est remboursé quand le vendeur l'a reçu.
  * - Vêtement : jamais repris. Le tailleur le retouche.
@@ -97,6 +98,8 @@ type AfterSaleOrder = {
   quote_ready_days?: number | null;
   fabric_return?: { status: string } | null;
   alterations?: { status: string }[] | null;
+  /** Dernière demande d'annulation (cf. `withCancellations`). */
+  cancellation?: { status: string } | null;
 };
 
 type HistoryRow = { status: OrderStatus; created_at: string };
@@ -115,11 +118,16 @@ export function cancelDeadline(order: AfterSaleOrder, history: HistoryRow[]): nu
   return paidAt === null ? null : paidAt + CANCEL_WINDOW_HOURS * HOUR_MS;
 }
 
-export function canCancelOrder(
-  order: AfterSaleOrder,
-  history: HistoryRow[],
-  now: number = Date.now(),
-): boolean {
+/**
+ * Le client peut-il DEMANDER l'annulation ? Cahier des charges 2026-11-13 : à
+ * tout moment avant que l'habit parte chez lui. La demande bloque la commande
+ * et JALOFA décide du remboursement (`proposeSettlement`, 35 % de la couture
+ * après une découpe autorisée). Une demande déjà en examen ne se redouble pas.
+ * L'historique reste accepté en second argument pour les appels existants.
+ */
+export function canCancelOrder(order: AfterSaleOrder, ...legacyArgs: [HistoryRow[]?, number?]): boolean {
+  void legacyArgs;
+  if (order.cancellation?.status === "pending") return false;
   // Refusée par le tailleur : le client peut toujours récupérer son argent.
   if (order.status === "rejected") return true;
   // Devis pas encore payé : le client n'a rien engagé.
@@ -127,9 +135,7 @@ export function canCancelOrder(
     return order.is_quote && order.status === "received";
   }
   if (order.payment_status !== "paid") return false;
-  if (!["received", "accepted", "fabric_prepared"].includes(order.status)) return false;
-  const deadline = cancelDeadline(order, history);
-  return deadline !== null && now <= deadline;
+  return !["shipped", "delivered", "cancelled"].includes(order.status);
 }
 
 /**
@@ -140,6 +146,21 @@ export function promisedReadyAt(order: AfterSaleOrder, history: HistoryRow[]): n
   if (order.type === "fabric_only" || order.payment_status !== "paid") return null;
   const start = statusTime(history, "accepted") ?? new Date(order.created_at).getTime();
   return start + (order.quote_ready_days ?? MAX_MAKING_DAYS) * 24 * HOUR_MS;
+}
+
+/**
+ * Jours de retard d'un habit pas encore parti, vu depuis la liste du tailleur
+ * (sans historique : le départ est le paiement). 0 = dans les temps.
+ */
+export function daysLate(
+  order: AfterSaleOrder & { paid_at?: string | null },
+  now: number = Date.now(),
+): number {
+  if (order.type === "fabric_only" || order.payment_status !== "paid") return 0;
+  if (["shipped", "delivered", "cancelled", "rejected"].includes(order.status)) return 0;
+  const start = new Date(order.paid_at ?? order.created_at).getTime();
+  const promised = start + (order.quote_ready_days ?? MAX_MAKING_DAYS) * 24 * HOUR_MS;
+  return now > promised ? Math.ceil((now - promised) / (24 * HOUR_MS)) : 0;
 }
 
 /** À partir de quand le retard permet d'annuler, en millisecondes. */

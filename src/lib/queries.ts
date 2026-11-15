@@ -39,7 +39,12 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
 });
 
 /** L'état d'un métier pour le pro connecté : le plan de sa boutique et si l'administration l'a activée. */
-export type ProAccessRow = { plan: SubscriptionPlanId; is_activated: boolean };
+export type ProAccessRow = {
+  plan: SubscriptionPlanId;
+  is_activated: boolean;
+  /** Ventes validées par JALOFA (absent avant la migration = validé). */
+  sales_approved?: boolean;
+};
 
 /**
  * L'accès pro de l'utilisateur connecté, métier par métier : sa boutique
@@ -65,19 +70,21 @@ export async function getProAccess(): Promise<ProAccess> {
   const [tailor, vendor] = await Promise.all([
     supabase
       .from("tailors")
-      .select("plan, is_activated")
+      // `*` : `sales_approved` peut manquer tant que la migration n'est pas passée.
+      .select("*")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
       .from("vendors")
-      .select("plan, is_activated")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle(),
   ]);
-  return {
-    tailor: (tailor.data as ProAccessRow | null) ?? null,
-    vendor: (vendor.data as ProAccessRow | null) ?? null,
+  const pick = (row: unknown): ProAccessRow | null => {
+    const r = row as ProAccessRow | null;
+    return r ? { plan: r.plan, is_activated: r.is_activated, sales_approved: r.sales_approved } : null;
   };
+  return { tailor: pick(tailor.data), vendor: pick(vendor.data) };
 }
 
 /** Les espaces activés du pro — au-delà d'un, le châssis affiche le sélecteur d'espace. */

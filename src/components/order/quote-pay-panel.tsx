@@ -14,18 +14,10 @@ import {
 import { toast } from "sonner";
 
 import { acceptQuote } from "@/lib/actions/orders";
-import { CANCEL_WINDOW_HOURS } from "@/lib/after-sale";
 import { Button } from "@/components/ui/button";
-import { PaymentMethodLogo } from "@/components/payment-logos";
-import {
-  PAYMENT_METHOD_LABELS,
-  formatPrice,
-  type PaymentMethod,
-} from "@/lib/constants";
+import { formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
-
-const METHODS = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[];
 
 /**
  * Réponse à un devis, côté client. Tant que le tailleur n'a pas chiffré, on
@@ -44,7 +36,10 @@ export function QuotePayPanel({
   hasAddress,
   readyDays = null,
   note = null,
+  fabricFees = { economy: 0, express: null },
 }: {
+  /** Aller du tissu au tarif du vendeur, par option ; null = option non proposée. */
+  fabricFees?: { economy: number | null; express: number | null };
   orderId: string;
   /** Combien de fois le client a déjà modifié sa demande. */
   revision: number;
@@ -65,8 +60,10 @@ export function QuotePayPanel({
 }) {
   const router = useRouter();
   const t = useT();
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [accepted, setAccepted] = useState(false);
+  const [option, setOption] = useState<"economy" | "express">("economy");
+  const fabricFee = fabricFees[option] ?? 0;
+  const grandTotal = totalAmount + fabricFee;
   const [isPending, startTransition] = useTransition();
 
   // En attente du chiffrage : le tailleur n'a pas encore répondu.
@@ -87,16 +84,17 @@ export function QuotePayPanel({
   }
 
   const pay = () => {
-    if (!method) {
-      toast.error(t("Choisissez un moyen de paiement"));
-      return;
-    }
     if (!accepted) {
       toast.error(t("Acceptez les conditions pour payer"));
       return;
     }
     startTransition(async () => {
-      const res = await acceptQuote(orderId, method);
+      const res = await acceptQuote(orderId, option);
+      if (res.ok && res.redirectUrl) {
+        // Bictorys : le client paie sur sa page ; le webhook confirmera.
+        window.location.assign(res.redirectUrl);
+        return;
+      }
       if (res.ok) {
         toast.success(t("Devis accepté et payé. Le tailleur est prévenu."));
         router.refresh();
@@ -122,12 +120,43 @@ export function QuotePayPanel({
           label={t("Livraison")}
           amount={deliveryFee > 0 ? formatPrice(deliveryFee) : t("Gratuite")}
         />
+        {fabricFee > 0 && <Line label={t("Envoi du tissu à l'atelier")} amount={formatPrice(fabricFee)} />}
         <Line label={t("Tailleur")} amount={formatPrice(tailoringPrice)} />
         <div className="flex items-center justify-between gap-3 border-t pt-2 text-base font-bold">
           <dt>{t("Total")}</dt>
-          <dd className="text-primary whitespace-nowrap">{formatPrice(totalAmount)}</dd>
+          <dd className="text-primary whitespace-nowrap">{formatPrice(grandTotal)}</dd>
         </div>
       </dl>
+
+      {/* Option A / B (cahier des charges §3). */}
+      <p className="mt-4 text-sm font-medium">{t("Rapidité")}</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {(["economy", "express"] as const).map((o) => {
+          const available = fabricFees[o] !== null;
+          return (
+            <button
+              key={o}
+              type="button"
+              disabled={!available}
+              onClick={() => setOption(o)}
+              aria-pressed={option === o}
+              className={cn(
+                "rounded-lg border p-2.5 text-left text-sm transition-colors disabled:opacity-50",
+                option === o ? "border-primary ring-primary/30 ring-2" : "hover:bg-muted",
+              )}
+            >
+              <span className="block font-semibold">{o === "economy" ? t("Économique") : t("Express")}</span>
+              <span className="text-muted-foreground block text-[11px] leading-tight">
+                {!available
+                  ? t("Pas proposé")
+                  : o === "economy"
+                    ? t("24 h pour changer d'avis")
+                    : t("Tout part tout de suite")}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {readyDays ? (
         <p className="mt-3 flex items-center gap-1.5 text-sm">
@@ -158,28 +187,9 @@ export function QuotePayPanel({
         </p>
       )}
 
-      <p className="mt-4 text-sm font-medium">{t("Moyen de paiement")}</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {METHODS.map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMethod(m)}
-            aria-pressed={method === m}
-            className={cn(
-              "flex flex-col items-center gap-1.5 rounded-lg border p-2.5 transition-colors",
-              method === m
-                ? "border-primary ring-primary/30 ring-2"
-                : "hover:bg-muted",
-            )}
-          >
-            <PaymentMethodLogo method={m} />
-            <span className="text-muted-foreground text-[11px] leading-tight">
-              {t(PAYMENT_METHOD_LABELS[m])}
-            </span>
-          </button>
-        ))}
-      </div>
+      <p className="text-muted-foreground mt-4 text-sm">
+        {t("Vous payez sur une page de paiement sécurisée : Wave, Orange Money ou carte bancaire.")}
+      </p>
 
       <label className="mt-4 flex cursor-pointer items-start gap-2 text-xs">
         <input
@@ -207,11 +217,11 @@ export function QuotePayPanel({
           <Lock className="size-4 shrink-0" />
         )}
         <span>{t("Accepter et payer")}</span>
-        <span className="whitespace-nowrap">{formatPrice(totalAmount)}</span>
+        <span className="whitespace-nowrap">{formatPrice(grandTotal)}</span>
       </Button>
       <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-emerald-500">
         <ShieldCheck className="size-3.5" />
-        {t("Paiement sécurisé · argent protégé par JALOFA")}
+        {t("Paiement sécurisé · l'argent attend en sécurité")}
       </p>
       <p className="text-muted-foreground mt-2 text-xs">
         {t("Une fois payé, le tailleur reçoit votre nom, votre téléphone et votre e-mail pour vous livrer.")}
@@ -220,7 +230,7 @@ export function QuotePayPanel({
         {t("Payez uniquement ici. En dehors du site, JALOFA ne peut ni vous protéger ni vous rembourser.")}
       </p>
       <p className="text-muted-foreground mt-1 text-xs">
-        {t("Annulation possible pendant {h} h. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { h: CANCEL_WINDOW_HOURS })}
+        {t("Annulation possible jusqu'au départ de votre tenue : JALOFA examine. Après la découpe du tissu, le tailleur garde 35 % du prix de la couture. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.")}
       </p>
     </div>
   );

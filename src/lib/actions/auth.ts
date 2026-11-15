@@ -63,6 +63,28 @@ export async function signIn(
   redirect(destination);
 }
 
+/**
+ * Connexion sur place, sans redirection : au récap d'une tenue, le client qui a
+ * déjà un compte se connecte et reste sur la page (son brouillon est conservé).
+ */
+export async function signInInline(
+  email: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const e = email.trim();
+  if (!e || !password) {
+    return { ok: false, error: "Veuillez renseigner votre e-mail et votre mot de passe." };
+  }
+  if (!isSupabaseConfigured()) return { ok: false, error: DB_NOT_READY };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email: e, password });
+  if (error) return { ok: false, error: "E-mail ou mot de passe incorrect." };
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function signUp(
   _prev: AuthState,
   formData: FormData,

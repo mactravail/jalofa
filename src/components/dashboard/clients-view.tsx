@@ -9,7 +9,7 @@ import {
   MapPin,
   Phone,
   Scissors,
-  ShoppingBag,
+  Search,
   Sparkles,
   Undo2,
   UsersRound,
@@ -81,22 +81,157 @@ export function ClientsList({ role }: { role: ProRole }) {
     );
   }
 
+  return <ClientsTable clients={clients} role={role} />;
+}
+
+/** Nombre de lignes affichées d'un coup (puis « Voir N clients de plus »). */
+const PAGE_SIZE = 30;
+
+/**
+ * Une ligne par client, pensée pour des centaines de clients : recherche,
+ * affichage par paquets, et un seul client déplié à la fois (clic sur la ligne).
+ */
+function ClientsTable({ clients, role }: { clients: ClientSummary[]; role: ProRole }) {
+  const tr = useT();
+  const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? clients.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.city ?? "").toLowerCase().includes(q) ||
+          (c.phone ?? "").replace(/\s/g, "").includes(q.replace(/\s/g, "")),
+      )
+    : clients;
+  const visible = filtered.slice(0, limit);
+  const rest = filtered.length - visible.length;
+
   return (
-    <ul className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
-      {clients.map((client, i) => (
-        <li key={client.id}>
-          <ClientCard
-            client={client}
-            role={role}
-            tone={AVATAR_TONES[i % AVATAR_TONES.length]}
+    <div className="space-y-3">
+      {clients.length > 5 && (
+        <div className="relative">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setLimit(PAGE_SIZE);
+            }}
+            placeholder={tr("Rechercher un client…")}
+            className="bg-card focus-visible:ring-ring h-11 w-full rounded-xl border pr-3 pl-9 text-base outline-none focus-visible:ring-2"
           />
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="text-muted-foreground rounded-2xl border border-dashed p-6 text-center text-sm">
+          {tr("Aucun client trouvé")}
+        </p>
+      ) : (
+        <ul className="bg-card divide-y overflow-hidden rounded-2xl border">
+          {visible.map((client) => (
+            <li key={client.id}>
+              <ClientRow
+                client={client}
+                role={role}
+                tone={AVATAR_TONES[clients.indexOf(client) % AVATAR_TONES.length]}
+                open={openId === client.id}
+                onToggle={() => setOpenId((id) => (id === client.id ? null : client.id))}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {rest > 0 && (
+        <button
+          type="button"
+          onClick={() => setLimit((l) => l + PAGE_SIZE)}
+          className="bg-card hover:bg-muted/50 w-full rounded-xl border py-3 text-sm font-semibold"
+        >
+          {tr("Voir {n} clients de plus", { n: Math.min(rest, PAGE_SIZE) })}
+        </button>
+      )}
+    </div>
   );
 }
 
-function ClientCard({
+function ClientRow({
+  client,
+  role,
+  tone,
+  open,
+  onToggle,
+}: {
+  client: ClientSummary;
+  role: ProRole;
+  tone: Tone;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const t = TONE[tone];
+  const tr = useT();
+
+  return (
+    <div className={cn(open && "bg-muted/20")}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="hover:bg-muted/40 flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
+      >
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold",
+            t.solid,
+          )}
+        >
+          {initialsOf(client.name)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
+            <span className="truncate">{client.name}</span>
+            {client.openFeedback > 0 && (
+              <AlertTriangle
+                className="size-3.5 shrink-0 text-amber-500"
+                aria-label={tr("{n} retour à traiter", { n: client.openFeedback })}
+              />
+            )}
+          </p>
+          <p className="text-muted-foreground truncate text-xs">
+            {client.orders > 1
+              ? tr("{n} commandes", { n: client.orders })
+              : tr("{n} commande", { n: client.orders })}
+            {client.city && ` · ${client.city}`}
+          </p>
+        </div>
+        <span
+          aria-label={formatPrice(client.spent)}
+          className={cn("shrink-0 text-sm font-bold whitespace-nowrap tabular-nums", t.text)}
+        >
+          <span aria-hidden>
+            {client.spent.toLocaleString("fr-FR")}
+            <span className="ml-0.5 text-[0.6em] font-normal">FCFA</span>
+          </span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "text-muted-foreground size-4 shrink-0 transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open && <ClientDetail client={client} role={role} tone={tone} />}
+    </div>
+  );
+}
+
+function ClientDetail({
   client,
   role,
   tone,
@@ -112,58 +247,27 @@ function ClientCard({
   const hidden = client.orderList.length - shown.length;
 
   return (
-    <div
-      className={cn(
-        "bg-card flex flex-col gap-4 rounded-2xl border p-4",
-        client.openFeedback > 0 && "border-amber-500/50",
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <span
-          className={cn(
-            "flex size-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold",
-            t.solid,
-          )}
-        >
-          {initialsOf(client.name)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold">{client.name}</p>
-          <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm">
-            <span className="inline-flex items-center gap-1">
-              <ShoppingBag className="size-3.5" />
-              {client.orders > 1 ? tr("{n} commandes", { n: client.orders }) : tr("{n} commande", { n: client.orders })}
-            </span>
-            {client.city && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3.5" />
-                {client.city}
-              </span>
-            )}
-          </p>
-        </div>
+    <div className="space-y-3 px-3 pb-3">
+      <div className="flex flex-wrap items-center gap-2">
         {client.phone && (
           <a
             href={`tel:${client.phone}`}
             aria-label={tr("Appeler {name}", { name: client.name })}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95",
+              "flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95",
               t.solid,
             )}
           >
             <Phone className="size-4" />
-            <span className="max-sm:hidden">{tr("Appeler")}</span>
+            {tr("Appeler")}
           </a>
         )}
-      </div>
-
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-muted-foreground text-xs">{tr("Vous a rapporté")}</p>
-          <p className={cn("text-lg font-bold whitespace-nowrap", t.text)}>
-            {formatPrice(client.spent)}
-          </p>
-        </div>
+        {client.city && (
+          <span className="text-muted-foreground inline-flex items-center gap-1 text-sm">
+            <MapPin className="size-3.5" />
+            {client.city}
+          </span>
+        )}
         {client.openFeedback > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-amber-950">
             <AlertTriangle className="size-3.5" />
@@ -172,7 +276,7 @@ function ClientCard({
         )}
       </div>
 
-      <div className="space-y-2 border-t pt-3">
+      <div className="space-y-2">
         <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
           {tr("Ses commandes")}
         </p>
@@ -204,6 +308,9 @@ function ClientOrder({ order, role }: { order: OrderListItem; role: ProRole }) {
 
   return (
     <div className="bg-muted/30 space-y-2 rounded-xl p-2">
+      {/* Le déclencheur est un <button> en flex-1 : sans parent flex il prend
+          la largeur de son contenu et déborde sur mobile. */}
+      <div className="flex min-w-0">
       <OrderDetailSheet order={order}>
         <div className="bg-muted size-11 shrink-0 overflow-hidden rounded-lg">
           {order.fabric?.image_url && (
@@ -219,17 +326,24 @@ function ClientOrder({ order, role }: { order: OrderListItem; role: ProRole }) {
               {formatReceivedAt(order.created_at, locale)}
             </span>
           </div>
+          <p className="text-muted-foreground mt-0.5 truncate font-mono text-[11px]">
+            {order.order_number}
+          </p>
         </div>
-        <div className="shrink-0 text-right">
-          {order.payment_status === "paid" && (
-            <p className="text-sm font-semibold whitespace-nowrap">
-              {formatPrice(amountFor(role, order))}
-            </p>
-          )}
-          <p className="text-muted-foreground font-mono text-[11px]">{order.order_number}</p>
-        </div>
+        {order.payment_status === "paid" && (
+          <p
+            aria-label={formatPrice(amountFor(role, order))}
+            className="shrink-0 text-sm font-semibold whitespace-nowrap tabular-nums"
+          >
+            <span aria-hidden>
+              {amountFor(role, order).toLocaleString("fr-FR")}
+              <span className="ml-0.5 text-[0.6em] font-normal">FCFA</span>
+            </span>
+          </p>
+        )}
         <ChevronRight className="text-muted-foreground size-4 shrink-0" />
       </OrderDetailSheet>
+      </div>
 
       <AfterSaleProActions order={order} role={role} />
 

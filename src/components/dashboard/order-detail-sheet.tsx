@@ -175,6 +175,26 @@ export function OrderDetailSheet({
             </Section>
           )}
 
+          {/* Broderie « Je choisis » : la photo que le client a jointe. */}
+          {order.embroidery_photo_url && (
+            <Section title="Broderie voulue">
+              <a
+                href={order.embroidery_photo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-40"
+              >
+                {/* Lien signé Supabase, valable 1 h : pas d'optimisation Next. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={order.embroidery_photo_url}
+                  alt={t("Broderie voulue")}
+                  className="aspect-square w-full rounded-lg border object-cover"
+                />
+              </a>
+            </Section>
+          )}
+
           <Section title="Paiement">
             {order.is_quote && order.payment_status === "pending" && (
               <p className="text-muted-foreground text-sm">
@@ -227,7 +247,7 @@ function FabricSection({ order }: { order: OrderListItem }) {
     return (
       <Section title="Tissu">
         <p className="text-muted-foreground text-sm">
-          <T>Le client apporte son propre tissu.</T>
+          <T>Le client vous envoie son propre tissu. Dites-lui combien de mètres il faut dans votre devis.</T>
         </p>
       </Section>
     );

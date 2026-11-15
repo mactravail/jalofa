@@ -25,18 +25,21 @@ export default async function AdminPayoutsPage() {
           value={formatPrice(totals.net)}
           hint="Net dû, commissions déduites"
           accent
+          tone="emerald"
         />
         <StatCard
           icon={Wallet}
           label="Commissions JALOFA"
           value={formatPrice(totals.commission)}
           hint="Sur les ventes des pros au plan Gratuit"
+          tone="teal"
         />
         <StatCard
           icon={Clock}
           label="En attente d'encaissement"
           value={formatPrice(totals.pending)}
           hint="Sera dû une fois la commande réglée"
+          tone="amber"
         />
       </div>
 

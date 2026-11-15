@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { VisibilityPanel } from "@/components/dashboard/visibility-panel";
 import Link from "@/components/i18n/link";
 import { ExternalLink } from "lucide-react";
 
 import { AtelierForm } from "@/components/dashboard/atelier-form";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { TailorProfileForm } from "@/components/dashboard/tailor-profile-form";
+import { ShippingFeesForm } from "@/components/dashboard/shipping-fees-form";
 import { getCurrentTailor, getMyAtelier } from "@/lib/data";
 import type { Tailor } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -46,6 +48,7 @@ export default async function TailorProfilePage() {
       title="Ma page publique"
       subtitle="La page que les clients voient avant de commander."
     >
+      <VisibilityPanel />
       {tailor.id && (
         <Link
           href={`/tailleurs/${tailor.id}`}
@@ -57,6 +60,13 @@ export default async function TailorProfilePage() {
       )}
       <TailorProfileForm tailor={tailor} />
       <AtelierForm atelier={atelier} />
+      <div className="mt-6">
+        <ShippingFeesForm
+          role="tailor"
+          economy={tailor.ship_fee_economy ?? null}
+          express={tailor.ship_fee_express ?? null}
+        />
+      </div>
     </DashboardPage>
   );
 }

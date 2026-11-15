@@ -16,6 +16,7 @@ import {
   subscriptionMrr,
   sumPayouts,
 } from "@/lib/payouts";
+import { withCancellations } from "@/lib/order-cancellations";
 import { isTerminal } from "@/lib/pipeline";
 import { FABRICS, MODELS, TAILORS } from "@/lib/fixtures";
 import {
@@ -147,20 +148,126 @@ export async function getFabricsAwaitingReceipt(): Promise<
   return orders.map((order) => ({ order, shippedAt: shippedAt.get(order.id) ?? null }));
 }
 
-/** Ce que JALOFA doit rendre aux clients : annulations et tissus retournés. */
-export async function getRefundsDue(): Promise<
-  { order: OrderListItem; amount: number; reason: string }[]
+/**
+ * Le tailleur a dit « J'ai reçu le tissu » sans que le vendeur ait déclaré
+ * l'envoi : JALOFA appelle le vendeur, et ne le paie qu'après confirmation.
+ * Les envois démentis restent listés, l'argent du tissu étant bloqué.
+ */
+export async function getVendorShipmentChecks(): Promise<
+  { order: OrderListItem; vendorPhone: string | null }[]
 > {
-  return (await getAllOrders()).flatMap((order) => {
+  const orders = (await getAllOrders()).filter(
+    (o) => o.fabric_vendor_check === "pending" || o.fabric_vendor_check === "denied",
+  );
+  const supabase = await adminDb();
+  if (!supabase || orders.length === 0) return orders.map((order) => ({ order, vendorPhone: null }));
+
+  const ids = [...new Set(orders.map((o) => o.vendor_id).filter((id): id is string => !!id))];
+  const { data } = await supabase.from("profiles").select("id, phone").in("id", ids);
+  const phones = new Map(
+    ((data ?? []) as { id: string; phone: string | null }[]).map((p) => [p.id, p.phone]),
+  );
+  return orders.map((order) => ({
+    order,
+    vendorPhone: order.vendor_id ? (phones.get(order.vendor_id) ?? null) : null,
+  }));
+}
+
+/** Ce que JALOFA doit rendre aux clients : annulations et tissus retournés. */
+/**
+ * Ce qu'il reste à rembourser, commande par commande, d'après le registre :
+ * la décision d'annulation (35 % de couture, trajets, retour déjà retenus),
+ * sinon tout le payé (refus, annulation d'avant le workflow), sinon le tissu
+ * rendu. Moins ce qui a déjà été remboursé (`order_ledger`, type `refund`).
+ */
+export async function getRefundsDue(): Promise<
+  { order: OrderListItem; amount: number; reason: string; kept: number }[]
+> {
+  const [orders, ledger] = await Promise.all([getAllOrders(), getOrderLedger()]);
+  const refunded = new Map<string, number>();
+  for (const e of ledger) {
+    if (e.entry_type === "refund") refunded.set(e.order_id, (refunded.get(e.order_id) ?? 0) + e.amount);
+  }
+
+  return orders.flatMap((order) => {
     if (order.payment_status !== "paid") return [];
+    const paid = Number(order.amount_paid ?? order.total_amount);
+    const decision = order.cancellation?.status === "accepted" ? order.cancellation : null;
+    let due = 0;
+    let reason = "";
     if (order.status === "cancelled") {
-      return [{ order, amount: order.total_amount, reason: "Commande annulée" }];
+      due = decision?.refund_amount ?? paid;
+      reason = decision ? "Annulation acceptée par JALOFA" : "Commande annulée";
+    } else if (order.fabric_return?.status === "received") {
+      due = order.fabric_price;
+      reason = "Tissu retourné";
     }
-    if (order.fabric_return?.status === "received") {
-      return [{ order, amount: order.fabric_price, reason: "Tissu retourné" }];
-    }
-    return [];
+    const left = Math.round(due - (refunded.get(order.id) ?? 0));
+    return left > 0 ? [{ order, amount: left, reason, kept: Math.max(0, Math.round(paid - due)) }] : [];
   });
+}
+
+export type LedgerEntry = {
+  order_id: string;
+  entry_type: string;
+  party: string;
+  party_id: string | null;
+  amount: number;
+  created_at: string;
+  external_ref: string | null;
+};
+
+/** Le registre financier de toutes les commandes (vide tant que la migration manque). */
+export const getOrderLedger = cache(async (): Promise<LedgerEntry[]> => {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await adminDb();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("order_ledger" as never)
+    .select("order_id, entry_type, party, party_id, amount, created_at, external_ref")
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return ((data ?? []) as unknown as LedgerEntry[]).map((e) => ({ ...e, amount: Number(e.amount) }));
+});
+
+export type CancellationRequestRow = {
+  id: string;
+  order_id: string;
+  status: "pending" | "accepted" | "rejected";
+  stage: string;
+  reason: string | null;
+  requested_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  refund_amount: number | null;
+  return_fee: number | null;
+  order: OrderListItem | null;
+};
+
+/** Les demandes d'annulation : en cours d'abord, puis les 50 dernières décidées. */
+export async function getCancellationRequests(): Promise<CancellationRequestRow[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await adminDb();
+  if (!supabase) return [];
+  const [{ data, error }, orders] = await Promise.all([
+    supabase
+      .from("order_cancellations" as never)
+      .select("id, order_id, status, stage, reason, requested_at, decided_at, decision_reason, refund_amount, return_fee")
+      .order("requested_at", { ascending: false })
+      .limit(200),
+    getAllOrders(),
+  ]);
+  if (error) return [];
+  const byId = new Map(orders.map((o) => [o.id, o]));
+  const rows = ((data ?? []) as unknown as Omit<CancellationRequestRow, "order">[]).map((r) => ({
+    ...r,
+    refund_amount: r.refund_amount == null ? null : Number(r.refund_amount),
+    return_fee: r.return_fee == null ? null : Number(r.return_fee),
+    order: byId.get(r.order_id) ?? null,
+  }));
+  const pending = rows.filter((r) => r.status === "pending");
+  const decided = rows.filter((r) => r.status !== "pending").slice(0, 50);
+  return [...pending, ...decided];
 }
 
 export const getAllOrders = cache(async (): Promise<OrderListItem[]> => {
@@ -171,7 +278,8 @@ export const getAllOrders = cache(async (): Promise<OrderListItem[]> => {
     .from("orders")
     .select(ORDER_SELECT)
     .order("created_at", { ascending: false });
-  return ((data as unknown as OrderListItem[]) ?? []).map(withPrivateContact);
+  const orders = ((data as unknown as OrderListItem[]) ?? []).map(withPrivateContact);
+  return withCancellations(supabase as unknown as Parameters<typeof withCancellations>[0], orders);
 });
 
 export const getAllUsers = cache(async (): Promise<Profile[]> => {
@@ -548,3 +656,73 @@ export async function getSatisfactionRows(): Promise<SatisfactionRow[]> {
   if (error) return [];
   return (data as unknown as SatisfactionRow[]) ?? [];
 }
+
+export type CertificationRequestRow = {
+  id: string;
+  pro_id: string;
+  kind: "tailor" | "vendor";
+  legal_name: string;
+  phone: string;
+  address: string;
+  company_name: string;
+  ninea: string | null;
+  status: "pending" | "approved" | "rejected";
+  admin_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  /** Liens signés (1 h) vers les pièces du bucket privé `certification-docs`. */
+  id_card_url: string | null;
+  logo_url: string | null;
+  trade_register_url: string | null;
+};
+
+/**
+ * Toutes les demandes de certification, les plus récentes d'abord, avec des liens
+ * signés vers les pièces (carte d'identité, logo, registre de commerce). Vide tant
+ * que la migration 20260830000001 n'est pas appliquée.
+ */
+export const getAllCertificationRequests = cache(
+  async (): Promise<CertificationRequestRow[]> => {
+    if (!isSupabaseConfigured()) return [];
+    const supabase = await adminDb();
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("certification_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error || !data?.length) return [];
+    type Raw = Omit<CertificationRequestRow, "id_card_url" | "logo_url" | "trade_register_url"> & {
+      id_card_path: string;
+      logo_path: string | null;
+      trade_register_path: string | null;
+    };
+    const rows = data as unknown as Raw[];
+    const paths = rows.flatMap((r) =>
+      [r.id_card_path, r.logo_path, r.trade_register_path].filter((p): p is string => !!p),
+    );
+    const { data: signed } = await supabase.storage
+      .from("certification-docs")
+      .createSignedUrls(paths, 3600);
+    const urlByPath = new Map(
+      (signed ?? []).flatMap((s) => (s.path && s.signedUrl ? [[s.path, s.signedUrl]] : [])),
+    );
+    return rows.map(({ id_card_path, logo_path, trade_register_path, ...r }) => ({
+      ...r,
+      id_card_url: urlByPath.get(id_card_path) ?? null,
+      logo_url: logo_path ? (urlByPath.get(logo_path) ?? null) : null,
+      trade_register_url: trade_register_path ? (urlByPath.get(trade_register_path) ?? null) : null,
+    }));
+  },
+);
+
+/** Le nombre de demandes de certification en attente (pastille du menu admin). */
+export const getPendingCertificationCount = cache(async (): Promise<number> => {
+  if (!isSupabaseConfigured()) return 0;
+  const supabase = await adminDb();
+  if (!supabase) return 0;
+  const { count, error } = await supabase
+    .from("certification_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  return error ? 0 : (count ?? 0);
+});

@@ -121,7 +121,6 @@ export async function saveTailorProfile(
       base_price: price(formData.get("base_price")),
       avg_delivery_days: avgDays(formData.get("avg_delivery_days")),
       cover_url,
-      is_active: formData.get("is_active") === "on",
     })
     .eq("id", user.id);
   if (error) {

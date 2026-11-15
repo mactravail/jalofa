@@ -2,7 +2,14 @@ import type { Metadata } from "next";
 
 import { ConfiguratorProvider } from "@/components/order/configurator-context";
 import { ConfiguratorShell } from "@/components/order/configurator-shell";
-import { getFabrics, getModels, getStyles, getTailors } from "@/lib/data";
+import {
+  getFabrics,
+  getModels,
+  getStyles,
+  getTailors,
+  getUnapprovedSellerIds,
+  sellableFabrics,
+} from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
@@ -38,13 +45,17 @@ export default async function ConfiguratorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [models, fabrics, tailors, styles, contact] = await Promise.all([
+  const [models, allFabrics, allTailors, styles, contact, unapproved] = await Promise.all([
     getModels(),
     getFabrics(),
     getTailors(),
     getStyles(),
     contactMode(),
+    getUnapprovedSellerIds(),
   ]);
+  // Anti-arnaque : un pro pas encore validé par JALOFA ne se choisit pas ici.
+  const fabrics = sellableFabrics(allFabrics, unapproved);
+  const tailors = allTailors.filter((t) => !unapproved.has(t.id));
 
   // Immersive, full-viewport surface — a fixed overlay that always covers the
   // shared site header/footer (MainChrome also strips them after hydration), so

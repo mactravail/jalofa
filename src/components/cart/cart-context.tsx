@@ -47,6 +47,10 @@ export type CartItem = {
   styleRefs: StyleRef[];
   fabricId: string | null;
   fabricMeters: number | null;
+  /** Couleur du tissu choisie par le client (tissu seul). */
+  fabricColor?: string | null;
+  /** Couleur du prêt-à-porter choisie — son prix est revérifié à la caisse. */
+  readyColor?: string | null;
   tailorId: string | null;
   measurement: CartMeasurement | null;
   notes: string | null;

@@ -5,6 +5,7 @@ import { ArrowLeft, Star } from "lucide-react";
 import {
   SatisfactionPanel,
   CancelOrderPanel,
+  CancellationStatusPanel,
   FabricReturnPanel,
 } from "@/components/order/after-sale-panels";
 import { ConfirmFabricReceived } from "@/components/order/confirm-fabric-received";
@@ -21,14 +22,13 @@ import {
   PAYMENT_STATUS_LABELS,
   formatPrice,
 } from "@/lib/constants";
-import { getFabrics, getTailors } from "@/lib/data";
+import { getFabrics, getTailors, getUnapprovedSellerIds, sellableFabrics } from "@/lib/data";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import {
 
   canCancelForLateness,
   canCancelOrder,
   canReturnFabric,
-  cancelDeadline,
   formatDeadline,
   promisedReadyAt,
   returnDeadline,
@@ -38,12 +38,16 @@ import {
   getOrderDetail,
   getOrderReviewState,
   getOrderSatisfaction,
+  getOwnFabricDropAddress,
 } from "@/lib/orders-data";
+import { OwnFabricPanel } from "@/components/order/own-fabric-panel";
 import { TailorReviewForm } from "@/components/catalog/tailor-review-form";
 import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
 import { InTransitPanel, PayoutDelayNotice } from "@/components/order/delivery-panels";
 import { JalofaWhatsApp } from "@/components/order/jalofa-whatsapp";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { quoteLines } from "@/lib/delivery-fees";
+import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import { getLocale } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
@@ -62,8 +66,9 @@ export default async function OrderTrackingPage({
   // Une commande refusée peut repartir chez un autre tailleur : on charge les
   // ateliers ouverts (sauf celui qui a refusé). Seul cas où le client rechoisit.
   const canReassign = order?.status === "rejected";
+  const unapproved = await getUnapprovedSellerIds();
   const otherTailors = canReassign
-    ? (await getTailors()).filter((t) => t.id !== order?.tailor_id)
+    ? (await getTailors()).filter((t) => t.id !== order?.tailor_id && !unapproved.has(t.id))
     : [];
 
   // Tant que rien n'est payé, le client peut changer sa demande et redemander un
@@ -72,7 +77,7 @@ export default async function OrderTrackingPage({
     order?.is_quote && order.status === "received" && order.payment_status === "pending";
   const revisableFabrics =
     canRevise && order?.type !== "own_fabric"
-      ? (await getFabrics()).filter(
+      ? sellableFabrics(await getFabrics(), unapproved).filter(
           (f) => isFabricAvailable(f) && f.vendor_id,
         )
       : [];
@@ -92,14 +97,33 @@ export default async function OrderTrackingPage({
     order.status === "delivered" ? await getOrderSatisfaction(order.id) : null;
   const reviewed =
     order.status === "delivered" ? await getOrderReviewState(order.id) : null;
-  const cancelEnd = cancelDeadline(order, order.history);
+
+  // Devis prêt : l'aller du tissu au tarif du vendeur, pour chaque option (§3).
+  const quoteFabricFees =
+    canRevise && order.tailoring_price > 0
+      ? await (async () => {
+          const [q] = await quoteLines(await createClient(), [
+            { type: order.type, fabric_id: order.fabric_id, tailor_id: order.tailor_id },
+          ]);
+          return { economy: q.economy?.fabric ?? 0, express: q.express ? q.express.fabric : null };
+        })()
+      : undefined;
+
   // Plus d'une semaine après la date promise : annulation remboursée.
   const promisedAt = promisedReadyAt(order, order.history);
-  const lateCancel =
-    !canCancelOrder(order, order.history) && canCancelForLateness(order, order.history);
+  const lateCancel = canCancelForLateness(order, order.history);
   const returnEnd = returnDeadline(order, order.history);
   const returnAddress =
     order.fabric_return?.status === "requested" ? await getFabricReturnAddress(order) : null;
+
+  // « J'envoie mon tissu » : tant que la couture n'est pas finie, on rappelle où
+  // l'envoyer (l'adresse de l'atelier n'apparaît qu'après paiement).
+  const showOwnFabric =
+    order.type === "own_fabric" &&
+    !["cancelled", "rejected", "shipped", "delivered"].includes(order.status) &&
+    order.payment_status !== "refunded";
+  const ownFabricAtelier =
+    showOwnFabric && !order.fabric_received_at ? await getOwnFabricDropAddress(order) : null;
 
   return (
     <div className="space-y-6">
@@ -147,6 +171,7 @@ export default async function OrderTrackingPage({
           hasAddress={Boolean(order.delivery_address && order.delivery_city)}
           readyDays={order.quote_ready_days}
           note={order.quote_note}
+          fabricFees={quoteFabricFees}
         />
       )}
 
@@ -167,14 +192,32 @@ export default async function OrderTrackingPage({
         />
       )}
 
+      {showOwnFabric && (
+        <OwnFabricPanel
+          paid={order.payment_status === "paid"}
+          received={Boolean(order.fabric_received_at)}
+          tailorName={order.tailor?.shop_name ?? null}
+          atelier={ownFabricAtelier}
+        />
+      )}
+
       {order.type === "fabric_only" && order.status === "fabric_shipped" && (
         <ConfirmFabricReceived orderId={order.id} />
       )}
 
-      {(canCancelOrder(order, order.history) || lateCancel) && (
+      {order.cancellation && (
+        <CancellationStatusPanel
+          status={order.cancellation.status}
+          refundAmount={order.cancellation.refund_amount}
+          decisionReason={order.cancellation.decision_reason}
+          refunded={order.refund_status === "refunded"}
+        />
+      )}
+
+      {canCancelOrder(order, order.history) && (
         <CancelOrderPanel
           orderId={order.id}
-          paid={order.payment_status === "paid"}
+          paid={order.payment_status === "paid" && order.status !== "rejected"}
           lateSince={
             lateCancel && promisedAt !== null
               ? new Date(promisedAt).toLocaleDateString(locale, {
@@ -183,9 +226,6 @@ export default async function OrderTrackingPage({
                   timeZone: "Africa/Dakar",
                 })
               : null
-          }
-          deadlineLabel={
-            order.status !== "rejected" && cancelEnd !== null ? formatDeadline(cancelEnd, locale) : null
           }
         />
       )}

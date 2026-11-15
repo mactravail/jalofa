@@ -76,3 +76,40 @@ export function buildGenericAsIsPreset({
     notesSpec,
   };
 }
+
+/**
+ * « Tel quel » = prêt-à-porter d'un tailleur : le modèle déjà cousu, dans une
+ * des couleurs qu'il a déclarées. Aucun tissu à acheter ni à expédier : le prix
+ * est celui du modèle (le même que recalcule la caisse côté serveur). La
+ * couleur choisie est ajoutée au moment de l'ajout au panier.
+ */
+export function buildReadyToWearPreset({
+  model,
+  photos,
+  tailor,
+}: {
+  model: GarmentModel;
+  photos: string[];
+  tailor: Pick<Tailor, "id" | "shop_name" | "base_price" | "free_delivery" | "free_delivery_zone">;
+}): AsIsPreset {
+  const tailoringPrice = tailoringPriceFor(tailor, model);
+  return {
+    type: "full",
+    modelId: model.id,
+    modelName: model.name,
+    image: model.image_url ?? photos[0] ?? null,
+    styleDetails: {},
+    fabricId: null,
+    fabricMeters: null,
+    tailorId: tailor.id,
+    tailorName: tailor.shop_name ?? null,
+    freeDelivery: (model.delivery_zone ?? "none") !== "none",
+    freeDeliveryZone: model.delivery_zone ?? "none",
+    fabricPrice: 0,
+    tailoringPrice,
+    total: tailoringPrice,
+    personalisation: [{ group: "Prêt-à-porter", option: "Modèle présenté" }],
+    notesSpec: `${model.name} — PRÊT-À-PORTER (pris tel quel, déjà cousu).`,
+    subtitle: "Prêt-à-porter · à votre taille",
+  };
+}

@@ -1,16 +1,14 @@
 /**
  * Score de confiance d'un pro (tailleur / vendeur) — la brique « confiance » de
  * JALOFA. Un client doit pouvoir juger un atelier d'un coup d'œil, avant même de
- * commander. Le score, sur 100, agrège des signaux publics et vérifiables :
+ * commander. Le score, sur 100 :
  *
- *   ⭐ Avis clients            — note moyenne pondérée par le nombre d'avis
- *   📦 Commandes réalisées     — livraisons menées à terme
- *   ⏱ Respect des délais       — part des commandes livrées dans le délai annoncé
- *   ✅ Taux d'acceptation       — commandes acceptées vs refusées
- *   🧵 Photos vérifiées         — réalisations validées par l'administration
+ *   🛡 Certifié par JALOFA     — 60 points : JALOFA le juge fiable
+ *   ⭐ Avis clients            — jusqu'à ±40 points selon la note et le nombre d'avis
  *
- * En plus du chiffre, deux distinctions : 🏅 « Membre Fondateur » (les tout
- * premiers pros) et ✅ « Vérifié » (certifié par l'administration).
+ * Commandes livrées, délais, acceptation et photos vérifiées sont affichés à
+ * titre d'information, sans compter dans le score. En plus du chiffre, deux
+ * distinctions : 🏅 « Membre Fondateur » et ✅ « Certifié ».
  *
  * Le calcul est PUR et se nourrit de champs dénormalisés sur la fiche du pro
  * (compteurs tenus à jour par un trigger côté base), donc il reste bon marché à
@@ -35,6 +33,7 @@ export type TrustPro = Pick<
 >;
 
 export type TrustComponentKey =
+  | "certified"
   | "reviews"
   | "orders"
   | "on_time"
@@ -49,8 +48,11 @@ export type TrustComponent = {
   value: number | null;
   /** Formulation lisible (« 4,8/5 », « 12 livrées », « Bientôt »). */
   display: string;
-  /** Poids du critère dans le score global. */
-  weight: number;
+  /**
+   * `true` = le critère fait le score (certification, avis). `false` = simple
+   * information sur l'activité du pro, affichée sans compter.
+   */
+  scored: boolean;
 };
 
 export type TrustTier = {
@@ -59,27 +61,24 @@ export type TrustTier = {
 };
 
 export type TrustScore = {
-  /** Sur 100, ou `null` pour un pro sans aucun signal encore (« Nouveau »). */
+  /** Sur 100, ou `null` pour un pro ni certifié ni noté (« Nouveau »). */
   score: number | null;
   tier: TrustTier;
   components: TrustComponent[];
   badges: { founding: boolean; certified: boolean };
 };
 
-// Pondérations des critères — leur somme fait 1. Un critère sans données est
-// retiré et le score est renormalisé sur les critères disponibles, pour ne pas
-// pénaliser un pro qui débute (ex. aucune commande livrée pour l'instant).
-const WEIGHTS: Record<TrustComponentKey, number> = {
-  reviews: 0.4,
-  orders: 0.2,
-  on_time: 0.15,
-  acceptance: 0.15,
-  photos: 0.1,
-};
-
-/** À partir de combien de livraisons / photos le critère est-il « au max ». */
-const ORDERS_FULL = 10;
-const PHOTOS_FULL = 3;
+// La fiabilité selon JALOFA (2026-11-14) : CERTIFIER un tailleur, c'est dire
+// « nous le jugeons fiable » — la certification pèse donc l'essentiel du score.
+// Les AVIS clients ajoutent (ou retirent) de la fiabilité par-dessus.
+/** Points donnés par la certification JALOFA. */
+const CERTIFIED_POINTS = 60;
+/** Ce que les avis peuvent ajouter au maximum (et retirer, s'ils sont mauvais). */
+const REVIEWS_POINTS = 40;
+/** À partir de combien d'avis les avis comptent pleinement. */
+const REVIEWS_FULL = 10;
+/** Note neutre : au-dessus les avis ajoutent, en dessous ils retirent. */
+const NEUTRAL_RATING = 2.5;
 
 function tierFor(score: number | null): TrustTier {
   if (score === null) return { label: "Nouveau", tone: "new" };
@@ -90,6 +89,7 @@ function tierFor(score: number | null): TrustTier {
 }
 
 export function computeTrustScore(pro: Partial<TrustPro>): TrustScore {
+  const certified = Boolean(pro.is_certified);
   const rating = pro.rating ?? 0;
   const ratingCount = pro.rating_count ?? 0;
   const completed = pro.completed_orders ?? 0;
@@ -100,13 +100,37 @@ export function computeTrustScore(pro: Partial<TrustPro>): TrustScore {
 
   const decided = accepted + rejected;
 
+  // Avis : leur poids grandit avec leur nombre (1 avis ne vaut pas 10), leur
+  // sens suit la note (5/5 ajoute tout, 1/5 retire).
+  const confidence = Math.min(1, ratingCount / REVIEWS_FULL);
+  const quality = Math.max(
+    -1,
+    Math.min(1, (rating - NEUTRAL_RATING) / (5 - NEUTRAL_RATING)),
+  );
+  const reviewPoints = ratingCount > 0 ? REVIEWS_POINTS * confidence * quality : 0;
+
+  const score =
+    !certified && ratingCount === 0
+      ? null
+      : Math.round(
+          Math.max(0, Math.min(100, (certified ? CERTIFIED_POINTS : 0) + reviewPoints)),
+        );
+
   const components: TrustComponent[] = [
+    {
+      key: "certified",
+      emoji: "🛡️",
+      label: "Certifié par JALOFA",
+      scored: true,
+      value: certified ? 1 : 0,
+      display: certified ? "Oui, jugé fiable par JALOFA" : "Pas encore certifié",
+    },
     {
       key: "reviews",
       emoji: "⭐",
       label: "Avis clients",
-      weight: WEIGHTS.reviews,
-      value: ratingCount > 0 ? rating / 5 : null,
+      scored: true,
+      value: ratingCount > 0 ? Math.max(0, reviewPoints) / REVIEWS_POINTS : null,
       display:
         ratingCount > 0
           ? `${rating.toFixed(1)}/5 · ${ratingCount} avis`
@@ -116,8 +140,8 @@ export function computeTrustScore(pro: Partial<TrustPro>): TrustScore {
       key: "orders",
       emoji: "📦",
       label: "Commandes réalisées",
-      weight: WEIGHTS.orders,
-      value: completed > 0 ? Math.min(1, completed / ORDERS_FULL) : null,
+      scored: false,
+      value: null,
       display:
         completed > 0
           ? `${completed} commande${completed > 1 ? "s" : ""} livrée${completed > 1 ? "s" : ""}`
@@ -127,11 +151,8 @@ export function computeTrustScore(pro: Partial<TrustPro>): TrustScore {
       key: "on_time",
       emoji: "⏱",
       label: "Respect des délais",
-      weight: WEIGHTS.on_time,
-      // `on_time_orders` n'est suivi que pour la confection (tailleurs). À 0, on
-      // considère le critère « non renseigné » plutôt que « 0% » : un vendeur ne
-      // coud pas, et on ne pénalise pas un pro faute de données.
-      value: completed > 0 && onTime > 0 ? Math.min(1, onTime / completed) : null,
+      scored: false,
+      value: null,
       display:
         completed > 0 && onTime > 0
           ? `${Math.round((onTime / completed) * 100)}% dans les délais`
@@ -141,19 +162,17 @@ export function computeTrustScore(pro: Partial<TrustPro>): TrustScore {
       key: "acceptance",
       emoji: "✅",
       label: "Taux d'acceptation",
-      weight: WEIGHTS.acceptance,
-      value: decided > 0 ? accepted / decided : null,
+      scored: false,
+      value: null,
       display:
-        decided > 0
-          ? `${Math.round((accepted / decided) * 100)}% acceptées`
-          : "Bientôt",
+        decided > 0 ? `${Math.round((accepted / decided) * 100)}% acceptées` : "Bientôt",
     },
     {
       key: "photos",
       emoji: "🧵",
       label: "Photos vérifiées",
-      weight: WEIGHTS.photos,
-      value: photos > 0 ? Math.min(1, photos / PHOTOS_FULL) : null,
+      scored: false,
+      value: null,
       display:
         photos > 0
           ? `${photos} réalisation${photos > 1 ? "s" : ""} vérifiée${photos > 1 ? "s" : ""}`
@@ -161,24 +180,13 @@ export function computeTrustScore(pro: Partial<TrustPro>): TrustScore {
     },
   ];
 
-  const available = components.filter((c) => c.value !== null);
-  const totalWeight = available.reduce((sum, c) => sum + c.weight, 0);
-  const score =
-    totalWeight > 0
-      ? Math.round(
-          (available.reduce((sum, c) => sum + c.weight * (c.value as number), 0) /
-            totalWeight) *
-            100,
-        )
-      : null;
-
   return {
     score,
     tier: tierFor(score),
     components,
     badges: {
       founding: Boolean(pro.is_founding_member),
-      certified: Boolean(pro.is_certified),
+      certified,
     },
   };
 }

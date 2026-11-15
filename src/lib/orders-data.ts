@@ -3,6 +3,7 @@ import "server-only";
 import type { AlterationReason } from "@/lib/after-sale";
 import type { FreeDeliveryZone } from "@/lib/delivery";
 import type { ProRole } from "@/lib/dashboard-nav";
+import { withCancellations } from "@/lib/order-cancellations";
 import { DEMO_TAILOR_ORDERS, DEMO_VENDOR_ORDERS } from "@/lib/orders-demo";
 import { contactRevealed, deliversToClient } from "@/lib/pipeline";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -66,6 +67,9 @@ export type OrderRelations = {
   /** Photo de silhouette jointe à une taille standard : lien signé (1 h), pour
    *  le tailleur d'une commande payée seulement. */
   body_photo_url?: string | null;
+  /** Broderie « Je choisis » : la photo de la broderie voulue, lien signé (1 h).
+   *  Visible dès le devis — c'est une broderie, pas une personne. */
+  embroidery_photo_url?: string | null;
   /** Le retour du tissu, si le client a demandé à le rendre. */
   fabric_return?: { status: "requested" | "received" } | null;
   /** Les retouches demandées sur ce vêtement. */
@@ -123,7 +127,7 @@ export async function getMyOrders(): Promise<OrderListItem[]> {
     .eq("client_id", user.id)
     .order("created_at", { ascending: false });
 
-  return (data as unknown as OrderListItem[]) ?? [];
+  return withCancellations(supabase, (data as unknown as OrderListItem[]) ?? []);
 }
 
 /**
@@ -224,6 +228,32 @@ async function withSatisfaction(
   });
 }
 
+/** Joint la photo de broderie voulue par le client (lien signé), dès le devis. */
+async function withEmbroideryPhotos(orders: OrderListItem[]): Promise<OrderListItem[]> {
+  // `embroidery_photo_path` arrive avec le `*` du select (migration
+  // 20260825000001) ; absente, aucune commande n'a de photo.
+  const paths = orders.flatMap((o) => (o.embroidery_photo_path ? [o.embroidery_photo_path] : []));
+  if (paths.length === 0) return orders;
+  try {
+    const admin = createAdminClient();
+    const { data: signed } = await admin.storage
+      .from("embroidery-photos")
+      .createSignedUrls(paths, 3600);
+    const urlByPath = new Map(
+      (signed ?? []).flatMap((s) => (s.path && s.signedUrl ? [[s.path, s.signedUrl]] : [])),
+    );
+    return orders.map((o) => ({
+      ...o,
+      embroidery_photo_url: o.embroidery_photo_path
+        ? (urlByPath.get(o.embroidery_photo_path) ?? null)
+        : null,
+    }));
+  } catch {
+    // Clé de service absente : la fiche s'affiche sans la photo.
+    return orders;
+  }
+}
+
 export async function getTailorOrders(): Promise<OrderListItem[]> {
   if (!isSupabaseConfigured()) return DEMO_TAILOR_ORDERS.map((o) => forPro("tailor", o));
   const supabase = await createClient();
@@ -236,10 +266,17 @@ export async function getTailorOrders(): Promise<OrderListItem[]> {
     .eq("tailor_id", user.id)
     .order("created_at", { ascending: false });
 
-  const orders = await withBodyPhotos(
-    await withSatisfaction(supabase, (data as unknown as OrderListItem[]) ?? []),
+  const orders = await withEmbroideryPhotos(
+    await withBodyPhotos(
+      await withSatisfaction(
+        supabase,
+        await withCancellations(supabase, (data as unknown as OrderListItem[]) ?? []),
+      ),
+    ),
   );
-  return orders.map((o) => forPro("tailor", o));
+  // Achat direct pas encore payé (Bictorys en cours) ou paiement échoué : rien
+  // à faire pour le tailleur. Un devis, lui, se chiffre avant tout paiement.
+  return orders.filter((o) => !unpaidPurchase(o)).map((o) => forPro("tailor", o));
 }
 
 export async function getVendorOrders(): Promise<OrderListItem[]> {
@@ -257,11 +294,16 @@ export async function getVendorOrders(): Promise<OrderListItem[]> {
   // Deux cas ne concernent pas le vendeur : le tissu du tailleur lui-même (rien
   // à envoyer, la commande vit dans l'espace tailleur) et le devis pas encore
   // payé (le tissu ne part qu'une fois le client ayant payé).
-  const orders = await withSatisfaction(supabase, (data as unknown as OrderListItem[]) ?? []);
+  const orders = await withSatisfaction(
+    supabase,
+    await withCancellations(supabase, (data as unknown as OrderListItem[]) ?? []),
+  );
   return orders
     .filter(
       (o) =>
-        o.tailor_id !== user.id && !(o.is_quote && o.payment_status === "pending"),
+        o.tailor_id !== user.id &&
+        !(o.is_quote && o.payment_status === "pending") &&
+        !unpaidPurchase(o),
     )
     .map((o) => forPro("vendor", o));
 }
@@ -288,6 +330,31 @@ export async function getFabricReturnAddress(
   }
 }
 
+/**
+ * « J'envoie mon tissu » : où le client envoie son tissu. L'adresse de l'atelier
+ * reste privée — lue côté serveur pour le seul client de cette commande, et
+ * seulement une fois la commande payée (comme pour le vendeur).
+ */
+export async function getOwnFabricDropAddress(
+  order: Pick<Order, "client_id" | "tailor_id" | "type" | "payment_status">,
+): Promise<{ address: string; phone: string } | null> {
+  if (order.type !== "own_fabric" || order.payment_status !== "paid" || !order.tailor_id) {
+    return null;
+  }
+  const user = await getAuthUser();
+  if (!user || user.id !== order.client_id) return null;
+  try {
+    const { data } = await createAdminClient()
+      .from("tailor_ateliers")
+      .select("address, phone")
+      .eq("tailor_id", order.tailor_id)
+      .maybeSingle();
+    return (data as { address: string; phone: string } | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
@@ -306,8 +373,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     .eq("order_id", id)
     .order("created_at", { ascending: true });
 
+  const [withCancellation] = await withCancellations(supabase, [
+    order as unknown as OrderDetail,
+  ]);
   return {
-    ...(order as unknown as OrderDetail),
+    ...withCancellation,
     history: (history as unknown as OrderStatusHistory[]) ?? [],
   };
 }
@@ -354,4 +424,9 @@ export async function getOrderSatisfaction(orderId: string): Promise<{
     issues: string[];
     comment: string | null;
   };
+}
+
+/** Achat direct dont le paiement n'est pas (ou plus) confirmé : invisible des pros. */
+function unpaidPurchase(o: { is_quote: boolean; payment_status: string }): boolean {
+  return o.payment_status === "failed" || (!o.is_quote && o.payment_status === "pending");
 }

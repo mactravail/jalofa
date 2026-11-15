@@ -63,7 +63,14 @@ export function TrustScoreBadge({
  * Le chiffre en grand, le palier, les distinctions (Fondateur / Vérifié), puis
  * le détail critère par critère avec une barre de progression.
  */
-export function TrustScorePanel({ pro }: { pro: Partial<TrustPro> }) {
+export function TrustScorePanel({
+  pro,
+  kind = "tailor",
+}: {
+  pro: Partial<TrustPro>;
+  /** Fiche d'un tailleur ou d'un vendeur de tissus : seul le texte change. */
+  kind?: "tailor" | "vendor";
+}) {
   const { score, tier, components, badges } = computeTrustScore(pro);
 
   return (
@@ -102,7 +109,7 @@ export function TrustScorePanel({ pro }: { pro: Partial<TrustPro> }) {
       </div>
 
       <dl className="mt-5 space-y-3">
-        {components.map((c) => {
+        {components.filter((c) => c.scored).map((c) => {
           const pct = c.value === null ? 0 : Math.round(c.value * 100);
           return (
             <div key={c.key}>
@@ -127,8 +134,24 @@ export function TrustScorePanel({ pro }: { pro: Partial<TrustPro> }) {
       </dl>
 
       <p className="text-muted-foreground mt-4 text-xs">
-        <T>{"Le score s'appuie sur les avis, les commandes réalisées, le respect des délais, le taux d'acceptation et les photos vérifiées."}</T>
+        <T>
+          {kind === "vendor"
+            ? "Certifié = JALOFA juge ce vendeur fiable. Chaque bon avis client ajoute de la fiabilité, un mauvais avis en retire."
+            : "Certifié = JALOFA juge ce tailleur fiable. Chaque bon avis client ajoute de la fiabilité, un mauvais avis en retire."}
+        </T>
       </p>
+
+      {/* L'activité du pro : bon à savoir, sans compter dans le score. */}
+      <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 border-t pt-4 text-sm sm:grid-cols-2">
+        {components.filter((c) => !c.scored).map((c) => (
+          <div key={c.key} className="flex items-baseline justify-between gap-3">
+            <dt className="text-muted-foreground">
+              <span aria-hidden>{c.emoji}</span> <T>{c.label}</T>
+            </dt>
+            <dd className="text-right font-medium"><T>{c.display}</T></dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

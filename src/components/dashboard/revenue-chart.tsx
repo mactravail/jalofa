@@ -63,6 +63,7 @@ export function RevenueChart({
   defaultGranularity = "day",
   className,
   accent = "var(--primary)",
+  colorful = false,
 }: {
   series: RevenueSeries;
   title: string;
@@ -72,6 +73,8 @@ export function RevenueChart({
   className?: string;
   /** Couleur de la courbe. Par défaut l'encre du site ; l'espace pro passe le vert de l'argent. */
   accent?: string;
+  /** Met la couleur partout : total, onglet actif, dernier point, dégradé plus franc (admin). */
+  colorful?: boolean;
 }) {
   const [gran, setGran] = useState<Granularity>(defaultGranularity);
   const tr = useT();
@@ -134,7 +137,10 @@ export function RevenueChart({
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-muted-foreground text-sm font-medium">{title}</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">
+            <p
+              className="mt-1 text-3xl font-bold tracking-tight"
+              style={colorful ? { color: accent } : undefined}
+            >
               {formatPrice(summary.total)}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
@@ -156,6 +162,11 @@ export function RevenueChart({
                   type="button"
                   role="tab"
                   aria-selected={activeTab}
+                  style={
+                    colorful && activeTab
+                      ? { backgroundColor: accent, color: "#fff" }
+                      : undefined
+                  }
                   onClick={() => {
                     setGran(t.id);
                     setActive(null);
@@ -193,7 +204,7 @@ export function RevenueChart({
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={accent} stopOpacity={0.24} />
+                <stop offset="0%" stopColor={accent} stopOpacity={colorful ? 0.45 : 0.24} />
                 <stop offset="100%" stopColor={accent} stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -231,10 +242,20 @@ export function RevenueChart({
                   d={linePath}
                   fill="none"
                   stroke={accent}
-                  strokeWidth={2}
+                  strokeWidth={colorful ? 2.5 : 2}
                   strokeLinejoin="round"
                   strokeLinecap="round"
                 />
+                {colorful && n > 0 && active == null && (
+                  <circle
+                    cx={xOf(n - 1)}
+                    cy={yOf(points[n - 1].revenue)}
+                    r={4.5}
+                    fill={accent}
+                    className="stroke-card"
+                    strokeWidth={2}
+                  />
+                )}
               </>
             )}
 

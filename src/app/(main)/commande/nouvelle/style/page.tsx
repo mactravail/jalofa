@@ -18,7 +18,16 @@ import { useState, type ComponentType } from "react";
 
 import { ModelCareTips } from "@/components/catalog/model-care-tips";
 import { BoubouDetailIcon } from "@/components/order/boubou-detail-icons";
-import { useConfigurator } from "@/components/order/configurator-context";
+import { DressMannequin, dressesOnMannequin } from "@/components/order/dress-mannequin";
+import { GarmentAvatar, hasGarmentAvatar } from "@/components/order/garment-avatar";
+import {
+  TROUSERS_FABRIC_KEY,
+  useConfigurator,
+  VEST_FABRIC_KEY,
+  wantsTwoFabrics,
+  wantsVestFabric,
+} from "@/components/order/configurator-context";
+import { FabricPairPicker } from "@/components/order/fabric-pair-picker";
 import {
   detailFamilyFor,
   GarmentDetailIcon,
@@ -27,7 +36,12 @@ import {
 import { isPlancheArt, PlancheArt, plancheArtIsTall } from "@/components/order/planche-art";
 import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
-import { normalizeStyleDetails, visibleStyleGroups } from "@/lib/style-options";
+import {
+  garmentStyleKey,
+  normalizeStyleDetails,
+  STYLE_BASE_REQUESTED,
+  visibleStyleGroups,
+} from "@/lib/style-options";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 
@@ -59,7 +73,8 @@ const OCCASION_ICONS: Record<string, ComponentType<{ className?: string }>> = {
 };
 
 export default function StyleStep() {
-  const { data, state, update, model, setPreviewPhoto } = useConfigurator();
+  const { data, state, update, model, fabric, setPreviewPhoto, dressedGroups, dressGroup } =
+    useConfigurator();
   const [occasionOpen, setOccasionOpen] = useState(false);
   const t = useT();
   const chosenOccasion = data.styles.find((s) => s.slug === state.styleSlug)?.name;
@@ -75,10 +90,33 @@ export default function StyleStep() {
   const author = model?.tailor_id
     ? (data.tailors.find((t) => t.id === model.tailor_id) ?? null)
     : null;
-  const isTailorModel = Boolean(model?.tailor_id);
+  const isTailorModelBase = Boolean(model?.tailor_id);
+
+  // Téléphone : la grande colonne du mannequin est masquée, on le montre ici,
+  // collé en haut pendant qu’on choisit.
+  const onMannequin = dressesOnMannequin(garmentStyleKey(model));
+  const onAvatar = !onMannequin && state.type !== "fabric_only" && hasGarmentAvatar(model);
+  const trousersFabric = wantsTwoFabrics(state.styleDetails)
+    ? (data.fabrics.find((f) => f.id === state.styleDetails[TROUSERS_FABRIC_KEY]) ?? null)
+    : null;
 
   return (
     <div className="space-y-8">
+      {onMannequin && (
+        <div className="bg-background/95 sticky top-0 z-10 -mx-4 -mt-2 flex h-[28svh] min-h-36 max-h-56 justify-center border-b py-2 backdrop-blur sm:hidden">
+          <DressMannequin details={state.styleDetails} dressed={dressedGroups} />
+        </div>
+      )}
+      {onAvatar && (
+        <div className="bg-background/95 sticky top-0 z-10 -mx-4 -mt-2 flex h-[28svh] min-h-36 max-h-56 justify-center border-b py-2 backdrop-blur sm:hidden">
+          <GarmentAvatar
+            model={model}
+            details={state.styleDetails}
+            fabricImage={state.type === "own_fabric" ? null : fabric?.image_url}
+            trousersFabricImage={trousersFabric?.image_url}
+          />
+        </div>
+      )}
       {author && (
         <section className="rounded-xl border p-3">
           <Link
@@ -171,6 +209,9 @@ export default function StyleStep() {
           la planche d'un tailleur, à laquelle on répond détail par détail. */}
       {groups.map((group) => {
         const chosen = group.options.find((o) => o.slug === state.styleDetails[group.slug]);
+        // Les photos publiées par le tailleur, à côté de nos planches dessinées
+        // quand son modèle reprend un vêtement du catalogue.
+        const isTailorModel = isTailorModelBase && group.options.some((o) => o.photo);
         return (
           <section key={group.slug}>
             <h3 className="mb-3 flex flex-wrap items-baseline gap-x-2">
@@ -197,6 +238,7 @@ export default function StyleStep() {
                           [group.slug]: opt.slug,
                         }),
                       });
+                      dressGroup(group.slug);
                       if (isTailorModel && opt.photo) setPreviewPhoto(opt.photo);
                     }}
                     aria-pressed={active}
@@ -300,13 +342,39 @@ export default function StyleStep() {
                 );
               })}
             </div>
+            {group.slug === "tissus" &&
+              wantsTwoFabrics(state.styleDetails) &&
+              state.type !== "own_fabric" && (
+                <FabricPairPicker
+                  fabrics={data.fabrics}
+                  jacketId={state.fabricId}
+                  trousersId={state.styleDetails[TROUSERS_FABRIC_KEY] ?? state.fabricId}
+                  onJacket={(id) => update({ fabricId: id })}
+                  onTrousers={(id) =>
+                    update({
+                      styleDetails: { ...state.styleDetails, [TROUSERS_FABRIC_KEY]: id },
+                    })
+                  }
+                  vestId={state.styleDetails[VEST_FABRIC_KEY] ?? state.fabricId}
+                  onVest={
+                    wantsVestFabric(model, state.styleDetails)
+                      ? (id) =>
+                          update({
+                            styleDetails: { ...state.styleDetails, [VEST_FABRIC_KEY]: id },
+                          })
+                      : undefined
+                  }
+                />
+              )}
           </section>
         );
       })}
 
-      {isTailorModel && groups.length === 0 && (
+      {isTailorModelBase && groups.length === 0 && (
         <p className="text-muted-foreground rounded-xl border p-3 text-sm">
-          {t("Ce modèle est cousu tel qu'il est présenté. Une envie particulière ? Ajoutez une photo ou écrivez au tailleur au récapitulatif.")}
+          {model?.style_base === STYLE_BASE_REQUESTED
+            ? t("JALOFA dessine en ce moment la personnalisation de ce modèle. En attendant, il est cousu tel qu'il est présenté : ajoutez une photo ou écrivez au tailleur au récapitulatif.")
+            : t("Ce modèle est cousu tel qu'il est présenté. Une envie particulière ? Ajoutez une photo ou écrivez au tailleur au récapitulatif.")}
         </p>
       )}
 

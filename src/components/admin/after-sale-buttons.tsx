@@ -1,5 +1,6 @@
 "use client";
 
+import { adminRefundViaBictorys, adminVerifyVendorShipment } from "@/lib/actions/order-workflow";
 import { useRouter } from "@/lib/i18n/navigation";
 import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
@@ -61,6 +62,37 @@ export function MarkRefundedButton({ orderId }: { orderId: string }) {
       label="Client remboursé"
       done="Remboursement enregistré."
       run={() => adminMarkRefunded(orderId)}
+    />
+  );
+}
+
+/** Après l'appel au vendeur : il a bien envoyé le tissu → on peut le payer. */
+export function VendorShipmentButtons({ orderId, denied }: { orderId: string; denied: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ActionButton
+        label="Oui, il l'a envoyé"
+        done="Envoi confirmé : l'argent du vendeur est libéré."
+        run={() => adminVerifyVendorShipment(orderId, true)}
+      />
+      {!denied && (
+        <ActionButton
+          label="Non, pas envoyé"
+          done="Envoi démenti : le vendeur ne sera pas payé pour ce tissu."
+          run={() => adminVerifyVendorShipment(orderId, false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Rembourse par Bictorys (transaction entière, une seule commande). */
+export function BictorysRefundButton({ orderId }: { orderId: string }) {
+  return (
+    <ActionButton
+      label="Rembourser via Bictorys"
+      done="Remboursement Bictorys demandé et enregistré."
+      run={() => adminRefundViaBictorys(orderId)}
     />
   );
 }

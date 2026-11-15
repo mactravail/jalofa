@@ -132,6 +132,16 @@ export default function config(phase: string): NextConfig {
   if (phase !== PHASE_DEVELOPMENT_SERVER) return nextConfig;
   return {
     ...nextConfig,
-    experimental: { ...nextConfig.experimental, workerThreads: true },
+    // Tunnel https (cloudflared) vers la machine : tester Bictorys de bout en
+    // bout (retour après paiement + webhook) depuis le serveur de dev.
+    allowedDevOrigins: ["*.trycloudflare.com"],
+    experimental: {
+      ...nextConfig.experimental,
+      workerThreads: true,
+      serverActions: {
+        ...nextConfig.experimental?.serverActions,
+        allowedOrigins: ["*.trycloudflare.com"],
+      },
+    },
   };
 }

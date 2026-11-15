@@ -19,6 +19,8 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { getAdminStats, getAllOrders, getAllUsers } from "@/lib/admin-data";
 import { getRevenueSeries } from "@/lib/revenue-data";
 import { formatPrice, formatTimeAgo } from "@/lib/constants";
+import { TONE, type Tone } from "@/lib/dashboard-tone";
+import { cn } from "@/lib/utils";
 
 export default async function AdminOverviewPage() {
   const [stats, orders, users, series] = await Promise.all([
@@ -44,32 +46,36 @@ export default async function AdminOverviewPage() {
           value={formatPrice(stats.gmv)}
           hint={`${stats.orders.delivered} commande${stats.orders.delivered > 1 ? "s" : ""} livrée${stats.orders.delivered > 1 ? "s" : ""}`}
           accent
+          tone="emerald"
         />
         <StatCard
           icon={Wallet}
           label="Revenus plateforme"
           value={formatPrice(stats.platform.total)}
           hint="Commissions + abonnements"
+          tone="emerald"
         />
         <StatCard
           icon={ShoppingBag}
           label="Commandes"
           value={String(stats.orders.total)}
           hint={`${stats.orders.pending} en attente · ${stats.orders.ongoing} en cours`}
+          tone="blue"
         />
         <StatCard
           icon={Users}
           label="Utilisateurs"
           value={String(stats.users.total)}
           hint={`${stats.users.clients} clients · ${pros} prestataires`}
+          tone="violet"
         />
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:mt-4 lg:grid-cols-4 sm:gap-4">
-        <MiniStat icon={Scissors} label="Tailleurs" value={stats.catalog.tailors} href="/admin/tailleurs" />
-        <MiniStat icon={Store} label="Vendeurs" value={stats.catalog.vendors} href="/admin/vendeurs" />
-        <MiniStat icon={Layers} label="Tissus" value={stats.catalog.fabrics} href="/admin/tissus" />
-        <MiniStat icon={Shirt} label="Modèles" value={stats.catalog.models} href="/admin/modeles" />
+        <MiniStat icon={Scissors} label="Tailleurs" value={stats.catalog.tailors} href="/admin/tailleurs" tone="sky" />
+        <MiniStat icon={Store} label="Vendeurs" value={stats.catalog.vendors} href="/admin/vendeurs" tone="fuchsia" />
+        <MiniStat icon={Layers} label="Tissus" value={stats.catalog.fabrics} href="/admin/tissus" tone="amber" />
+        <MiniStat icon={Shirt} label="Modèles" value={stats.catalog.models} href="/admin/modeles" tone="rose" />
       </div>
 
       <div className="mt-6">
@@ -78,6 +84,8 @@ export default async function AdminOverviewPage() {
           title="Volume d'affaires encaissé"
           subtitle="Le total payé par les clients, par jour, par semaine ou par mois."
           unit="commande"
+          accent="#10b981"
+          colorful
         />
       </div>
 
@@ -130,22 +138,25 @@ function MiniStat({
   label,
   value,
   href,
+  tone,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
   href: string;
+  tone: Tone;
 }) {
+  const t = TONE[tone];
   return (
     <Link
       href={href}
-      className="bg-card hover:border-primary/40 flex items-center gap-3 rounded-xl border p-4 transition-colors"
+      className={cn("bg-card flex items-center gap-3 rounded-xl border p-4 transition-shadow hover:shadow-md hover:ring-2", t.ring)}
     >
-      <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", t.soft)}>
         <Icon className="size-4" />
       </span>
       <div className="min-w-0">
-        <p className="text-lg font-bold leading-none">{value}</p>
+        <p className={cn("text-lg font-bold leading-none", t.text)}>{value}</p>
         <p className="text-muted-foreground mt-1 truncate text-xs">{label}</p>
       </div>
     </Link>

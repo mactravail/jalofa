@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   FABRICS,
   FABRIC_CATEGORIES,
@@ -11,9 +13,13 @@ import {
   VENDORS,
   VENDOR_REVIEWS,
 } from "@/lib/fixtures";
+import { belongsToCatalogModel, isCatalogModel } from "@/lib/catalog-link";
 import { isEuropeCountry, type ProductOrigin } from "@/lib/europe";
+import { effectiveBodyFits, type TailorBodyFits } from "@/lib/model-body-fit";
 import { isSupabaseConfigured } from "@/lib/queries";
+import { fabricUnitPrice, usagesForFilter } from "@/lib/fabric-specs";
 import { isRetiredModel } from "@/lib/retired-models";
+import { loadOneTailorBodyFits, loadTailorBodyFits } from "@/lib/tailor-body-fits";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type {
@@ -32,8 +38,13 @@ import type {
 export type FabricFilters = {
   category?: string;
   color?: string;
+  minPrice?: number;
   maxPrice?: number;
   q?: string;
+  /** Famille d'usage du filtre catalogue (cérémonie, quotidien…). */
+  usage?: string;
+  /** LIGHT | MEDIUM | HEAVY. */
+  weight?: string;
 };
 
 export type TailorFilters = {
@@ -103,6 +114,18 @@ async function hasEuropeColumns(): Promise<boolean> {
   return ok;
 }
 
+// Fiche produit tissu (migration 20260901000001) : tant qu'elle n'est pas
+// appliquée, les filtres usage / épaisseur sont ignorés au lieu de vider le catalogue.
+let fabricSpecColumns: { ok: boolean; at: number } | null = null;
+async function hasFabricSpecColumns(): Promise<boolean> {
+  if (fabricSpecColumns && Date.now() - fabricSpecColumns.at < PROBE_TTL_MS) return fabricSpecColumns.ok;
+  const supabase = await createClient();
+  const { error } = await supabase.from("fabrics").select("sales_unit").limit(1);
+  const ok = error?.code !== "42703";
+  fabricSpecColumns = { ok, at: Date.now() };
+  return ok;
+}
+
 // Typées comme la requête enrichie : la variante « ancienne » renvoie les mêmes
 // lignes, sans le pays (`origin.country` reste vide, rien n'est européen).
 async function fabricSelect(): Promise<typeof FABRIC_SELECT> {
@@ -122,7 +145,20 @@ function toFabric(row: FabricRow): Fabric {
   return { ...fabric, origin: toOrigin(vendors) };
 }
 
+/**
+ * Une même page (l'accueil notamment) demande plusieurs fois le même catalogue :
+ * `cache` ne fait la requête qu'une fois par rendu. La clé est une chaîne car
+ * `cache` compare les arguments par identité (un nouvel objet `{}` à chaque
+ * appel ne serait jamais reconnu). On rend une copie du tableau pour qu'un
+ * appelant qui trie sur place ne dérange pas les autres.
+ */
+const getFabricsOnce = cache((key: string) => loadFabrics(JSON.parse(key) as FabricFilters));
+
 export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]> {
+  return (await getFabricsOnce(JSON.stringify(filters))).slice();
+}
+
+async function loadFabrics(filters: FabricFilters): Promise<Fabric[]> {
   if (!isSupabaseConfigured()) {
     return FABRICS.filter((f) => {
       if (filters.category && f.category_slug !== filters.category) return false;
@@ -131,8 +167,16 @@ export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]>
         !f.color?.toLowerCase().includes(filters.color.toLowerCase())
       )
         return false;
-      if (filters.maxPrice && f.price_per_meter > filters.maxPrice) return false;
+      const price = fabricUnitPrice(f);
+      if (filters.minPrice && price < filters.minPrice) return false;
+      if (filters.maxPrice && price > filters.maxPrice) return false;
       if (filters.q && !f.name.toLowerCase().includes(filters.q.toLowerCase()))
+        return false;
+      if (filters.weight && f.weight !== filters.weight) return false;
+      if (
+        filters.usage &&
+        !(f.recommended_usages ?? []).some((u) => usagesForFilter(filters.usage!).includes(u as never))
+      )
         return false;
       return true;
     });
@@ -142,8 +186,17 @@ export async function getFabrics(filters: FabricFilters = {}): Promise<Fabric[]>
   let query = supabase.from("fabrics").select(await fabricSelect()).eq("is_active", true);
   if (filters.category) query = query.eq("category_slug", filters.category);
   if (filters.color) query = query.ilike("color", `%${filters.color}%`);
-  if (filters.maxPrice) query = query.lte("price_per_meter", filters.maxPrice);
+  const specs = await hasFabricSpecColumns();
+  // Prix de l'unité de vente (le prix affiché) ; au mètre avant la migration.
+  const priceCol = specs ? "price_per_unit" : "price_per_meter";
+  if (filters.minPrice) query = query.gte(priceCol, filters.minPrice);
+  if (filters.maxPrice) query = query.lte(priceCol, filters.maxPrice);
   if (filters.q) query = query.ilike("name", `%${filters.q}%`);
+  if (specs && filters.weight) query = query.eq("weight", filters.weight);
+  if (specs && filters.usage) {
+    const usages = usagesForFilter(filters.usage);
+    if (usages.length) query = query.overlaps("recommended_usages", usages);
+  }
   const { data } = await query.order("created_at", { ascending: false });
   return ((data as FabricRow[]) ?? []).map(toFabric);
 }
@@ -242,6 +295,15 @@ export async function getMyAtelier(): Promise<TailorAtelier | null> {
   return (data as TailorAtelier | null) ?? null;
 }
 
+/** « Mes métrages » du tailleur connecté : un tableau par collection. */
+export async function getMyBodyFits(): Promise<TailorBodyFits> {
+  if (!isSupabaseConfigured()) return {};
+  const supabase = await createClient();
+  const user = await getAuthUser();
+  if (!user) return {};
+  return loadOneTailorBodyFits(supabase, user.id);
+}
+
 // --- Models ----------------------------------------------------------------
 
 // La galerie vit dans `model_photos` ; on l'aplatit en `photos` triée pour que
@@ -293,9 +355,15 @@ function toModel(row: ModelRow): GarmentModel {
     difficulty: row.difficulty,
     avg_days: row.avg_days,
     price: row.price ?? null,
+    quote_mode: row.quote_mode === "auto" ? "auto" : "manual",
+    quote_price: row.quote_price ?? null,
+    quote_delivery_fee: row.quote_delivery_fee ?? null,
+    quote_ready_days: row.quote_ready_days ?? null,
     image_url: row.image_url,
     is_active: row.is_active,
     style_groups: row.style_groups ?? [],
+    style_base: row.style_base ?? null,
+    catalog_model_id: row.catalog_model_id ?? null,
     body_fits: row.body_fits ?? [],
     care_tips: row.care_tips ?? null,
     delivery_zone: row.delivery_zone,
@@ -303,6 +371,12 @@ function toModel(row: ModelRow): GarmentModel {
     material: row.material ?? null,
     making_type: row.making_type ?? null,
     sizes: row.sizes ?? null,
+    ready_to_wear: row.ready_to_wear === true,
+    ready_colors: Array.isArray(row.ready_colors) ? row.ready_colors : [],
+    ready_color_prices:
+      row.ready_color_prices && typeof row.ready_color_prices === "object" && !Array.isArray(row.ready_color_prices)
+        ? (row.ready_color_prices as Record<string, number>)
+        : {},
     origin: toOrigin(row.tailors),
     photos: (row.model_photos ?? [])
       .slice()
@@ -322,9 +396,16 @@ function isOrderable(row: ModelRow): boolean {
   return row.tailors?.is_active === true && row.tailors?.is_suspended === false;
 }
 
+// Même déduplication par rendu que `getFabrics`.
+const getModelsOnce = cache((category: string) => loadModels({ category: category || undefined }));
+
 export async function getModels(filters: { category?: string } = {}): Promise<
   GarmentModel[]
 > {
+  return (await getModelsOnce(filters.category ?? "")).slice();
+}
+
+async function loadModels(filters: { category?: string }): Promise<GarmentModel[]> {
   if (!isSupabaseConfigured()) {
     return MODELS.filter(
       (m) =>
@@ -335,10 +416,34 @@ export async function getModels(filters: { category?: string } = {}): Promise<
   let query = supabase.from("models").select(await modelSelect()).eq("is_active", true);
   if (filters.category) query = query.eq("category_slug", filters.category);
   const { data } = await query.order("name");
-  return ((data as ModelRow[]) ?? [])
-    .filter(isOrderable)
-    .map(toModel)
-    .filter((m) => !isRetiredModel(m));
+  return withTailorBodyFits(
+    supabase,
+    ((data as ModelRow[]) ?? [])
+      .filter(isOrderable)
+      .map(toModel)
+      .filter((m) => !isRetiredModel(m)),
+  );
+}
+
+/**
+ * Les mètres de tissu viennent de « Mes métrages » : le tailleur les écrit une
+ * fois et ils valent pour tous ses modèles de la collection.
+ */
+async function withTailorBodyFits(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  models: GarmentModel[],
+): Promise<GarmentModel[]> {
+  const byTailor = await loadTailorBodyFits(
+    supabase,
+    models.map((m) => m.tailor_id),
+  );
+  if (byTailor.size === 0) return models;
+  return models.map((m) => {
+    const fits = m.tailor_id ? byTailor.get(m.tailor_id) : undefined;
+    return fits
+      ? { ...m, body_fits: effectiveBodyFits(m.body_fits, fits, m.category_slug) }
+      : m;
+  });
 }
 
 /**
@@ -359,6 +464,23 @@ export async function getModelSuggestions(): Promise<GarmentModel[]> {
     .eq("is_active", true)
     .order("name");
   return ((data as ModelRow[]) ?? []).map(toModel).filter((m) => !isRetiredModel(m));
+}
+
+/**
+ * Les créations des tailleurs rangées sous un ou plusieurs modèles du catalogue
+ * (la grille « Les créations de nos tailleurs » de leur page). Seules les
+ * créations commandables, cf. `getModels`. Une page dédiée de famille (grand
+ * boubou, robe) passe tous ses modèles.
+ */
+export async function getTailorCreationsFor(
+  catalogModels: GarmentModel[],
+): Promise<GarmentModel[]> {
+  const catalog = catalogModels.filter(isCatalogModel);
+  if (catalog.length === 0) return [];
+  const all = await getModels();
+  return all.filter(
+    (m) => m.tailor_id !== null && catalog.some((c) => belongsToCatalogModel(m, c)),
+  );
 }
 
 /**
@@ -408,7 +530,7 @@ export async function getModelById(id: string): Promise<GarmentModel | null> {
   const { data } = await supabase.from("models").select(await modelSelect()).eq("id", id).single();
   if (!data || !isOrderable(data as ModelRow)) return null;
   const model = toModel(data as ModelRow);
-  return isRetiredModel(model) ? null : model;
+  return isRetiredModel(model) ? null : (await withTailorBodyFits(supabase, [model]))[0];
 }
 
 /**
@@ -431,7 +553,7 @@ export async function getModelBySlug(slug: string): Promise<GarmentModel | null>
     .maybeSingle();
   if (!data || !isOrderable(data as ModelRow)) return null;
   const model = toModel(data as ModelRow);
-  return isRetiredModel(model) ? null : model;
+  return isRetiredModel(model) ? null : (await withTailorBodyFits(supabase, [model]))[0];
 }
 
 /**
@@ -454,6 +576,47 @@ export async function getModelByIdOrSlug(param: string): Promise<GarmentModel | 
   const bySlug = await getModelBySlug(param);
   if (bySlug) return bySlug;
   return param.startsWith("demo-") ? getModelBySlug(param.slice(5)) : null;
+}
+
+// --- Une seule fiche pour les deux métiers -------------------------------
+
+type ShopInfo = {
+  id: string;
+  shop_name: string | null;
+  bio: string | null;
+  city: string | null;
+  cover_url: string | null;
+};
+
+/**
+ * Un compte pro porte une boutique tailleur ET une boutique de tissus. Le pro ne
+ * remplit souvent qu'une des deux fiches (« Ma page publique ») : pour les
+ * clients, l'autre reprend alors son nom, sa photo, sa ville et sa présentation.
+ * Seuls les champs vides sont complétés — ce que le pro a écrit prime.
+ */
+async function fillFromSibling<T extends ShopInfo>(
+  rows: T[],
+  sibling: "tailors" | "vendors",
+): Promise<T[]> {
+  const missing = rows.filter((r) => !r.shop_name || !r.bio || !r.city || !r.cover_url);
+  if (missing.length === 0) return rows;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from(sibling)
+    .select("id, shop_name, bio, city, cover_url")
+    .in("id", missing.map((r) => r.id));
+  const byId = new Map(((data as ShopInfo[] | null) ?? []).map((s) => [s.id, s]));
+  return rows.map((r) => {
+    const s = byId.get(r.id);
+    if (!s) return r;
+    return {
+      ...r,
+      shop_name: r.shop_name || s.shop_name,
+      bio: r.bio || s.bio,
+      city: r.city || s.city,
+      cover_url: r.cover_url || s.cover_url,
+    };
+  });
 }
 
 // --- Tailors ---------------------------------------------------------------
@@ -482,7 +645,7 @@ export async function getTailors(filters: TailorFilters = {}): Promise<Tailor[]>
   if (filters.city) query = query.ilike("city", filters.city);
   if (filters.q) query = query.ilike("shop_name", `%${filters.q}%`);
   const { data } = await query.order("rating", { ascending: false });
-  return (data as Tailor[]) ?? [];
+  return fillFromSibling((data as Tailor[]) ?? [], "vendors");
 }
 
 export async function getTailorById(id: string): Promise<Tailor | null> {
@@ -491,7 +654,9 @@ export async function getTailorById(id: string): Promise<Tailor | null> {
   }
   const supabase = await createClient();
   const { data } = await supabase.from("tailors").select("*").eq("id", id).single();
-  return (data as Tailor | null) ?? null;
+  if (!data) return null;
+  const [tailor] = await fillFromSibling([data as Tailor], "vendors");
+  return tailor;
 }
 
 /**
@@ -538,7 +703,7 @@ export async function getVendors(filters: VendorFilters = {}): Promise<Vendor[]>
   if (filters.city) query = query.ilike("city", filters.city);
   if (filters.q) query = query.ilike("shop_name", `%${filters.q}%`);
   const { data } = await query.order("shop_name");
-  return (data as Vendor[]) ?? [];
+  return fillFromSibling((data as Vendor[]) ?? [], "tailors");
 }
 
 export async function getVendorById(id: string): Promise<Vendor | null> {
@@ -547,7 +712,9 @@ export async function getVendorById(id: string): Promise<Vendor | null> {
   }
   const supabase = await createClient();
   const { data } = await supabase.from("vendors").select("*").eq("id", id).single();
-  return (data as Vendor | null) ?? null;
+  if (!data) return null;
+  const [vendor] = await fillFromSibling([data as Vendor], "tailors");
+  return vendor;
 }
 
 /**
@@ -774,4 +941,32 @@ export async function getFabricReviews(
     .eq("fabric_id", fabricId)
     .order("created_at", { ascending: false });
   return ((data as VendorReviewRow[]) ?? []).map(mapVendorReview);
+}
+
+// --- Ventes validées (anti-arnaque) -----------------------------------------
+
+/**
+ * Les pros (tailleurs + vendeurs) dont JALOFA n'a pas encore validé les ventes
+ * (cf. `@/lib/sales-approval`). Leurs articles restent visibles, mais on ne les
+ * propose dans aucun parcours d'achat. Colonne absente (migration
+ * 20260904000001 pas appliquée) = personne n'est bloqué.
+ */
+export const getUnapprovedSellerIds = cache(async (): Promise<Set<string>> => {
+  if (!isSupabaseConfigured()) return new Set();
+  const supabase = await createClient();
+  const [t, v] = await Promise.all([
+    supabase.from("tailors").select("id").eq("sales_approved", false),
+    supabase.from("vendors").select("id").eq("sales_approved", false),
+  ]);
+  const ids = new Set<string>();
+  for (const row of [...(t.error ? [] : (t.data ?? [])), ...(v.error ? [] : (v.data ?? []))]) {
+    ids.add((row as { id: string }).id);
+  }
+  return ids;
+});
+
+/** Les tissus achetables : ceux dont le vendeur peut vendre. */
+export function sellableFabrics(fabrics: Fabric[], unapproved: Set<string>): Fabric[] {
+  if (unapproved.size === 0) return fabrics;
+  return fabrics.filter((f) => !f.vendor_id || !unapproved.has(f.vendor_id));
 }

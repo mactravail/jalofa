@@ -12,32 +12,55 @@ import {
   hiddenOrderedModels,
   type HiddenOrderedModel,
 } from "@/lib/admin-data";
+import { CatalogModelsManager } from "@/components/admin/catalog-models-manager";
+import { catalogModelOf, isCatalogModel } from "@/lib/catalog-link";
 import { modelPhotos } from "@/lib/constants";
+import { getModelCategories } from "@/lib/data";
+import { STYLE_BASES } from "@/lib/style-options";
 import type { GarmentModel } from "@/lib/types";
 
 export default async function AdminModelsPage() {
-  const [models, orders, tailors] = await Promise.all([
+  const [models, orders, tailors, categories] = await Promise.all([
     getAllModels(),
     getAllOrders(),
     getAllTailors(),
+    getModelCategories(),
   ]);
   const watched = hiddenOrderedModels(models, orders, tailors);
+
+  const catalog = models.filter(isCatalogModel);
+  const creations = models.filter((m) => !isCatalogModel(m));
+  const creationCounts: Record<string, number> = {};
+  const parentOf = new Map<string, GarmentModel | null>();
+  for (const c of creations) {
+    const parent = catalogModelOf(c, catalog);
+    parentOf.set(c.id, parent);
+    if (parent) creationCounts[parent.id] = (creationCounts[parent.id] ?? 0) + 1;
+  }
 
   return (
     <AdminPage
       title="Modèles"
-      subtitle="Le catalogue des vêtements : modèles de la plateforme et créations des tailleurs."
+      subtitle="Le catalogue JALOFA, et les créations des tailleurs rangées dessous."
     >
       {watched.length > 0 && <WatchList items={watched} />}
 
-      {models.length === 0 ? (
+      <CatalogModelsManager
+        catalog={catalog}
+        creationCounts={creationCounts}
+        categories={categories}
+        planches={STYLE_BASES}
+      />
+
+      <h2 className="mb-3 text-lg font-semibold">Créations des tailleurs</h2>
+      {creations.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
-          <p className="text-muted-foreground text-sm">Aucun modèle.</p>
+          <p className="text-muted-foreground text-sm">Aucune création.</p>
         </div>
       ) : (
         <div className="divide-y rounded-xl border">
-          {models.map((model) => (
-            <ModelRow key={model.id} model={model} />
+          {creations.map((model) => (
+            <ModelRow key={model.id} model={model} parent={parentOf.get(model.id) ?? null} />
           ))}
         </div>
       )}
@@ -45,9 +68,10 @@ export default async function AdminModelsPage() {
   );
 }
 
-function ModelRow({ model }: { model: GarmentModel }) {
+function ModelRow({ model, parent }: { model: GarmentModel; parent: GarmentModel | null }) {
   const cover = modelPhotos(model)[0] ?? null;
   const meta = [
+    parent ? `Rangé sous : ${parent.name}` : "Non rangé",
     model.category_slug,
     model.difficulty,
     `${model.avg_days} j`,

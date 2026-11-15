@@ -152,3 +152,80 @@ export function demoBodyFits(
     ranges: defaultBodyRanges(categorySlug, option.slug),
   }));
 }
+
+// --- Le tableau du tailleur ---------------------------------------------------
+//
+// Le tailleur écrit ses mètres UNE fois, dans « Mes métrages » : un tableau par
+// collection, appliqué à tous ses modèles de cette collection.
+
+export type FitGroup = "homme" | "femme" | "enfant";
+
+export const FIT_GROUPS: { slug: FitGroup; label: string }[] = [
+  { slug: "homme", label: "Homme" },
+  { slug: "femme", label: "Femme" },
+  { slug: "enfant", label: "Enfant" },
+];
+
+export type TailorBodyFits = Partial<Record<FitGroup, ModelBodyFit[]>>;
+
+/** Le tableau qui sert pour ce vêtement : femme, enfant, sinon homme. */
+export function fitGroupFor(categorySlug: string | null | undefined): FitGroup {
+  return categorySlug === "femme" ? "femme" : categorySlug === "enfant" ? "enfant" : "homme";
+}
+
+export function fitGroupLabel(group: FitGroup): string {
+  return FIT_GROUPS.find((g) => g.slug === group)?.label ?? group;
+}
+
+/** Au moins un métrage écrit. */
+export function hasBodyFitMeters(fits: ModelBodyFit[] | null | undefined): boolean {
+  return (fits ?? []).some((f) => Object.values(f.meters ?? {}).some(Boolean));
+}
+
+/** Relit le tableau du tailleur (base ou formulaire), sans rien tenir pour acquis. */
+export function parseTailorBodyFits(raw: unknown): TailorBodyFits {
+  let value = raw;
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  const out: TailorBodyFits = {};
+  for (const { slug } of FIT_GROUPS) {
+    if (!Array.isArray(source[slug])) continue;
+    out[slug] = parseModelBodyFits(JSON.stringify(source[slug]), slug);
+  }
+  return out;
+}
+
+/**
+ * Le métrage d'un modèle : celui de « Mes métrages » dès que le tailleur l'a
+ * rempli pour cette collection, sinon celui enregistré sur le modèle (anciens
+ * modèles, catalogue de la plateforme).
+ */
+export function effectiveBodyFits(
+  modelFits: ModelBodyFit[] | null | undefined,
+  tailorFits: TailorBodyFits | null | undefined,
+  categorySlug: string | null | undefined,
+): ModelBodyFit[] {
+  const own = tailorFits?.[fitGroupFor(categorySlug)];
+  return hasBodyFitMeters(own) ? own! : (modelFits ?? []);
+}
+
+/** Ce qui empêche de publier un modèle de cette collection, côté métrage. */
+export function tailorBodyFitProblem(
+  modelFits: ModelBodyFit[] | null | undefined,
+  tailorFits: TailorBodyFits | null | undefined,
+  categorySlug: string | null | undefined,
+): string | null {
+  const problem = modelBodyFitProblem(
+    effectiveBodyFits(modelFits, tailorFits, categorySlug),
+    categorySlug,
+  );
+  if (!problem) return null;
+  return `Remplissez « Mes métrages » (${fitGroupLabel(fitGroupFor(categorySlug))}) dans le menu. ${problem}`;
+}

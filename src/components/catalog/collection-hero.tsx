@@ -16,6 +16,7 @@ export async function CollectionHero({
   target,
   titleClassName,
   secondaryLink,
+  compact = false,
 }: {
   number: string;
   eyebrow: string;
@@ -27,10 +28,19 @@ export async function CollectionHero({
   titleClassName?: string;
   /** Second lien à côté de « Découvrir », pour un autre public de la page. */
   secondaryLink?: { href: string; label: string };
+  /** Hero bas (≈ moitié d'écran) pour les pages annuaire : la liste reste visible. */
+  compact?: boolean;
 }) {
   const t = await getT();
   return (
-    <section className="relative h-[calc(100svh-6.25rem-var(--spacing-bottom-nav))] min-h-[28rem] overflow-hidden bg-black md:h-[calc(100svh-6.25rem)]">
+    <section
+      className={cn(
+        "relative overflow-hidden bg-black",
+        compact
+          ? "h-[42svh] min-h-[16rem] md:h-[48svh] md:max-h-[32rem]"
+          : "h-[calc(100svh-6.25rem-var(--spacing-bottom-nav))] min-h-[28rem] md:h-[calc(100svh-6.25rem)]",
+      )}
+    >
       <a href={`#${target}`} aria-label={`${t(title)} — ${t("Découvrir")}`} className="absolute inset-0">
         <Image
           src={image.src}
@@ -46,7 +56,8 @@ export async function CollectionHero({
       <div
         className={cn(
           display.className,
-          "pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6 text-white uppercase md:px-12 md:pb-10",
+          "pointer-events-none absolute inset-x-0 bottom-0 px-4 text-white uppercase md:px-12",
+          compact ? "pb-5 md:pb-8" : "pb-6 md:pb-10",
         )}
       >
         <p className="text-sm tracking-[0.15em] md:text-lg">
@@ -54,13 +65,16 @@ export async function CollectionHero({
         </p>
         <h1
           className={cn(
-            "mt-3 text-[22vw] leading-[0.9] tracking-[0.04em] md:mt-5 md:text-[11vw]",
+            "leading-[0.9] tracking-[0.04em]",
+            compact
+              ? "mt-2 text-[15vw] md:mt-3 md:text-[7vw]"
+              : "mt-3 text-[22vw] md:mt-5 md:text-[11vw]",
             titleClassName,
           )}
         >
           {t(title)}
         </h1>
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 md:mt-6">
+        <div className={cn("flex flex-wrap gap-x-6 gap-y-3", compact ? "mt-3 md:mt-4" : "mt-5 md:mt-6")}>
           <a
             href={`#${target}`}
             className="pointer-events-auto inline-block border-b border-white pb-1 text-sm tracking-[0.2em] transition-opacity hover:opacity-70"

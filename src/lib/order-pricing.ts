@@ -1,5 +1,6 @@
 import "server-only";
 
+import { readyPriceFor } from "@/lib/ready-to-wear";
 import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -19,6 +20,8 @@ export async function resolveTailoringPrice(
   supabase: SupabaseServerClient,
   modelId: string | null,
   tailorId: string,
+  /** Prêt-à-porter : la couleur choisie, qui peut avoir son propre prix. */
+  readyColor?: string | null,
 ): Promise<number> {
   const { data: tailor } = await supabase
     .from("tailors")
@@ -28,12 +31,28 @@ export async function resolveTailoringPrice(
   const basePrice = Number(tailor?.base_price ?? 0);
 
   if (!modelId) return basePrice;
-  const { data: model } = await supabase
-    .from("models")
-    .select("price, tailor_id")
-    .eq("id", modelId)
-    .single();
+  // `*` : les colonnes du prêt-à-porter peuvent manquer sur une base pas encore migrée.
+  const { data } = await supabase.from("models").select("*").eq("id", modelId).single();
+  const model = data as {
+    price: number | null;
+    tailor_id: string | null;
+    ready_to_wear?: boolean;
+    ready_colors?: string[] | null;
+    ready_color_prices?: Record<string, number> | null;
+  } | null;
   const price = model?.price;
-  if (model?.tailor_id === tailorId && price != null) return Number(price);
+  if (model?.tailor_id === tailorId && price != null) {
+    if (readyColor && model.ready_to_wear) {
+      return readyPriceFor(
+        {
+          ready_colors: model.ready_colors ?? [],
+          ready_color_prices: model.ready_color_prices ?? {},
+        },
+        readyColor,
+        Number(price),
+      );
+    }
+    return Number(price);
+  }
   return basePrice;
 }

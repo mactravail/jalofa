@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
@@ -15,7 +16,35 @@ import { TrustScorePanel } from "@/components/catalog/trust-score";
 import { VendorReviewForm } from "@/components/catalog/vendor-review-form";
 import { getFabricsByVendor, getVendorById, getVendorReviews } from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
+import { SalesPendingNotice } from "@/components/catalog/sales-pending-notice";
+import { canSell } from "@/lib/sales-approval";
 
+// L'aperçu du lien partagé (TikTok, WhatsApp) : le nom de la boutique et sa photo.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const t = await getT();
+  const vendor = await getVendorById(id);
+  if (!vendor || vendor.is_suspended) return { title: t("Vendeur de tissu") };
+  const title = vendor.shop_name ?? t("Vendeur de tissu");
+  const description =
+    vendor.bio ?? t("Les tissus de {name}, à acheter sur JALOFA.", { name: title });
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(vendor.cover_url ? { images: [vendor.cover_url] } : {}),
+    },
+  };
+}
+
+// La boutique d'un vendeur — aussi la page où arrivent les clients de ses lives
+// TikTok : ses tissus à lui, et seulement les siens, tout en haut.
 export default async function VendorProfilePage({
   params,
 }: {
@@ -90,18 +119,11 @@ export default async function VendorProfilePage({
         </div>
       </div>
 
-      {vendor.bio && (
-        <p className="text-muted-foreground mt-6 text-center sm:text-left">
-          {vendor.bio}
-        </p>
-      )}
+      {/* Anti-arnaque : pas encore validé par JALOFA → visible, pas en vente. */}
+      {!canSell(vendor) && <SalesPendingNotice className="mt-6" />}
 
-      {/* Score de confiance — la confiance en un coup d'œil, avant de commander. */}
-      <div className="mt-6">
-        <TrustScorePanel pro={vendor} />
-      </div>
-
-      <section className="mt-12">
+      {/* Les tissus d'abord : c'est pour eux que le client est venu (lives TikTok). */}
+      <section id="tissus" className="mt-8">
         <h2 className="text-xl font-bold tracking-tight">
           {t("Les tissus de la boutique")}
           <span className="text-muted-foreground ml-2 text-base font-normal">
@@ -121,6 +143,17 @@ export default async function VendorProfilePage({
           </div>
         )}
       </section>
+
+      {vendor.bio && (
+        <p className="text-muted-foreground mt-10 text-center sm:text-left">
+          {vendor.bio}
+        </p>
+      )}
+
+      {/* Score de confiance — la confiance en un coup d'œil, avant de commander. */}
+      <div className="mt-6">
+        <TrustScorePanel pro={vendor} kind="vendor" />
+      </div>
 
       <section id="avis" className="mt-12">
         <div className="flex items-center justify-between">

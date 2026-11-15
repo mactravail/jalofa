@@ -5,9 +5,11 @@ import { EuropeBadge } from "@/components/europe/europe-badge";
 import { ProductPrice } from "@/components/europe/europe-price";
 import { Badge } from "@/components/ui/badge";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
+import { fabricUnit, fabricUnitPrice } from "@/lib/fabric-specs";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
+import { isDemoFabric } from "@/lib/sales-approval";
 
 export async function FabricCard({
   fabric,
@@ -61,6 +63,11 @@ export async function FabricCard({
             country={fabric.origin.country}
             className="absolute right-2 bottom-2 max-w-[calc(100%-1rem)]"
           />
+        )}
+        {isDemoFabric(fabric) && (
+          <Badge variant="secondary" className="absolute right-2 top-2">
+            {t("Démo")}
+          </Badge>
         )}
         {fabric.in_stock === false && (
           <span className="absolute inset-0 grid place-items-center bg-black/60 font-semibold text-white">

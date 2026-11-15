@@ -10,8 +10,29 @@ export type GarmentTypeCard = {
   name: string;
   image: string | null;
   /** "As-is" total for this type — shown as "Dès {price}" on its card. */
-  fromPrice: number;
+  fromPrice: number | null;
+  /**
+   * Création d'un tailleur rangée sous ce vêtement : elle ouvre sa propre fiche
+   * (`href`) au lieu de changer de type, et porte le nom de l'atelier.
+   */
+  href?: string;
+  shop?: string | null;
 };
+
+/** Une création de tailleur, en carte de la rangée des types. */
+export function creationTypeCard(
+  model: { id: string; name: string; image_url: string | null; photos?: string[]; price: number | null; origin?: { shop_name: string | null } | null },
+  shop: string | null,
+): GarmentTypeCard {
+  return {
+    id: model.id,
+    name: model.name,
+    image: model.photos?.[0] ?? model.image_url ?? null,
+    fromPrice: model.price,
+    href: `/modeles/${model.id}`,
+    shop: model.origin?.shop_name ?? shop,
+  };
+}
 
 /**
  * Product-family switcher pinned above a dedicated garment page: several
@@ -26,13 +47,16 @@ export async function GarmentTypeSwitcher({
   label,
   types,
   activeId,
+  showSingle = false,
 }: {
   basePath: string;
   label: string;
   types: GarmentTypeCard[];
   activeId: string;
+  /** Afficher la rangée même avec une seule carte (fiche catalogue). */
+  showSingle?: boolean;
 }) {
-  if (types.length < 2) return null;
+  if (types.length < (showSingle ? 1 : 2)) return null;
   const tr = await getT();
 
   return (
@@ -44,8 +68,8 @@ export async function GarmentTypeSwitcher({
           return (
             <Link
               key={type.id}
-              href={`${basePath}?type=${type.id}`}
-              scroll={false}
+              href={type.href ?? `${basePath}?type=${type.id}`}
+              scroll={type.href ? undefined : false}
               aria-current={active}
               className={cn(
                 "group bg-card w-28 shrink-0 overflow-hidden rounded-xl border transition-colors",
@@ -74,9 +98,14 @@ export async function GarmentTypeSwitcher({
                 >
                   {type.name}
                 </p>
-                <p className="text-muted-foreground text-[11px]">
-                  {tr("Dès")} {formatPrice(type.fromPrice)}
-                </p>
+                {type.shop && (
+                  <p className="text-muted-foreground line-clamp-1 text-[11px]">{type.shop}</p>
+                )}
+                {type.fromPrice != null && (
+                  <p className="text-muted-foreground text-[11px] whitespace-nowrap">
+                    {tr("Dès")} {formatPrice(type.fromPrice)}
+                  </p>
+                )}
               </div>
             </Link>
           );

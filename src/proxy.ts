@@ -25,6 +25,18 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
  */
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // Un seul domaine : la session (cookie) est liée au domaine exact. Connecté
+  // sur jalofa.com, on paraissait déconnecté sur www.jalofa.com — d'où le
+  // formulaire « mot de passe » au récap pour un client déjà connecté.
+  if (request.headers.get("host")?.toLowerCase() === "www.jalofa.com") {
+    const url = request.nextUrl.clone();
+    url.host = "jalofa.com";
+    url.port = "";
+    url.protocol = "https:";
+    return NextResponse.redirect(url, 308);
+  }
+
   const pathLocale = localeFromPath(pathname);
   const cookieValue = request.cookies.get(LOCALE_COOKIE)?.value;
   const cookieLocale: Locale | null = isLocale(cookieValue) ? cookieValue : null;

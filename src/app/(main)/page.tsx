@@ -2,19 +2,22 @@ import { Children } from "react";
 import Image from "next/image";
 import Link from "@/components/i18n/link";
 
-import { Price } from "@/components/cart/price";
 import type { CollectionTile } from "@/components/home/collection-marquee";
 import { modelHref } from "@/components/catalog/model-card";
 import {
   FEMME_OCCASIONS,
   HOMME_OCCASIONS,
+  modelKey,
   orderForPicker,
   wornCover,
 } from "@/lib/collection-occasions";
-import { EUROPE_SLOGAN, EUROPE_TYPES } from "@/lib/europe";
+import { EUROPE_TYPES } from "@/lib/europe";
 import { EUROPE_HERO, EUROPE_TYPE_IMAGES } from "@/lib/europe-images";
 import { HeroVideo } from "@/components/home/hero-video";
+import { AvatarRing, type AvatarRingItem } from "@/components/home/avatar-ring";
+import { WardrobeRail } from "@/components/home/wardrobe-rail";
 import { getFabrics, getModels } from "@/lib/data";
+import { hrefWithPhoto } from "@/lib/clicked-photo";
 import { SELECTION_CTA, SELECTION_SUBTITLE, SELECTION_TITLE } from "@/lib/selection";
 import type { Fabric, GarmentModel } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -231,6 +234,116 @@ async function getAfriqueTiles(): Promise<CollectionTile[]> {
   );
 }
 
+/**
+ * Silhouettes détourées de l'anneau Afrique (`public/collection femme/avatar`),
+ * homme et femme mêlés. Chacune renvoie à la fiche de son habit quand il est au
+ * catalogue (`key` = nom normalisé, cf. `modelKey`), sinon à /afrique.
+ * Avec `slug`, le nom est imposé et le clic ouvre la fiche catalogue JALOFA de
+ * cet habit (`catalogHref`), où sont rangées les créations des tailleurs.
+ * `ensemble.png` est écarté : son damier de « transparence » est imprimé dans
+ * l'image (PNG sans couche alpha).
+ */
+const AVATARS: { file: string; key: string; name: string; slug?: string }[] = [
+  { file: "agbada", key: "agbada", name: "Agbada" },
+  { file: "robe", key: "robe-de-soiree", name: "Robe de soirée" },
+  { file: "kaftan", key: "kaftan", name: "Kaftan 2 pièces", slug: "kaftan" },
+  { file: "tailleur", key: "tailleur-pantalon", name: "Tailleur pantalon" },
+  { file: "corde", key: "grande-robe", name: "Cérémonie", slug: "ceremonie-femme" },
+  { file: "costume africain", key: "costume-africain", name: "Costume africain" },
+  { file: "jupe", key: "jupe", name: "Jupe" },
+  { file: "nico", key: "robe-coupee", name: "Robe", slug: "europe-robe" },
+];
+
+/** Fiche catalogue JALOFA (tailor_id null) d'un habit, par slug. */
+function catalogHref(slug: string, models: GarmentModel[]): string {
+  const model =
+    models.find((m) => m.slug === slug && m.tailor_id === null) ??
+    models.find((m) => m.slug === slug);
+  return model ? `/modeles/${model.id}` : `/modeles/${slug}`;
+}
+
+async function AfriqueRing({ tiles, href }: { tiles: CollectionTile[]; href: string }) {
+  const [t, models] = await Promise.all([getT(), getModels()]);
+  const byKey = new Map(tiles.map((tile) => [modelKey(tile.name), tile]));
+  const items: AvatarRingItem[] = AVATARS.map(({ file, key, name, slug }) => {
+    const tile = byKey.get(key);
+    const label = t(slug ? name : (tile?.name ?? name));
+    const src = `/collection femme/avatar/${file}.png`;
+    const target = slug ? catalogHref(slug, models) : (tile?.href ?? href);
+    return {
+      src,
+      name: label,
+      // La fiche du modèle montre en haut la photo sur laquelle on a cliqué.
+      href: target === href ? target : hrefWithPhoto(target, src),
+      alt: label,
+    };
+  });
+  return (
+    <section className="py-10 md:py-14">
+      <p className="text-muted-foreground mb-2 px-4 text-center text-xs font-semibold tracking-[0.3em] uppercase">
+        {t("Entrez, et tout le monde se retourne")}
+      </p>
+      <AvatarRing
+        items={items}
+        prevLabel={t("Précédent")}
+        nextLabel={t("Suivant")}
+      />
+      <div className="mt-10 text-center">
+        <DiscoverLink href={href}>{t("Tout voir")}</DiscoverLink>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Armoire Europe (`public/collection femme/magi`) : une photo de face par habit,
+ * homme et femme alternés ; chacune ouvre la fiche de son habit (par slug).
+ */
+const WARDROBE: { file: string; slug: string; name: string }[] = [
+  { file: "soiree", slug: "europe-robe-soiree", name: "Robe de soirée" },
+  { file: "Smoking", slug: "europe-smoking-homme", name: "Smoking" },
+  { file: "robe", slug: "europe-robe", name: "Robe" },
+  { file: "3piece", slug: "europe-costume-homme", name: "Costume 3 pièces" },
+  { file: "robe-mariage", slug: "europe-robe-mariage", name: "Robe de mariée" },
+  { file: "Chemise", slug: "europe-chemise-homme", name: "Chemise homme" },
+  { file: "2pieces", slug: "europe-costume-2p-homme", name: "Costume 2 pièces" },
+  { file: "Tailleur-costume", slug: "europe-costume-femme", name: "Tailleur femme" },
+];
+
+/**
+ * Comme l'anneau Afrique : un clic sur un habit de l'armoire ouvre la fiche
+ * catalogue de son modèle (même nom, même page qu'ailleurs), la photo cliquée
+ * en carte sélectionnée dans la rangée du haut.
+ */
+async function EuropeWardrobe({ href }: { href: string }) {
+  const [t, models] = await Promise.all([getT(), getModels()]);
+  return (
+    <section className="py-10 md:py-14">
+      <p className="text-muted-foreground mb-6 px-4 text-center text-xs font-semibold tracking-[0.3em] uppercase">
+        {t("Ouvrez l'armoire")}
+      </p>
+      <WardrobeRail
+        items={WARDROBE.map(({ file, slug, name }) => {
+          const src = `/collection femme/magi/${file}.png`;
+          const model =
+            models.find((m) => m.slug === slug && m.tailor_id === null) ??
+            models.find((m) => m.slug === slug);
+          const label = t(model?.name ?? name);
+          return {
+            src,
+            name: label,
+            href: hrefWithPhoto(catalogHref(slug, models), src),
+            alt: label,
+          };
+        })}
+      />
+      <div className="mt-10 text-center">
+        <DiscoverLink href={href}>{t("Tout voir")}</DiscoverLink>
+      </div>
+    </section>
+  );
+}
+
 /** JALOFA EUROPE : chaque catégorie avec sa photo, homme et femme mêlés. */
 const EUROPE_TILES: CollectionTile[] = (() => {
   const toTile = (type: (typeof EUROPE_TYPES)[number]): CollectionTile | null => {
@@ -268,8 +381,7 @@ async function GarmentCard({ tile }: { tile: CollectionTile }) {
           className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
         />
       </div>
-      <h3 className="mt-3 text-sm font-medium">{t(tile.name)}</h3>
-      <p className="text-muted-foreground text-xs">{t("Sur mesure")}</p>
+      <h3 className="text-muted-foreground mt-3 text-xs">{t(tile.name)}</h3>
     </Link>
   );
 }
@@ -288,10 +400,9 @@ function FabricCard({ fabric }: { fabric: Fabric }) {
           />
         )}
       </div>
-      <h3 className="mt-3 truncate text-sm font-medium">{fabric.name}</h3>
-      <p className="text-muted-foreground text-xs">
-        <Price amount={fabric.price_per_meter} /> / m
-      </p>
+      <h3 className="text-muted-foreground mt-3 truncate text-xs">
+        {fabric.name}
+      </h3>
     </Link>
   );
 }
@@ -307,7 +418,7 @@ async function Grid({
   children,
 }: {
   label?: string;
-  href: string;
+  href?: string;
   children: React.ReactNode;
 }) {
   const t = await getT();
@@ -335,9 +446,11 @@ async function Grid({
           </div>
         ))}
       </div>
-      <div className="mt-10 text-center">
-        <DiscoverLink href={href}>{t("Tout voir")}</DiscoverLink>
-      </div>
+      {href && (
+        <div className="mt-10 text-center">
+          <DiscoverLink href={href}>{t("Tout voir")}</DiscoverLink>
+        </div>
+      )}
     </section>
   );
 }
@@ -357,11 +470,7 @@ export default async function HomePage() {
         title={t("Afrique")}
         href="/afrique"
       />
-      <Grid label={t("Entrez, et tout le monde se retourne")} href="/afrique">
-        {afriqueTiles.map((tile) => (
-          <GarmentCard key={tile.href} tile={tile} />
-        ))}
-      </Grid>
+      <AfriqueRing tiles={afriqueTiles} href="/afrique" />
 
       <Banner
         images={[
@@ -372,15 +481,16 @@ export default async function HomePage() {
             position: cn(EUROPE_HERO.position, "brightness-[0.5] contrast-110"),
           },
         ]}
-        eyebrow={t(EUROPE_SLOGAN)}
+        eyebrow={t("Élégance et qualité")}
         title="Europe"
         href="/europe"
       />
-      <Grid label={t("Taillé pour vous, porté comme une signature")} href="/europe">
+      <Grid label={t("Taillé pour vous, porté comme une signature")}>
         {EUROPE_TILES.map((tile) => (
           <GarmentCard key={tile.src} tile={tile} />
         ))}
       </Grid>
+      <EuropeWardrobe href="/europe" />
 
       {fabrics.length > 0 && (
         <>

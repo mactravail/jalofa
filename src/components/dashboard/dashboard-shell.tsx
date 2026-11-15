@@ -5,7 +5,7 @@ import Link from "@/components/i18n/link";
 import { usePathname } from "@/lib/i18n/navigation";
 import { Bell, Home, LogOut, Menu, Scissors, Store } from "lucide-react";
 
-import { useBucket } from "@/components/dashboard/pipeline-store";
+import { useBucket, useLateOrders } from "@/components/dashboard/pipeline-store";
 import { TailorBottomNav } from "@/components/tailor-bottom-nav";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -69,7 +69,8 @@ export function DashboardShell({
   // ne peuvent pas se contredire après un déplacement.
   const todoOrders = useBucket("todo");
   const todo = todoOrders.length;
-  const allBadges: DashboardBadges = { ...badges, todo };
+  const late = useLateOrders().length;
+  const allBadges: DashboardBadges = { ...badges, todo, late };
   const tailor = role === "tailor";
 
   const root = DASHBOARD_ROOT[role];

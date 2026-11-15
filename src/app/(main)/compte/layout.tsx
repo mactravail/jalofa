@@ -17,7 +17,9 @@ export default async function AccountLayout({
       <AccountNavMobile unread={unread} />
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[220px_1fr]">
-        <aside className="hidden min-w-0 md:block">
+        {/* Ordinateur : le menu reste en place pendant qu'on fait défiler la page. */}
+        <aside className="hidden min-w-0 md:sticky md:top-24 md:block md:max-h-[calc(100vh-7rem)] md:self-start md:overflow-y-auto">
+
           <AccountNavDesktop unread={unread} />
           {/* Un retour à tout moment, bien visible sous le menu du compte. */}
           <div className="mt-4 border-t pt-4">

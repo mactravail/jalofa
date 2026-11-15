@@ -4,7 +4,7 @@ import Link from "@/components/i18n/link";
 import {
   ChevronRight,
   ClipboardList,
-  CreditCard,
+  Layers,
   Plus,
   Scissors,
   Wallet,
@@ -27,22 +27,18 @@ const FEED_MAX = 4;
  * vendre plus ? (un seul gros bouton). Tout lit le même pipeline partagé, donc les
  * chiffres suivent les commandes qu'on vient d'accepter.
  */
-export function OverviewPanel({
-  role,
-  needsPayout,
-}: {
-  role: ProRole;
-  needsPayout: boolean;
-}) {
+export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?: number }) {
   const { orders } = usePipeline();
   const todo = useBucket("todo");
   const ongoing = useBucket("ongoing");
   const root = DASHBOARD_ROOT[role];
 
+  // Sa part sur les commandes payées par les clients, moins ce qui est déjà versé.
   const revenue = revenueOf(
     role,
     orders.filter((o) => moneyReleased(role, o)),
   );
+  const due = Math.max(0, revenue - received);
 
   return (
     <div className="space-y-8">
@@ -66,15 +62,32 @@ export function OverviewPanel({
         >
           {ongoing.length}
         </Tile>
-        <Tile
+        {/* L'argent en deux temps : « En attente » dès que le client a payé
+            (la part du pro, pas encore versée), puis « Reçu » quand JALOFA
+            lui a versé (lignes `payout` du registre). */}
+        <Link
           href={`${root}/revenus`}
-          icon={Wallet}
-          label="Mon argent"
-          iconClass="text-emerald-400"
-          className="col-span-2 sm:col-span-1"
+          className="bg-card hover:bg-muted/50 col-span-2 flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-colors sm:col-span-1 sm:p-5"
         >
-          <Price amount={revenue} />
-        </Tile>
+          <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium whitespace-nowrap sm:gap-2 sm:text-base">
+            <Wallet className="size-5 shrink-0 text-emerald-400" />
+            <span className="truncate"><T>Mon argent</T></span>
+          </span>
+          <span className="grid grid-cols-2 gap-3">
+            <span className="min-w-0">
+              <span className="block text-xs font-medium text-amber-400"><T>En attente</T></span>
+              <span className="text-muted-foreground block truncate text-lg font-normal tracking-tight sm:text-xl">
+                <Price amount={due} className="[&_span]:font-normal" />
+              </span>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xs font-medium text-emerald-400"><T>Reçu</T></span>
+              <span className="block truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                <Price amount={received} />
+              </span>
+            </span>
+          </span>
+        </Link>
       </div>
 
       <section>
@@ -108,14 +121,16 @@ export function OverviewPanel({
           <T>{role === "tailor" ? "Ajouter un modèle" : "Ajouter un tissu"}</T>
         </Link>
 
-        {needsPayout && (
+        {/* Le tailleur vend aussi ses tissus : le formulaire s'ouvre directement.
+            « Recevoir mon argent » est dans le menu (Mon argent). */}
+        {role === "tailor" && (
           <Link
-            href={`${root}/paiement`}
-            className="bg-card hover:bg-muted/50 flex min-h-14 items-center gap-3 rounded-xl border border-amber-500/40 px-4 py-3 text-base font-medium transition-colors"
+            href={`${root}/tissus?nouveau=1`}
+            className="bg-card hover:bg-muted/50 flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3 text-base font-medium transition-colors"
           >
-            <CreditCard className="size-5 shrink-0 text-amber-500" />
+            <Layers className="size-5 shrink-0 text-amber-500" />
             <span className="min-w-0 flex-1">
-              <T>Où voulez-vous recevoir votre argent ?</T>
+              <T>Vendre un tissu</T>
             </span>
             <ChevronRight className="text-muted-foreground size-5 shrink-0" />
           </Link>

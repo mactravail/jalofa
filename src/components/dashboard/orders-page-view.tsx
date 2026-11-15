@@ -19,8 +19,12 @@ const COPY: Record<ProRole, Record<OrderBucket, Copy>> = {
       empty: "Aucune commande en cours.",
     },
     done: {
-      subtitle: "Les commandes livrées, refusées ou annulées.",
+      subtitle: "Les commandes livrées ou refusées.",
       empty: "Aucune commande terminée.",
+    },
+    cancelled: {
+      subtitle: "Les commandes et les demandes de devis annulées.",
+      empty: "Aucune commande annulée.",
     },
   },
   vendor: {
@@ -34,8 +38,12 @@ const COPY: Record<ProRole, Record<OrderBucket, Copy>> = {
       empty: "Aucune commande en cours.",
     },
     done: {
-      subtitle: "Les commandes livrées, refusées ou annulées.",
+      subtitle: "Les commandes livrées ou refusées.",
       empty: "Aucune commande livrée.",
+    },
+    cancelled: {
+      subtitle: "Les commandes et les demandes de devis annulées.",
+      empty: "Aucune commande annulée.",
     },
   },
 };

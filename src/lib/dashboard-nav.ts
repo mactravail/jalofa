@@ -1,12 +1,18 @@
 import {
+  AlarmClock,
+  BadgeCheck,
+  Ban,
   Bell,
   CheckCircle2,
   ClipboardList,
   CreditCard,
   Crown,
+  Eye,
   Layers,
   LayoutDashboard,
+  Link2,
   Receipt,
+  Ruler,
   Scissors,
   Shirt,
   Store,
@@ -31,16 +37,22 @@ export type DashboardNavId =
   | "overview"
   | "notifications"
   | "profile"
+  | "shopLink"
+  | "visibility"
   | "account"
+  | "certification"
   | "todo"
   | "ongoing"
+  | "late"
   | "shipping"
   | "done"
+  | "cancelled"
   | "revenue"
   | "payout"
   | "offer"
   | "clients"
   | "models"
+  | "metrage"
   | "fabrics"
   | "sales";
 
@@ -83,11 +95,13 @@ export const BUCKET_LABELS: Record<ProRole, Record<OrderBucket, string>> = {
     todo: "Nouvelles commandes",
     ongoing: "En cours",
     done: "Terminées",
+    cancelled: "Annulées",
   },
   vendor: {
     todo: "Nouvelles commandes",
     ongoing: "En cours",
     done: "Livrées",
+    cancelled: "Annulées",
   },
 };
 
@@ -130,6 +144,17 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           label: BUCKET_LABELS[role].ongoing,
           icon: Scissors,
         },
+        // Les habits qui ont dépassé la date promise au client (tailleur).
+        ...(role === "tailor"
+          ? [
+              {
+                id: "late" as const,
+                href: `${root}/retards`,
+                label: "En retard",
+                icon: AlarmClock,
+              },
+            ]
+          : []),
         {
           // Vue transversale : les commandes à livrer regroupées par ville, pour
           // expédier ensemble les colis d'une même destination.
@@ -143,6 +168,13 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           href: `${root}/terminees`,
           label: BUCKET_LABELS[role].done,
           icon: CheckCircle2,
+        },
+        {
+          // Les commandes et devis annulés (par le client ou par JALOFA).
+          id: "cancelled",
+          href: `${root}/annulees`,
+          label: BUCKET_LABELS[role].cancelled,
+          icon: Ban,
         },
       ],
     },
@@ -158,6 +190,14 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 href: `${root}/creations`,
                 label: "Mes modèles",
                 icon: Shirt,
+              },
+              {
+                // Les mètres de tissu par corps et par taille, écrits une fois
+                // pour tous les modèles.
+                id: "metrage" as const,
+                href: `${root}/metrages`,
+                label: "Mes métrages",
+                icon: Ruler,
               },
               {
                 id: "fabrics" as const,
@@ -187,6 +227,22 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           href: `${root}/profil`,
           label: "Ma page publique",
           icon: Store,
+        },
+        // Le lien de la boutique à mettre sur TikTok : le client y achète
+        // directement les modèles (ou tissus) de ce pro, et seulement les siens.
+        {
+          id: "shopLink",
+          href: `${root}/lien`,
+          label: "Mon lien TikTok",
+          icon: Link2,
+        },
+        // Un seul compte pro = une boutique tailleur + une boutique de tissus :
+        // le pro choisit l'annuaire public où il se montre (l'un, l'autre, les deux).
+        {
+          id: "visibility",
+          href: `${root}/visibilite`,
+          label: "Je suis",
+          icon: Eye,
         },
         {
           id: "clients",
@@ -231,6 +287,14 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           href: `${root}/compte`,
           label: "Mes informations",
           icon: UserCog,
+        },
+        // Le pro envoie ses pièces (nom, carte d'identité, entreprise, NINEA…)
+        // pour obtenir le badge « Certifié », validé par l'administration.
+        {
+          id: "certification",
+          href: `${root}/certification`,
+          label: "Être certifié",
+          icon: BadgeCheck,
         },
       ],
     },

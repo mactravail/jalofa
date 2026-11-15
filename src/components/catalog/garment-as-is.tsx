@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "@/lib/i18n/navigation";
-import { Ruler } from "lucide-react";
+import { BookmarkCheck, Ruler } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCart } from "@/components/cart/cart-context";
@@ -9,6 +9,7 @@ import { STANDARD_SIZES, formatPrice } from "@/lib/constants";
 import type { FreeDeliveryZone } from "@/lib/delivery";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
+import { useSavedProfile } from "@/components/account/use-saved-profile";
 
 // « Prendre le vêtement tel quel » : le client accepte le modèle tel qu'il est
 // présenté — même tissu, mêmes finitions — et ne choisit QUE sa taille. Tout le
@@ -48,11 +49,16 @@ export function useAddAsIs(preset: AsIsPreset) {
   const { addItem } = useCart();
   const t = useT();
 
-  return (size: string | null) => {
+  /** `color` : la couleur du prêt-à-porter, quand le tailleur en propose. */
+  return (size: string | null, color?: string | null) => {
     if (!size) {
       toast.error(t("Choisissez d'abord votre taille"));
       return;
     }
+    const personalisation = color
+      ? [...preset.personalisation, { group: "Couleur", option: color }]
+      : preset.personalisation;
+    const notes = color ? `${preset.notesSpec}\nCouleur : ${color}` : preset.notesSpec;
     addItem({
       type: preset.type,
       modelId: preset.modelId,
@@ -61,9 +67,10 @@ export function useAddAsIs(preset: AsIsPreset) {
       styleRefs: [],
       fabricId: preset.fabricId,
       fabricMeters: preset.fabricMeters,
+      readyColor: color ?? null,
       tailorId: preset.tailorId,
       measurement: { mode: "standard", standard_size: size, values: {} },
-      notes: preset.notesSpec,
+      notes,
       title: preset.modelName,
       subtitle: t(preset.subtitle ?? "Modèle présenté · à votre taille"),
       image: preset.image,
@@ -71,14 +78,14 @@ export function useAddAsIs(preset: AsIsPreset) {
       tailorName: preset.tailorName,
       freeDelivery: preset.freeDelivery ?? false,
       freeDeliveryZone: preset.freeDeliveryZone,
-      personalisation: preset.personalisation,
+      personalisation,
       measurementLabel: t("Taille {size}", { size }),
       unitFabricPrice: preset.fabricPrice,
       unitTailoringPrice: preset.tailoringPrice,
       unitPrice: preset.total,
     });
-    toast.success(t("{name} ajouté au panier", { name: preset.modelName }), {
-      description: `${t("Taille {size}", { size })} · ${formatPrice(preset.total)}`,
+    toast.success(t("Ajouté au panier : {name}", { name: preset.modelName }), {
+      description: `${color ? `${color} · ` : ""}${t("Taille {size}", { size })} · ${formatPrice(preset.total)}`,
     });
     router.push("/panier");
   };
@@ -95,6 +102,11 @@ export function SizePicker({
   note?: string;
 }) {
   const t = useT();
+  // Client connecté avec une taille standard enregistrée : on la propose d'un
+  // geste, sans l'imposer (la tenue peut être pour quelqu'un d'autre).
+  const profile = useSavedProfile();
+  const savedSize =
+    profile?.measurement?.mode === "standard" ? profile.measurement.standard_size : null;
   return (
     <div>
       <div className="flex items-center gap-1.5 text-sm font-medium">
@@ -104,6 +116,18 @@ export function SizePicker({
         {note ??
           t("Même tissu et mêmes finitions que le modèle présenté — le tailleur l'ajuste à votre taille.")}
       </p>
+      {savedSize && value !== savedSize && (
+        <button
+          type="button"
+          onClick={() => onChange(savedSize)}
+          className="mt-3 flex w-full items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/5 px-3 py-2.5 text-left text-sm"
+        >
+          <BookmarkCheck className="size-4 shrink-0 text-emerald-500" />
+          <span>
+            {t("Utiliser ma taille enregistrée ?")} <span className="font-semibold">{savedSize}</span>
+          </span>
+        </button>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {STANDARD_SIZES.map((s) => (
           <button

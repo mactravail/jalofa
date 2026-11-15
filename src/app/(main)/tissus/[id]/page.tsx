@@ -1,23 +1,52 @@
 import type { Metadata } from "next";
 import Link from "@/components/i18n/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, ChevronRight, Droplets, Package, Store, Sun } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronRight,
+  Droplets,
+  Eye,
+  MapPin,
+  MoveHorizontal,
+  Package,
+  Ruler,
+  Shapes,
+  Sparkles,
+  Store,
+  Sun,
+  Weight,
+  Wind,
+  Shirt,
+} from "lucide-react";
 
 import { FabricBuyPanel } from "@/components/catalog/fabric-buy-panel";
 import { FabricCard } from "@/components/catalog/fabric-card";
-import { FabricReviews } from "@/components/catalog/fabric-reviews";
 import { FabricShowcase } from "@/components/catalog/fabric-showcase";
 import { ReviewList } from "@/components/catalog/review-list";
 import { DemoBanner } from "@/components/demo-banner";
 import { StyleIcon } from "@/components/order/style-icons";
 import { formatPrice } from "@/lib/constants";
-import { getFabricById, getFabricReviews, getFabrics, getVendorById } from "@/lib/data";
+import {
+  getFabricById,
+  getFabricCategories,
+  getFabricReviews,
+  getFabrics,
+  getVendorById,
+} from "@/lib/data";
+import {
+  CARE_INSTRUCTIONS,
+  DRAPES,
+  OPACITIES,
+  PATTERNS,
+  STRETCHES,
+  USAGES,
+  WEIGHTS,
+  pickKey,
+} from "@/lib/fabric-specs";
 import { formatMeters, isFabricAvailable } from "@/lib/fabric-metrage";
-import { fabricSocialProof } from "@/lib/fabric-social-proof";
 import { AUDIENCE_LABELS, audiencesOf, fabricProfile, pricedUse } from "@/lib/fabric-usage";
 import { getT } from "@/lib/i18n/server";
-import { getLocale } from "@/lib/i18n/server";
-import { intlLocale } from "@/lib/i18n/config";
+import { canSell, isDemoFabric } from "@/lib/sales-approval";
 
 export async function generateMetadata({
   params,
@@ -46,9 +75,10 @@ export default async function FabricDetailPage({
 }) {
   const { id } = await params;
   const fabric = await getFabricById(id);
-  if (!fabric) notFound();
+  // Retiré du catalogue par son vendeur : la fiche disparaît, comme un modèle
+  // désactivé — elle ne doit plus vendre, même par un lien gardé de côté.
+  if (!fabric || fabric.is_active === false) notFound();
   const t = await getT();
-  const locale = intlLocale(await getLocale());
 
   // Boutique d'origine — on ne lie que vers une fiche publique visible (une
   // boutique suspendue n'a pas de page).
@@ -58,14 +88,20 @@ export default async function FabricDetailPage({
   const family = await getFabrics({ category: fabric.category_slug ?? undefined });
 
   // Avis vérifiés portant sur CE tissu (clients qui l'ont réellement acheté et
-  // reçu). Distincts de la preuve sociale synthétique ci-dessous, ils ne
+  // reçu). Ils ne
   // s'affichent que s'il en existe.
   const fabricReviews = await getFabricReviews(id);
+  const categories = await getFabricCategories();
+  const categoryName = categories.find((c) => c.slug === fabric.category_slug)?.name ?? null;
 
-  // Coloris : le même tissu décliné, c'est-à-dire la même matière chez le
-  // catalogue. Une matière unique n'affiche pas de nuancier.
+  // Coloris : le même tissu décliné CHEZ LE MÊME VENDEUR (même matière). Sans
+  // ce filtre, « Coton » rassemblait les tissus de toutes les boutiques et le
+  // client passait chez un autre vendeur en touchant une pastille. Un tissu
+  // seul dans sa boutique n'affiche pas de nuancier (les tissus du catalogue
+  // JALOFA, sans vendeur, restent groupés entre eux).
   const variants = family.filter(
     (f) =>
+      (f.vendor_id ?? null) === (fabric.vendor_id ?? null) &&
       (f.material ?? "").toLowerCase() === (fabric.material ?? "").toLowerCase() &&
       f.is_active,
   );
@@ -75,14 +111,68 @@ export default async function FabricDetailPage({
   const profile = fabricProfile(fabric);
   const uses = profile.uses.map((u) => pricedUse(u, fabric));
   const audiences = audiencesOf(profile);
-  const proof = fabricSocialProof(fabric);
+  // Note affichée = moyenne des seuls avis vérifiés. Aucun chiffre inventé :
+  // sans avis réel, la fiche n'affiche ni étoiles ni compteur.
+  const reviewCount = fabricReviews.length;
+  const rating = reviewCount
+    ? Math.round((fabricReviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
+    : 0;
 
-  // Le plus vendu de la sélection porte sa pastille — même source de vérité que
-  // les chiffres de la fiche, donc jamais en contradiction avec eux.
-  const bestSellerId = related.reduce<{ id: string; sold: number } | null>((best, f) => {
-    const sold = fabricSocialProof(f).soldMeters;
-    return !best || sold > best.sold ? { id: f.id, sold } : best;
-  }, null)?.id;
+  // Tableau des caractéristiques : seules les lignes renseignées s'affichent ;
+  // sans fiche détaillée, on retombe sur le profil déduit de la famille.
+  const weight = pickKey(WEIGHTS, fabric.weight);
+  const opacity = pickKey(OPACITIES, fabric.opacity);
+  const drape = pickKey(DRAPES, fabric.drape);
+  const stretch = pickKey(STRETCHES, fabric.stretch);
+  const pattern = pickKey(PATTERNS, fabric.pattern);
+  const care = (fabric.care_instructions ?? [])
+    .map((c) => pickKey(CARE_INSTRUCTIONS, c))
+    .filter((c): c is keyof typeof CARE_INSTRUCTIONS => c !== null);
+  const usages = (fabric.recommended_usages ?? [])
+    .map((u) => pickKey(USAGES, u))
+    .filter((u): u is keyof typeof USAGES => u !== null);
+  const sheer = opacity === "SHEER" || opacity === "SEMI_SHEER";
+  const composition = fabric.composition ?? fabric.material;
+  const specs: { icon: typeof Package; term: string; desc: string }[] = [
+    {
+      icon: Package,
+      term: t("Matière"),
+      desc:
+        [categoryName ? t(categoryName) : t(profile.family), composition && `(${composition})`]
+          .filter(Boolean)
+          .join(" ") || "—",
+    },
+    ...(fabric.width_cm ? [{ icon: Ruler, term: t("Largeur (laize)"), desc: `${fabric.width_cm} cm` }] : []),
+    ...(fabric.origin_brand ? [{ icon: MapPin, term: t("Origine / Qualité"), desc: fabric.origin_brand }] : []),
+    ...(weight
+      ? [
+          {
+            icon: Weight,
+            term: t("Épaisseur"),
+            desc: `${t(WEIGHTS[weight].label)}${fabric.grammage_gsm ? ` (${fabric.grammage_gsm} g/m²)` : ""}`,
+          },
+        ]
+      : []),
+    ...(opacity ? [{ icon: Eye, term: t("Opacité"), desc: t(OPACITIES[opacity].label) }] : []),
+    ...(drape ? [{ icon: Wind, term: t("Tombé"), desc: t(DRAPES[drape].label) }] : []),
+    ...(stretch ? [{ icon: MoveHorizontal, term: t("Élasticité"), desc: t(STRETCHES[stretch].label) }] : []),
+    ...(pattern ? [{ icon: Shapes, term: t("Motif"), desc: t(PATTERNS[pattern].label) }] : []),
+    ...(fabric.finish ? [{ icon: Sparkles, term: t("Finition"), desc: fabric.finish }] : []),
+    {
+      icon: Droplets,
+      term: t("Entretien"),
+      desc: care.length ? care.map((c) => t(CARE_INSTRUCTIONS[c].label)).join(" · ") : t(profile.care),
+    },
+    ...(usages.length
+      ? [{ icon: Shirt, term: t("Idéal pour"), desc: usages.map((u) => t(USAGES[u].label)).join(" · ") }]
+      : []),
+    ...(!weight ? [{ icon: Sun, term: t("Saison"), desc: t(profile.season) }] : []),
+    {
+      icon: BadgeCheck,
+      term: t("Disponibilité"),
+      desc: `${isFabricAvailable(fabric) ? t("Disponible") : t("Épuisé")}${fabric.color ? ` · ${fabric.color}` : ""}`,
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -109,6 +199,7 @@ export default async function FabricDetailPage({
         <div className="lg:sticky lg:top-24 lg:self-start">
           <FabricShowcase
             image={fabric.image_url}
+            detailImage={fabric.detail_image_url ?? null}
             fabricName={fabric.name}
             colorLabel={fabric.color}
             uses={uses.map(({ use, meters }) => ({
@@ -131,20 +222,16 @@ export default async function FabricDetailPage({
           vendorName={shop?.shop_name ?? vendor?.shop_name ?? null}
           vendorHref={shop ? `/vendeurs/${shop.id}` : null}
           deliveryZone={fabric.delivery_zone ?? "none"}
-          rating={proof.rating}
-          reviewCount={proof.reviewCount}
-          orders={proof.orders}
+          rating={rating}
+          reviewCount={reviewCount}
+          salesPending={!canSell(vendor)}
+          demo={isDemoFabric(fabric)}
         />
-      </div>
-
-      {/* Note & avis — juste sous le bloc produit, là où on les cherche */}
-      <div className="mt-16 border-t pt-12">
-        <FabricReviews proof={proof} />
       </div>
 
       {/* Avis vérifiés de clients ayant acheté ce tissu (s'il y en a) */}
       {fabricReviews.length > 0 && (
-        <section id="avis-verifies" className="mt-12">
+        <section id="avis" className="mt-16 border-t pt-12">
           <h2 className="font-serif text-2xl tracking-tight">
             {t("Avis vérifiés")}
             <span className="text-muted-foreground ml-2 text-base font-normal">
@@ -158,8 +245,28 @@ export default async function FabricDetailPage({
         </section>
       )}
 
-      {/* À quoi sert ce tissu — la question n°1 devant un rouleau */}
+      {/* Caractéristiques techniques — ce que le vendeur a renseigné */}
       <section className="mt-16">
+        <h2 className="font-serif text-2xl tracking-tight">{t("Caractéristiques")}</h2>
+        {sheer && (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300">
+            <Eye className="size-3.5" /> {t("Doublure conseillée")}
+          </p>
+        )}
+        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {specs.map(({ icon: Icon, term, desc }) => (
+            <div key={term} className="rounded-xl border p-4">
+              <dt className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide">
+                <Icon className="size-3.5" /> {term}
+              </dt>
+              <dd className="mt-1.5 text-sm leading-snug">{desc}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* À quoi sert ce tissu — la question n°1 devant un rouleau */}
+      <section className="mt-14">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="font-serif text-2xl tracking-tight">{t("Pour quelles tenues ?")}</h2>
           <div className="flex flex-wrap gap-1.5">
@@ -208,32 +315,6 @@ export default async function FabricDetailPage({
         </p>
       </section>
 
-      {/* La matière */}
-      <section className="mt-14">
-        <h2 className="font-serif text-2xl tracking-tight">{t("La matière")}</h2>
-        <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { icon: Package, term: t("Famille"), desc: t(profile.family) },
-            { icon: Sun, term: t("Saison"), desc: t(profile.season) },
-            { icon: Droplets, term: t("Entretien"), desc: t(profile.care) },
-            {
-              icon: BadgeCheck,
-              term: t("Disponibilité"),
-              desc: `${isFabricAvailable(fabric) ? t("Disponible") : t("Épuisé")}${
-                fabric.color ? ` · ${fabric.color}` : ""
-              }`,
-            },
-          ].map(({ icon: Icon, term, desc }) => (
-            <div key={term} className="rounded-xl border p-4">
-              <dt className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide">
-                <Icon className="size-3.5" /> {term}
-              </dt>
-              <dd className="mt-1.5 text-sm leading-snug">{desc}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
       {/* La boutique */}
       {shop && (
         <section className="mt-14">
@@ -251,7 +332,7 @@ export default async function FabricDetailPage({
                 {shop.is_certified && <BadgeCheck className="text-muted-foreground size-4" />}
               </p>
               <p className="text-muted-foreground text-sm">
-                {shop.city ?? t("Sénégal")} · {t("{n} commandes servies", { n: proof.orders.toLocaleString(locale) })}
+                {shop.city ?? t("Sénégal")}
               </p>
             </div>
             <ChevronRight className="text-muted-foreground ml-auto size-5 shrink-0" />
@@ -270,11 +351,7 @@ export default async function FabricDetailPage({
           </div>
           <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {related.map((f) => (
-              <FabricCard
-                key={f.id}
-                fabric={f}
-                badge={f.id === bestSellerId ? "Best-seller" : undefined}
-              />
+              <FabricCard key={f.id} fabric={f} />
             ))}
           </div>
         </section>

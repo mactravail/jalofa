@@ -5,8 +5,7 @@ import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_NAME, APP_TAGLINE, THEME_COLOR } from "@/lib/constants";
-import { getLocale, languageAlternates } from "@/lib/i18n/server";
-import { translate } from "@/lib/i18n/translate";
+import { getDictionary, getLocale, languageAlternates, translate } from "@/lib/i18n/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -81,7 +80,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         {/* Site tout en noir, quel que soit le réglage du téléphone. */}
         <ThemeProvider attribute="class" forcedTheme="dark" disableTransitionOnChange>
-          <LocaleProvider locale={locale}>
+          <LocaleProvider locale={locale} dict={getDictionary(locale)}>
             {children}
             <Toaster position="top-center" />
           </LocaleProvider>

@@ -4,6 +4,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { FemmeCollection } from "@/components/catalog/femme-collection";
 import { HommeCollection } from "@/components/catalog/homme-collection";
 import { ModelsCatalog } from "@/components/catalog/models-catalog";
+import { isCatalogModel } from "@/lib/catalog-link";
 import { getLatestReviews, getModelCategories, getModels } from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
 
@@ -50,8 +51,10 @@ export default async function ModelsPage({
   searchParams: Promise<ModelsSearchParams>;
 }) {
   const { category, q, type, fabric, tailor } = await searchParams;
+  // /modeles ne montre que le catalogue JALOFA : les créations des tailleurs
+  // s'affichent sur la page de leur modèle (cf. `catalog-link.ts`).
   const [models, categories] = await Promise.all([
-    getModels({ category }),
+    getModels({ category }).then((list) => list.filter(isCatalogModel)),
     getModelCategories(),
   ]);
 
@@ -97,7 +100,7 @@ export default async function ModelsPage({
   // Tout le reste (catalogue complet, autre catégorie, recherche) : la grille
   // « collection » filtre et trie côté client, sur tout le catalogue.
   // Les habits pour enfant ne sont plus proposés dans le catalogue.
-  const allModels = (category ? await getModels() : models).filter(
+  const allModels = (category ? (await getModels()).filter(isCatalogModel) : models).filter(
     (m) => m.category_slug !== "enfant",
   );
 

@@ -4,21 +4,33 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { GarmentBuyBox } from "@/components/catalog/garment-buy-box";
+import {
+  CLICKED_CARD_ID,
+  hrefWithPhoto,
+  isClickedPhotoActive,
+  readClickedPhoto,
+} from "@/lib/clicked-photo";
 import { GarmentGallery } from "@/components/catalog/garment-gallery";
 import {
   GarmentDetails,
   GarmentFooter,
   GarmentHeading,
 } from "@/components/catalog/garment-summary";
-import { GarmentTypeSwitcher } from "@/components/catalog/garment-type-switcher";
+import {
+  creationTypeCard,
+  GarmentTypeSwitcher,
+} from "@/components/catalog/garment-type-switcher";
 import { DemoBanner } from "@/components/demo-banner";
 import { modelPhotos } from "@/lib/constants";
 import {
   getFabrics,
   getModelBySlug,
+  getTailorCreationsFor,
   getModelReviews,
   getTailorById,
   getTailors,
+  getUnapprovedSellerIds,
+  sellableFabrics,
 } from "@/lib/data";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { ROBE_TYPES } from "@/lib/garment-routes";
@@ -47,9 +59,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RobePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; photo?: string; vue?: string }>;
 }) {
-  const { type } = await searchParams;
+  const { type, photo, vue } = await searchParams;
+  const clickedPhoto = readClickedPhoto(photo);
+  const clickedActive = isClickedPhotoActive(clickedPhoto, vue);
   const t = await getT();
   const selectedSlug = type && ROBE_TYPES.includes(type) ? type : ROBE_TYPES[0];
 
@@ -100,8 +114,13 @@ export default async function RobePage({
 
   // Les avis de CE type précis et les modèles proches : ils suivent le switcher,
   // comme le reste de la page. Les autres types sont déjà dans le switcher.
-  const [reviews, related] = await Promise.all([
+  // Les créations des tailleurs rangées sous le modèle affiché.
+  const familyIds = new Set(models.map((m) => m.id));
+  // Anti-arnaque : les tissus d'un vendeur pas encore validé ne s'achètent pas.
+  const unapproved = await getUnapprovedSellerIds();
+  const [reviews, creationsRaw, related] = await Promise.all([
     getModelReviews(model.id),
+    getTailorCreationsFor([model]),
     getRelatedGarments({
       model,
       excludeIds: models.map((m) => m.id),
@@ -123,16 +142,43 @@ export default async function RobePage({
 
       <GarmentTypeSwitcher
         basePath="/femme/robe-sur-mesure"
-        label={t("Choisissez le type de robe")}
-        types={switcherTypes}
-        activeId={model.slug ?? model.id}
+        label={t("Choisissez votre modèle")}
+        types={[
+          // Une page = un vêtement : le modèle JALOFA affiché, puis seulement les
+          // créations des tailleurs rangées sous lui. La rangée défile.
+          ...switcherTypes
+            .filter((c) => c.id === (model.slug ?? model.id))
+            .flatMap((c) =>
+              clickedPhoto
+                ? [
+                    {
+                      ...c,
+                      id: CLICKED_CARD_ID,
+                      image: clickedPhoto,
+                      href: hrefWithPhoto(`/femme/robe-sur-mesure?type=${c.id}`, clickedPhoto),
+                    },
+                    {
+                      ...c,
+                      href: hrefWithPhoto(`/femme/robe-sur-mesure?type=${c.id}`, clickedPhoto, true),
+                    },
+                  ]
+                : [c],
+            ),
+          ...creationsRaw
+            .filter((m) => !familyIds.has(m.id))
+            .map((m) =>
+              creationTypeCard(m, tailors.find((tl) => tl.id === m.tailor_id)?.shop_name ?? null),
+            ),
+        ]}
+        activeId={clickedActive ? CLICKED_CARD_ID : (model.slug ?? model.id)}
+        showSingle
       />
 
       {/* `grid-cols-1` explicite : une colonne implicite se dimensionne sur son
           contenu et laisse un rail défilant élargir la page (cf. /modeles/[id]). */}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <GarmentGallery
-          photos={photos}
+          photos={clickedActive && clickedPhoto ? [clickedPhoto] : photos}
           alt={model.name}
           fit="cover"
           sizes="(max-width: 768px) 100vw, 50vw"
@@ -157,7 +203,7 @@ export default async function RobePage({
               key={model.id}
               preset={preset}
               presentedIn={asIsFabric?.name ?? null}
-              fabrics={fabrics}
+              fabrics={sellableFabrics(fabrics, unapproved)}
               orderParams={order.toString()}
             />
           </div>
