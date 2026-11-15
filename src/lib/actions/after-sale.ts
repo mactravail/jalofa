@@ -479,24 +479,63 @@ async function adminDbOrError() {
 }
 
 /**
- * JALOFA a joint le client sur WhatsApp, ou il n'a pas répondu après 48 h : le
- * tissu est considéré comme reçu, ce qui libère l'argent du vendeur.
+ * JALOFA a demandé au client s'il a reçu sa commande (tenue ou tissu seul) :
+ * il a dit oui, ou n'a pas répondu dans les 24 h. La commande passe à
+ * « livrée », ce qui libère l'argent du tailleur et du vendeur. Efface un
+ * « pas reçue » enregistré avant (le colis a fini par arriver).
  */
-export async function adminMarkFabricReceived(orderId: string): Promise<AfterSaleResult> {
+export async function adminMarkOrderReceived(orderId: string): Promise<AfterSaleResult> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+  const admin = await adminDbOrError();
+  if ("error" in admin) return { ok: false, error: admin.error ?? "Action non autorisée." };
+
+  const { data: order } = await admin.db
+    .from("orders")
+    .select("type, status")
+    .eq("id", orderId)
+    .single();
+  const o = order as { type: OrderType; status: OrderStatus } | null;
+  const enRoute = o && (o.type === "fabric_only" ? o.status === "fabric_shipped" : o.status === "shipped");
+  if (!enRoute) return { ok: false, error: "Cette commande n'est pas en route." };
+
+  const { error } = await admin.db
+    .from("orders")
+    .update({ status: "delivered", receipt_disputed_at: null } as never)
+    .eq("id", orderId)
+    .eq("status", o.status);
+  if (error) return { ok: false, error: missingColumn(error) ?? error.message };
+
+  revalidateOrder(orderId);
+  return { ok: true };
+}
+
+/**
+ * Le client dit qu'il n'a PAS reçu son colis (dans les 24 h). La commande reste
+ * « en route » : ni le tailleur ni le vendeur ne sont payés tant que JALOFA
+ * n'a pas tiré l'affaire au clair (livreur, tailleur). Si le colis n'arrive
+ * jamais, le remboursement passe par « Annulations ».
+ */
+export async function adminMarkOrderNotReceived(orderId: string): Promise<AfterSaleResult> {
   if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
   const admin = await adminDbOrError();
   if ("error" in admin) return { ok: false, error: admin.error ?? "Action non autorisée." };
 
   const { error } = await admin.db
     .from("orders")
-    .update({ status: "delivered" })
+    .update({ receipt_disputed_at: new Date().toISOString() } as never)
     .eq("id", orderId)
-    .eq("type", "fabric_only")
-    .eq("status", "fabric_shipped");
-  if (error) return { ok: false, error: error.message };
+    .in("status", ["shipped", "fabric_shipped"]);
+  if (error) return { ok: false, error: missingColumn(error) ?? error.message };
 
   revalidateOrder(orderId);
   return { ok: true };
+}
+
+/** La colonne `receipt_disputed_at` vient de 20260905000001 : message clair si absente. */
+function missingColumn(error: { code?: string; message: string }): string | null {
+  return error.code === "42703" || error.message.includes("receipt_disputed_at")
+    ? "Base pas à jour : appliquez la migration 20260905000001."
+    : null;
 }
 
 /**

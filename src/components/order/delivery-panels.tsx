@@ -22,7 +22,7 @@ const ETA_OPTIONS: Intl.DateTimeFormatOptions = {
   timeZone: "Africa/Dakar",
 };
 
-/** Le rappel des 72 h : passé ce délai, le pro est payé. */
+/** Le rappel des 24 h : passé ce délai, le pro est payé. */
 export function PayoutDelayNotice() {
   const t = useT();
   return (
@@ -30,7 +30,7 @@ export function PayoutDelayNotice() {
       <Clock className="mt-0.5 size-4 shrink-0 text-amber-400" />
       <span>
         <strong>{t("{h} h après la livraison", { h: PAYOUT_DELAY_HOURS })}</strong>
-        {t(", le tailleur et le vendeur de tissu sont payés. Un problème ? Prévenez-nous avant.")}
+        {t(", le tailleur et le vendeur de tissu sont payés. Pas reçu votre colis ? Prévenez-nous avant. Un problème avec votre commande ? Vous pouvez le signaler à tout moment.")}
       </span>
     </p>
   );

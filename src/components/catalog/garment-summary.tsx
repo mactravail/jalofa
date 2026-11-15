@@ -199,7 +199,7 @@ export async function GarmentDetails({
         </p>
         <p>{t("Une tenue cousue ne peut pas être rendue, mais votre tailleur peut la retoucher.")}</p>
         <p>
-          {t("Défaut, erreur ou tenue jamais reçue : faites une réclamation dans les 3 jours après la livraison pour être remboursé.")}
+          {t("Tenue jamais reçue : dites-le-nous dans les 24 h après la livraison pour être remboursé. Défaut ou erreur : signalez-le à tout moment.")}
         </p>
         <Link href="/conditions" className="inline-block underline underline-offset-4">
           {t("Lire les conditions")}

@@ -14,19 +14,21 @@ import type { OrderStatus, OrderType } from "@/lib/constants";
  */
 export const CANCEL_WINDOW_HOURS = 24;
 export const RETURN_WINDOW_DAYS = 3;
-export const RECEIPT_CONFIRM_HOURS = 48;
+export const RECEIPT_CONFIRM_HOURS = 24;
 
 /**
- * Le tailleur et le vendeur de tissu sont payés 72 h après la livraison : c'est
- * le temps qu'a le client (ou son GP, s'il vit à l'étranger) pour signaler un
- * problème à JALOFA.
+ * Le tailleur et le vendeur de tissu sont payés 24 h après la livraison
+ * (2026-11-15) : le temps de vérifier que le client a bien reçu son colis et
+ * d'arrêter une arnaque. Règle :
+ * - colis PAS reçu : le client (ou son GP) a 24 h pour le dire à JALOFA ; sinon
+ *   le colis est considéré comme reçu et le pro est payé ;
+ * - colis reçu : un problème (défaut, erreur, retouche) se signale À TOUT
+ *   MOMENT, sans délai. Un remboursement après versement est à la charge du
+ *   pro en tort.
  */
-export const PAYOUT_DELAY_HOURS = 72;
+export const PAYOUT_DELAY_HOURS = 24;
 
-// Les délais choisis d'après le marché (2026-11-10). Tous tiennent dans la même
-// logique : le retour d'un tissu (3 j) et le signalement d'un problème (3 j) se
-// ferment au moment où le pro est payé (72 h). Ainsi, JALOFA n'a jamais à
-// reprendre de l'argent déjà versé.
+// Les délais choisis d'après le marché (2026-11-10).
 //
 // Engagements du pro, écrits dans /conditions (B3). Pas encore de relance ni
 // d'annulation automatique : c'est une règle, pas un minuteur.

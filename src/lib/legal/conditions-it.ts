@@ -67,8 +67,8 @@ export const CONDITIONS_PARTS_IT: LegalPart[] = [
         body: `I pagamenti si effettuano sulla piattaforma tramite Orange Money, Wave, Free Money o carta bancaria, in FCFA. Il cliente paga il suo ordine in un'unica soluzione. La somma non viene versata subito al professionista: viene prima custodita da ${APP_NAME} (vedi articolo seguente). I dati bancari completi non sono conservati dalla piattaforma.`,
       },
       {
-        title: "5. Fondi in attesa: versamento 3 giorni dopo la consegna",
-        body: `Per proteggere il cliente dalle frodi e lasciargli il tempo di verificare ciò che ha ricevuto, la somma pagata è custodita da ${APP_NAME} come fondi in attesa. Viene versata al professionista 3 giorni dopo la conferma della consegna, a condizione che non sia aperto alcun reclamo. Se è in corso un reclamo legittimo, il versamento è sospeso fino alla sua risoluzione; se risulta che il professionista ha torto, la somma può essere rimborsata al cliente invece di essere versata. Questo termine di 3 giorni è una garanzia sia per il cliente sia per il professionista onesto.`,
+        title: "5. Fondi in attesa: versamento 24 ore dopo la consegna",
+        body: `Per proteggere il cliente dalle frodi e verificare che abbia ricevuto il suo pacco, la somma pagata è custodita da ${APP_NAME} come fondi in attesa. Viene versata al professionista 24 ore dopo la consegna. Durante queste 24 ore, il cliente che non ha ricevuto il pacco deve segnalarlo a ${APP_NAME}: il versamento viene sospeso finché la situazione non è chiarita, e il cliente viene rimborsato se il pacco non è mai stato consegnato. Senza segnalazione entro questo termine, il pacco è considerato ricevuto e il professionista viene pagato. Un problema su ciò che è stato ricevuto (difetto, errore, ritocco) può invece essere segnalato in qualsiasi momento.`,
       },
       {
         title: "6. Dire e fare solo ciò che si è in grado di fare",
@@ -150,7 +150,7 @@ export const CONDITIONS_PARTS_IT: LegalPart[] = [
       },
       {
         title: "A5. Consegna e verifica al ricevimento",
-        body: `${APP_NAME} non consegna. Ogni professionista fissa i suoi prezzi di consegna (economica ed express), che ti vengono mostrati prima di pagare. Quando un professionista non ha indicato un prezzo per l'economica, paghi direttamente il GP o il corriere: questo pagamento non passa da ${APP_NAME}, che non ne è responsabile. Al ricevimento, verifica che ciò che ricevi corrisponda al tuo ordine: il modello giusto, le finiture giuste e — per un tessuto — il materiale, il colore e il metraggio giusti. In caso di problema, non aspettare: apri un reclamo entro il termine dei fondi in attesa di 3 giorni.`,
+        body: `${APP_NAME} non consegna. Ogni professionista fissa i suoi prezzi di consegna (economica ed express), che ti vengono mostrati prima di pagare. Quando un professionista non ha indicato un prezzo per l'economica, paghi direttamente il GP o il corriere: questo pagamento non passa da ${APP_NAME}, che non ne è responsabile. Al ricevimento, verifica che ciò che ricevi corrisponda al tuo ordine: il modello giusto, le finiture giuste e — per un tessuto — il materiale, il colore e il metraggio giusti. Non hai ricevuto nulla? Avvisa ${APP_NAME} entro 24 ore dalla consegna: passato questo termine, il pacco è considerato ricevuto e il professionista viene pagato. Un problema su ciò che hai ricevuto può essere segnalato in qualsiasi momento.`,
       },
       {
         title: "A6. Il tuo diritto di reclamo e di rimborso",
@@ -168,11 +168,11 @@ export const CONDITIONS_PARTS_IT: LegalPart[] = [
       },
       {
         title: "A8. Come fare un reclamo",
-        body: `Apri il reclamo dall'ordine interessato, nel tuo spazio, entro il termine dei fondi in attesa di 3 giorni dalla consegna. Descrivi il problema e allega foto, se possibile. Queste prove permettono a ${APP_NAME} di esaminare la tua pratica, ascoltare il professionista e decidere rapidamente.`,
+        body: `Apri il reclamo dall'ordine interessato, nel tuo spazio. Pacco mai ricevuto: entro 24 ore dalla consegna. Difetto, errore o ritocco su ciò che hai ricevuto: in qualsiasi momento. Descrivi il problema e allega foto, se possibile. Queste prove permettono a ${APP_NAME} di esaminare la tua pratica, ascoltare il professionista e decidere rapidamente.`,
       },
       {
         title: "A9. Rimborsi",
-        body: `Quando un reclamo è fondato, ${APP_NAME} procede al rimborso — totale o parziale in base al danno — con il mezzo di pagamento utilizzato, oppure organizza la restituzione del tessuto. Poiché la somma è ancora nei fondi in attesa, il rimborso è diretto e non deve essere «recuperato» presso il professionista. Un abito su misura confezionato correttamente secondo le tue misure non può essere rimborsato per un semplice ripensamento; lo è in caso di difetto, non conformità o inganno accertati.`,
+        body: `Quando un reclamo è fondato, ${APP_NAME} procede al rimborso — totale o parziale in base al danno — con il mezzo di pagamento utilizzato, oppure organizza la restituzione del tessuto. Se la somma è ancora nei fondi in attesa, il rimborso è diretto; se è già stata versata, è a carico del professionista in torto. Un abito su misura confezionato correttamente secondo le tue misure non può essere rimborsato per un semplice ripensamento; lo è in caso di difetto, non conformità o inganno accertati.`,
       },
       {
         title: "A10. I tuoi obblighi",
@@ -241,8 +241,8 @@ export const CONDITIONS_PARTS_IT: LegalPart[] = [
         body: "La scheda di un tessuto deve essere esatta: materiale e composizione, colore, motivo, larghezza, metraggio/lunghezza, qualità e prezzo. Un tessuto descritto con informazioni false può essere restituito dal cliente, a tue spese, e costituisce un'inadempienza. Fotografa e descrivi i tuoi tessuti come sono realmente.",
       },
       {
-        title: "B8. Incasso: versamento 3 giorni dopo la consegna",
-        body: `Il denaro di un ordine non ti viene versato subito. ${APP_NAME} lo custodisce come fondi in attesa, poi te lo versa 3 giorni dopo la conferma della consegna, in assenza di reclami. Questo termine protegge i clienti dalle frodi e protegge te dalle contestazioni: un ordine onesto e consegnato conforme viene pagato senza problemi. Se un reclamo fondato viene accolto, la somma può essere rimborsata al cliente invece che versata.`,
+        title: "B8. Incasso: versamento 24 ore dopo la consegna",
+        body: `Il denaro di un ordine non ti viene versato subito. ${APP_NAME} lo custodisce come fondi in attesa, poi te lo versa 24 ore dopo la consegna, se il cliente non ha segnalato di non aver ricevuto il pacco. Questo termine permette di verificare che il pacco sia arrivato e protegge i clienti dalle frodi e protegge te dalle contestazioni: un ordine onesto e consegnato conforme viene pagato senza problemi. Se un reclamo fondato viene accolto, la somma può essere rimborsata al cliente invece che versata.`,
       },
       {
         title: "B9. Tabella delle sanzioni",

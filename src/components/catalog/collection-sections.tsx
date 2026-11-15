@@ -49,7 +49,7 @@ const STEPS = [
   },
   {
     title: "Recevez, vérifiez",
-    text: "Un souci ? Vous avez 3 jours pour le signaler.",
+    text: "Pas reçu ? Dites-le dans les 24 h. Un souci ? À tout moment.",
   },
 ];
 

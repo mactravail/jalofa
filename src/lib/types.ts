@@ -479,6 +479,8 @@ export interface Order {
    * (migration 20260828000001).
    */
   fabric_vendor_check?: "pending" | "confirmed" | "denied" | null;
+  /** Le client a dit à JALOFA qu'il n'a PAS reçu son colis (migration 20260905000001). */
+  receipt_disputed_at?: string | null;
   cut_started_at?: string | null;
   cut_was_authorized?: boolean | null;
   /** Livraison aller du tissu, au tarif annoncé par le vendeur. */

@@ -72,7 +72,7 @@ export const CONFIDENTIALITE_SECTIONS_IT: LegalClause[] = [
   },
   {
     title: "8. Fondi in attesa e lotta contro le frodi",
-    body: `Per proteggere clienti e professionisti, la somma di un ordine è custodita come fondi in attesa e poi versata al professionista 3 giorni dopo la consegna, in assenza di reclami. Per questo conserviamo le informazioni necessarie per seguire pagamenti, reclami e versamenti, e per individuare comportamenti fraudolenti.`,
+    body: `Per proteggere clienti e professionisti, la somma di un ordine è custodita come fondi in attesa e poi versata al professionista 24 ore dopo la consegna, se il cliente non ha segnalato di non aver ricevuto il pacco. Per questo conserviamo le informazioni necessarie per seguire pagamenti, reclami e versamenti, e per individuare comportamenti fraudolenti.`,
   },
   {
     title: "9. Condivisione dei tuoi dati",

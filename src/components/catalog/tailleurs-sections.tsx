@@ -76,7 +76,7 @@ const MONEY_STEPS = [
   },
   {
     title: "Livré ? Le tailleur est payé",
-    text: "Il reçoit son argent 3 jours après la livraison, si le client ne signale aucun problème.",
+    text: "Il reçoit son argent 24 h après la livraison, si le client a bien reçu son colis.",
   },
 ];
 

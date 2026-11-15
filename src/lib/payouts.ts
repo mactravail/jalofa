@@ -193,7 +193,12 @@ export function buildPayouts(
           parts.push({ kind: "delivery_garment", amount: delivery });
         }
       }
-      released = moneyReleased(role, order);
+      // Le tailleur est payé une fois la tenue reçue par le client (« J'ai reçu
+      // ma tenue », ou JALOFA dans « Colis à confirmer » : oui ou pas de
+      // réponse 24 h après la livraison). Avant, sa part est retenue.
+      released =
+        moneyReleased(role, order) &&
+        (role !== "tailor" || order.type === "fabric_only" || order.status === "delivered");
     }
 
     const share = parts.reduce((s, p) => s + p.amount, 0);
@@ -211,7 +216,10 @@ export function buildPayouts(
       row.alreadyPaid += already;
       const left = share - commission - already;
       if (left > 0) row.lines.push({ orderId: order.id, amount: left });
-    } else if (moneyHeldForReceipt(role, order)) {
+    } else if (
+      moneyHeldForReceipt(role, order) ||
+      (role === "tailor" && moneyReleased(role, order))
+    ) {
       row.held += share;
     } else if (order.payment_status === "pending") {
       row.pending += share;

@@ -125,27 +125,44 @@ function withPrivateContact(order: OrderListItem): OrderListItem {
  * Tissus seuls expédiés, en attente de la confirmation du client, avec l'heure
  * d'expédition pour compter les 48 h.
  */
-export async function getFabricsAwaitingReceipt(): Promise<
-  { order: OrderListItem; shippedAt: string | null }[]
+/**
+ * Les commandes en route vers le client — tenue envoyée par le tailleur
+ * (`shipped`) ou tissu seul envoyé par le vendeur (`fabric_shipped`). JALOFA
+ * demande au client s'il les a reçues ; les « pas reçues » d'abord, puis les
+ * plus anciens envois.
+ */
+export async function getOrdersAwaitingReceipt(): Promise<
+  { order: OrderListItem; shippedAt: string | null; clientPhone: string | null }[]
 > {
-  const orders = (await getAllOrders()).filter(
-    (o) => o.type === "fabric_only" && o.status === "fabric_shipped",
+  const orders = (await getAllOrders()).filter((o) =>
+    o.type === "fabric_only" ? o.status === "fabric_shipped" : o.status === "shipped",
   );
   const supabase = await adminDb();
   if (!supabase || orders.length === 0) return [];
 
-  const { data } = await supabase
+  const { data: history } = await supabase
     .from("order_status_history")
     .select("order_id, created_at")
-    .eq("status", "fabric_shipped")
+    .in("status", ["shipped", "fabric_shipped"])
     .in("order_id", orders.map((o) => o.id));
-  const shippedAt = new Map(
-    ((data ?? []) as { order_id: string; created_at: string }[]).map((h) => [
-      h.order_id,
-      h.created_at,
-    ]),
-  );
-  return orders.map((order) => ({ order, shippedAt: shippedAt.get(order.id) ?? null }));
+  const shippedAt = new Map<string, string>();
+  for (const h of (history ?? []) as { order_id: string; created_at: string }[]) {
+    const prev = shippedAt.get(h.order_id);
+    if (!prev || h.created_at > prev) shippedAt.set(h.order_id, h.created_at);
+  }
+
+  return orders
+    .map((order) => ({
+      order,
+      shippedAt: shippedAt.get(order.id) ?? order.fabric_shipped_at ?? null,
+      clientPhone: order.contact_phone ?? order.client?.phone ?? null,
+    }))
+    .sort((a, b) => {
+      const da = a.order.receipt_disputed_at ? 0 : 1;
+      const db = b.order.receipt_disputed_at ? 0 : 1;
+      if (da !== db) return da - db;
+      return (a.shippedAt ?? "").localeCompare(b.shippedAt ?? "");
+    });
 }
 
 /**

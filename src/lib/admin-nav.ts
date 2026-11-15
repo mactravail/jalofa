@@ -116,7 +116,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       {
         id: "receipts",
         href: `${ADMIN_ROOT}/receptions`,
-        label: "Tissus à confirmer",
+        label: "Colis à confirmer",
         icon: MessageCircle,
       },
       // Le tailleur a reçu un tissu que le vendeur n'a pas déclaré envoyé.

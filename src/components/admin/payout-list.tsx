@@ -103,7 +103,7 @@ function PayoutCard({ row, grossLabel }: { row: Payout; grossLabel: string }) {
 
       {row.held > 0 && (
         <p className="text-muted-foreground mt-2 text-xs">
-          Retenu jusqu’à la réception du tissu : {formatPrice(row.held)}
+          Retenu jusqu’à la réception (tissu ou colis du client) : {formatPrice(row.held)}
         </p>
       )}
 

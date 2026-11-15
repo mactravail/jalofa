@@ -8,7 +8,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  adminMarkFabricReceived,
+  adminMarkOrderNotReceived,
+  adminMarkOrderReceived,
   adminMarkRefunded,
   type AfterSaleResult,
 } from "@/lib/actions/after-sale";
@@ -46,13 +47,23 @@ function ActionButton({
   );
 }
 
-export function MarkFabricReceivedButton({ orderId }: { orderId: string }) {
+/** Réponse du client à « Avez-vous reçu votre commande ? ». */
+export function ReceiptAnswerButtons({ orderId, disputed }: { orderId: string; disputed: boolean }) {
   return (
-    <ActionButton
-      label="Tissu reçu"
-      done="Tissu marqué reçu : l'argent du vendeur est libéré."
-      run={() => adminMarkFabricReceived(orderId)}
-    />
+    <div className="flex flex-wrap gap-2 sm:justify-end">
+      <ActionButton
+        label="Oui, reçue"
+        done="Commande marquée reçue : le tailleur et le vendeur peuvent être payés."
+        run={() => adminMarkOrderReceived(orderId)}
+      />
+      {!disputed && (
+        <ActionButton
+          label="Non, pas reçue"
+          done="Noté : personne n'est payé tant que ce n'est pas réglé."
+          run={() => adminMarkOrderNotReceived(orderId)}
+        />
+      )}
+    </div>
   );
 }
 

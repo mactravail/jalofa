@@ -88,7 +88,7 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "8. Fonds en attente et lutte contre la fraude",
-    body: `Pour protéger clients et professionnels, la somme d'une commande est conservée en fonds en attente puis reversée au professionnel 3 jours après la livraison, en l'absence de réclamation. À ce titre, nous conservons les informations nécessaires au suivi des paiements, des réclamations et des reversements, et à la détection des comportements frauduleux.`,
+    body: `Pour protéger clients et professionnels, la somme d'une commande est conservée en fonds en attente puis reversée au professionnel 24 h après la livraison, si le client n'a pas signalé qu'il n'a pas reçu son colis. À ce titre, nous conservons les informations nécessaires au suivi des paiements, des réclamations et des reversements, et à la détection des comportements frauduleux.`,
   },
   {
     title: "9. Partage de vos données",
