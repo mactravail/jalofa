@@ -51,6 +51,11 @@ import { useT } from "@/components/i18n/locale-provider";
 
 const NONE = "__none__";
 
+/** Formats acceptés par le stockage (cf. `uploadImage`). */
+const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+/** Marge sous la limite de 4 Mo d'une Server Action (texte du formulaire compris). */
+const MAX_BODY_PHOTOS_BYTES = 3.5 * 1024 * 1024;
+
 type Picked = { file: File; url: string } | null;
 
 export function FabricFormDialog({
@@ -172,48 +177,74 @@ export function FabricFormDialog({
     }
 
     startTransition(async () => {
-      // Shrink here rather than server-side: a raw phone shot exceeds the
-      // Server Action body limit and would be rejected before upload.
-      for (const [field, f] of [
-        ["image", file],
-        ["detail_image", detailFile],
-      ] as const) {
-        if (!f) continue;
-        const image = await resizeImage(f);
-        if (image.size > MAX_UPLOAD_BYTES) {
-          setError(t("Cette photo est trop lourde. Choisissez-en une plus légère."));
-          return;
-        }
-        formData.set(field, image);
-      }
-      // Photos par couleur : le fichier et sa couleur partent dans le même ordre.
-      for (const c of colorList) {
-        const f = colorFiles[c]?.file;
-        if (!f) continue;
-        const image = await resizeImage(f);
-        if (image.size > MAX_UPLOAD_BYTES) {
-          setError(t("Cette photo est trop lourde. Choisissez-en une plus légère."));
-          return;
-        }
-        formData.append("color_image", image);
-        formData.append("color_image_for", c);
-      }
-
-      const res = await saveFabric(null, formData);
-      if (res?.ok) {
-        toast.success(
-          isEdit
-            ? t("Tissu mis à jour.")
-            : formData.get("is_active") === "on"
-              ? t("Tissu ajouté et mis en ligne.")
-              : t("Tissu ajouté (brouillon, non visible en boutique)."),
-        );
-        if (res.id) onSaved?.(res.id);
-        onOpenChange(false);
-      } else if (res) {
-        setError(t(res.error));
+      // Une erreur levée ici (photo illisible, envoi refusé, réseau) remonterait
+      // jusqu'à la page et l'écran « This page couldn't load » : on l'attrape.
+      try {
+        await submitFabric(formData);
+      } catch {
+        setError(t("L'envoi n'a pas abouti. Vérifiez votre connexion et réessayez avec des photos plus légères."));
       }
     });
+  }
+
+  async function submitFabric(formData: FormData) {
+    // Shrink here rather than server-side: a raw phone shot exceeds the
+    // Server Action body limit and would be rejected before upload.
+    let total = 0;
+    const tooHeavy = t("Cette photo est trop lourde. Choisissez-en une plus légère.");
+    const unreadable = t("Cette photo ne peut pas être lue. Choisissez une photo JPEG ou PNG.");
+    const prepare = async (f: File) => {
+      const image = await resizeImage(f);
+      if (!ACCEPTED_TYPES.has(image.type)) return unreadable;
+      if (image.size > MAX_UPLOAD_BYTES) return tooHeavy;
+      total += image.size;
+      return image;
+    };
+    for (const [field, f] of [
+      ["image", file],
+      ["detail_image", detailFile],
+    ] as const) {
+      if (!f) continue;
+      const image = await prepare(f);
+      if (typeof image === "string") {
+        setError(image);
+        return;
+      }
+      formData.set(field, image);
+    }
+    // Photos par couleur : le fichier et sa couleur partent dans le même ordre.
+    for (const c of colorList) {
+      const f = colorFiles[c]?.file;
+      if (!f) continue;
+      const image = await prepare(f);
+      if (typeof image === "string") {
+        setError(image);
+        return;
+      }
+      formData.append("color_image", image);
+      formData.append("color_image_for", c);
+    }
+    // Toutes les photos partent ensemble : au-delà de la limite, le serveur
+    // refuserait l'envoi en bloc.
+    if (total > MAX_BODY_PHOTOS_BYTES) {
+      setError(t("Vos photos sont trop lourdes ensemble. Retirez des photos de couleur ou choisissez des photos plus légères."));
+      return;
+    }
+
+    const res = await saveFabric(null, formData);
+    if (res?.ok) {
+      toast.success(
+        isEdit
+          ? t("Tissu mis à jour.")
+          : formData.get("is_active") === "on"
+            ? t("Tissu ajouté et mis en ligne.")
+            : t("Tissu ajouté (brouillon, non visible en boutique)."),
+      );
+      if (res.id) onSaved?.(res.id);
+      onOpenChange(false);
+    } else if (res) {
+      setError(t(res.error));
+    }
   }
 
   // Reset local state whenever the dialog is (re)opened for a given fabric.

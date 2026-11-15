@@ -2946,5 +2946,14 @@ export const it: Record<string, string> = {
   "Essayer sur une tenue": "Provalo su un capo",
   "Pas en vente : choisissez un tissu d'un vendeur pour commander.":
     "Non in vendita: scegli il tessuto di un venditore per ordinare.",
+  "L'envoi n'a pas abouti. Vérifiez votre connexion et réessayez avec des photos plus légères.":
+    "L'invio non è riuscito. Controlla la connessione e riprova con foto più leggere.",
+  "Cette photo ne peut pas être lue. Choisissez une photo JPEG ou PNG.":
+    "Questa foto non può essere letta. Scegli una foto JPEG o PNG.",
+  "Vos photos sont trop lourdes ensemble. Retirez des photos de couleur ou choisissez des photos plus légères.":
+    "Le foto insieme sono troppo pesanti. Togli qualche foto dei colori o scegli foto più leggere.",
+  "Oups, un problème est survenu.": "Ops, si è verificato un problema.",
+  "Touchez « Réessayer ». Si le problème continue, rechargez la page.":
+    "Tocca « Riprova ». Se il problema continua, ricarica la pagina.",
   // @@END
 };
