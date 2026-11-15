@@ -65,7 +65,14 @@ export function HeroVideo({ poster, alt }: { poster: string; alt: string }) {
           playing ? "opacity-100" : "opacity-0",
         )}
       >
+        {/* AV1 d'abord (~45-60 % plus léger), H.264 en secours pour les appareils qui ne le décodent pas. */}
+        <source
+          src="/videos/hero-mobile-av1.mp4"
+          type='video/mp4; codecs="av01.0.05M.08"'
+          media="(max-width: 767px)"
+        />
         <source src="/videos/hero-mobile.mp4" type="video/mp4" media="(max-width: 767px)" />
+        <source src="/videos/hero-av1.mp4" type='video/mp4; codecs="av01.0.08M.08"' />
         <source src="/videos/hero.mp4" type="video/mp4" />
       </video>
     </>
