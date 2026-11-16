@@ -35,11 +35,37 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://jalofa.com").replace(/\/+$/, "");
+
+const SITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: APP_NAME,
+      alternateName: ["Jalofa", "jalofa.com"],
+      inLanguage: "fr",
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: APP_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon.png`,
+      description: APP_TAGLINE,
+      areaServed: "SN",
+    },
+  ],
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://jalofa.com"),
+  metadataBase: new URL(SITE_URL),
   alternates: { languages: await languageAlternates() },
+  openGraph: { siteName: APP_NAME, type: "website", locale: "fr_SN" },
   title: {
     default: `${APP_NAME} — ${translate(locale, APP_TAGLINE)}`,
     template: `%s · ${APP_NAME}`,
@@ -80,6 +106,12 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* Dit à Google que ce site s'appelle « JALOFA » (nom affiché dans les
+            résultats et reconnu quand on tape seulement « jalofa »). */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSON_LD).replace(/</g, "\\u003c") }}
+        />
         {/* Site tout en noir, quel que soit le réglage du téléphone. */}
         <ThemeProvider attribute="class" forcedTheme="dark" disableTransitionOnChange>
           <LocaleProvider locale={locale} dict={getDictionary(locale)}>
