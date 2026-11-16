@@ -1,12 +1,13 @@
+import { belongsToCatalogModel } from "@/lib/catalog-link";
 import type { GarmentModel } from "@/lib/types";
 
 // On s'habille POUR quelque chose : les occasions servent de filtres dans la
 // section « Choisissez votre habit » des collections Homme et Femme.
 //
 // Beaucoup de lignes de la base n'ont pas encore de `slug` : on classe sur le nom
-// normalisé, identique en base et en démo. Seul le catalogue de la plateforme est
-// classé ; les créations des tailleurs, et tout habit ajouté plus tard, restent
-// visibles sous « Tout » au lieu de disparaître de la page.
+// normalisé, identique en base et en démo. Les créations des tailleurs suivent le
+// modèle du catalogue sous lequel elles sont rangées (`catalog-link.ts`) ; tout
+// habit non classé reste visible sous « Tout » au lieu de disparaître de la page.
 
 export type CollectionOccasion = {
   id: string;
@@ -85,23 +86,28 @@ export function wornCover(model: GarmentModel): string | null {
 
 /**
  * Les habits dans leur ordre d'affichage, chacun avec son occasion : d'abord le
- * catalogue classé, puis tout le reste (`occasion: null`).
+ * catalogue classé, chaque modèle suivi des créations des tailleurs rangées
+ * sous lui (même occasion), puis tout le reste (`occasion: null`).
  */
 export function orderForPicker(
   models: GarmentModel[],
   occasions: CollectionOccasion[],
 ): { model: GarmentModel; occasion: string | null }[] {
-  const platform = new Map(
-    models.filter((m) => m.tailor_id === null).map((m) => [modelKey(m.name), m]),
-  );
+  const catalog = models.filter((m) => m.tailor_id === null);
+  const platform = new Map(catalog.map((m) => [modelKey(m.name), m]));
+  const creations = models.filter((m) => m.tailor_id !== null);
   const placed = new Set<string>();
 
   const classified = occasions.flatMap((occasion) =>
     occasion.models.flatMap((key) => {
       const model = platform.get(key);
-      if (!model) return [];
+      if (!model || placed.has(model.id)) return [];
       placed.add(model.id);
-      return [{ model, occasion: occasion.id as string | null }];
+      const filed = creations.filter(
+        (c) => !placed.has(c.id) && belongsToCatalogModel(c, model),
+      );
+      filed.forEach((c) => placed.add(c.id));
+      return [model, ...filed].map((m) => ({ model: m, occasion: occasion.id as string | null }));
     }),
   );
   const rest = models
