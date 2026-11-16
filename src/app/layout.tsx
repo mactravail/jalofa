@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Cormorant_Garamond, Geist, Geist_Mono } from "next/font/google";
 
+import { PageTracker } from "@/components/page-tracker";
 import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -83,6 +85,9 @@ export default async function RootLayout({
           <LocaleProvider locale={locale} dict={getDictionary(locale)}>
             {children}
             <Toaster position="top-center" />
+            <Suspense>
+              <PageTracker />
+            </Suspense>
           </LocaleProvider>
         </ThemeProvider>
       </body>

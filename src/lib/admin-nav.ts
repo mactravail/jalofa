@@ -1,5 +1,6 @@
 import {
   BadgeCheck,
+  BarChart3,
   Ban,
   Bell,
   LayoutDashboard,
@@ -33,6 +34,7 @@ export const ADMIN_TITLE = "Administration";
 
 export type AdminNavId =
   | "overview"
+  | "stats"
   | "account"
   | "notifications"
   | "orders"
@@ -81,6 +83,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: ADMIN_ROOT,
         label: "Vue d'ensemble",
         icon: LayoutDashboard,
+      },
+      // Visiteurs du site et pages où ils s'arrêtent (`page_views`).
+      {
+        id: "stats",
+        href: `${ADMIN_ROOT}/statistiques`,
+        label: "Statistiques",
+        icon: BarChart3,
       },
       // La cloche : alertes de la place de marché (ex. modèle masqué après commande).
       {

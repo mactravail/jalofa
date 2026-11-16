@@ -743,3 +743,52 @@ export const getPendingCertificationCount = cache(async (): Promise<number> => {
     .eq("status", "pending");
   return error ? 0 : (count ?? 0);
 });
+
+// ---------------------------------------------------------------------------
+// Statistiques de visite (`page_views`, cf. migration 20260906000001)
+// ---------------------------------------------------------------------------
+
+export type SiteStatsPage = {
+  path: string;
+  views: number;
+  visitors: number;
+  /** Temps moyen passé sur la page (ms). */
+  avg_ms: number;
+  /** Nombre de visites qui se sont arrêtées sur cette page. */
+  exits: number;
+};
+
+export type SiteStats = {
+  visitors: number;
+  sessions: number;
+  views: number;
+  /** Visites d'une seule page. */
+  bounces: number;
+  avg_session_ms: number;
+  pages: SiteStatsPage[];
+  daily: { day: string; visitors: number; views: number }[];
+  devices: { label: string; visitors: number }[];
+  countries: { label: string; visitors: number }[];
+  sources: { label: string; visitors: number }[];
+};
+
+/**
+ * Les chiffres de visite depuis `since`. `null` = migration pas encore
+ * appliquée (ou clé de service absente) : la page le dit à l'admin.
+ */
+export async function getSiteStats(since: Date): Promise<SiteStats | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await adminDb();
+  if (!supabase) return null;
+  type Rpc = {
+    rpc: (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  };
+  const { data, error } = await (supabase as unknown as Rpc).rpc("site_stats", {
+    since: since.toISOString(),
+  });
+  if (error || !data) return null;
+  return data as SiteStats;
+}
