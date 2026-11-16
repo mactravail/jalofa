@@ -470,6 +470,7 @@ export const it: Record<string, string> = {
   "Créer mon compte pro": "Crea il mio account pro",
   "Vendre": "Vendi",
   "Compte pro": "Account pro",
+  "Créer un compte pro": "Crea un account pro",
   "Compte client": "Account cliente",
   "Votre offre": "La tua offerta",
   "Recommandé": "Consigliato",

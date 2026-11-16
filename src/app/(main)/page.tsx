@@ -63,7 +63,10 @@ function BannerCaption({
   highlight,
   inFlow,
   as: Heading = "h2",
+  secondary,
 }: {
+  /** Second lien, à côté du premier (ex. « Créer un compte pro »). */
+  secondary?: { href: string; label: string };
   /** Sur-titre en orange (annonce d'une promo). */
   highlight?: boolean;
   /**
@@ -103,10 +106,15 @@ function BannerCaption({
       )}
       {/* Petite ligne discrète, façon « mention en bas de page ». */}
       {note && <p className="mt-2 max-w-xl text-xs leading-snug text-white/60">{note}</p>}
-      <div className="pointer-events-auto mt-6">
+      <div className="pointer-events-auto mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
         <DiscoverLink href={href} light>
           {cta}
         </DiscoverLink>
+        {secondary && (
+          <DiscoverLink href={secondary.href} light>
+            {secondary.label}
+          </DiscoverLink>
+        )}
       </div>
     </div>
   );
@@ -132,7 +140,14 @@ async function VideoHero() {
       </Link>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-      <BannerCaption as="h1" eyebrow={t("Sur mesure · Sénégal")} title={title} href={href} cta={cta} />
+      <BannerCaption
+        as="h1"
+        eyebrow={t("Sur mesure · Sénégal")}
+        title={title}
+        href={href}
+        cta={cta}
+        secondary={{ href: "/inscription?role=pro", label: t("Créer un compte pro") }}
+      />
     </section>
   );
 }
