@@ -50,7 +50,8 @@ export function useAddAsIs(preset: AsIsPreset) {
   const t = useT();
 
   /** `color` : la couleur du prêt-à-porter, quand le tailleur en propose. */
-  return (size: string | null, color?: string | null) => {
+  /** `then` : « /caisse » pour « Acheter maintenant », sinon le panier. */
+  return (size: string | null, color?: string | null, then: "/panier" | "/caisse" = "/panier") => {
     if (!size) {
       toast.error(t("Choisissez d'abord votre taille"));
       return;
@@ -87,7 +88,7 @@ export function useAddAsIs(preset: AsIsPreset) {
     toast.success(t("Ajouté au panier : {name}", { name: preset.modelName }), {
       description: `${color ? `${color} · ` : ""}${t("Taille {size}", { size })} · ${formatPrice(preset.total)}`,
     });
-    router.push("/panier");
+    router.push(then);
   };
 }
 

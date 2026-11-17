@@ -292,6 +292,7 @@ export const it: Record<string, string> = {
   "Ce tissu sera envoyé directement à l'atelier du tailleur.": "Questo tessuto sarà inviato direttamente all'atelier del sarto.",
   "Ensuite : le style, le tailleur et vos mesures. Vous recevez un devis gratuit, sans engagement.": "Poi: lo stile, il sarto e le tue misure. Ricevi un preventivo gratuito, senza impegno.",
   "Ajouter au panier": "Aggiungi al carrello",
+  "Acheter maintenant": "Acquista ora",
   "Personnaliser": "Personalizza",
   "Pas besoin de créer un compte": "Non serve creare un account",
   "Choisissez d'abord votre taille": "Scegli prima la tua taglia",

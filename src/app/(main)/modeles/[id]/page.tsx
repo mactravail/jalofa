@@ -223,15 +223,19 @@ export default async function ModelDetailPage({
           « Le personnaliser » élargissait toute la page sur mobile. */}
       <GarmentColorPhotoProvider>
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <ColorAwareGarmentGallery
-          photos={clickedActive && clickedPhoto ? [clickedPhoto] : photos}
-          alt={model.name}
-          fit="cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority
-          className="aspect-4/5"
-          stageClassName="bg-muted overflow-hidden rounded-2xl border"
-        />
+        {/* Sur ordinateur, la photo reste en place pendant qu'on fait défiler
+            la colonne de droite, puis la page défile normalement. */}
+        <div className="md:sticky md:top-20 md:self-start">
+          <ColorAwareGarmentGallery
+            photos={clickedActive && clickedPhoto ? [clickedPhoto] : photos}
+            alt={model.name}
+            fit="cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority
+            className="aspect-4/5"
+            stageClassName="bg-muted overflow-hidden rounded-2xl border"
+          />
+        </div>
 
         <div>
           <GarmentHeading model={model} author={author} reviews={reviews} />

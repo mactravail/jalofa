@@ -3,7 +3,7 @@
 import { useRouter } from "@/lib/i18n/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Check, Package, Palette, ShoppingBag, Truck, Wand2 } from "lucide-react";
+import { Check, Package, Palette, ShoppingBag, Truck, Wand2, Zap } from "lucide-react";
 
 import { SizePicker, useAddAsIs, type AsIsPreset } from "@/components/catalog/garment-as-is";
 import { useGarmentColorPhoto } from "@/components/catalog/garment-color-photo";
@@ -155,13 +155,13 @@ export function GarmentBuyBox({
       offer && activeFabric?.vendor_id && activeFabric.vendor_id !== offer.tailor.id,
     );
 
-  const onCta = () => {
+  const onCta = (then: "/panier" | "/caisse" = "/panier") => {
     if (mode === "as_is") {
       if (readyColors.length > 0 && !color) {
         toast.error(t("Choisissez d'abord la couleur"));
         return;
       }
-      addAsIs(size, color);
+      addAsIs(size, color, then);
       return;
     }
     if (ownFabric) {
@@ -379,7 +379,7 @@ export function GarmentBuyBox({
         )}
       </div>
 
-      <Button size="lg" className="mt-5 h-12 w-full text-base" onClick={onCta}>
+      <Button size="lg" className="mt-5 h-12 w-full text-base" onClick={() => onCta()}>
         {mode === "as_is" ? (
           <>
             <ShoppingBag className="size-4" /> {t("Ajouter au panier")}
@@ -390,6 +390,17 @@ export function GarmentBuyBox({
           </>
         )}
       </Button>
+      {/* Prêt-à-porter : on peut aussi passer directement à la caisse. */}
+      {mode === "as_is" && (
+        <Button
+          size="lg"
+          variant="outline"
+          className="mt-2 h-12 w-full text-base"
+          onClick={() => onCta("/caisse")}
+        >
+          <Zap className="size-4" /> {t("Acheter maintenant")}
+        </Button>
+      )}
       <p className="text-muted-foreground mt-2 text-center text-xs">
         {t("Pas besoin de créer un compte")}
       </p>
