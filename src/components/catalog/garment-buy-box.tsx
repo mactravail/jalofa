@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Check, Package, Palette, ShoppingBag, Truck, Wand2 } from "lucide-react";
 
 import { SizePicker, useAddAsIs, type AsIsPreset } from "@/components/catalog/garment-as-is";
-import { useSetGarmentColorPhoto } from "@/components/catalog/garment-color-photo";
+import { useGarmentColorPhoto } from "@/components/catalog/garment-color-photo";
 import { FabricPicker } from "@/components/catalog/garment-personalise";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/constants";
@@ -141,7 +141,8 @@ export function GarmentBuyBox({
   const addAsIs = useAddAsIs(colorPreset ?? preset);
 
   // La couleur choisie montre sa photo dans la grande galerie de la fiche.
-  const setGalleryPhoto = useSetGarmentColorPhoto();
+  const gallery = useGarmentColorPhoto();
+  const setGalleryPhoto = gallery?.setPhoto;
   const colorPhoto = mode === "as_is" && offer ? readyImageFor(offer.model, color) : null;
   useEffect(() => {
     setGalleryPhoto?.(colorPhoto);
@@ -254,7 +255,10 @@ export function GarmentBuyBox({
                         type="button"
                         role="radio"
                         aria-checked={active}
-                        onClick={() => setColor(c)}
+                        onClick={() => {
+                          setColor(c);
+                          if (img) gallery?.reveal();
+                        }}
                         className={cn(
                           "flex items-center gap-2 rounded-full border-2 py-1 pr-3.5 pl-1 text-sm font-medium transition-colors",
                           active ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
