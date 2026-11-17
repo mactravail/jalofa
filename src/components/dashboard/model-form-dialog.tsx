@@ -32,6 +32,9 @@ import { CARE_TIP_SUGGESTIONS } from "@/lib/style-presets";
 import { catalogModelOf } from "@/lib/catalog-link";
 import { garmentStyleKey, guessStyleBase } from "@/lib/style-options";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
+import { DraftNotice } from "@/components/dashboard/fabric-form-dialog";
+import type { FreeDeliveryZone } from "@/lib/delivery";
+import { useFormDraft, useSavedDraft } from "@/lib/form-draft";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,6 +81,19 @@ type Photo =
   | { kind: "existing"; url: string }
   | { kind: "new"; file: File; url: string };
 
+/** L'état React du formulaire qui n'est pas dans ses champs nommés. */
+type ModelDraftExtra = {
+  modelName: string;
+  category: string;
+  difficulty: string;
+  catalogId: string;
+  catalogTouched: boolean;
+  styleGroups: DraftStyleGroup[];
+  careTips: string;
+  europeType: string;
+  priceEur: string;
+};
+
 function initialPhotos(model: GarmentModel | null): Photo[] {
   if (!model) return [];
   return modelPhotos(model).map((url) => ({ kind: "existing", url }));
@@ -93,9 +109,15 @@ export function ModelFormDialog({
   atelier,
   bodyFits = {},
   europe = false,
+  onSaved,
+  onReset,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Après un enregistrement réussi : le parent repart d'un formulaire vierge. */
+  onSaved?: () => void;
+  /** « Recommencer » : le parent remonte un formulaire vierge. */
+  onReset?: () => void;
   /** Le modèle édité (mode « Modifier »). Null en création. */
   model: GarmentModel | null;
   /**
@@ -126,32 +148,60 @@ export function ModelFormDialog({
   // Édition : la fiche du tailleur. Création : soit vierge, soit pré-remplie
   // depuis une suggestion. Dans les deux cas de création, aucun `id` n'est posé.
   const source = model ?? suggestion ?? null;
+  // Brouillon gardé dans le navigateur, propre à ce modèle ou à cette suggestion.
+  const draftKey = `model:${model?.id ?? (suggestion ? `s-${suggestion.id}` : "new")}`;
+  const saved = useSavedDraft<ModelDraftExtra>(draftKey);
+  const kept = saved?.extra;
   const [category, setCategory] = useState<string>(
-    source?.category_slug ?? NONE,
+    kept?.category ?? source?.category_slug ?? NONE,
   );
   const [difficulty, setDifficulty] = useState<string>(
-    source?.difficulty ?? NONE,
+    kept?.difficulty ?? source?.difficulty ?? NONE,
   );
   // Photos : seulement celles du tailleur. Une suggestion n'apporte jamais sa
   // photo — sinon tous les tailleurs garderaient la même couverture.
   const [photos, setPhotos] = useState<Photo[]>(() => initialPhotos(model));
   // Le nom décide des détails proposés : pas de col pour un thiaya.
-  const [modelName, setModelName] = useState(source?.name ?? "");
+  const [modelName, setModelName] = useState(kept?.modelName ?? source?.name ?? "");
   // Le vêtement du catalogue dont le modèle reprend les planches dessinées : le
   // nom peut être celui du tailleur, c'est ce choix qui ouvre la personnalisation.
-  const [catalogId, setCatalogId] = useState<string>(() =>
-    initialCatalogId(model, suggestion, catalog),
+  const [catalogId, setCatalogId] = useState<string>(
+    () => kept?.catalogId ?? initialCatalogId(model, suggestion, catalog),
   );
-  const [catalogTouched, setCatalogTouched] = useState(Boolean(model?.catalog_model_id));
+  const [catalogTouched, setCatalogTouched] = useState(
+    kept?.catalogTouched ?? Boolean(model?.catalog_model_id),
+  );
   // Le style est propre à chaque tailleur : une suggestion n'en apporte aucun.
-  const [styleGroups, setStyleGroups] = useState<DraftStyleGroup[]>(() =>
-    toDraftStyleGroups(model?.style_groups),
+  const [styleGroups, setStyleGroups] = useState<DraftStyleGroup[]>(
+    () => kept?.styleGroups ?? toDraftStyleGroups(model?.style_groups),
   );
-  const [careTips, setCareTips] = useState(model?.care_tips ?? "");
-  const [europeType, setEuropeType] = useState<string>(model?.europe_type ?? "");
+  const [careTips, setCareTips] = useState(kept?.careTips ?? model?.care_tips ?? "");
+  const [europeType, setEuropeType] = useState<string>(
+    kept?.europeType ?? model?.europe_type ?? "",
+  );
   const [priceEur, setPriceEur] = useState<string>(
-    source?.price != null ? String(xofToEur(source.price)) : "",
+    kept?.priceEur ?? (source?.price != null ? String(xofToEur(source.price)) : ""),
   );
+  // Les photos choisies sur le téléphone ne se gardent pas : seules les photos
+  // déjà en ligne restent dans le brouillon.
+  const { formRef, field, fieldAll, clear } = useFormDraft<ModelDraftExtra>(draftKey, saved, {
+    modelName,
+    category,
+    difficulty,
+    catalogId,
+    catalogTouched,
+    styleGroups: styleGroups.map((g) => ({
+      ...g,
+      options: g.options.map((o) => ({ slug: o.slug, name: o.name, extra: o.extra, photo: o.photo })),
+    })),
+    careTips,
+    europeType,
+    priceEur,
+  });
+  function startOver() {
+    clear();
+    onReset?.();
+  }
   const [styleUpload, setStyleUpload] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -164,10 +214,6 @@ export function ModelFormDialog({
     [NONE]: t("Non précisée"),
     ...Object.fromEntries(DIFFICULTIES.map((d) => [d.value, t(d.label)])),
   };
-
-  function revokeNew(list: Photo[]) {
-    for (const p of list) if (p.kind === "new") URL.revokeObjectURL(p.url);
-  }
 
   function addFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -352,6 +398,7 @@ export function ModelFormDialog({
 
       const res = await saveModel(null, formData);
       if (res?.ok) {
+        clear();
         toast.success(
           isEdit
             ? t("Modèle mis à jour.")
@@ -359,6 +406,7 @@ export function ModelFormDialog({
               ? t("Modèle ajouté et publié dans le catalogue.")
               : t("Modèle ajouté (brouillon, non visible au catalogue)."),
         );
+        onSaved?.();
         onOpenChange(false);
       } else if (res) {
         setError(t(res.error));
@@ -367,26 +415,9 @@ export function ModelFormDialog({
     });
   }
 
-  // Reset local state whenever the dialog is (re)opened for a given source
-  // (edited model or picked suggestion).
-  function handleOpenChange(next: boolean) {
-    if (next) {
-      setCategory(source?.category_slug ?? NONE);
-      setDifficulty(source?.difficulty ?? NONE);
-      setCatalogId(initialCatalogId(model, suggestion, catalog));
-      setCatalogTouched(Boolean(model?.catalog_model_id));
-      setPhotos((prev) => {
-        revokeNew(prev);
-        return initialPhotos(model);
-      });
-      setError(null);
-    }
-    onOpenChange(next);
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
+      <DialogContent className="sm:max-w-md" keepMounted>
         <DialogHeader>
           <DialogTitle>
             {isEdit ? t("Modifier le modèle") : t("Ajouter un modèle")}
@@ -400,7 +431,9 @@ export function ModelFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {saved && <DraftNotice onStartOver={startOver} />}
+
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
           {model && <input type="hidden" name="id" value={model.id} />}
 
           {error && (
@@ -471,9 +504,13 @@ export function ModelFormDialog({
 
           {/* « Tel quel » = prêt-à-porter : déjà cousu, et en quelles couleurs. */}
           <ReadyToWearField
-            defaultOn={source?.ready_to_wear ?? false}
-            defaultColors={source?.ready_colors ?? []}
-            defaultPrices={source?.ready_color_prices ?? {}}
+            defaultOn={saved ? field("ready_to_wear") === "on" : (source?.ready_to_wear ?? false)}
+            defaultColors={fieldAll("ready_colors") ?? source?.ready_colors ?? []}
+            defaultPrices={
+              saved
+                ? parseJson<Record<string, number>>(field("ready_color_prices")) ?? {}
+                : (source?.ready_color_prices ?? {})
+            }
           />
 
           {!atelier && (
@@ -485,7 +522,13 @@ export function ModelFormDialog({
               <p className="text-muted-foreground text-xs">
                 {t("Les vendeurs y envoient les tissus achetés ailleurs. Cette adresse reste privée.")}
               </p>
-              <AtelierFields />
+              <AtelierFields
+                atelier={
+                  saved
+                    ? { address: field("atelier_address") ?? "", phone: field("atelier_phone") ?? "" }
+                    : null
+                }
+              />
             </div>
           )}
 
@@ -577,7 +620,7 @@ export function ModelFormDialog({
                 min={1}
                 max={365}
                 step={1}
-                defaultValue={source?.avg_days ?? 7}
+                defaultValue={field("avg_days") ?? source?.avg_days ?? 7}
                 placeholder="7"
               />
             </div>
@@ -617,7 +660,7 @@ export function ModelFormDialog({
                   id="model-material"
                   name="material"
                   maxLength={160}
-                  defaultValue={source?.material ?? ""}
+                  defaultValue={field("material") ?? source?.material ?? ""}
                   placeholder={t("Ex. Laine Super 120s, Biella")}
                 />
               </div>
@@ -633,7 +676,7 @@ export function ModelFormDialog({
                         type="radio"
                         name="making_type"
                         value={type.value}
-                        defaultChecked={(source?.making_type ?? "les_deux") === type.value}
+                        defaultChecked={(field("making_type") ?? source?.making_type ?? "les_deux") === type.value}
                         className="accent-primary size-4"
                       />
                       {t(type.label)}
@@ -647,7 +690,7 @@ export function ModelFormDialog({
                   id="model-sizes"
                   name="sizes"
                   maxLength={120}
-                  defaultValue={source?.sizes ?? ""}
+                  defaultValue={field("sizes") ?? source?.sizes ?? ""}
                   placeholder={t("Ex. 46 à 56, ou S, M, L, XL")}
                 />
               </div>
@@ -683,7 +726,7 @@ export function ModelFormDialog({
               type="number"
               min={0}
               step={1}
-              defaultValue={source?.price ?? ""}
+              defaultValue={field("price") ?? source?.price ?? ""}
               placeholder="25000"
             />
             <p className="text-muted-foreground text-xs">
@@ -692,7 +735,7 @@ export function ModelFormDialog({
           </div>
           )}
 
-          <QuoteModeField source={source} />
+          <QuoteModeField source={source} field={field} />
 
           <div className="space-y-2">
             <Label>{t("Difficulté")}</Label>
@@ -715,7 +758,10 @@ export function ModelFormDialog({
             </Select>
           </div>
 
-          <DeliveryZoneField defaultValue={model?.delivery_zone} europe={europe} />
+          <DeliveryZoneField
+            defaultValue={(field("delivery_zone") as FreeDeliveryZone | undefined) ?? model?.delivery_zone}
+            europe={europe}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="model-description">{t("Description")}</Label>
@@ -724,7 +770,7 @@ export function ModelFormDialog({
               name="description"
               rows={4}
               maxLength={2000}
-              defaultValue={source?.description ?? ""}
+              defaultValue={field("description") ?? source?.description ?? ""}
               placeholder={t("Coupe, finitions, occasion…")}
             />
             <p className="text-muted-foreground text-xs">
@@ -786,7 +832,7 @@ export function ModelFormDialog({
             <input
               type="checkbox"
               name="is_active"
-              defaultChecked={model ? model.is_active : true}
+              defaultChecked={saved ? field("is_active") === "on" : model ? model.is_active : true}
               className="accent-primary mt-0.5 size-4 rounded"
             />
             <span>
@@ -827,9 +873,18 @@ export function ModelFormDialog({
  * prix, sa livraison et son délai : chaque demande de devis sur ce modèle reçoit
  * ce devis tout de suite (plus les suppléments des choix du client).
  */
-function QuoteModeField({ source }: { source: GarmentModel | null }) {
+function QuoteModeField({
+  source,
+  field,
+}: {
+  source: GarmentModel | null;
+  /** Valeur reprise du brouillon, s'il y en a un. */
+  field: (name: string) => string | undefined;
+}) {
   const t = useT();
-  const [mode, setMode] = useState<QuoteMode>(source?.quote_mode === "auto" ? "auto" : "manual");
+  const [mode, setMode] = useState<QuoteMode>(
+    (field("quote_mode") ?? source?.quote_mode) === "auto" ? "auto" : "manual",
+  );
   const choices: { value: QuoteMode; title: string; hint: string; icon: typeof Hand }[] = [
     {
       value: "manual",
@@ -885,7 +940,7 @@ function QuoteModeField({ source }: { source: GarmentModel | null }) {
             min={1}
             step={1}
             required={mode === "auto"}
-            defaultValue={source?.quote_price ?? source?.price ?? ""}
+            defaultValue={field("quote_price") ?? source?.quote_price ?? source?.price ?? ""}
             placeholder="35000"
           />
         </div>
@@ -897,7 +952,7 @@ function QuoteModeField({ source }: { source: GarmentModel | null }) {
             type="number"
             min={0}
             step={1}
-            defaultValue={source?.quote_delivery_fee ?? 0}
+            defaultValue={field("quote_delivery_fee") ?? source?.quote_delivery_fee ?? 0}
             placeholder="0"
           />
         </div>
@@ -911,7 +966,7 @@ function QuoteModeField({ source }: { source: GarmentModel | null }) {
             max={120}
             step={1}
             required={mode === "auto"}
-            defaultValue={source?.quote_ready_days ?? source?.avg_days ?? 7}
+            defaultValue={field("quote_ready_days") ?? source?.quote_ready_days ?? source?.avg_days ?? 7}
             placeholder="7"
           />
         </div>
@@ -921,6 +976,15 @@ function QuoteModeField({ source }: { source: GarmentModel | null }) {
       </div>
     </fieldset>
   );
+}
+
+function parseJson<T>(raw: string | undefined): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }
 
 /**

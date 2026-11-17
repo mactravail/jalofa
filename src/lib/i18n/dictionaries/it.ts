@@ -2961,5 +2961,9 @@ export const it: Record<string, string> = {
   "Oups, un problème est survenu.": "Ops, si è verificato un problema.",
   "Touchez « Réessayer ». Si le problème continue, rechargez la page.":
     "Tocca « Riprova ». Se il problema continua, ricarica la pagina.",
+  "Nous avons repris ce que vous aviez rempli.": "Abbiamo ripreso quello che avevi compilato.",
+  "Les photos ajoutées ne sont pas gardées : remettez-les.":
+    "Le foto aggiunte non vengono conservate: rimettile.",
+  "Recommencer": "Ricomincia",
   // @@END
 };

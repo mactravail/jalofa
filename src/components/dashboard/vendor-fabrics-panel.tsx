@@ -81,6 +81,9 @@ export function VendorFabricsPanel({
   const copy = COPY[role];
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Fabric | null>(null);
+  // Remonté seulement au changement de tissu ou après l'envoi : fermé par
+  // erreur, le formulaire garde sa saisie.
+  const [savedSeq, setSavedSeq] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Fabric | null>(null);
   const [isDeleting, startDelete] = useTransition();
   const [stockChangingId, setStockChangingId] = useState<string | null>(null);
@@ -312,9 +315,11 @@ export function VendorFabricsPanel({
       )}
 
       <FabricFormDialog
-        key={editing?.id ?? "new"}
+        key={`${editing?.id ?? "new"}-${savedSeq}`}
         open={formOpen}
         onOpenChange={setFormOpen}
+        onSaved={() => setSavedSeq((n) => n + 1)}
+        onReset={() => setSavedSeq((n) => n + 1)}
         fabric={editing}
         categories={categories}
         europe={europe}

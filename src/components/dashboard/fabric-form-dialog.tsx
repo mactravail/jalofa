@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { ImagePlus, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { saveFabric } from "@/lib/actions/fabrics";
+import { useFormDraft, useSavedDraft } from "@/lib/form-draft";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
 import { FabricColorPicker } from "@/components/dashboard/fabric-color-picker";
@@ -45,6 +46,7 @@ import {
   parseSalesUnit,
   type SalesUnit,
 } from "@/lib/fabric-specs";
+import type { FreeDeliveryZone } from "@/lib/delivery";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
@@ -58,12 +60,21 @@ const MAX_BODY_PHOTOS_BYTES = 3.5 * 1024 * 1024;
 
 type Picked = { file: File; url: string } | null;
 
+/** L'état React du formulaire qui n'est pas dans ses champs nommés. */
+type FabricDraftExtra = {
+  category: string;
+  unit: SalesUnit;
+  priceEur: string;
+  colorPrices: Record<string, string>;
+};
+
 export function FabricFormDialog({
   open,
   onOpenChange,
   fabric,
   categories,
   onSaved,
+  onReset,
   europe = false,
 }: {
   open: boolean;
@@ -72,18 +83,26 @@ export function FabricFormDialog({
   categories: FabricCategory[];
   /** Appelé avec l'id du tissu une fois enregistré. */
   onSaved?: (fabricId: string) => void;
+  /** « Recommencer » : le parent remonte un formulaire vierge. */
+  onReset?: () => void;
   /** Boutique en Europe (JALOFA EUROPE) : prix saisi en €, livraison « Europe ». */
   europe?: boolean;
 }) {
+  const draftKey = `fabric:${fabric?.id ?? "new"}`;
+  const saved = useSavedDraft<FabricDraftExtra>(draftKey);
   const initialUnitPrice = fabric ? fabricUnitPrice(fabric) : null;
   const [priceEur, setPriceEur] = useState<string>(
-    initialUnitPrice != null ? String(xofToEur(initialUnitPrice)) : "",
+    saved?.extra.priceEur ??
+      (initialUnitPrice != null ? String(xofToEur(initialUnitPrice)) : ""),
   );
   const isEdit = Boolean(fabric);
   const t = useT();
-  const formRef = useRef<HTMLFormElement>(null);
-  const [category, setCategory] = useState<string>(fabric?.category_slug ?? NONE);
-  const [unit, setUnit] = useState<SalesUnit>(parseSalesUnit(fabric?.sales_unit));
+  const [category, setCategory] = useState<string>(
+    saved?.extra.category ?? fabric?.category_slug ?? NONE,
+  );
+  const [unit, setUnit] = useState<SalesUnit>(
+    saved?.extra.unit ?? parseSalesUnit(fabric?.sales_unit),
+  );
   // File + its preview URL move together so the URL is revoked on replacement.
   const [picked, setPicked] = useState<Picked>(null);
   const [pickedDetail, setPickedDetail] = useState<Picked>(null);
@@ -91,10 +110,24 @@ export function FabricFormDialog({
   const [isPending, startTransition] = useTransition();
 
   // Par couleur, facultatif : un prix différent et/ou une photo.
-  const [colorList, setColorList] = useState<string[]>(() => parseFabricColors(fabric?.color));
-  const [colorPrices, setColorPrices] = useState<Record<string, string>>(() =>
-    initialColorPrices(fabric, europe),
+  const [colorList, setColorList] = useState<string[]>(() =>
+    parseFabricColors(saved ? (saved.fields.color?.[0] ?? "") : fabric?.color),
   );
+  const [colorPrices, setColorPrices] = useState<Record<string, string>>(
+    () => saved?.extra.colorPrices ?? initialColorPrices(fabric, europe),
+  );
+  // Brouillon gardé dans le navigateur : page rechargée ou quittée par erreur,
+  // on reprend là où on en était (sauf les photos).
+  const { formRef, field, fieldAll, clear } = useFormDraft<FabricDraftExtra>(draftKey, saved, {
+    category,
+    unit,
+    priceEur,
+    colorPrices,
+  });
+  function startOver() {
+    clear();
+    onReset?.();
+  }
   const [colorFiles, setColorFiles] = useState<Record<string, Picked>>({});
 
   function pickColorFile(color: string, next: File | null) {
@@ -233,6 +266,7 @@ export function FabricFormDialog({
 
     const res = await saveFabric(null, formData);
     if (res?.ok) {
+      clear();
       toast.success(
         isEdit
           ? t("Tissu mis à jour.")
@@ -247,27 +281,13 @@ export function FabricFormDialog({
     }
   }
 
-  // Reset local state whenever the dialog is (re)opened for a given fabric.
-  function handleOpenChange(next: boolean) {
-    if (next) {
-      setCategory(fabric?.category_slug ?? NONE);
-      setUnit(parseSalesUnit(fabric?.sales_unit));
-      pick(null);
-      pickDetail(null);
-      setError(null);
-      setColorList(parseFabricColors(fabric?.color));
-      setColorPrices(initialColorPrices(fabric, europe));
-      setColorFiles({});
-    }
-    onOpenChange(next);
-  }
-
-  // Les choix à boutons sont remontés à chaque ouverture (valeurs du tissu).
-  const k = `${fabric?.id ?? "new"}-${open}`;
+  // Brouillon : fermer (clic à côté, Échap, croix) ne vide rien. Le contenu reste
+  // monté et le parent ne le remonte qu'au changement de tissu ou après l'envoi.
+  const k = fabric?.id ?? "new";
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
+      <DialogContent className="sm:max-w-2xl" keepMounted>
         <DialogHeader>
           <DialogTitle>{isEdit ? t("Modifier le tissu") : t("Ajouter un tissu")}</DialogTitle>
           <DialogDescription>
@@ -277,6 +297,8 @@ export function FabricFormDialog({
             {t("Tous les champs sont obligatoires, sauf la description.")}
           </DialogDescription>
         </DialogHeader>
+
+        {saved && <DraftNotice onStartOver={startOver} />}
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" key={k}>
           {fabric && <input type="hidden" name="id" value={fabric.id} />}
@@ -296,7 +318,7 @@ export function FabricFormDialog({
               id="fabric-name"
               name="name"
               required
-              defaultValue={fabric?.name ?? ""}
+              defaultValue={field("name") ?? fabric?.name ?? ""}
               placeholder={t("Ex. Bazin Riche Blanc")}
             />
           </div>
@@ -353,7 +375,7 @@ export function FabricFormDialog({
                     min={0}
                     step={1}
                     required
-                    defaultValue={initialUnitPrice ?? ""}
+                    defaultValue={field("price_per_unit") ?? initialUnitPrice ?? ""}
                     placeholder="0"
                   />
                 </>
@@ -371,7 +393,7 @@ export function FabricFormDialog({
                   max={400}
                   step={1}
                   required
-                  defaultValue={fabric?.width_cm ?? ""}
+                  defaultValue={field("width_cm") ?? fabric?.width_cm ?? ""}
                   placeholder="150"
                 />
               </div>
@@ -385,7 +407,7 @@ export function FabricFormDialog({
                   max={30}
                   step={0.5}
                   required
-                  defaultValue={fabric?.min_order_qty ?? 1}
+                  defaultValue={field("min_order_qty") ?? fabric?.min_order_qty ?? 1}
                 />
               </div>
               <div className="space-y-2">
@@ -397,7 +419,7 @@ export function FabricFormDialog({
                   min={isEdit ? 0 : 0.5}
                   step={0.5}
                   required
-                  defaultValue={fabric ? (fabric.stock_meters ?? 0) : ""}
+                  defaultValue={field("stock_quantity") ?? (fabric ? (fabric.stock_meters ?? 0) : "")}
                   placeholder="50"
                 />
               </div>
@@ -441,7 +463,7 @@ export function FabricFormDialog({
                   id="fabric-composition"
                   name="composition"
                   required
-                  defaultValue={fabric?.composition ?? fabric?.material ?? ""}
+                  defaultValue={field("composition") ?? fabric?.composition ?? fabric?.material ?? ""}
                   placeholder={t("Ex. 100% Coton")}
                 />
                 {/* Ancien champ, toujours lu par le catalogue. */}
@@ -456,7 +478,7 @@ export function FabricFormDialog({
                   name="origin_brand"
                   required
                   list="fabric-brand-suggestions"
-                  defaultValue={fabric?.origin_brand ?? ""}
+                  defaultValue={field("origin_brand") ?? fabric?.origin_brand ?? ""}
                   placeholder="Vlisco, Uniwax…"
                 />
                 <datalist id="fabric-brand-suggestions">
@@ -473,7 +495,7 @@ export function FabricFormDialog({
             <ChipField
               label={t("Épaisseur")}
               name="weight"
-              defaultValue={fabric?.weight}
+              defaultValue={saved ? field("weight") : fabric?.weight}
               options={Object.entries(WEIGHTS).map(([value, w]) => ({
                 value,
                 label: t(w.label),
@@ -493,13 +515,13 @@ export function FabricFormDialog({
                 step={1}
                 required
                 className="max-w-32"
-                defaultValue={fabric?.grammage_gsm ?? ""}
+                defaultValue={field("grammage_gsm") ?? fabric?.grammage_gsm ?? ""}
               />
             </div>
             <ChipField
               label={t("Opacité")}
               name="opacity"
-              defaultValue={fabric?.opacity}
+              defaultValue={saved ? field("opacity") : fabric?.opacity}
               options={Object.entries(OPACITIES).map(([value, o]) => ({
                 value,
                 label: t(o.label),
@@ -509,13 +531,13 @@ export function FabricFormDialog({
             <ChipField
               label={t("Tombé")}
               name="drape"
-              defaultValue={fabric?.drape}
+              defaultValue={saved ? field("drape") : fabric?.drape}
               options={Object.entries(DRAPES).map(([value, d]) => ({ value, label: t(d.label) }))}
             />
             <ChipField
               label={t("Élasticité")}
               name="stretch"
-              defaultValue={fabric?.stretch}
+              defaultValue={saved ? field("stretch") : fabric?.stretch}
               options={Object.entries(STRETCHES).map(([value, s]) => ({ value, label: t(s.label) }))}
             />
           </Section>
@@ -543,7 +565,11 @@ export function FabricFormDialog({
               <p className="text-muted-foreground text-xs">
                 {t("Touchez d'abord la couleur dominante.")}
               </p>
-              <FabricColorPicker key={k} defaultValue={fabric?.color} onChange={setColorList} />
+              <FabricColorPicker
+                key={k}
+                defaultValue={saved ? (field("color") ?? "") : fabric?.color}
+                onChange={setColorList}
+              />
             </div>
             <input type="hidden" name="color_variants" value={variantsJson} />
             {colorList.length > 1 && (
@@ -611,7 +637,7 @@ export function FabricFormDialog({
             <ChipField
               label={t("Motif")}
               name="pattern"
-              defaultValue={fabric?.pattern}
+              defaultValue={saved ? field("pattern") : fabric?.pattern}
               options={Object.entries(PATTERNS).map(([value, p]) => ({ value, label: t(p.label) }))}
             />
             <div className="space-y-2">
@@ -622,7 +648,7 @@ export function FabricFormDialog({
                 id="fabric-finish"
                 name="finish"
                 required
-                defaultValue={fabric?.finish ?? ""}
+                defaultValue={field("finish") ?? fabric?.finish ?? ""}
                 placeholder={t("Ex. Amidonné, Brillant, Mat, Sequins")}
               />
             </div>
@@ -634,7 +660,7 @@ export function FabricFormDialog({
               multiple
               label={t("Entretien")}
               name="care_instructions"
-              defaultValues={fabric?.care_instructions ?? []}
+              defaultValues={fieldAll("care_instructions") ?? fabric?.care_instructions ?? []}
               options={Object.entries(CARE_INSTRUCTIONS).map(([value, c]) => ({
                 value,
                 label: t(c.label),
@@ -644,7 +670,7 @@ export function FabricFormDialog({
               multiple
               label={t("Idéal pour")}
               name="recommended_usages"
-              defaultValues={fabric?.recommended_usages ?? []}
+              defaultValues={fieldAll("recommended_usages") ?? fabric?.recommended_usages ?? []}
               options={Object.entries(USAGES).map(([value, u]) => ({ value, label: t(u.label) }))}
             />
             <div className="space-y-2">
@@ -656,19 +682,22 @@ export function FabricFormDialog({
                 id="fabric-description"
                 name="description"
                 rows={2}
-                defaultValue={fabric?.description ?? ""}
+                defaultValue={field("description") ?? fabric?.description ?? ""}
                 placeholder={t("Détails, tissage, usage recommandé…")}
               />
             </div>
           </Section>
 
-          <DeliveryZoneField defaultValue={fabric?.delivery_zone} europe={europe} />
+          <DeliveryZoneField
+            defaultValue={(field("delivery_zone") as FreeDeliveryZone | undefined) ?? fabric?.delivery_zone}
+            europe={europe}
+          />
 
           <label className="flex items-start gap-2 text-sm">
             <input
               type="checkbox"
               name="is_active"
-              defaultChecked={fabric ? fabric.is_active : true}
+              defaultChecked={saved ? field("is_active") === "on" : fabric ? fabric.is_active : true}
               className="accent-primary mt-0.5 size-4 rounded"
             />
             <span>
@@ -696,6 +725,25 @@ export function FabricFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Le brouillon a été repris : on le dit, et on peut repartir d'une fiche vierge. */
+export function DraftNotice({ onStartOver }: { onStartOver: () => void }) {
+  const t = useT();
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+      <p className="min-w-0 flex-1">
+        {t("Nous avons repris ce que vous aviez rempli.")}{" "}
+        <span className="text-muted-foreground">
+          {t("Les photos ajoutées ne sont pas gardées : remettez-les.")}
+        </span>
+      </p>
+      <Button type="button" variant="ghost" size="sm" onClick={onStartOver}>
+        <RotateCcw className="size-4" />
+        {t("Recommencer")}
+      </Button>
+    </div>
   );
 }
 

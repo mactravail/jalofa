@@ -79,10 +79,10 @@ export function TailorModelsPanel({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<GarmentModel | null>(null);
   const [suggestion, setSuggestion] = useState<GarmentModel | null>(null);
-  // Chaque ouverture du formulaire incrémente cette clé : Base UI ne rejoue pas
-  // `onOpenChange` sur une ouverture pilotée par prop, donc on force un remontage
-  // pour que les valeurs par défaut repartent bien de la source courante.
-  const [formSeq, setFormSeq] = useState(0);
+  // Le formulaire est remonté seulement quand sa source change (autre modèle,
+  // autre suggestion) ou après un enregistrement : fermé par erreur, il garde
+  // tout ce qui a été saisi et on reprend là où on en était.
+  const [savedSeq, setSavedSeq] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<GarmentModel | null>(null);
   const [isDeleting, startDelete] = useTransition();
   const [publishingId, setPublishingId] = useState<string | null>(null);
@@ -151,7 +151,6 @@ export function TailorModelsPanel({
   );
 
   function openForm() {
-    setFormSeq((n) => n + 1);
     setFormOpen(true);
   }
 
@@ -357,9 +356,11 @@ export function TailorModelsPanel({
       />
 
       <ModelFormDialog
-        key={formSeq}
+        key={`${editing?.id ?? suggestion?.id ?? "new"}-${savedSeq}`}
         open={formOpen}
         onOpenChange={setFormOpen}
+        onSaved={() => setSavedSeq((n) => n + 1)}
+        onReset={() => setSavedSeq((n) => n + 1)}
         model={editing}
         suggestion={suggestion}
         categories={categories}
