@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ImagePlus, Loader2, RotateCcw } from "lucide-react";
+import { ImagePlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { saveFabric } from "@/lib/actions/fabrics";
 import { useFormDraft, useSavedDraft } from "@/lib/form-draft";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
+import { DraftNotice } from "@/components/dashboard/draft-notice";
 import { FabricColorPicker } from "@/components/dashboard/fabric-color-picker";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import { Button } from "@/components/ui/button";
@@ -725,25 +726,6 @@ export function FabricFormDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** Le brouillon a été repris : on le dit, et on peut repartir d'une fiche vierge. */
-export function DraftNotice({ onStartOver }: { onStartOver: () => void }) {
-  const t = useT();
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-      <p className="min-w-0 flex-1">
-        {t("Nous avons repris ce que vous aviez rempli.")}{" "}
-        <span className="text-muted-foreground">
-          {t("Les photos ajoutées ne sont pas gardées : remettez-les.")}
-        </span>
-      </p>
-      <Button type="button" variant="ghost" size="sm" onClick={onStartOver}>
-        <RotateCcw className="size-4" />
-        {t("Recommencer")}
-      </Button>
-    </div>
   );
 }
 

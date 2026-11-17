@@ -50,7 +50,7 @@ export function CourierDialog({
   const ready = name.trim() && phone.replace(/\D/g, "").length >= 7 && eta;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
+    <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)} disablePointerDismissal>
       <DialogContent className="sm:max-w-md">
         <form
           onSubmit={(e) => {

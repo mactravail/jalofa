@@ -74,18 +74,9 @@ export function QuoteOrderDialog({
     daysValid;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) {
-          setValue("");
-          setDeliveryValue(suggestedDelivery);
-          setDaysValue("");
-          setNote("");
-        }
-        onOpenChange(next);
-      }}
-    >
+    // Fermé par erreur, le devis garde ce qui a été tapé : on le rouvre et on
+    // reprend. Un clic à côté ne le ferme pas.
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle><T>Donner mon prix</T></DialogTitle>

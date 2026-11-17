@@ -39,8 +39,8 @@ function removeDraft(key: string) {
 }
 
 /** Le brouillon enregistré, lu une fois au montage : il pré-remplit l'état. */
-export function useSavedDraft<E>(key: string): FormDraft<E> | null {
-  const [draft] = useState(() => readDraft<E>(key));
+export function useSavedDraft<E>(key: string, enabled = true): FormDraft<E> | null {
+  const [draft] = useState(() => (enabled ? readDraft<E>(key) : null));
   return draft;
 }
 
@@ -130,4 +130,19 @@ export function useFormDraft<E>(key: string, draft: FormDraft<E> | null, extra: 
   );
 
   return { formRef, field, fieldAll, clear };
+}
+
+/**
+ * Pour un formulaire rendu sur le serveur (pas dans une fenêtre) : le serveur
+ * ne voit pas le navigateur, donc le brouillon n'est repris qu'une fois la page
+ * affichée. `restore` passe à vrai une seule fois, juste après le montage, s'il
+ * y a un brouillon : le formulaire, remonté avec cette clé, le relit alors.
+ */
+export function useRestoreAfterMount(key: string): boolean {
+  const [restore, setRestore] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (readDraft(key)) setRestore(true);
+  }, [key]);
+  return restore;
 }

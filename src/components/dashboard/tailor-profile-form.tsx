@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { saveTailorProfile } from "@/lib/actions/tailors";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
+import { useFormDraft, useRestoreAfterMount, useSavedDraft } from "@/lib/form-draft";
+import { DraftNotice } from "@/components/dashboard/draft-notice";
 import { Button } from "@/components/ui/button";
 import { CountrySelect } from "@/components/europe/country-select";
 import { Input } from "@/components/ui/input";
@@ -22,7 +24,33 @@ type Photo =
   | { kind: "new"; file: File; url: string }
   | null;
 
+/** Remonté à neuf par « Recommencer » : la fiche repart des valeurs enregistrées. */
 export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
+  const [seq, setSeq] = useState(0);
+  const restore = useRestoreAfterMount(`tailor-profile:${tailor.id}`);
+  return (
+    <TailorProfileFields
+      key={`${seq}-${restore}`}
+      tailor={tailor}
+      restore={restore}
+      onReset={() => setSeq((n) => n + 1)}
+    />
+  );
+}
+
+function TailorProfileFields({
+  tailor,
+  restore,
+  onReset,
+}: {
+  tailor: Tailor;
+  restore: boolean;
+  onReset: () => void;
+}) {
+  // Brouillon gardé dans le navigateur : page quittée par erreur, on reprend.
+  const draftKey = `tailor-profile:${tailor.id}`;
+  const saved = useSavedDraft<null>(draftKey, restore);
+  const { formRef, field, clear } = useFormDraft<null>(draftKey, saved, null);
   const [photo, setPhoto] = useState<Photo>(
     tailor.cover_url ? { kind: "existing", url: tailor.cover_url } : null,
   );
@@ -73,6 +101,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
 
       const res = await saveTailorProfile(null, formData);
       if (res?.ok) {
+        clear();
         toast.success(t("Profil public mis à jour."));
       } else if (res) {
         setError(t(res.error));
@@ -81,7 +110,16 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+      {saved && (
+        <DraftNotice
+          onStartOver={() => {
+            clear();
+            onReset();
+          }}
+        />
+      )}
+
       {error && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
           {error}
@@ -140,14 +178,14 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
           id="shop_name"
           name="shop_name"
           required
-          defaultValue={tailor.shop_name ?? ""}
+          defaultValue={field("shop_name") ?? tailor.shop_name ?? ""}
           placeholder={t("Ex. Atelier Fatou Couture")}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="country"><T>Pays</T></Label>
-        <CountrySelect defaultValue={tailor.country} />
+        <CountrySelect defaultValue={field("country") ?? tailor.country} />
         <p className="text-muted-foreground text-xs">
           <T>{"Un pays d'Europe fait apparaître vos produits dans JALOFA EUROPE."}</T>
         </p>
@@ -158,7 +196,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
         <Input
           id="city"
           name="city"
-          defaultValue={tailor.city ?? ""}
+          defaultValue={field("city") ?? tailor.city ?? ""}
           placeholder={t("Ex. Dakar")}
         />
       </div>
@@ -169,7 +207,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
           id="bio"
           name="bio"
           rows={3}
-          defaultValue={tailor.bio ?? ""}
+          defaultValue={field("bio") ?? tailor.bio ?? ""}
           placeholder={t("Votre spécialité, votre expérience, vos finitions…")}
         />
       </div>
@@ -183,7 +221,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
             type="number"
             min={0}
             step={1}
-            defaultValue={tailor.base_price}
+            defaultValue={field("base_price") ?? tailor.base_price}
             placeholder="15000"
           />
         </div>
@@ -196,7 +234,7 @@ export function TailorProfileForm({ tailor }: { tailor: Tailor }) {
             min={1}
             max={365}
             step={1}
-            defaultValue={tailor.avg_delivery_days}
+            defaultValue={field("avg_delivery_days") ?? tailor.avg_delivery_days}
             placeholder="7"
           />
         </div>

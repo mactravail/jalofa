@@ -32,7 +32,7 @@ import { CARE_TIP_SUGGESTIONS } from "@/lib/style-presets";
 import { catalogModelOf } from "@/lib/catalog-link";
 import { garmentStyleKey, guessStyleBase } from "@/lib/style-options";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
-import { DraftNotice } from "@/components/dashboard/fabric-form-dialog";
+import { DraftNotice } from "@/components/dashboard/draft-notice";
 import type { FreeDeliveryZone } from "@/lib/delivery";
 import { useFormDraft, useSavedDraft } from "@/lib/form-draft";
 import { Button, buttonVariants } from "@/components/ui/button";

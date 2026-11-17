@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { saveVendorProfile } from "@/lib/actions/vendors";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
+import { useFormDraft, useRestoreAfterMount, useSavedDraft } from "@/lib/form-draft";
+import { DraftNotice } from "@/components/dashboard/draft-notice";
 import { Button } from "@/components/ui/button";
 import { CountrySelect } from "@/components/europe/country-select";
 import { Input } from "@/components/ui/input";
@@ -22,7 +24,33 @@ type Photo =
   | { kind: "new"; file: File; url: string }
   | null;
 
+/** Remonté à neuf par « Recommencer » : la fiche repart des valeurs enregistrées. */
 export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
+  const [seq, setSeq] = useState(0);
+  const restore = useRestoreAfterMount(`vendor-profile:${vendor.id}`);
+  return (
+    <VendorProfileFields
+      key={`${seq}-${restore}`}
+      vendor={vendor}
+      restore={restore}
+      onReset={() => setSeq((n) => n + 1)}
+    />
+  );
+}
+
+function VendorProfileFields({
+  vendor,
+  restore,
+  onReset,
+}: {
+  vendor: Vendor;
+  restore: boolean;
+  onReset: () => void;
+}) {
+  // Brouillon gardé dans le navigateur : page quittée par erreur, on reprend.
+  const draftKey = `vendor-profile:${vendor.id}`;
+  const saved = useSavedDraft<null>(draftKey, restore);
+  const { formRef, field, clear } = useFormDraft<null>(draftKey, saved, null);
   const [photo, setPhoto] = useState<Photo>(
     vendor.cover_url ? { kind: "existing", url: vendor.cover_url } : null,
   );
@@ -73,6 +101,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
 
       const res = await saveVendorProfile(null, formData);
       if (res?.ok) {
+        clear();
         toast.success(t("Profil public mis à jour."));
       } else if (res) {
         setError(t(res.error));
@@ -81,7 +110,16 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+      {saved && (
+        <DraftNotice
+          onStartOver={() => {
+            clear();
+            onReset();
+          }}
+        />
+      )}
+
       {error && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">
           {error}
@@ -140,14 +178,14 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
           id="shop_name"
           name="shop_name"
           required
-          defaultValue={vendor.shop_name ?? ""}
+          defaultValue={field("shop_name") ?? vendor.shop_name ?? ""}
           placeholder={t("Ex. Tissus Marché HLM")}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="country"><T>Pays</T></Label>
-        <CountrySelect defaultValue={vendor.country} />
+        <CountrySelect defaultValue={field("country") ?? vendor.country} />
         <p className="text-muted-foreground text-xs">
           <T>{"Un pays d'Europe fait apparaître vos produits dans JALOFA EUROPE."}</T>
         </p>
@@ -158,7 +196,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
         <Input
           id="city"
           name="city"
-          defaultValue={vendor.city ?? ""}
+          defaultValue={field("city") ?? vendor.city ?? ""}
           placeholder={t("Ex. Dakar")}
         />
       </div>
@@ -169,7 +207,7 @@ export function VendorProfileForm({ vendor }: { vendor: Vendor }) {
           id="bio"
           name="bio"
           rows={3}
-          defaultValue={vendor.bio ?? ""}
+          defaultValue={field("bio") ?? vendor.bio ?? ""}
           placeholder={t("Vos étoffes, votre spécialité, votre marché…")}
         />
       </div>

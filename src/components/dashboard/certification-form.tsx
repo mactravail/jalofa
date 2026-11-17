@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { submitCertificationRequest } from "@/lib/actions/certification";
 import { resizeImage } from "@/lib/image";
+import { useFormDraft, useRestoreAfterMount, useSavedDraft } from "@/lib/form-draft";
+import { DraftNotice } from "@/components/dashboard/draft-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,16 +95,38 @@ function FileField({
  * réduites dans le navigateur avant l'envoi (une photo de téléphone pèse souvent
  * plusieurs Mo) ; un PDF part tel quel, plafonné à 2 Mo.
  */
-export function CertificationForm({
-  kind,
-  defaults,
-  onSent,
-}: {
+type CertificationFormProps = {
   kind: "tailor" | "vendor";
   defaults: { legal_name: string; phone: string; address: string; company_name: string };
   onSent?: () => void;
-}) {
+};
+
+/** Remonté à neuf par « Recommencer » : le formulaire repart des valeurs du profil. */
+export function CertificationForm(props: CertificationFormProps) {
+  const [seq, setSeq] = useState(0);
+  const restore = useRestoreAfterMount(`certification:${props.kind}`);
+  return (
+    <CertificationFields
+      key={`${seq}-${restore}`}
+      {...props}
+      restore={restore}
+      onReset={() => setSeq((n) => n + 1)}
+    />
+  );
+}
+
+function CertificationFields({
+  kind,
+  defaults,
+  onSent,
+  restore,
+  onReset,
+}: CertificationFormProps & { restore: boolean; onReset: () => void }) {
   const t = useT();
+  // Brouillon gardé dans le navigateur (les fichiers sont à remettre).
+  const draftKey = `certification:${kind}`;
+  const saved = useSavedDraft<null>(draftKey, restore);
+  const { formRef, field, clear } = useFormDraft<null>(draftKey, saved, null);
   const [idCard, setIdCard] = useState<File | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [register, setRegister] = useState<File | null>(null);
@@ -137,6 +161,7 @@ export function CertificationForm({
       if (rc) formData.set("trade_register", rc);
       const res = await submitCertificationRequest(null, formData);
       if (res?.ok) {
+        clear();
         toast.success(t("Demande envoyée."));
         setSent(true);
         onSent?.();
@@ -161,7 +186,16 @@ export function CertificationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+      {saved && (
+        <DraftNotice
+          onStartOver={() => {
+            clear();
+            onReset();
+          }}
+        />
+      )}
+
       {error && (
         <p className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm">{error}</p>
       )}
@@ -173,7 +207,7 @@ export function CertificationForm({
         <Input
           id="legal_name"
           name="legal_name"
-          defaultValue={defaults.legal_name}
+          defaultValue={field("legal_name") ?? defaults.legal_name}
           placeholder={t("Prénom et nom, comme sur la carte d'identité")}
           autoComplete="name"
           required
@@ -189,7 +223,7 @@ export function CertificationForm({
           name="phone"
           type="tel"
           inputMode="tel"
-          defaultValue={defaults.phone}
+          defaultValue={field("phone") ?? defaults.phone}
           placeholder="+221 77 000 00 00"
           autoComplete="tel"
           required
@@ -203,7 +237,7 @@ export function CertificationForm({
         <Textarea
           id="address"
           name="address"
-          defaultValue={defaults.address}
+          defaultValue={field("address") ?? defaults.address}
           placeholder={t("Quartier, rue, ville")}
           rows={2}
           required
@@ -225,7 +259,7 @@ export function CertificationForm({
         <Input
           id="company_name"
           name="company_name"
-          defaultValue={defaults.company_name}
+          defaultValue={field("company_name") ?? defaults.company_name}
           placeholder={t(kind === "tailor" ? "Le nom de votre atelier" : "Le nom de votre boutique")}
           required
         />
@@ -248,7 +282,12 @@ export function CertificationForm({
             (<T>facultatif</T>)
           </span>
         </Label>
-        <Input id="ninea" name="ninea" placeholder={t("Votre numéro NINEA")} />
+        <Input
+          id="ninea"
+          name="ninea"
+          defaultValue={field("ninea") ?? ""}
+          placeholder={t("Votre numéro NINEA")}
+        />
       </div>
 
       <FileField
