@@ -1,3 +1,5 @@
+import { ChevronDown } from "lucide-react";
+
 import Link from "@/components/i18n/link";
 
 import { EuropeBadge } from "@/components/europe/europe-badge";
@@ -60,10 +62,15 @@ export async function EuropeProductFacts({ model }: { model: GarmentModel }) {
   ];
 
   return (
-    <section className="mt-5 rounded-xl border border-white/15 p-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <details className="group mt-5 rounded-xl border border-white/15 p-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
         <EuropeBadge country={origin.country} />
-      </div>
+        <span className="flex shrink-0 items-center gap-1.5 text-sm">
+          <span className="group-open:hidden">{t("Voir les détails")}</span>
+          <span className="hidden group-open:inline">{t("Masquer les détails")}</span>
+          <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+        </span>
+      </summary>
       <dl className="mt-3 divide-y divide-white/10 text-sm">
         {rows
           .filter((row) => row.value)
@@ -77,6 +84,6 @@ export async function EuropeProductFacts({ model }: { model: GarmentModel }) {
       <p className="text-muted-foreground mt-3 text-xs">
         {t("Le paiement se fait en FCFA ; le prix en euros est la conversion exacte (1 € = 655,957 FCFA).")}
       </p>
-    </section>
+    </details>
   );
 }

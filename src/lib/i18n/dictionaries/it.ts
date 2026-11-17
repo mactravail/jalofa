@@ -2038,6 +2038,8 @@ export const it: Record<string, string> = {
   "Essayez une autre catégorie, un autre pays ou une autre tranche de prix.": "Prova un'altra categoria, un altro paese o un'altra fascia di prezzo.",
   "Les créations de nos ateliers en Europe. L'élégance européenne, accessible au monde.": "Le creazioni dei nostri atelier in Europa. L'eleganza europea, accessibile al mondo.",
   "Fabriqué à": "Fatto a",
+  "Voir les détails": "Vedi i dettagli",
+  "Masquer les détails": "Nascondi i dettagli",
   "Matière et tissu": "Materiale e tessuto",
   "Délai de confection": "Tempi di confezione",
   "Sur mesure, à vos mesures": "Su misura, sulle tue misure",
