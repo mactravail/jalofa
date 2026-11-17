@@ -270,6 +270,24 @@ export async function readDeferredFees(): Promise<Map<string, number>> {
   return dues;
 }
 
+/**
+ * Les abonnements réellement encaissés (factures « completed »). C'est ce
+ * chiffre — et non le plan affiché sur chaque profil — qui compte dans les
+ * revenus de JALOFA : un pro au plan PRO offert ne rapporte rien.
+ */
+export async function readCollectedSubscriptions(): Promise<number> {
+  try {
+    const { data, error } = await db()
+      .from("subscription_payments")
+      .select("amount")
+      .eq("status", "completed");
+    if (error) return 0;
+    return (data ?? []).reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+  } catch {
+    return 0; // base non configurée
+  }
+}
+
 type PlanRow = {
   plan: string;
   expiresAt: string | null;

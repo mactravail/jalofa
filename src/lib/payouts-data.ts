@@ -1,12 +1,11 @@
 import "server-only";
 
 import { getAllOrders, getAllTailors, getAllVendors, getOrderLedger } from "@/lib/admin-data";
-import { readDeferredFees } from "@/lib/pro-subscription";
+import { readCollectedSubscriptions, readDeferredFees } from "@/lib/pro-subscription";
 import {
   applyDeferredFees,
   buildPayouts,
   proDirectory,
-  subscriptionMrr,
   sumPayouts,
   type Payout,
   type PayoutTotals,
@@ -85,12 +84,13 @@ export type PlatformFinance = {
 };
 
 export async function getPlatformFinance(): Promise<PlatformFinance> {
-  const [orders, vendors, tailors, dues, ledger] = await Promise.all([
+  const [orders, vendors, tailors, dues, ledger, subscriptions] = await Promise.all([
     getAllOrders(),
     getAllVendors(),
     getAllTailors(),
     safeDeferredFees(),
     getOrderLedger(),
+    readCollectedSubscriptions(),
   ]);
 
   const paid = orders.filter((o) => o.payment_status === "paid");
@@ -103,7 +103,6 @@ export async function getPlatformFinance(): Promise<PlatformFinance> {
   const tailorTotals = sumPayouts(tailorRows);
 
   const commission = vendorTotals.commission + tailorTotals.commission;
-  const subscriptions = subscriptionMrr(vendors) + subscriptionMrr(tailors);
   const delivery = paid.reduce((sum, o) => sum + o.delivery_fee, 0);
 
   return {

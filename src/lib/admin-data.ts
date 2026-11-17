@@ -13,10 +13,10 @@ import {
 import {
   buildPayouts,
   proDirectory,
-  subscriptionMrr,
   sumPayouts,
 } from "@/lib/payouts";
 import { withCancellations } from "@/lib/order-cancellations";
+import { readCollectedSubscriptions } from "@/lib/pro-subscription";
 import { isTerminal } from "@/lib/pipeline";
 import { FABRICS, MODELS, TAILORS } from "@/lib/fixtures";
 import {
@@ -588,13 +588,14 @@ export function gmvOf(orders: OrderListItem[]): number {
 }
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const [users, orders, fabrics, models, tailors, vendors] = await Promise.all([
+  const [users, orders, fabrics, models, tailors, vendors, subscriptions] = await Promise.all([
     getAllUsers(),
     getAllOrders(),
     getAllFabrics(),
     getAllModels(),
     getAllTailors(),
     getAllVendors(),
+    readCollectedSubscriptions(),
   ]);
 
   const gmv = gmvOf(orders);
@@ -609,7 +610,6 @@ export async function getAdminStats(): Promise<AdminStats> {
     buildPayouts("tailor", orders, proDirectory(tailors)),
   );
   const commission = vendorTotals.commission + tailorTotals.commission;
-  const subscriptions = subscriptionMrr(vendors) + subscriptionMrr(tailors);
 
   return {
     users: {
