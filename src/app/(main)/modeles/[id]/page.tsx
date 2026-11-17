@@ -5,7 +5,10 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { GarmentBuyBox } from "@/components/catalog/garment-buy-box";
 import { SalesPendingNotice } from "@/components/catalog/sales-pending-notice";
-import { GarmentGallery } from "@/components/catalog/garment-gallery";
+import {
+  ColorAwareGarmentGallery,
+  GarmentColorPhotoProvider,
+} from "@/components/catalog/garment-color-photo";
 import {
   creationTypeCard,
   GarmentTypeSwitcher,
@@ -218,8 +221,9 @@ export default async function ModelDetailPage({
       {/* `grid-cols-1` explicite : sans lui, la colonne (implicite, donc `auto`)
           se dimensionne sur le contenu le plus large — le rail de tissus de
           « Le personnaliser » élargissait toute la page sur mobile. */}
+      <GarmentColorPhotoProvider>
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        <GarmentGallery
+        <ColorAwareGarmentGallery
           photos={clickedActive && clickedPhoto ? [clickedPhoto] : photos}
           alt={model.name}
           fit="cover"
@@ -291,6 +295,7 @@ export default async function ModelDetailPage({
           <GarmentDetails model={model} />
         </div>
       </div>
+      </GarmentColorPhotoProvider>
 
       <GarmentFooter reviews={reviews} related={related} />
     </div>

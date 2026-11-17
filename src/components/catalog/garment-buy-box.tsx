@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "@/lib/i18n/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Check, Package, Palette, ShoppingBag, Truck, Wand2 } from "lucide-react";
 
 import { SizePicker, useAddAsIs, type AsIsPreset } from "@/components/catalog/garment-as-is";
+import { useSetGarmentColorPhoto } from "@/components/catalog/garment-color-photo";
 import { FabricPicker } from "@/components/catalog/garment-personalise";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/constants";
@@ -138,6 +139,13 @@ export function GarmentBuyBox({
     readyPreset && offer ? readyPriceRange(offer.model, readyPreset.tailoringPrice) : null;
   const priceVaries = Boolean(readyRange && readyRange.min !== readyRange.max);
   const addAsIs = useAddAsIs(colorPreset ?? preset);
+
+  // La couleur choisie montre sa photo dans la grande galerie de la fiche.
+  const setGalleryPhoto = useSetGarmentColorPhoto();
+  const colorPhoto = mode === "as_is" && offer ? readyImageFor(offer.model, color) : null;
+  useEffect(() => {
+    setGalleryPhoto?.(colorPhoto);
+  }, [setGalleryPhoto, colorPhoto]);
 
   const fabricGoesToAtelier =
     mode === "custom" &&
@@ -274,10 +282,11 @@ export function GarmentBuyBox({
                     );
                   })}
                 </div>
-                {offer && readyImageFor(offer.model, color) && (
+                {/* Sans galerie reliée, la photo de la couleur s'affiche ici. */}
+                {!setGalleryPhoto && colorPhoto && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={readyImageFor(offer.model, color)!}
+                    src={colorPhoto}
                     alt={color ? t(color) : ""}
                     className="mt-3 aspect-[4/5] w-full max-w-xs rounded-xl border object-cover"
                   />
