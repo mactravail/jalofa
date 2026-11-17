@@ -379,7 +379,10 @@ export function GarmentBuyBox({
         )}
       </div>
 
-      <Button size="lg" className="mt-5 h-12 w-full text-base" onClick={() => onCta()}>
+      <Button
+        className="mt-5 h-10 w-full bg-orange-500 text-sm text-white hover:bg-orange-600"
+        onClick={() => onCta()}
+      >
         {mode === "as_is" ? (
           <>
             <ShoppingBag className="size-4" /> {t("Ajouter au panier")}
@@ -393,9 +396,7 @@ export function GarmentBuyBox({
       {/* Prêt-à-porter : on peut aussi passer directement à la caisse. */}
       {mode === "as_is" && (
         <Button
-          size="lg"
-          variant="outline"
-          className="mt-2 h-12 w-full text-base"
+          className="mt-2 h-10 w-full bg-emerald-600 text-sm text-white hover:bg-emerald-700"
           onClick={() => onCta("/caisse")}
         >
           <Zap className="size-4" /> {t("Acheter maintenant")}

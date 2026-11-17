@@ -229,7 +229,7 @@ export default async function ModelDetailPage({
           <ColorAwareGarmentGallery
             photos={clickedActive && clickedPhoto ? [clickedPhoto] : photos}
             alt={model.name}
-            fit="cover"
+            fit="contain"
             sizes="(max-width: 768px) 100vw, 50vw"
             priority
             className="aspect-4/5"
