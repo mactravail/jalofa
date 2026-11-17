@@ -22,17 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { checkPassword } from "@/lib/password";
-import {
-  SELECTION_CRITERIA,
-  SELECTION_CTA,
-  SELECTION_SUBTITLE,
-  SELECTION_TITLE,
-} from "@/lib/selection";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
 
 /** Champs hauts et texte à 16 px : confortables au doigt, sans zoom auto sur iOS. */
-const FIELD_CLASS = "h-12 rounded-xl px-4 md:text-base";
+const FIELD_CLASS = "h-10 rounded-lg px-3 md:text-base";
 
 /**
  * Formulaire d'inscription, dans le style de l'écran de choix (mètre ruban,
@@ -68,7 +62,7 @@ export function RegisterForm({
   const passwordsMatch = passwordConfirm.length > 0 && passwordConfirm === password;
   const canSubmit = passwordOk && passwordsMatch && acceptedTerms;
 
-  const submitLabel = t(isPro ? SELECTION_CTA : "Créer mon compte");
+  const submitLabel = t(isPro ? "Vendre" : "Créer mon compte");
 
   const Icon = isPro ? Scissors : Shirt;
 
@@ -98,14 +92,25 @@ export function RegisterForm({
 
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-              {isPro ? t("Professionnel") : t("Gratuit")}
-            </p>
-            <p className="text-muted-foreground text-base">
-              {isPro
-                ? t("Je couds et je vends du tissu.")
-                : t("Je commande des tenues sur mesure.")}
-            </p>
+            {isPro ? (
+              <div className="flex flex-col items-start gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
+                  <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
+                  <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
+                </span>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                {t("Gratuit")}
+              </p>
+            )}
+            {!isPro && (
+              <p className="text-muted-foreground text-base">
+                {t("Je commande des tenues sur mesure.")}
+              </p>
+            )}
           </div>
           <Icon aria-hidden strokeWidth={0.6} className="size-20 shrink-0" />
         </div>
@@ -119,39 +124,18 @@ export function RegisterForm({
 
           {isPro && (
             <div className="space-y-4">
-              <div className="flex flex-nowrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
-                  <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
-                  <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
-                </span>
-              </div>
 
               {/* Sélection JALOFA : une seule formule, l'accès PRO offert
                   (cf. `selection.ts`). Ni prix habituel, ni durée affichés. */}
               <div className="relative mt-3 rounded-2xl border-2 border-orange-500 bg-orange-500/10 p-5">
-                <span className="absolute -top-3 left-4 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-bold tracking-wide text-black uppercase">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-bold tracking-wide text-black uppercase">
                   <Star aria-hidden className="size-3.5 fill-current" />
-                  {t("Sélection JALOFA")}
+                  {t("Gratuit")}
                 </span>
-                <div className="flex items-start justify-between gap-3 pt-1">
-                  <p className="min-w-0 text-lg font-bold">{t("Accès PRO offert")}</p>
-                  <p className="shrink-0 text-2xl leading-none font-black text-orange-400">
-                    0 FCFA
-                  </p>
-                </div>
-                <p className="mt-3 text-xl leading-snug font-bold">{t(SELECTION_TITLE)}</p>
-                <p className="mt-2 text-sm text-white/75">{t(SELECTION_SUBTITLE)}</p>
-                <p className="mt-4 text-sm font-bold">{t("Ce que nous recherchons :")}</p>
-                <ul className="mt-2 space-y-1.5">
-                  {SELECTION_CRITERIA.map((line) => (
-                    <li key={line} className="flex items-start gap-2 text-sm">
-                      <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-orange-400" />
-                      <span className="min-w-0">{t(line)}</span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="pt-1 text-center text-lg font-bold">{t("Accès PRO offert")}</p>
+                <p className="mt-2 text-center text-lg leading-none font-black whitespace-nowrap text-orange-400 sm:text-2xl">
+                  0 FCFA · {t("0 commission")}
+                </p>
               </div>
             </div>
           )}
@@ -271,7 +255,10 @@ export function RegisterForm({
 
           <Button
             type="submit"
-            className="h-14 w-full rounded-xl text-base font-semibold"
+            className={cn(
+              "h-14 w-full rounded-xl text-base font-semibold",
+              isPro && canSubmit && "bg-orange-500 text-black hover:bg-orange-400",
+            )}
             disabled={!canSubmit || isPending}
           >
             {isPending && <Loader2 className="size-5 animate-spin" />}

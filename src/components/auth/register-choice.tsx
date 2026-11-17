@@ -43,9 +43,14 @@ export async function RegisterChoice({ redirect }: { redirect?: string }) {
           <Stitching className="border-white/25" />
 
           <div className="flex items-start justify-between gap-4">
-            <span className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
-              {t("Professionnel")}
-            </span>
+            <div className="flex flex-col items-start gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
+                <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
+                <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
+              </span>
+            </div>
             <Scissors
               aria-hidden
               strokeWidth={0.6}
@@ -54,22 +59,9 @@ export async function RegisterChoice({ redirect }: { redirect?: string }) {
           </div>
 
           <h2 className="mt-3 text-3xl font-bold tracking-tight">{t("Je suis pro")}</h2>
-          <p className="mt-1.5 text-base text-white/70">
-            {t("Je couds et je vends du tissu.")}
-          </p>
-
-          <p className="mt-3 text-sm font-semibold text-orange-400">
+          <p className="mt-3 mb-6 text-sm font-semibold text-orange-400">
             {t("Accès PRO offert aux professionnels sélectionnés.")}
           </p>
-
-          <div className="mt-4 mb-6 flex flex-nowrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
-              <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
-              <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
-            </span>
-          </div>
 
           <span className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-base font-semibold text-neutral-950 transition-colors group-hover:bg-neutral-200">
             {t("Candidater à la sélection")}

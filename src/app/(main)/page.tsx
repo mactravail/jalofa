@@ -129,10 +129,10 @@ async function VideoHero() {
   const t = await getT();
   const href = "/modeles";
   const title = t("Créer ma tenue");
-  const cta = t("Découvrir");
+  const cta = t("Créer un compte pro");
   return (
     <section className="relative h-[calc(100svh-2.25rem-var(--spacing-bottom-nav))] min-h-[28rem] w-full overflow-hidden bg-neutral-900 md:h-[calc(100svh-2.25rem)]">
-      <Link href={href} aria-label={`${title} — ${cta}`} className="absolute inset-0">
+      <Link href={href} aria-label={title} className="absolute inset-0">
         <HeroVideo
           poster="/videos/hero-poster.jpg"
           alt={t("Deux mannequins en tenue, pendant une séance photo en studio")}
@@ -144,9 +144,8 @@ async function VideoHero() {
         as="h1"
         eyebrow={t("Sur mesure · Sénégal")}
         title={title}
-        href={href}
+        href="/inscription?role=pro"
         cta={cta}
-        secondary={{ href: "/inscription?role=pro", label: t("Créer un compte pro") }}
       />
     </section>
   );

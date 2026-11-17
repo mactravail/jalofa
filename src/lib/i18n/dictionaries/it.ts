@@ -2448,6 +2448,7 @@ export const it: Record<string, string> = {
     "Impegni e tempi rispettati",
   "Sélection JALOFA":
     "Selezione JALOFA",
+  "0 commission": "0 commissioni",
   "Accès PRO offert":
     "Accesso PRO in regalo",
   "Ce que nous recherchons :":
