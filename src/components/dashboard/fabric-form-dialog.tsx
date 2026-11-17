@@ -192,17 +192,12 @@ export function FabricFormDialog({
     const formData = new FormData(e.currentTarget);
     formData.set("category_slug", category === NONE ? "" : category);
 
-    // Tous les choix à boutons sont obligatoires, comme les champs texte.
+    // Couleur et motif obligatoires ; « Toucher & tombé », « Entretien &
+    // usages » et la finition sont facultatifs.
     const missing = (
       [
-        ["weight", "Choisissez l'épaisseur."],
-        ["opacity", "Choisissez l'opacité."],
-        ["drape", "Choisissez le tombé."],
-        ["stretch", "Choisissez l'élasticité."],
         ["color", "Choisissez au moins une couleur."],
         ["pattern", "Choisissez le motif."],
-        ["care_instructions", "Choisissez l'entretien."],
-        ["recommended_usages", "Choisissez au moins un usage (Idéal pour)."],
       ] as const
     ).find(([field]) => !String(formData.get(field) ?? "").trim());
     if (missing) {
@@ -295,7 +290,7 @@ export function FabricFormDialog({
             {isEdit
               ? t("Mettez à jour les informations de ce tissu.")
               : t("Renseignez les informations du tissu à mettre en vente.")}{" "}
-            {t("Tous les champs sont obligatoires, sauf la description.")}
+            {t("Les champs marqués « facultatif » peuvent rester vides.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -492,7 +487,7 @@ export function FabricFormDialog({
           </Section>
 
           {/* 3. Propriétés physiques */}
-          <Section n={3} title={t("Toucher & tombé")}>
+          <Section n={3} title={t("Toucher & tombé")} hint={t("facultatif")}>
             <ChipField
               label={t("Épaisseur")}
               name="weight"
@@ -514,7 +509,6 @@ export function FabricFormDialog({
                 min={10}
                 max={1500}
                 step={1}
-                required
                 className="max-w-32"
                 defaultValue={field("grammage_gsm") ?? fabric?.grammage_gsm ?? ""}
               />
@@ -643,12 +637,12 @@ export function FabricFormDialog({
             />
             <div className="space-y-2">
               <Label htmlFor="fabric-finish">
-                {t("Finition")}
+                {t("Finition")}{" "}
+                <span className="text-muted-foreground text-xs font-normal">({t("facultatif")})</span>
               </Label>
               <Input
                 id="fabric-finish"
                 name="finish"
-                required
                 defaultValue={field("finish") ?? fabric?.finish ?? ""}
                 placeholder={t("Ex. Amidonné, Brillant, Mat, Sequins")}
               />
@@ -656,7 +650,7 @@ export function FabricFormDialog({
           </Section>
 
           {/* 5. Entretien & usages */}
-          <Section n={5} title={t("Entretien & usages")}>
+          <Section n={5} title={t("Entretien & usages")} hint={t("facultatif")}>
             <ChipField
               multiple
               label={t("Entretien")}
@@ -740,10 +734,12 @@ function initialColorPrices(fabric: Fabric | null, europe: boolean): Record<stri
 function Section({
   n,
   title,
+  hint,
   children,
 }: {
   n: number;
   title: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -753,6 +749,7 @@ function Section({
           {n}
         </span>
         {title}
+        {hint && <span className="text-muted-foreground text-xs font-normal">({hint})</span>}
       </legend>
       {children}
     </fieldset>

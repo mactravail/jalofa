@@ -203,29 +203,13 @@ export async function saveFabric(
     [
       ["composition", "la composition"],
       ["origin_brand", "la marque / origine"],
-      ["finish", "la finition"],
       ["color", "au moins une couleur"],
     ] as const
   ).find(([field]) => !text(formData.get(field)));
   if (missing) return { ok: false, error: `Indiquez ${missing[1]}.` };
-  if (!optionalInt(formData.get("grammage_gsm"))) {
-    return { ok: false, error: "Indiquez le grammage (g/m²)." };
-  }
-  const choice = (
-    [
-      ["weight", WEIGHTS, "l'épaisseur"],
-      ["opacity", OPACITIES, "l'opacité"],
-      ["drape", DRAPES, "le tombé"],
-      ["stretch", STRETCHES, "l'élasticité"],
-      ["pattern", PATTERNS, "le motif"],
-    ] as [string, Record<string, unknown>, string][]
-  ).find(([field, dict]) => !pickKey(dict, formData.get(field)));
-  if (choice) return { ok: false, error: `Choisissez ${choice[2]}.` };
-  if (checked(formData, "care_instructions", CARE_INSTRUCTIONS).length === 0) {
-    return { ok: false, error: "Choisissez l'entretien." };
-  }
-  if (checked(formData, "recommended_usages", USAGES).length === 0) {
-    return { ok: false, error: "Choisissez au moins un usage (Idéal pour)." };
+  // « Toucher & tombé », « Entretien & usages » et la finition sont facultatifs.
+  if (!pickKey(PATTERNS, formData.get("pattern"))) {
+    return { ok: false, error: "Choisissez le motif." };
   }
 
   let imageUrl = previousUrl;

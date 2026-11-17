@@ -2915,6 +2915,7 @@ export const it: Record<string, string> = {
   "Pendant vos lives, dites aux clients : « Le lien est dans ma bio ».": "Durante le tue live, di' ai clienti: « Il link è nella mia bio ».",
   // Stock tissus + couleurs ajoutées
   "Tous les champs sont obligatoires, sauf la description.": "Tutti i campi sono obbligatori, tranne la descrizione.",
+  "Les champs marqués « facultatif » peuvent rester vides.": "I campi segnati « facoltativo » possono restare vuoti.",
   "Choisissez l'épaisseur.": "Scegli lo spessore.",
   "Choisissez l'opacité.": "Scegli l'opacità.",
   "Choisissez le tombé.": "Scegli la cascata.",
