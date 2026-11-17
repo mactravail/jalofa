@@ -2449,6 +2449,10 @@ export const it: Record<string, string> = {
   "Sélection JALOFA":
     "Selezione JALOFA",
   "0 commission": "0 commissioni",
+  "Continuer avec Google": "Continua con Google",
+  "Continuer avec Apple": "Continua con Apple",
+  "ou avec votre e-mail": "oppure con la tua e-mail",
+  "Connexion impossible pour le moment. Réessayez avec votre e-mail.": "Accesso impossibile al momento. Riprova con la tua e-mail.",
   "Accès PRO offert":
     "Accesso PRO in regalo",
   "Ce que nous recherchons :":

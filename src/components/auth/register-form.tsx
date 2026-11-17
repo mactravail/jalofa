@@ -16,8 +16,12 @@ import {
 import { signUp, type AuthState } from "@/lib/actions/auth";
 import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
 import { PasswordField } from "@/components/auth/password-field";
+import { ProviderButtons } from "@/components/auth/provider-buttons";
 import { CountrySelect } from "@/components/europe/country-select";
-import { RobotTrap, TermsCheckbox } from "@/components/auth/signup-verification";
+import {
+  RobotTrap,
+  TermsCheckbox,
+} from "@/components/auth/signup-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,9 +47,15 @@ const FIELD_CLASS = "h-10 rounded-lg px-3 md:text-base";
 export function RegisterForm({
   kind,
   redirectTo,
+  oauthFailed,
+  providers = [],
 }: {
+  /** Accès Google / Apple actifs dans Supabase — aucun = boutons cachés. */
+  providers?: ("google" | "apple")[];
   kind: "client" | "pro";
   redirectTo?: string;
+  /** Retour raté de Google / Apple (`/auth/callback`). */
+  oauthFailed?: boolean;
 }) {
   const isPro = kind === "pro";
   const t = useT();
@@ -59,7 +69,8 @@ export function RegisterForm({
   );
 
   const passwordOk = checkPassword(password).valid;
-  const passwordsMatch = passwordConfirm.length > 0 && passwordConfirm === password;
+  const passwordsMatch =
+    passwordConfirm.length > 0 && passwordConfirm === password;
   const canSubmit = passwordOk && passwordsMatch && acceptedTerms;
 
   const submitLabel = t(isPro ? "Vendre" : "Créer mon compte");
@@ -98,7 +109,8 @@ export function RegisterForm({
                   <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
-                  <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
+                  <Store aria-hidden className="size-4" />{" "}
+                  {t("Vendeur de tissu")}
                 </span>
               </div>
             ) : (
@@ -124,7 +136,6 @@ export function RegisterForm({
 
           {isPro && (
             <div className="space-y-4">
-
               {/* Sélection JALOFA : une seule formule, l'accès PRO offert
                   (cf. `selection.ts`). Ni prix habituel, ni durée affichés. */}
               <div className="relative mt-3 rounded-2xl border-2 border-orange-500 bg-orange-500/10 p-5">
@@ -132,11 +143,25 @@ export function RegisterForm({
                   <Star aria-hidden className="size-3.5 fill-current" />
                   {t("Gratuit")}
                 </span>
-                <p className="pt-1 text-center text-lg font-bold">{t("Accès PRO offert")}</p>
+                <p className="pt-1 text-center text-lg font-bold">
+                  {t("Accès PRO offert")}
+                </p>
                 <p className="mt-2 text-center text-lg leading-none font-black whitespace-nowrap text-orange-400 sm:text-2xl">
                   0 FCFA · {t("0 commission")}
                 </p>
               </div>
+              {providers.length > 0 && (
+                <div className="pt-2">
+                  <ProviderButtons
+                    providers={providers}
+                    initialError={
+                      oauthFailed
+                        ? "Connexion impossible pour le moment. Réessayez avec votre e-mail."
+                        : null
+                    }
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -257,7 +282,9 @@ export function RegisterForm({
             type="submit"
             className={cn(
               "h-14 w-full rounded-xl text-base font-semibold",
-              isPro && canSubmit && "bg-orange-500 text-black hover:bg-orange-400",
+              isPro &&
+                canSubmit &&
+                "bg-orange-500 text-black hover:bg-orange-400",
             )}
             disabled={!canSubmit || isPending}
           >

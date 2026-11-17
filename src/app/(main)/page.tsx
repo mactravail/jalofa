@@ -127,17 +127,17 @@ function BannerCaption({
  */
 async function VideoHero() {
   const t = await getT();
-  const href = "/modeles";
   const title = t("Créer ma tenue");
   const cta = t("Créer un compte pro");
   return (
     <section className="relative h-[calc(100svh-2.25rem-var(--spacing-bottom-nav))] min-h-[28rem] w-full overflow-hidden bg-neutral-900 md:h-[calc(100svh-2.25rem)]">
-      <Link href={href} aria-label={title} className="absolute inset-0">
+      {/* Pas de lien sur la vidéo : seul « Créer un compte pro » est cliquable. */}
+      <div className="absolute inset-0">
         <HeroVideo
           poster="/videos/hero-poster.jpg"
           alt={t("Deux mannequins en tenue, pendant une séance photo en studio")}
         />
-      </Link>
+      </div>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
       <BannerCaption

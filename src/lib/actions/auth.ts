@@ -215,6 +215,27 @@ export async function signUp(
   redirect(`/connexion?${params.toString()}`);
 }
 
+/**
+ * Inscription pro avec Google ou Apple. Supabase renvoie vers `/auth/callback`
+ * (flux PKCE : le vérificateur est posé en cookie par le client serveur), qui
+ * ouvre la session et fait du nouveau compte un compte pro.
+ */
+export async function signUpWithProvider(provider: "google" | "apple"): Promise<AuthState> {
+  if (provider !== "google" && provider !== "apple") return { error: "Accès refusé." };
+  if (!isSupabaseConfigured()) return { error: DB_NOT_READY };
+
+  const supabase = await createClient();
+  const origin = await siteOrigin();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: `${origin}/auth/callback?role=pro` },
+  });
+  if (error || !data.url) {
+    return { error: "Connexion impossible pour le moment. Réessayez avec votre e-mail." };
+  }
+  redirect(data.url);
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
