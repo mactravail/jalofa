@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Brouillon d'un formulaire du tableau de bord, gardé dans le navigateur : la
+ * Brouillon d'un formulaire (espace pro ou client), gardé dans le navigateur : la
  * page rechargée ou quittée par erreur, on reprend là où on en était. Les champs
  * nommés du formulaire sont relus tels quels (photos exceptées : un fichier ne
  * se garde pas), `extra` porte l'état React qui n'est pas dans le formulaire.
@@ -55,7 +55,8 @@ export function useFormDraft<E>(key: string, draft: FormDraft<E> | null, extra: 
   // L'état du formulaire juste ouvert : tant qu'on y revient, aucun brouillon
   // (ouvrir puis fermer ne doit pas en laisser un faux).
   const baseline = useRef<string | null>(null);
-  const stopped = useRef(false);
+  // Un brouillon repris s'écrit toujours (il diffère déjà de la fiche vierge).
+  const draftActive = useRef(Boolean(draft));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const snapshot = useCallback(() => {
@@ -70,9 +71,9 @@ export function useFormDraft<E>(key: string, draft: FormDraft<E> | null, extra: 
   }, [form]);
 
   const save = useCallback(() => {
-    if (!form || stopped.current || baseline.current === null) return;
+    if (!form || baseline.current === null) return;
     const snap = snapshot();
-    if (!draft && JSON.stringify(snap) === baseline.current) {
+    if (!draftActive.current && JSON.stringify(snap) === baseline.current) {
       removeDraft(key);
       return;
     }
@@ -81,7 +82,7 @@ export function useFormDraft<E>(key: string, draft: FormDraft<E> | null, extra: 
     } catch {
       /* stockage plein ou bloqué : le brouillon reste seulement en mémoire */
     }
-  }, [form, key, draft, snapshot]);
+  }, [form, key, snapshot]);
 
   const schedule = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -112,11 +113,17 @@ export function useFormDraft<E>(key: string, draft: FormDraft<E> | null, extra: 
   }, [form, schedule, snapshot]);
 
   /** Après l'envoi réussi, ou « Recommencer à zéro ». */
+  // Le formulaire peut resservir (une 2e tenue publiée) : son état d'après
+  // l'envoi devient la nouvelle fiche vierge.
   const clear = useCallback(() => {
-    stopped.current = true;
     if (timer.current) clearTimeout(timer.current);
     removeDraft(key);
-  }, [key]);
+    draftActive.current = false;
+    baseline.current = null;
+    setTimeout(() => {
+      baseline.current = JSON.stringify(snapshot());
+    }, 0);
+  }, [key, snapshot]);
 
   /** Première valeur d'un champ du brouillon, sinon `undefined`. */
   const field = useCallback(
@@ -145,4 +152,61 @@ export function useRestoreAfterMount(key: string): boolean {
     if (readDraft(key)) setRestore(true);
   }, [key]);
   return restore;
+}
+
+/**
+ * Brouillon d'un état React (sans balise <form>) : caisse, mesures. Relu juste
+ * après le montage — le serveur ne voit pas le navigateur — puis enregistré à
+ * chaque changement. Rien n'est écrit tant que `value` reste l'état de départ.
+ */
+export function useStateDraft<T>(key: string, value: T, restore: (saved: T) => void) {
+  const [restored, setRestored] = useState(false);
+  const pristine = useRef(JSON.stringify(value));
+  // L'état vierge du tout début : y revenir (formulaire remis à zéro) efface aussi.
+  const [initialJson] = useState(() => JSON.stringify(value));
+  const ready = useRef(false);
+  const restoreRef = useRef(restore);
+  useEffect(() => {
+    restoreRef.current = restore;
+  });
+
+  useEffect(() => {
+    const draft = readDraft<T>(key);
+    if (draft) {
+      restoreRef.current(draft.extra);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRestored(true);
+    }
+    ready.current = true;
+  }, [key]);
+
+  const json = JSON.stringify(value);
+  const jsonRef = useRef(json);
+  useEffect(() => {
+    jsonRef.current = json;
+    if (!ready.current) return;
+    const timer = setTimeout(() => {
+      if (json === pristine.current || json === initialJson) {
+        removeDraft(key);
+        return;
+      }
+      try {
+        window.localStorage.setItem(
+          PREFIX + key,
+          JSON.stringify({ fields: {}, extra: JSON.parse(json), savedAt: Date.now() }),
+        );
+      } catch {
+        /* stockage plein ou bloqué */
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [key, json, initialJson]);
+
+  /** Après l'envoi réussi : l'état courant devient l'état de départ. */
+  const clear = useCallback(() => {
+    removeDraft(key);
+    pristine.current = jsonRef.current;
+  }, [key]);
+
+  return { restored, clear };
 }

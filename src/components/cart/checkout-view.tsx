@@ -42,6 +42,7 @@ import { RETURN_WINDOW_DAYS } from "@/lib/after-sale";
 import { deliveryPolicy } from "@/lib/delivery";
 import { basketHasFreeDelivery } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { useStateDraft } from "@/lib/form-draft";
 import { useT } from "@/components/i18n/locale-provider";
 import { SavedInfoPrompt, type SavedChoice } from "@/components/account/saved-info-prompt";
 import { hasSavedContact, type SavedProfile } from "@/lib/saved-profile";
@@ -122,6 +123,21 @@ export function CheckoutView({
     }
   };
 
+  // Coordonnées gardées dans le navigateur : page quittée ou rechargée, on
+  // reprend là où on en était. Jamais le mot de passe.
+  const { clear: clearDraft } = useStateDraft(
+    "checkout",
+    { contact, address, chosenDelivery, savedChoice },
+    (kept) => {
+      if (kept.contact) {
+        setContact({ ...kept.contact, email: account?.email ?? kept.contact.email });
+      }
+      if (kept.address) setAddress(kept.address);
+      if (kept.chosenDelivery) setDeliveryMethod(kept.chosenDelivery);
+      if (offerSaved) setSavedChoice(kept.savedChoice ?? "other");
+    },
+  );
+
   const [result, formAction, isPending] = useActionState<PlaceOrdersState, FormData>(
     placeOrders,
     null,
@@ -160,6 +176,7 @@ export function CheckoutView({
   // compte : on reste sur la confirmation.
   useEffect(() => {
     if (!result?.ok) return;
+    clearDraft();
     // Bictorys : le client paie sur sa page. Le panier ne se vide qu'une fois le
     // paiement confirmé (page « /paiement/retour »).
     if (result.redirectUrl) {
@@ -176,7 +193,7 @@ export function CheckoutView({
       router.replace("/compte/commandes");
       router.refresh();
     }
-  }, [result, clear, router, needsPassword, t]);
+  }, [result, clear, router, needsPassword, t, clearDraft]);
 
   // JALOFA n'ajoute aucun frais : chaque pro a dit, sur son produit, si la livraison
   // est gratuite. Hors de sa zone, le client règle directement le GP ou le livreur.

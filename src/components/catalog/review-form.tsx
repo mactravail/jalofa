@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useStateDraft } from "@/lib/form-draft";
 import { ImagePlus, Loader2, Star, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +47,16 @@ export function ReviewForm({
   const [rating, setRating] = useState(0);
   const t = useT();
   const [hover, setHover] = useState(0);
+  const [comment, setComment] = useState("");
+  // Brouillon propre à ce tailleur / tissu / vendeur (les photos sont à remettre).
+  const { clear: clearDraft } = useStateDraft(
+    `review:${Object.values(hidden).join(":")}`,
+    { rating, comment },
+    (kept) => {
+      if (kept.rating) setRating(kept.rating);
+      if (kept.comment) setComment(kept.comment);
+    },
+  );
   const [photos, setPhotos] = useState<Picked[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Suit les photos courantes pour libérer leurs URLs au démontage sans
@@ -54,8 +65,10 @@ export function ReviewForm({
   const submitted = state?.ok === true;
 
   useEffect(() => {
-    if (state?.ok) toast.success(t("Merci ! Votre avis a été publié."));
-  }, [state, t]);
+    if (!state?.ok) return;
+    clearDraft();
+    toast.success(t("Merci ! Votre avis a été publié."));
+  }, [state, t, clearDraft]);
 
   useEffect(() => {
     photosRef.current = photos;
@@ -160,6 +173,8 @@ export function ReviewForm({
         <Textarea
           id="review-comment"
           name="comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
           rows={3}
           maxLength={1000}
           placeholder={t(placeholder)}

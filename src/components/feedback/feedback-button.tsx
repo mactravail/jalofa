@@ -84,7 +84,7 @@ export function FeedbackButton({
         {t("Une idée ? Un problème ?")}
       </Button>
 
-      <Dialog open={open} onOpenChange={(o) => !isPending && setOpen(o)}>
+      <Dialog open={open} onOpenChange={(o) => !isPending && setOpen(o)} disablePointerDismissal>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleSubmit}>
             <DialogHeader>

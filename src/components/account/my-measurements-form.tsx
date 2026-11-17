@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useStateDraft } from "@/lib/form-draft";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,6 +25,12 @@ export function MyMeasurementsForm({ initial }: { initial: SavedMeasurement | nu
     Object.fromEntries(Object.entries(initial?.values ?? {}).map(([k, v]) => [k, String(v)])),
   );
   const [saved, setSaved] = useState(Boolean(initial));
+  // Mesures en cours de saisie gardées dans le navigateur jusqu'à l'enregistrement.
+  const { clear: clearDraft } = useStateDraft("measurements", { mode, size, values }, (kept) => {
+    if (kept.mode) setMode(kept.mode);
+    if (kept.size !== undefined) setSize(kept.size);
+    if (kept.values) setValues(kept.values);
+  });
   const [pending, start] = useTransition();
 
   const canSave =
@@ -48,6 +55,7 @@ export function MyMeasurementsForm({ initial }: { initial: SavedMeasurement | nu
         return;
       }
       refreshSavedProfile();
+      clearDraft();
       setSaved(true);
       toast.success(t("Mesures enregistrées"), {
         description: t("À votre prochaine commande, nous vous proposerons de les utiliser."),
@@ -65,6 +73,7 @@ export function MyMeasurementsForm({ initial }: { initial: SavedMeasurement | nu
       setSaved(false);
       setSize(null);
       setValues({});
+      clearDraft();
       toast.success(t("Mesures supprimées"));
     });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useStateDraft } from "@/lib/form-draft";
 import { useRouter } from "@/lib/i18n/navigation";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -46,6 +47,8 @@ const MAKER_NAME_PLACEHOLDER: Record<InspirationMakerKind, string> = {
  * catalogue). Les photos sont réduites dans le navigateur avant l'envoi — un
  * cliché brut dépasse sinon la limite de corps d'une Server Action.
  */
+const EMPTY_TEXTS = { garment_label: "", maker_name: "", caption: "", fabric_note: "" };
+
 export function InspirationForm({
   fabrics,
 }: {
@@ -60,6 +63,20 @@ export function InspirationForm({
   const [makerKind, setMakerKind] =
     useState<InspirationMakerKind>("tailleur_quartier");
   const [fabricId, setFabricId] = useState<string>("");
+  const [texts, setTexts] = useState(EMPTY_TEXTS);
+  const setText = (name: keyof typeof EMPTY_TEXTS) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => setTexts((prev) => ({ ...prev, [name]: e.target.value }));
+  // Brouillon gardé dans le navigateur (les photos sont à remettre).
+  const { clear: clearDraft } = useStateDraft(
+    "inspiration",
+    { texts, makerKind, fabricId },
+    (kept) => {
+      if (kept.texts) setTexts({ ...EMPTY_TEXTS, ...kept.texts });
+      if (kept.makerKind) setMakerKind(kept.makerKind);
+      if (kept.fabricId != null) setFabricId(kept.fabricId);
+    },
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const photosRef = useRef(photos);
@@ -114,6 +131,8 @@ export function InspirationForm({
         setPhotos([]);
         setMakerKind("tailleur_quartier");
         setFabricId("");
+        setTexts(EMPTY_TEXTS);
+        clearDraft();
         setError(null);
         form.reset();
         router.refresh();
@@ -195,6 +214,8 @@ export function InspirationForm({
           <Input
             id="insp-garment"
             name="garment_label"
+            value={texts.garment_label}
+            onChange={setText("garment_label")}
             maxLength={80}
             placeholder={t("Grand boubou, robe, ensemble…")}
           />
@@ -228,6 +249,8 @@ export function InspirationForm({
         <Input
           id="insp-maker"
           name="maker_name"
+          value={texts.maker_name}
+          onChange={setText("maker_name")}
           maxLength={120}
           placeholder={t(MAKER_NAME_PLACEHOLDER[makerKind])}
         />
@@ -241,6 +264,8 @@ export function InspirationForm({
         <Textarea
           id="insp-caption"
           name="caption"
+          value={texts.caption}
+          onChange={setText("caption")}
           rows={3}
           maxLength={1000}
           placeholder={t("Racontez cette tenue : l'occasion, la coupe, ce que vous aimez…")}
@@ -256,6 +281,8 @@ export function InspirationForm({
           <Input
             id="insp-fabric-note"
             name="fabric_note"
+            value={texts.fabric_note}
+            onChange={setText("fabric_note")}
             maxLength={160}
             placeholder={t("Ex. Marché HLM, Dakar")}
           />
