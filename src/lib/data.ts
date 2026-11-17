@@ -377,6 +377,10 @@ function toModel(row: ModelRow): GarmentModel {
       row.ready_color_prices && typeof row.ready_color_prices === "object" && !Array.isArray(row.ready_color_prices)
         ? (row.ready_color_prices as Record<string, number>)
         : {},
+    ready_color_images:
+      row.ready_color_images && typeof row.ready_color_images === "object" && !Array.isArray(row.ready_color_images)
+        ? (row.ready_color_images as Record<string, string>)
+        : {},
     origin: toOrigin(row.tailors),
     photos: (row.model_photos ?? [])
       .slice()

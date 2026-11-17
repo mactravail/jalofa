@@ -501,8 +501,12 @@ async function restockFabricImpl(id: string, added: number): Promise<void> {
   revalidateFabric(id);
 }
 
-/** Nouvelles couleurs pour un tissu déjà publié — rien d'autre à ressaisir. */
-async function addFabricColorsImpl(id: string, colors: string[]): Promise<void> {
+/**
+ * Nouvelles couleurs pour un tissu déjà publié — rien d'autre à ressaisir. Une
+ * photo par nouvelle couleur, facultative : `color_image` + `color_image_for`
+ * dans `photos`, dans le même ordre.
+ */
+async function addFabricColorsImpl(id: string, colors: string[], photos?: FormData): Promise<void> {
   const clean = (Array.isArray(colors) ? colors : [])
     .map((c) => String(c).trim().slice(0, 40))
     .filter(Boolean)
@@ -513,13 +517,48 @@ async function addFabricColorsImpl(id: string, colors: string[]): Promise<void> 
     .split(",")
     .map((c) => c.trim())
     .filter(Boolean);
-  const merged = [...current, ...clean.filter((c) => !current.includes(c))];
+  const added = clean.filter((c) => !current.includes(c));
+  const merged = [...current, ...added];
+
+  // Photos des nouvelles couleurs, rangées dans `color_variants`.
+  const files = photos?.getAll("color_image") ?? [];
+  const fileFor = photos?.getAll("color_image_for").map(String) ?? [];
+  const uploads: Record<string, string> = {};
+  for (const [i, raw] of files.entries()) {
+    const f = toFile(raw);
+    const c = fileFor[i];
+    if (!f || !c || !added.includes(c)) continue;
+    const upload = await uploadImage(supabase, BUCKET, userId, f);
+    if ("error" in upload) {
+      for (const url of Object.values(uploads)) await removeImage(supabase, BUCKET, url);
+      throw new Error(upload.error);
+    }
+    uploads[c] = upload.url;
+  }
+
+  let variants: ColorVariants | null = null;
+  if (Object.keys(uploads).length > 0) {
+    const { data: row } = await supabase
+      .from("fabrics")
+      .select("color_variants")
+      .eq("id", id)
+      .eq("vendor_id", userId)
+      .maybeSingle();
+    variants = { ...((row as { color_variants: ColorVariants | null } | null)?.color_variants ?? {}) };
+    for (const [c, url] of Object.entries(uploads)) {
+      variants[c] = { price: variants[c]?.price ?? null, image_url: url };
+    }
+  }
+
   const { error } = await supabase
     .from("fabrics")
-    .update({ color: merged.join(", ") })
+    .update({ color: merged.join(", "), ...(variants ? { color_variants: variants } : {}) })
     .eq("id", id)
     .eq("vendor_id", userId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    for (const url of Object.values(uploads)) await removeImage(supabase, BUCKET, url);
+    throw new Error(error.message);
+  }
   revalidateFabric(id);
 }
 
@@ -541,6 +580,10 @@ export async function restockFabric(id: string, added: number): Promise<ActionRe
   return runAction(() => restockFabricImpl(id, added));
 }
 
-export async function addFabricColors(id: string, colors: string[]): Promise<ActionResult> {
-  return runAction(() => addFabricColorsImpl(id, colors));
+export async function addFabricColors(
+  id: string,
+  colors: string[],
+  photos?: FormData,
+): Promise<ActionResult> {
+  return runAction(() => addFabricColorsImpl(id, colors, photos));
 }

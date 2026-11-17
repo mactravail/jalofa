@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import {
   Eye,
   EyeOff,
+  ImagePlus,
   Layers,
   Loader2,
   MoreVertical,
@@ -44,13 +45,17 @@ import {
   setFabricInStock,
 } from "@/lib/actions/fabrics";
 import { unwrap } from "@/lib/action-result";
-import { parseFabricColors } from "@/lib/fabric-colors";
+import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
+import { resizeImage } from "@/lib/image";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { fabricStock, fabricUnit, fabricUnitPrice, formatUnits } from "@/lib/fabric-specs";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { T } from "@/components/i18n/t";
 import { translateNow } from "@/lib/i18n/translate";
+
+/** Toutes les photos de couleur partent ensemble : sous la limite d'une Server Action. */
+const MAX_COLOR_PHOTOS_BYTES = 3.5 * 1024 * 1024;
 
 // Selling cloth is the vendor's whole shop, but only a sideline for a tailor —
 // who lands here with nothing listed and no reason to guess why the panel is
@@ -468,23 +473,53 @@ function RestockDialog({ fabric, onClose }: { fabric: Fabric | null; onClose: ()
 function AddColorsDialog({ fabric, onClose }: { fabric: Fabric | null; onClose: () => void }) {
   const [pending, start] = useTransition();
   const current = parseFabricColors(fabric?.color);
+  // Les couleurs cochées, et une photo facultative pour chacune.
+  const [picked, setPicked] = useState<string[]>([]);
+  const [files, setFiles] = useState<Record<string, { file: File; url: string }>>({});
+  const newColors = picked.filter((c) => !current.includes(c));
+
+  function close() {
+    for (const f of Object.values(files)) URL.revokeObjectURL(f.url);
+    setFiles({});
+    setPicked([]);
+    onClose();
+  }
+
+  function pickFile(color: string, file: File | undefined) {
+    if (!file) return;
+    setFiles((m) => {
+      if (m[color]) URL.revokeObjectURL(m[color].url);
+      return { ...m, [color]: { file, url: URL.createObjectURL(file) } };
+    });
+  }
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!fabric) return;
-    const picked = String(new FormData(e.currentTarget).get("new_colors") ?? "")
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c && !current.includes(c));
-    if (picked.length === 0) {
+    if (newColors.length === 0) {
       toast.error(translateNow("Choisissez au moins une nouvelle couleur."));
       return;
     }
     start(async () => {
       try {
-        unwrap(await addFabricColors(fabric.id, picked));
+        // Photos réduites ici : brutes, elles dépasseraient la limite d'envoi.
+        const photos = new FormData();
+        let total = 0;
+        for (const c of newColors) {
+          const f = files[c]?.file;
+          if (!f) continue;
+          const image = await resizeImage(f);
+          total += image.size;
+          photos.append("color_image", image);
+          photos.append("color_image_for", c);
+        }
+        if (total > MAX_COLOR_PHOTOS_BYTES) {
+          toast.error(translateNow("Vos photos sont trop lourdes ensemble. Retirez des photos de couleur ou choisissez des photos plus légères."));
+          return;
+        }
+        unwrap(await addFabricColors(fabric.id, newColors, photos));
         toast.success(translateNow("Couleurs ajoutées."));
-        onClose();
+        close();
       } catch (err) {
         toast.error(translateNow(err instanceof Error ? err.message : "Erreur, réessayez."));
       }
@@ -492,7 +527,7 @@ function AddColorsDialog({ fabric, onClose }: { fabric: Fabric | null; onClose: 
   }
 
   return (
-    <Dialog open={Boolean(fabric)} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={Boolean(fabric)} onOpenChange={(o) => !o && close()}>
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={submit} className="space-y-4" key={fabric?.id ?? "none"}>
           <DialogHeader>
@@ -509,9 +544,57 @@ function AddColorsDialog({ fabric, onClose }: { fabric: Fabric | null; onClose: 
               )}
             </DialogDescription>
           </DialogHeader>
-          <FabricColorPicker name="new_colors" />
+          <FabricColorPicker name="new_colors" onChange={setPicked} />
+          {newColors.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                <T>Photo de chaque couleur</T>{" "}
+                <span className="text-muted-foreground text-xs font-normal">
+                  (<T>facultatif</T>)
+                </span>
+              </p>
+              <ul className="divide-y rounded-lg border">
+                {newColors.map((c) => {
+                  const inputId = `new-color-photo-${c.replace(/\W+/g, "-")}`;
+                  const preview = files[c]?.url;
+                  return (
+                    <li key={c} className="flex items-center gap-3 p-2">
+                      <label
+                        htmlFor={inputId}
+                        className="bg-muted relative flex size-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed"
+                      >
+                        {preview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={preview} alt="" className="size-full object-cover" />
+                        ) : (
+                          <ImagePlus className="text-muted-foreground size-5" />
+                        )}
+                        <input
+                          id={inputId}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/avif"
+                          className="sr-only"
+                          onChange={(e) => {
+                            pickFile(c, e.target.files?.[0]);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      <span
+                        className="size-5 shrink-0 rounded-full border border-white/20"
+                        style={{ backgroundColor: fabricColorHex(c) ?? undefined }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                        <T>{c}</T>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+            <Button type="button" variant="outline" onClick={close} disabled={pending}>
               <T>Annuler</T>
             </Button>
             <Button type="submit" disabled={pending}>

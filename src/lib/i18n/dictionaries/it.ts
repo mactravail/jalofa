@@ -2720,6 +2720,11 @@ export const it: Record<string, string> = {
   "Le prix payé « tel quel » est le prix « à partir de » de ce modèle.": "Il prezzo pagato « così com'è » è il prezzo « a partire da » di questo modello.",
   "Sans prix par couleur, le prix payé « tel quel » est le prix « à partir de » de ce modèle.": "Senza prezzo per colore, il prezzo pagato « così com'è » è il prezzo « a partire da » di questo modello.",
   "Le prix change selon la couleur ?": "Il prezzo cambia secondo il colore?",
+  "Photo et prix de chaque couleur": "Foto e prezzo di ogni colore",
+  "Touchez l'appareil photo pour montrer le modèle dans cette couleur. Prix vide : la couleur est au prix du modèle.":
+    "Tocca la fotocamera per mostrare il modello in questo colore. Prezzo vuoto: il colore ha il prezzo del modello.",
+  "L'envoi n'a pas abouti. Vérifiez votre connexion et réessayez.": "L'invio non è riuscito. Controlla la connessione e riprova.",
+  "Photo de chaque couleur": "Foto di ogni colore",
   "Laissez vide : la couleur est au prix du modèle. Écrivez un prix seulement si cette couleur coûte plus ou moins.": "Lascia vuoto: il colore ha il prezzo del modello. Scrivi un prezzo solo se questo colore costa di più o di meno.",
   "Prix du modèle": "Prezzo del modello",
   "Prix en {color}": "Prezzo in {color}",

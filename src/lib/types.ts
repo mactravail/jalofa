@@ -393,6 +393,8 @@ export interface GarmentModel {
   ready_colors?: string[];
   /** Prix « tel quel » propre à une couleur (FCFA) ; absente = `price` du modèle. */
   ready_color_prices?: Record<string, number>;
+  /** Photo « tel quel » propre à une couleur ; absente = photos du modèle. */
+  ready_color_images?: Record<string, string>;
   /** L'atelier qui le fabrique : nom, ville, pays (joint depuis `tailors`). */
   origin?: ProductOrigin | null;
 }

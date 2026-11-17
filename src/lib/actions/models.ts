@@ -10,7 +10,11 @@ import { europeTypeInfo, parseEuropeType, parseMakingType } from "@/lib/europe";
 import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
 import { parseModelBodyFits, tailorBodyFitProblem } from "@/lib/model-body-fit";
 import { loadOneTailorBodyFits } from "@/lib/tailor-body-fits";
-import { parseReadyColorPrices, parseReadyColors } from "@/lib/ready-to-wear";
+import {
+  parseReadyColorImages,
+  parseReadyColorPrices,
+  parseReadyColors,
+} from "@/lib/ready-to-wear";
 import {
   MAX_CARE_TIPS_LENGTH,
   modelStyleProblem,
@@ -172,6 +176,12 @@ export async function saveModel(
   const readyColors = readyToWear ? parseReadyColors(formData.getAll("ready_colors")) : [];
   // Un prix par couleur, facultatif : case vide = prix du modèle.
   const readyColorPrices = parseReadyColorPrices(formData.get("ready_color_prices"), readyColors);
+  // Une photo par couleur, facultative : déjà envoyée une à une, ici son adresse.
+  const readyColorImages = parseReadyColorImages(
+    formData.get("ready_color_images"),
+    readyColors,
+    (url) => isOwnModelPhoto(url, user.id),
+  );
   if (readyToWear && readyColors.length === 0) {
     return { ok: false, error: "Prêt-à-porter : choisissez au moins une couleur." };
   }
@@ -326,6 +336,7 @@ export async function saveModel(
           ready_to_wear: readyToWear,
           ready_colors: readyColors,
           ready_color_prices: readyColorPrices,
+          ready_color_images: readyColorImages,
         }
       : {}),
     ...(formData.has("quote_mode") ? quote.settings : {}),
@@ -370,6 +381,18 @@ export async function saveModel(
       .maybeSingle();
     previousStyleBase = (prevBase as { style_base: string | null } | null)?.style_base ?? null;
 
+    // Idem : les photos par couleur d'avant, pour effacer celles retirées.
+    const { data: prevColors } = await supabase
+      .from("models")
+      .select("ready_color_images")
+      .eq("id", id)
+      .eq("tailor_id", user.id)
+      .maybeSingle();
+    const previousColorImages = Object.values(
+      (prevColors as { ready_color_images: Record<string, string> | null } | null)
+        ?.ready_color_images ?? {},
+    );
+
     // RLS also enforces ownership, but scope the query explicitly.
     const { error } = await withoutMissingStyleBase(payload, (row) =>
       supabase.from("models").update(row).eq("id", id).eq("tailor_id", user.id),
@@ -392,12 +415,15 @@ export async function saveModel(
     const oldIds = (previous?.model_photos ?? []).map((p) => p.id);
     if (oldIds.length) await supabase.from("model_photos").delete().in("id", oldIds);
 
-    const kept = new Set([...finalUrls, ...styleGroupPhotos(styleGroups)]);
+    // Sans `ready_form`, les photos par couleur ne sont pas touchées : on les garde.
+    const keptColorImages = sendsReady ? Object.values(readyColorImages) : previousColorImages;
+    const kept = new Set([...finalUrls, ...styleGroupPhotos(styleGroups), ...keptColorImages]);
     const orphaned = [
       ...(previous?.image_url ? [previous.image_url] : []),
       ...(previous?.model_photos ?? []).map((p) => p.image_url),
       ...styleGroupPhotos(previous?.style_groups),
-    ].filter((u) => !kept.has(u));
+      ...previousColorImages,
+    ].filter((u) => typeof u === "string" && !kept.has(u));
     await Promise.all(orphaned.map((u) => removeImage(supabase, BUCKET, u)));
   } else {
     const { data: created, error } = await withoutMissingStyleBase(payload, (row) =>
@@ -471,7 +497,7 @@ async function withoutMissingStyleBase<P extends Record<string, unknown>, R exte
   for (let attempt = 0; attempt < 2; attempt++) {
     const err = res.error;
     if (!err || (err.code !== "42703" && err.code !== "PGRST204")) return res;
-    const missing = ["style_base", "catalog_model_id", ...QUOTE_COLUMNS].filter(
+    const missing = ["style_base", "catalog_model_id", "ready_color_images", ...QUOTE_COLUMNS].filter(
       (col) => col in row && err.message.includes(col),
     );
     if (missing.length === 0) return res;
@@ -664,6 +690,16 @@ async function deleteModelImpl(id: string): Promise<void> {
     image_url: string | null;
     style_groups: ModelStyleGroup[] | null;
   } | null;
+  // À part : la colonne peut manquer tant que sa migration n'est pas passée.
+  const { data: colorRow } = await supabase
+    .from("models")
+    .select("ready_color_images")
+    .eq("id", id)
+    .eq("tailor_id", user.id)
+    .maybeSingle();
+  const colorImages = Object.values(
+    (colorRow as { ready_color_images: Record<string, string> | null } | null)?.ready_color_images ?? {},
+  );
 
   // `model_photos` cascades with the row; only the storage objects are ours to
   // clean up, and the gallery is not editable here yet.
@@ -683,7 +719,9 @@ async function deleteModelImpl(id: string): Promise<void> {
 
   await removeImage(supabase, BUCKET, model?.image_url ?? null);
   await Promise.all(
-    styleGroupPhotos(model?.style_groups).map((u) => removeImage(supabase, BUCKET, u)),
+    [...styleGroupPhotos(model?.style_groups), ...colorImages].map((u) =>
+      removeImage(supabase, BUCKET, u),
+    ),
   );
 
   revalidatePath("/tailleur/espace", "layout");

@@ -73,6 +73,39 @@ export function parseReadyColorPrices(raw: unknown, colors: string[]): Record<st
   return out;
 }
 
+/**
+ * Photo par couleur, envoyée en JSON `{ "Blanc": "https://…" }`. Seules les
+ * couleurs cochées gardent leur photo, et seulement une photo de notre stockage
+ * (`isOwn`), jamais une adresse venue d'ailleurs.
+ */
+export function parseReadyColorImages(
+  raw: unknown,
+  colors: string[],
+  isOwn: (url: string) => boolean,
+): Record<string, string> {
+  let obj: unknown;
+  try {
+    obj = typeof raw === "string" && raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+  const out: Record<string, string> = {};
+  for (const color of colors) {
+    const v = (obj as Record<string, unknown>)[color];
+    if (typeof v === "string" && isOwn(v)) out[color] = v;
+  }
+  return out;
+}
+
+/** Photo « tel quel » d'une couleur, s'il y en a une. */
+export function readyImageFor(
+  model: Pick<GarmentModel, "ready_color_images">,
+  color: string | null | undefined,
+): string | null {
+  return (color && model.ready_color_images?.[color]) || null;
+}
+
 /** Prix « tel quel » d'une couleur : son prix à elle, sinon celui du modèle. */
 export function readyPriceFor(
   model: Pick<GarmentModel, "ready_colors" | "ready_color_prices">,

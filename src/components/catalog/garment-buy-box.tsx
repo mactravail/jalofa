@@ -11,7 +11,13 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/constants";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { buildGenericAsIsPreset, buildReadyToWearPreset } from "@/lib/garment-preset";
-import { isReadyToWear, readyColorHex, readyPriceFor, readyPriceRange } from "@/lib/ready-to-wear";
+import {
+  isReadyToWear,
+  readyColorHex,
+  readyImageFor,
+  readyPriceFor,
+  readyPriceRange,
+} from "@/lib/ready-to-wear";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
@@ -124,7 +130,9 @@ export function GarmentBuyBox({
   const colorPreset = useMemo(() => {
     if (!readyPreset || !offer) return null;
     const p = readyPriceFor(offer.model, color, readyPreset.tailoringPrice);
-    return { ...readyPreset, tailoringPrice: p, total: p };
+    // Dans le panier, la ligne montre la photo de la couleur choisie.
+    const image = readyImageFor(offer.model, color) ?? readyPreset.image;
+    return { ...readyPreset, tailoringPrice: p, total: p, image };
   }, [readyPreset, offer, color]);
   const readyRange =
     readyPreset && offer ? readyPriceRange(offer.model, readyPreset.tailoringPrice) : null;
@@ -227,6 +235,7 @@ export function GarmentBuyBox({
                   {readyColors.map((c) => {
                     const active = color === c;
                     const hex = readyColorHex(c);
+                    const img = offer ? readyImageFor(offer.model, c) : null;
                     const cPrice =
                       priceVaries && offer && readyPreset
                         ? readyPriceFor(offer.model, c, readyPreset.tailoringPrice)
@@ -243,13 +252,18 @@ export function GarmentBuyBox({
                           active ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
                         )}
                       >
-                        <span
-                          aria-hidden
-                          className="bg-muted grid size-7 place-items-center rounded-full border border-white/20"
-                          style={hex ? { background: hex } : undefined}
-                        >
-                          {active && <Check className="size-4 text-white mix-blend-difference" strokeWidth={3} />}
-                        </span>
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={img} alt="" className="size-7 rounded-full object-cover" />
+                        ) : (
+                          <span
+                            aria-hidden
+                            className="bg-muted grid size-7 place-items-center rounded-full border border-white/20"
+                            style={hex ? { background: hex } : undefined}
+                          >
+                            {active && <Check className="size-4 text-white mix-blend-difference" strokeWidth={3} />}
+                          </span>
+                        )}
                         {t(c)}
                         {cPrice !== null && (
                           <span className="text-muted-foreground text-xs font-normal whitespace-nowrap">
@@ -260,6 +274,14 @@ export function GarmentBuyBox({
                     );
                   })}
                 </div>
+                {offer && readyImageFor(offer.model, color) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={readyImageFor(offer.model, color)!}
+                    alt={color ? t(color) : ""}
+                    className="mt-3 aspect-[4/5] w-full max-w-xs rounded-xl border object-cover"
+                  />
+                )}
               </div>
             )}
             <SizePicker

@@ -511,6 +511,11 @@ export function ModelFormDialog({
                 ? parseJson<Record<string, number>>(field("ready_color_prices")) ?? {}
                 : (source?.ready_color_prices ?? {})
             }
+            defaultImages={
+              saved
+                ? parseJson<Record<string, string>>(field("ready_color_images")) ?? {}
+                : (model?.ready_color_images ?? {})
+            }
           />
 
           {!atelier && (

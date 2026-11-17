@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Plus, Shirt, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, Plus, Shirt, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
+import { uploadModelStylePhoto } from "@/lib/actions/models";
+import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { useT } from "@/components/i18n/locale-provider";
 import { MAX_READY_COLORS, READY_COLOR_SWATCHES, readyColorHex } from "@/lib/ready-to-wear";
 import { cn } from "@/lib/utils";
@@ -15,16 +18,20 @@ import { cn } from "@/lib/utils";
  *
  * Champs envoyés : `ready_form` (repère), `ready_to_wear` (« on »), et un
  * `ready_colors` par couleur cochée, `ready_color_prices` (JSON) : le prix
- * propre à une couleur, quand elle coûte plus ou moins que le modèle.
+ * propre à une couleur, quand elle coûte plus ou moins que le modèle, et
+ * `ready_color_images` (JSON) : la photo du modèle dans cette couleur, envoyée
+ * dès qu'elle est choisie (une à une, sous la limite d'une Server Action).
  */
 export function ReadyToWearField({
   defaultOn,
   defaultColors,
   defaultPrices = {},
+  defaultImages = {},
 }: {
   defaultOn: boolean;
   defaultColors: string[];
   defaultPrices?: Record<string, number>;
+  defaultImages?: Record<string, string>;
 }) {
   const t = useT();
   const [on, setOn] = useState(defaultOn);
@@ -34,6 +41,37 @@ export function ReadyToWearField({
   const [prices, setPrices] = useState<Record<string, string>>(() =>
     Object.fromEntries(Object.entries(defaultPrices).map(([c, p]) => [c, String(p)])),
   );
+  // Photo par couleur : son adresse une fois en ligne ; `uploading` pendant l'envoi.
+  const [images, setImages] = useState<Record<string, string>>(defaultImages);
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const imagesJson = JSON.stringify(
+    Object.fromEntries(colors.flatMap((c) => (images[c] ? [[c, images[c]]] : []))),
+  );
+
+  async function pickImage(color: string, file: File | undefined) {
+    if (!file) return;
+    setUploading((u) => ({ ...u, [color]: true }));
+    try {
+      const image = await resizeImage(file);
+      if (image.size > MAX_UPLOAD_BYTES) {
+        toast.error(t("Cette photo est trop lourde. Choisissez-en une plus légère."));
+        return;
+      }
+      const body = new FormData();
+      body.set("photo", image);
+      const res = await uploadModelStylePhoto(body);
+      if (!res.ok) {
+        toast.error(t(res.error));
+        return;
+      }
+      setImages((prev) => ({ ...prev, [color]: res.url }));
+    } catch {
+      toast.error(t("L'envoi n'a pas abouti. Vérifiez votre connexion et réessayez."));
+    } finally {
+      setUploading((u) => ({ ...u, [color]: false }));
+    }
+  }
+
   const pricesJson = JSON.stringify(
     Object.fromEntries(
       colors.flatMap((c) => {
@@ -67,6 +105,7 @@ export function ReadyToWearField({
       {on && <input type="hidden" name="ready_to_wear" value="on" />}
       {on && colors.map((c) => <input key={c} type="hidden" name="ready_colors" value={c} />)}
       {on && <input type="hidden" name="ready_color_prices" value={pricesJson} />}
+      {on && <input type="hidden" name="ready_color_images" value={imagesJson} />}
 
       <legend className="flex items-center gap-1.5 px-1 text-sm font-medium">
         <Shirt className="text-primary size-4" /> {t("Prêt-à-porter (« Tel quel »)")}
@@ -161,21 +200,74 @@ export function ReadyToWearField({
           )}
           {colors.length > 0 && (
             <div className="space-y-2 pt-2">
-              <p className="text-sm font-medium">{t("Le prix change selon la couleur ?")}</p>
+              <p className="text-sm font-medium">{t("Photo et prix de chaque couleur")}</p>
               <p className="text-muted-foreground text-xs">
-                {t("Laissez vide : la couleur est au prix du modèle. Écrivez un prix seulement si cette couleur coûte plus ou moins.")}
+                {t("Touchez l'appareil photo pour montrer le modèle dans cette couleur. Prix vide : la couleur est au prix du modèle.")}
               </p>
               <ul className="space-y-2">
                 {colors.map((c) => {
                   const hex = readyColorHex(c);
+                  const inputId = `ready-photo-${c.replace(/\W+/g, "-")}`;
+                  const img = images[c];
+                  const busy = uploading[c];
                   return (
                     <li key={c} className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className="bg-muted size-6 shrink-0 rounded-full border border-white/20"
-                        style={hex ? { background: hex } : undefined}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-sm">{t(c)}</span>
+                      <label
+                        htmlFor={inputId}
+                        title={t("Photo de cette couleur")}
+                        className={cn(
+                          "relative grid size-12 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border-2",
+                          img ? "border-transparent" : "border-dashed",
+                        )}
+                        style={!img && hex ? { borderColor: hex } : undefined}
+                      >
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={img} alt="" className="size-full object-cover" />
+                        ) : (
+                          <ImagePlus className="text-muted-foreground size-5" />
+                        )}
+                        {busy && (
+                          <span className="absolute inset-0 grid place-items-center bg-black/60">
+                            <Loader2 className="size-4 animate-spin text-white" />
+                          </span>
+                        )}
+                        <input
+                          id={inputId}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/avif"
+                          className="sr-only"
+                          disabled={busy}
+                          onChange={(e) => {
+                            void pickImage(c, e.target.files?.[0]);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span
+                          aria-hidden
+                          className="bg-muted size-4 shrink-0 rounded-full border border-white/20"
+                          style={hex ? { background: hex } : undefined}
+                        />
+                        <span className="truncate text-sm">{t(c)}</span>
+                        {img && !busy && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setImages((prev) => {
+                                const next = { ...prev };
+                                delete next[c];
+                                return next;
+                              })
+                            }
+                            aria-label={t("Retirer la photo")}
+                            className="text-muted-foreground hover:text-foreground shrink-0"
+                          >
+                            <X className="size-4" />
+                          </button>
+                        )}
+                      </span>
                       <Input
                         type="number"
                         inputMode="numeric"
@@ -185,7 +277,7 @@ export function ReadyToWearField({
                         onChange={(e) => setPrices((prev) => ({ ...prev, [c]: e.target.value }))}
                         placeholder={t("Prix du modèle")}
                         aria-label={t("Prix en {color}", { color: t(c) })}
-                        className="w-32"
+                        className="w-28"
                       />
                       <span className="text-muted-foreground text-xs">FCFA</span>
                     </li>
