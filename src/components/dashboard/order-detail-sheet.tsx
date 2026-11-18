@@ -20,6 +20,7 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   formatPrice,
+  DIRECT_PAYMENT,
 } from "@/lib/constants";
 import type { OrderListItem, OrderMeasurement } from "@/lib/orders-data";
 import { clientNameOf } from "@/lib/clients";
@@ -199,7 +200,7 @@ export function OrderDetailSheet({
             {order.is_quote && order.payment_status === "pending" && (
               <p className="text-muted-foreground text-sm">
                 {order.tailoring_price > 0
-                  ? t("Prix envoyé. Le client doit accepter et payer.")
+                  ? t("Prix envoyé. Le client doit accepter le devis.")
                   : t("Le client attend votre prix. Donnez-le depuis « Nouvelles commandes ».")}
               </p>
             )}
@@ -226,14 +227,22 @@ export function OrderDetailSheet({
                 {formatPrice(order.total_amount)}
               </span>
             </div>
-            <Row
-              label="Statut"
-              value={`${
-                order.payment_method
-                  ? t(PAYMENT_METHOD_LABELS[order.payment_method])
-                  : "—"
-              } · ${t(PAYMENT_STATUS_LABELS[order.payment_status])}`}
-            />
+            {DIRECT_PAYMENT ? (
+              order.payment_status === "paid" && (
+                <p className="mt-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+                  {t("Commande confirmée par le client. Envoyez-lui votre moyen de paiement (Wave, Orange Money…) par appel ou WhatsApp : il vous paie directement. Commencez quand vous avez reçu l'argent.")}
+                </p>
+              )
+            ) : (
+              <Row
+                label="Statut"
+                value={`${
+                  order.payment_method
+                    ? t(PAYMENT_METHOD_LABELS[order.payment_method])
+                    : "—"
+                } · ${t(PAYMENT_STATUS_LABELS[order.payment_status])}`}
+              />
+            )}
           </Section>
         </div>
       </SheetContent>

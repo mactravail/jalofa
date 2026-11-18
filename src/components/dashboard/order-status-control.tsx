@@ -522,7 +522,7 @@ export function OrderStatusControl({
     return <WorkflowNotice tone="wait" text="Le tailleur a reçu le tissu. JALOFA va vous appeler pour confirmer l'envoi." />;
   }
   if (role === "vendor" && workflow?.vendor_check === "denied") {
-    return <WorkflowNotice tone="stop" text="Envoi non confirmé : pas de paiement pour ce tissu. Contactez JALOFA." />;
+    return <WorkflowNotice tone="stop" text="Envoi non confirmé : pas de paiement pour ce tissu. Contactez JALOFA sur WhatsApp au 77 500 85 83 ou à mactravail23@gmail.com." />;
   }
 
   // --- Vendeur (et repli) : étape par étape -------------------------------

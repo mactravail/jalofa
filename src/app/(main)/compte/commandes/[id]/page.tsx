@@ -21,6 +21,7 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   formatPrice,
+  DIRECT_PAYMENT,
 } from "@/lib/constants";
 import { getFabrics, getTailors, getUnapprovedSellerIds, sellableFabrics } from "@/lib/data";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
@@ -363,10 +364,14 @@ export default async function OrderTrackingPage({
                 </div>
               </>
             )}
-            <Row
-              label="Paiement"
-              value={`${order.payment_method ? t(PAYMENT_METHOD_LABELS[order.payment_method]) : "—"} · ${t(PAYMENT_STATUS_LABELS[order.payment_status])}`}
-            />
+            {DIRECT_PAYMENT ? (
+              <Row label="Paiement" value={t("Directement au pro (Wave, Orange Money…)")} />
+            ) : (
+              <Row
+                label="Paiement"
+                value={`${order.payment_method ? t(PAYMENT_METHOD_LABELS[order.payment_method]) : "—"} · ${t(PAYMENT_STATUS_LABELS[order.payment_status])}`}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

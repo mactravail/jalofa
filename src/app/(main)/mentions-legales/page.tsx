@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const SECTIONS: LegalClause[] = [
   {
     title: "Éditeur",
-    body: `Le site ${APP_NAME} est édité par ${APP_NAME}, plateforme de couture sur mesure basée en Afrique. Pour toute question, contactez notre équipe depuis votre espace personnel.`,
+    body: `Le site ${APP_NAME} est édité par ${APP_NAME}, plateforme de couture sur mesure basée en Afrique. Pour toute question, écrivez-nous sur WhatsApp au 77 500 85 83 ou par e-mail à mactravail23@gmail.com (contact uniquement par WhatsApp ou e-mail).`,
   },
   {
     title: "Directeur de la publication",
@@ -49,7 +49,7 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "Activité",
-    body: `${APP_NAME} met en relation des clients avec des tailleurs et des vendeurs de tissus pour la confection de vêtements sur mesure. La plateforme facilite la commande, le paiement et le suivi ; la confection est réalisée par des tailleurs indépendants.`,
+    body: `${APP_NAME} met en relation des clients avec des tailleurs et des vendeurs de tissus pour la confection de vêtements sur mesure. La plateforme facilite la commande, le devis et le suivi ; pour l'instant, le client paie directement le professionnel, sans passer par ${APP_NAME} ; la confection est réalisée par des tailleurs indépendants.`,
   },
   {
     title: "Propriété intellectuelle",

@@ -11,6 +11,7 @@ import {
   type CollectionOccasion,
 } from "@/lib/collection-occasions";
 import type { LatestReviews, TailorReview } from "@/lib/data";
+import { SupportContact } from "@/components/support-contact";
 import { display } from "@/lib/display-font";
 import type { GarmentModel } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,8 +41,8 @@ const STEPS = [
     text: "Vos mesures, ou simplement S, M, L, XL. Le tailleur ajuste.",
   },
   {
-    title: "Payez sans risque",
-    text: "Par Wave ou par carte. L'argent attend en sécurité jusqu'à la livraison.",
+    title: "Recevez le prix, payez le tailleur",
+    text: "Le tailleur vous envoie son prix et son Wave ou Orange Money. Vous le payez directement.",
   },
   {
     title: "Le tailleur coud",
@@ -49,15 +50,16 @@ const STEPS = [
   },
   {
     title: "Recevez, vérifiez",
-    text: "Pas reçu ? Dites-le dans les 24 h. Un souci ? À tout moment.",
+    text: "Un problème ? Écrivez-nous, seulement par WhatsApp ou par e-mail :",
+    contact: true,
   },
 ];
 
 // La peur qui bloque l'achat d'un habit qu'on n'a pas encore vu : « et si je perds
 // mon argent ? ». On y répond là où l'on choisit, pas seulement en bas de page.
 const REASSURANCE = [
-  { icon: ShieldCheck, text: "Tailleur payé après la livraison" },
-  { icon: Undo2, text: "Remboursé s'il ne tient pas parole" },
+  { icon: ShieldCheck, text: "Des tailleurs sélectionnés et notés" },
+  { icon: Undo2, text: "Un souci ? JALOFA vous aide" },
   { icon: Smartphone, text: "Suivi sur votre téléphone" },
 ];
 
@@ -70,11 +72,11 @@ const QUESTIONS = [
   },
   {
     q: "Et si l'habit ne me va pas ?",
-    a: "Le tailleur le retouche. S'il n'a pas suivi vos mesures, vous êtes remboursé.",
+    a: "Le tailleur le retouche. S'il n'a pas suivi vos mesures, écrivez à JALOFA sur WhatsApp au 77 500 85 83 ou à mactravail23@gmail.com.",
   },
   {
     q: "Et si le tailleur est en retard ?",
-    a: "Plus d'une semaine de retard : vous annulez, et vous êtes remboursé.",
+    a: "Plus d'une semaine de retard : vous pouvez annuler. Écrivez à JALOFA sur WhatsApp au 77 500 85 83 ou à mactravail23@gmail.com, nous intervenons.",
   },
   {
     q: "Combien ça coûte ?",
@@ -161,6 +163,9 @@ export async function HowItWorks({
               </span>
               <h3 className="mt-3 text-xl leading-snug font-medium tracking-tight">{t(step.title)}</h3>
               <p className="text-muted-foreground mt-1 text-base">{t(step.text)}</p>
+              {"contact" in step && step.contact && (
+                <SupportContact className="mt-2 text-base" />
+              )}
             </li>
           ))}
         </ol>

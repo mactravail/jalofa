@@ -194,7 +194,7 @@ export default function ReviewStep() {
 
       {state.type === "own_fabric" && (
         <p className="bg-muted/50 rounded-lg p-3 text-sm">
-          {t("Vous envoyez votre tissu : vous ne payez que la couture. Le tailleur vous dit combien de mètres il faut ; après le paiement, l'adresse de son atelier s'affiche dans votre commande.")}
+          {t("Vous envoyez votre tissu : vous ne payez que la couture. Le tailleur vous dit combien de mètres il faut ; dès que vous acceptez son devis, l'adresse de son atelier s'affiche dans votre commande.")}
         </p>
       )}
 
@@ -295,7 +295,7 @@ export default function ReviewStep() {
           <div>
             <h3 className="text-sm font-semibold">{t("Vos coordonnées")}</h3>
             <p className="text-muted-foreground text-xs">
-              {t("Le tailleur ne reçoit votre nom, votre téléphone et votre e-mail que si vous payez, pour vous livrer.")}
+              {t("Le tailleur ne reçoit votre nom, votre téléphone et votre e-mail que si vous acceptez son devis, pour vous envoyer son moyen de paiement et vous livrer.")}
             </p>
           </div>
           {contactMode === "account" && (

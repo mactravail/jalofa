@@ -356,7 +356,7 @@ export function GarmentBuyBox({
             {ownFabric ? (
               <p className="bg-muted/50 flex items-start gap-2 rounded-lg p-2.5 text-sm">
                 <Package className="text-primary mt-0.5 size-4 shrink-0" />
-                {t("Vous envoyez votre tissu à l'atelier du tailleur. Il vous dit combien de mètres il faut, et son adresse s'affiche après le paiement.")}
+                {t("Vous envoyez votre tissu à l'atelier du tailleur. Il vous dit combien de mètres il faut, et son adresse s'affiche dès que vous acceptez son devis.")}
               </p>
             ) : (
               <FabricPicker

@@ -1,5 +1,6 @@
 "use client";
 
+import { SupportContact } from "@/components/support-contact";
 import { useRouter } from "@/lib/i18n/navigation";
 import { useState, useTransition } from "react";
 import { AlertTriangle, Loader2, ThumbsUp, Undo2 } from "lucide-react";
@@ -41,8 +42,9 @@ function useAfterSaleAction(done: string) {
 }
 
 /**
- * Demander l'annulation. Payée : la commande est bloquée tout de suite et JALOFA
- * examine (remboursement selon l'avancement). Pas payée : annulée tout de suite.
+ * Demander l'annulation. Confirmée : la commande est bloquée tout de suite et
+ * JALOFA examine ; le client ayant payé le pro directement (`DIRECT_PAYMENT`),
+ * c'est le pro qui rembourse. Pas confirmée : annulée tout de suite.
  */
 export function CancelOrderPanel({
   orderId,
@@ -68,9 +70,9 @@ export function CancelOrderPanel({
       </p>
       <p className="text-muted-foreground mt-0.5 text-sm">
         {lateSince
-          ? t("Votre habit devait être prêt le {date}. Vous pouvez annuler : JALOFA vous rembourse tout.", { date: lateSince })
+          ? t("Votre habit devait être prêt le {date}. Vous pouvez annuler : le tailleur doit vous rendre tout ce que vous lui avez payé.", { date: lateSince })
           : paid
-          ? t("Votre commande est bloquée tout de suite. JALOFA regarde et vous dit combien vous êtes remboursé.")
+          ? t("Votre commande est bloquée tout de suite. JALOFA regarde et vous dit combien le pro doit vous rendre.")
           : t("Vous pouvez annuler cette demande.")}
       </p>
       {paid && !lateSince && (
@@ -130,8 +132,9 @@ export function CancellationStatusPanel({
       <div className="rounded-xl border border-amber-500/60 p-4">
         <p className="font-semibold">{t("Demande d'annulation envoyée")}</p>
         <p className="text-muted-foreground mt-0.5 text-sm">
-          {t("Votre commande est bloquée : rien n'est coupé ni envoyé. JALOFA vous répond vite.")}
+          {t("Votre commande est bloquée : rien n'est coupé ni envoyé. JALOFA vous répond vite. Une question ? Écrivez-nous, seulement par WhatsApp ou par e-mail :")}
         </p>
+        <SupportContact className="mt-2 text-sm" />
       </div>
     );
   }
@@ -142,7 +145,7 @@ export function CancellationStatusPanel({
         <p className="text-muted-foreground mt-0.5 text-sm">
           {refunded
             ? t("Vous avez été remboursé.")
-            : t("Vous serez remboursé de {amount} FCFA.", {
+            : t("Le pro doit vous rendre {amount} FCFA.", {
                 amount: new Intl.NumberFormat("fr-FR").format(refundAmount ?? 0),
               })}
         </p>
@@ -177,7 +180,7 @@ export function FabricReturnPanel({
     return (
       <div className="rounded-xl border p-4">
         <p className="font-semibold">{t("Le vendeur a reçu votre tissu")}</p>
-        <p className="text-muted-foreground mt-0.5 text-sm">{t("JALOFA va vous rembourser.")}</p>
+        <p className="text-muted-foreground mt-0.5 text-sm">{t("Le vendeur va vous rembourser.")}</p>
       </div>
     );
   }
@@ -187,7 +190,7 @@ export function FabricReturnPanel({
       <div className="rounded-xl border p-4">
         <p className="font-semibold">{t("Renvoyez le tissu au vendeur")}</p>
         <p className="text-muted-foreground mt-0.5 text-sm">
-          {t("L'envoi est à votre charge. Vous êtes remboursé quand le vendeur l'a reçu.")}
+          {t("L'envoi est à votre charge. Le vendeur vous rembourse quand il l'a reçu.")}
         </p>
         {returnAddress ? (
           <div className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
@@ -212,7 +215,7 @@ export function FabricReturnPanel({
         {deadlineLabel
           ? t("Vous pouvez le rendre jusqu'au {date}.", { date: deadlineLabel })
           : t("Vous pouvez le rendre.")}{" "}
-        {t("L'envoi est à votre charge, et vous êtes remboursé quand le vendeur l'a reçu.")}
+        {t("L'envoi est à votre charge, et le vendeur vous rembourse quand il l'a reçu.")}
       </p>
       <Button
         variant="outline"

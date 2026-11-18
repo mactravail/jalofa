@@ -16,7 +16,7 @@ export default async function VendorPayoutPage() {
   return (
     <DashboardPage
       title="Recevoir mon argent"
-      subtitle="Où JALOFA vous envoie l'argent de vos ventes."
+      subtitle="Le moyen de paiement que vous envoyez à vos clients : ils vous paient directement."
     >
       <div className="max-w-xl">
         <PayoutMethodForm

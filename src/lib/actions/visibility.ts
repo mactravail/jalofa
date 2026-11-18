@@ -63,7 +63,7 @@ export async function setProVisibility(choice: ProVisibility): Promise<ActionRes
   const isPro = Boolean(rows.tailors?.is_activated || rows.vendors?.is_activated);
   if (!isPro) return { ok: false, error: "Votre espace pro n'est pas encore ouvert." };
   if (rows.tailors?.is_suspended || rows.vendors?.is_suspended) {
-    return { ok: false, error: "Votre boutique est suspendue. Contactez JALOFA." };
+    return { ok: false, error: "Votre boutique est suspendue. Contactez JALOFA sur WhatsApp au 77 500 85 83 ou à mactravail23@gmail.com." };
   }
 
   const wanted: Record<Shop, boolean> = {

@@ -18,7 +18,7 @@ const CHROME_FR: LegalChrome = {
   heading: "Politique de confidentialité",
   intro: `Comment ${APP_NAME} collecte, utilise et protège vos données personnelles, y compris vos mesures corporelles.`,
   updatedLabel: "Dernière mise à jour :",
-  updated: "25 juillet 2026",
+  updated: "18 novembre 2026",
   seeAlso: "Voir aussi nos",
   and: "et nos",
   links: {
@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const SECTIONS: LegalClause[] = [
   {
     title: "1. Responsable du traitement",
-    body: `${APP_NAME} est responsable du traitement des données personnelles collectées sur la plateforme. Pour toute question relative à vos données ou pour exercer vos droits, contactez-nous depuis votre espace personnel ou à mactravail23@gmail.com.`,
+    body: `${APP_NAME} est responsable du traitement des données personnelles collectées sur la plateforme. Pour toute question relative à vos données ou pour exercer vos droits, écrivez-nous sur WhatsApp au 77 500 85 83 ou par e-mail à mactravail23@gmail.com.`,
   },
   {
     title: "2. Champ d'application",
@@ -68,7 +68,7 @@ const SECTIONS: LegalClause[] = [
       "créer et gérer votre compte, et vous authentifier ;",
       "traiter, confectionner, suivre et livrer vos commandes ;",
       "assurer la mise en relation entre clients, tailleurs et vendeurs ;",
-      "traiter les paiements et gérer les fonds en attente puis les reversements ;",
+      "permettre au professionnel de vous contacter, après votre confirmation, pour vous envoyer son moyen de paiement et vous livrer ;",
       "vous envoyer les notifications liées à vos commandes et à votre compte ;",
       "prévenir la fraude, gérer les réclamations et appliquer nos conditions ;",
       "améliorer la plateforme et respecter nos obligations légales.",
@@ -84,18 +84,18 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "7. Paiements",
-    body: "Les paiements (Orange Money, Wave, Free Money, carte bancaire) sont traités par nos prestataires de paiement. Vos coordonnées bancaires complètes ne transitent pas par nos serveurs et ne sont pas stockées par la plateforme. Nous ne conservons que les informations nécessaires au suivi de la commande (montant, moyen utilisé, statut).",
+    body: `Pour l'instant, aucun paiement ne passe par ${APP_NAME} : vous payez directement le tailleur ou le vendeur, sur le moyen de paiement qu'il vous envoie (Wave, Orange Money, Free Money…). ${APP_NAME} ne reçoit ni ne stocke vos coordonnées bancaires ou de paiement. Nous ne conservons que les informations nécessaires au suivi de la commande (montant, statut).`,
   },
   {
-    title: "8. Fonds en attente et lutte contre la fraude",
-    body: `Pour protéger clients et professionnels, la somme d'une commande est conservée en fonds en attente puis reversée au professionnel 24 h après la livraison, si le client n'a pas signalé qu'il n'a pas reçu son colis. À ce titre, nous conservons les informations nécessaires au suivi des paiements, des réclamations et des reversements, et à la détection des comportements frauduleux.`,
+    title: "8. Lutte contre la fraude",
+    body: `Pour protéger clients et professionnels, nous conservons les informations nécessaires au suivi des commandes et des réclamations (par exemple la preuve de paiement que vous nous transmettez en cas de litige), et à la détection des comportements frauduleux.`,
   },
   {
     title: "9. Partage de vos données",
     body: `${APP_NAME} ne vend pas vos données. Elles ne sont partagées qu'avec :`,
     list: [
-      `le tailleur ou le vendeur concerné par votre commande. Pendant une demande de devis, il reçoit un code, vos mesures et votre adresse de livraison : votre nom, votre téléphone et votre e-mail ne sont connus que de ${APP_NAME}. Il les reçoit une fois la commande payée, pour vous livrer ;`,
-      "nos prestataires techniques strictement nécessaires : hébergement, base de données, paiement, livraison ;",
+      `le tailleur ou le vendeur concerné par votre commande. Pendant une demande de devis, il reçoit un code, vos mesures et votre adresse de livraison : votre nom, votre téléphone et votre e-mail ne sont connus que de ${APP_NAME}. Il les reçoit une fois la commande confirmée ou le devis accepté, pour vous envoyer son moyen de paiement et vous livrer ;`,
+      "nos prestataires techniques strictement nécessaires : hébergement, base de données, livraison ;",
       "les autorités compétentes, uniquement lorsque la loi l'exige.",
     ],
   },
@@ -113,7 +113,7 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "13. Vos droits",
-    body: "Vous disposez d'un droit d'accès, de rectification, d'opposition, de limitation et de suppression de vos données, ainsi que d'un droit à en obtenir une copie. Vous pouvez exercer ces droits depuis votre espace personnel ou en nous écrivant à mactravail23@gmail.com. Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la Commission de Protection des Données Personnelles (CDP) du Sénégal.",
+    body: "Vous disposez d'un droit d'accès, de rectification, d'opposition, de limitation et de suppression de vos données, ainsi que d'un droit à en obtenir une copie. Vous pouvez exercer ces droits en nous écrivant sur WhatsApp au 77 500 85 83 ou par e-mail à mactravail23@gmail.com. Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la Commission de Protection des Données Personnelles (CDP) du Sénégal.",
   },
   {
     title: "14. Cookies",
@@ -133,7 +133,7 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "18. Contact",
-    body: "Pour toute question relative à vos données ou à cette politique, contactez notre équipe depuis votre espace personnel ou à mactravail23@gmail.com.",
+    body: "Pour toute question relative à vos données ou à cette politique, écrivez-nous sur WhatsApp au 77 500 85 83 ou par e-mail à mactravail23@gmail.com.",
   },
 ];
 

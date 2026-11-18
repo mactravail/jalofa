@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { APP_NAME, PAYMENT_METHOD_LABELS } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
 
@@ -40,8 +40,8 @@ const STEPS = [
   },
   {
     icon: CreditCard,
-    title: "4. Payez en toute sécurité",
-    desc: `Réglez avec ${Object.values(PAYMENT_METHOD_LABELS).join(", ")}.`,
+    title: "4. Payez le professionnel",
+    desc: "Le tailleur ou le vendeur vous envoie son moyen de paiement (Wave, Orange Money…). Vous le payez directement.",
   },
   {
     icon: Truck,
@@ -59,11 +59,11 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Comment passer une commande sur mesure ?",
-        a: "Choisissez un modèle, un style et un tissu (ou utilisez le vôtre), sélectionnez un tailleur, renseignez vos mesures puis réglez le paiement. Chaque étape est guidée dans l'application.",
+        a: "Choisissez un modèle, un style et un tissu (ou utilisez le vôtre), sélectionnez un tailleur, renseignez vos mesures puis confirmez : le tailleur vous envoie son moyen de paiement. Chaque étape est guidée dans l'application.",
       },
       {
         q: "Puis-je utiliser mon propre tissu ?",
-        a: "Oui. Sur la page du vêtement, touchez « Sur mesure » puis « J'envoie mon tissu » : vous ne payez que la couture. Le tailleur vous dit combien de mètres il faut, et l'adresse de son atelier s'affiche dans votre commande après le paiement.",
+        a: "Oui. Sur la page du vêtement, touchez « Sur mesure » puis « J'envoie mon tissu » : vous ne payez que la couture. Le tailleur vous dit combien de mètres il faut, et l'adresse de son atelier s'affiche dans votre commande dès que vous acceptez son devis.",
       },
       {
         q: "Puis-je commander un vêtement sans le personnaliser ?",
@@ -89,11 +89,11 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Quels moyens de paiement sont acceptés ?",
-        a: "Orange Money, Wave, Free Money et carte bancaire. Le paiement s'effectue de façon sécurisée au moment de la commande.",
+        a: "Pour l'instant, vous payez directement le tailleur ou le vendeur de tissu. Après votre commande (ou votre devis accepté), il vous envoie son moyen de paiement : Wave, Orange Money, Free Money… Aucun argent ne passe par JALOFA.",
       },
       {
-        q: "Mes coordonnées bancaires sont-elles conservées ?",
-        a: "Non. Les paiements sont traités par nos prestataires et vos coordonnées bancaires complètes ne sont pas stockées par la plateforme.",
+        q: "JALOFA prend-il une commission ?",
+        a: "Non. JALOFA est gratuit : vous payez seulement le prix du professionnel.",
       },
     ],
   },
@@ -110,7 +110,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "Puis-je retourner un vêtement sur mesure ?",
-        a: "Les pièces confectionnées sur mesure ne sont ni reprises ni échangées, sauf défaut de confection avéré. Dans ce cas, contactez-nous depuis votre espace personnel.",
+        a: "Les pièces confectionnées sur mesure ne sont ni reprises ni échangées, sauf défaut de confection avéré. Dans ce cas, écrivez-nous sur WhatsApp au 77 500 85 83 ou par e-mail à mactravail23@gmail.com.",
       },
     ],
   },
@@ -119,11 +119,11 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Comment devenir tailleur ou vendeur de tissus ?",
-        a: "Candidatez à la Sélection JALOFA en créant un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour renseigner votre moyen de paiement, publier votre catalogue et recevoir des commandes. JALOFA garde les professionnels sérieux et qualifiés : qualité des créations, finitions soignées, prix justes, service client sérieux, délais respectés.",
+        a: "Candidatez à la Sélection JALOFA en créant un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour publier votre catalogue et recevoir des commandes. JALOFA garde les professionnels sérieux et qualifiés : qualité des créations, finitions soignées, prix justes, service client sérieux, délais respectés.",
       },
       {
         q: "Combien ça coûte de vendre sur JALOFA ?",
-        a: "Rien. Les professionnels sélectionnés par JALOFA ont l'accès PRO offert : 0 FCFA, sans commission sur leurs ventes. Si JALOFA propose un jour une offre payante, elle vous sera présentée à l'avance et vous serez libre de l'accepter ou non. Vous indiquez votre moyen de paiement (Orange Money, Wave, Free Money ou virement) dans votre espace, et vous êtes réglé dessus.",
+        a: "Rien. Les professionnels sélectionnés par JALOFA ont l'accès PRO offert : 0 FCFA, sans commission sur leurs ventes. Si JALOFA propose un jour une offre payante, elle vous sera présentée à l'avance et vous serez libre de l'accepter ou non. Vos clients vous paient directement : vous leur envoyez votre moyen de paiement (Orange Money, Wave, Free Money…).",
       },
       {
         q: "Comment est fixé le prix d'une tenue ?",

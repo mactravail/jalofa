@@ -130,7 +130,7 @@ export function PayoutMethodForm({
       <div className="bg-muted/40 text-muted-foreground flex items-start gap-2 rounded-lg border p-3 text-xs">
         <ShieldCheck className="text-primary mt-0.5 size-4 shrink-0" />
         <span>
-          <T>{"Vos coordonnées de paiement restent privées : elles ne servent qu'à vous verser vos ventes et ne sont jamais affichées aux clients."}</T>
+          <T>{"Pour l'instant, vos clients vous paient directement : après un devis accepté ou une commande, envoyez-leur ce numéro par appel ou WhatsApp. Aucun argent ne passe par JALOFA."}</T>
         </span>
       </div>
 

@@ -16,7 +16,7 @@ import {
   ShoppingBag,
   Store,
   Truck,
-  ShieldCheck,
+  Smartphone,
   User,
   Zap,
 } from "lucide-react";
@@ -392,7 +392,7 @@ export function CheckoutView({
                 title={t("Express")}
                 desc={
                   deliveryQuote?.express
-                    ? t("Envoi le jour même · Livraison {fee} payée maintenant", { fee: formatPrice(deliveryQuote.express.total) })
+                    ? t("Envoi le jour même · Livraison {fee}", { fee: formatPrice(deliveryQuote.express.total) })
                     : t("Pas proposé par ces pros")
                 }
               />
@@ -400,7 +400,7 @@ export function CheckoutView({
             <p className="text-muted-foreground mt-2 text-xs">
               {deliveryOption === "economy"
                 ? t("Le vendeur attend 24 h avant d'envoyer le tissu, puis le tailleur attend 24 h avant de le couper : vous pouvez demander l'annulation sans perte.")
-                : t("Tout part tout de suite. Le tailleur coupe 24 h après votre paiement : après la découpe, une annulation coûte 35 % du prix de la couture.")}
+                : t("Tout part tout de suite, dès que vous avez payé le pro.")}
             </p>
           </section>
 
@@ -498,17 +498,17 @@ export function CheckoutView({
               </label>
             )}
             <p className="text-muted-foreground mt-1 text-xs">
-              {t("Annulation possible jusqu'au départ de votre tenue : JALOFA examine et vous rembourse selon l'avancement. Un tissu peut être rendu pendant {d} jours, envoi à votre charge. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { d: RETURN_WINDOW_DAYS })}
+              {t("Un tissu peut être rendu pendant {d} jours, envoi à votre charge. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.", { d: RETURN_WINDOW_DAYS })}
             </p>
           </section>
 
-          {/* Paiement : la page Bictorys propose Wave, Orange Money, carte… */}
+          {/* Paiement direct (DIRECT_PAYMENT) : rien n'est encaissé par JALOFA. */}
           <section className="bg-muted/40 rounded-xl border p-4">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <ShieldCheck className="size-5 text-emerald-500" /> {t("Paiement sécurisé")}
+              <Smartphone className="size-5 text-emerald-500" /> {t("Paiement")}
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              {t("Vous payez sur une page de paiement sécurisée : Wave, Orange Money ou carte bancaire.")}
+              {t("Après votre commande, le tailleur ou le vendeur vous envoie son moyen de paiement (Wave, Orange Money…). Vous le payez directement : aucun argent ne passe par JALOFA.")}
             </p>
           </section>
         </div>
@@ -579,7 +579,7 @@ export function CheckoutView({
               </div>
             )}
 
-            {/* Avant de payer, le client accepte les conditions. */}
+            {/* Avant de commander, le client accepte les conditions. */}
             <div className="mt-5">
               <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms}>
                 <span className="text-xs">
@@ -611,7 +611,7 @@ export function CheckoutView({
               disabled={!canSubmit || isPending}
             >
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              {t("Confirmer et payer")}
+              {t("Confirmer la commande")}
             </Button>
             {!canSubmit && (
               <p className="text-muted-foreground mt-2 text-center text-xs">
@@ -624,7 +624,7 @@ export function CheckoutView({
                         ? "Complétez l'adresse de livraison."
                         : !passwordComplete
                           ? "Choisissez votre mot de passe."
-                          : "Acceptez les conditions pour payer",
+                          : "Acceptez les conditions pour continuer",
                 )}
               </p>
             )}
@@ -652,8 +652,8 @@ function Confirmation({
       <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t("Commande confirmée")}</h1>
       <p className="text-muted-foreground mt-2 text-sm">
         {count > 1
-          ? t("Merci ! {n} pièces ont bien été commandées. Vous recevrez le suivi de production dans votre espace.", { n: count })
-          : t("Merci ! Votre pièce a bien été commandée. Vous recevrez le suivi de production dans votre espace.")}
+          ? t("Merci ! {n} pièces ont bien été commandées. Le pro va vous envoyer son moyen de paiement ; vous suivez ensuite tout dans votre espace.", { n: count })
+          : t("Merci ! Votre pièce a bien été commandée. Le pro va vous envoyer son moyen de paiement ; vous suivez ensuite tout dans votre espace.")}
       </p>
 
       {orderNumbers.length > 0 && (

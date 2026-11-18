@@ -22,7 +22,7 @@ import {
 } from "@/components/dashboard/notifications-seen";
 import { usePipeline } from "@/components/dashboard/pipeline-store";
 import { markMyNotificationsRead } from "@/lib/actions/notifications";
-import { ORDER_TYPE_LABELS } from "@/lib/constants";
+import { DIRECT_PAYMENT, ORDER_TYPE_LABELS } from "@/lib/constants";
 import { DASHBOARD_ROOT } from "@/lib/dashboard-nav";
 import { bucketOf, pipelineType, type OrderBucket } from "@/lib/pipeline";
 import type { Notification } from "@/lib/types";
@@ -140,11 +140,20 @@ export function NotificationsTimeline({
 /** Une notification de la base, prête pour la chronologie. */
 export function notificationEvent(n: Notification): TimelineEvent {
   const t = TONES[n.type] ?? DEFAULT_TONE;
+  // Paiement direct : le trigger écrit « Le client a payé » au moment où le
+  // client accepte le devis — il n'a encore rien payé, c'est au tailleur de lui
+  // envoyer son moyen de paiement.
+  const direct = DIRECT_PAYMENT && n.type === "quote_paid";
+  const code = direct ? /^Code (\S+)/.exec(n.body ?? "")?.[1] : undefined;
   return {
     id: n.id,
     at: n.created_at,
-    title: n.title,
-    body: n.body,
+    title: direct ? "Devis accepté" : n.title,
+    body: direct
+      ? code
+        ? `Code ${code} : envoyez votre moyen de paiement au client. Ses coordonnées sont sur la commande.`
+        : "Envoyez votre moyen de paiement au client. Ses coordonnées sont sur la commande."
+      : n.body,
     href: n.link,
     icon: t.icon,
     tone: t.tone,

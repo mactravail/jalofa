@@ -76,8 +76,8 @@ export const isSatisfactionIssue = (v: string): v is SatisfactionIssue =>
   Object.prototype.hasOwnProperty.call(SATISFACTION_ISSUES, v);
 
 /** Le WhatsApp de l'équipe JALOFA — seul moyen de contact affiché au client. */
-export const JALOFA_WHATSAPP = "00393291114442";
-export const JALOFA_WHATSAPP_DISPLAY = "+39 329 111 4442";
+export const JALOFA_WHATSAPP = "00221775008583";
+export const JALOFA_WHATSAPP_DISPLAY = "77 500 85 83";
 
 export type AlterationReason = "too_big" | "too_small" | "slit_too_wide" | "other";
 

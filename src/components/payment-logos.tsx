@@ -1,3 +1,4 @@
+import { DIRECT_PAYMENT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 /**
@@ -108,6 +109,8 @@ const LOGOS: Logo[] = [
   },
 ];
 
+const CARD_LOGOS = new Set(["Visa", "Mastercard"]);
+
 const BY_NAME = Object.fromEntries(LOGOS.map((l) => [l.name, l.svg]));
 
 /** Logo(s) d'un moyen de paiement : la carte = Visa + Mastercard. */
@@ -145,7 +148,8 @@ export function PaymentLogos({ className }: { className?: string }) {
       aria-label="Moyens de paiement acceptés"
       className={cn("flex flex-wrap items-center justify-center gap-2", className)}
     >
-      {LOGOS.map((logo) => (
+      {/* Paiement direct au pro : mobile money seulement, pas de carte. */}
+      {LOGOS.filter((l) => !DIRECT_PAYMENT || !CARD_LOGOS.has(l.name)).map((logo) => (
         <li
           key={logo.name}
           title={logo.name}

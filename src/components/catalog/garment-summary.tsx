@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CANCEL_WINDOW_HOURS } from "@/lib/after-sale";
 import { APP_NAME } from "@/lib/constants";
+import { SupportContact } from "@/components/support-contact";
 import { isEuropeCountry } from "@/lib/europe";
 import type { LatestReviews, ModelReviewStats } from "@/lib/data";
 import { deliveryPolicy } from "@/lib/delivery";
@@ -195,12 +196,13 @@ export async function GarmentDetails({
         <p>{t(deliveryPolicy(model.delivery_zone))}</p>
         <p>{t("Comptez ~{n} jours de confection, plus le trajet jusqu'à votre ville.", { n: model.avg_days })}</p>
         <p>
-          {t("Vous pouvez annuler pendant {h} h après le paiement, tant que le tissu n'est pas parti : {app} vous rembourse.", { h: CANCEL_WINDOW_HOURS, app: APP_NAME })}
+          {t("Vous pouvez annuler pendant {h} h après le paiement, tant que le tissu n'est pas parti : le tailleur vous rembourse.", { h: CANCEL_WINDOW_HOURS })}
         </p>
         <p>{t("Une tenue cousue ne peut pas être rendue, mais votre tailleur peut la retoucher.")}</p>
         <p>
-          {t("Tenue jamais reçue : dites-le-nous dans les 24 h après la livraison pour être remboursé. Défaut ou erreur : signalez-le à tout moment.")}
+          {t("Tenue jamais reçue : dites-le-nous dans les 24 h après la livraison, nous intervenons auprès du tailleur. Défaut ou erreur : écrivez-nous à tout moment, seulement par WhatsApp ou par e-mail :")}
         </p>
+        <SupportContact />
         <Link href="/conditions" className="inline-block underline underline-offset-4">
           {t("Lire les conditions")}
         </Link>

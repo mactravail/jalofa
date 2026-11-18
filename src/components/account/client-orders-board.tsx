@@ -38,7 +38,7 @@ function actionFor(order: OrderListItem): Action | null {
     order.payment_status === "pending" &&
     order.tailoring_price > 0
   ) {
-    return { title: "Votre devis est prêt", label: "Voir et payer", showPrice: true };
+    return { title: "Votre devis est prêt", label: "Voir le devis", showPrice: true };
   }
   if (order.type === "fabric_only" && order.status === "fabric_shipped") {
     return {

@@ -6,6 +6,7 @@ import { CalendarClock, CheckCircle2, Clock, Loader2, Phone, Truck, User } from 
 import { toast } from "sonner";
 
 import { JalofaWhatsApp } from "@/components/order/jalofa-whatsapp";
+import { SupportContact } from "@/components/support-contact";
 import { Button } from "@/components/ui/button";
 import { confirmOrderReceived } from "@/lib/actions/orders";
 import { PAYOUT_DELAY_HOURS } from "@/lib/after-sale";
@@ -22,7 +23,7 @@ const ETA_OPTIONS: Intl.DateTimeFormatOptions = {
   timeZone: "Africa/Dakar",
 };
 
-/** Le rappel des 24 h : passé ce délai, le pro est payé. */
+/** Le rappel des 24 h : passé ce délai, le colis est considéré comme reçu. */
 export function PayoutDelayNotice() {
   const t = useT();
   return (
@@ -30,7 +31,8 @@ export function PayoutDelayNotice() {
       <Clock className="mt-0.5 size-4 shrink-0 text-amber-400" />
       <span>
         <strong>{t("{h} h après la livraison", { h: PAYOUT_DELAY_HOURS })}</strong>
-        {t(", le tailleur et le vendeur de tissu sont payés. Pas reçu votre colis ? Prévenez-nous avant. Un problème avec votre commande ? Vous pouvez le signaler à tout moment.")}
+        {t(", le colis est considéré comme reçu. Pas reçu votre colis ? Prévenez-nous avant. Un problème avec votre commande ? Écrivez-nous à tout moment, seulement par WhatsApp ou par e-mail :")}
+        <SupportContact className="mt-1" />
       </span>
     </p>
   );

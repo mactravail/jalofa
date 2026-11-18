@@ -199,7 +199,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         }
         toast.success(res.autoQuoted ? t("Votre devis est prêt") : t("Demande de devis envoyée"), {
           description: res.autoQuoted
-            ? t("Vérifiez le prix et le délai, puis payez pour lancer la confection.")
+            ? t("Vérifiez le prix et le délai, puis confirmez : le tailleur vous envoie son moyen de paiement.")
             : res.demo
             ? t("Démo — le tailleur vous répondrait avec un prix.")
             : t("{name} vous répondra avec un prix.", { name: tailor?.shop_name ?? t("Le tailleur") }),

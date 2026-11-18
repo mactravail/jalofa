@@ -42,7 +42,7 @@ export async function OwnFabricPanel({
       </p>
       {!paid ? (
         <p className="text-muted-foreground mt-0.5 text-sm">
-          {t("Après le paiement, l'adresse de l'atelier s'affiche ici.")}
+          {t("Dès que vous acceptez le devis, l'adresse de l'atelier s'affiche ici.")}
         </p>
       ) : atelier ? (
         <>

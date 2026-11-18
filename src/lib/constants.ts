@@ -10,6 +10,24 @@ export const APP_TAGLINE = "La couture sur mesure, depuis votre téléphone";
 // theme-color ne savent pas lire oklch().
 export const THEME_COLOR = "#000000";
 
+/**
+ * Paiement direct (tant que le compte Bictorys n'est pas activé) : aucun argent
+ * ne passe par JALOFA. Le client confirme sa commande ou accepte le devis, puis
+ * le tailleur ou le vendeur lui envoie lui-même son moyen de paiement (Wave,
+ * Orange Money…) et le client le paie directement. Remettre à `false` quand
+ * l'encaissement par Bictorys sera ouvert — et remettre alors les textes
+ * « l'argent attend en sécurité ».
+ */
+export const DIRECT_PAYMENT = true;
+
+/** Le seul contact client de JALOFA : WhatsApp ou e-mail (pas d'appel). */
+export const SUPPORT_CONTACT = {
+  whatsapp: "77 500 85 83",
+  /** Lien wa.me : indicatif du Sénégal, sans espaces. */
+  whatsappUrl: "https://wa.me/221775008583",
+  email: "mactravail23@gmail.com",
+};
+
 // ---------------------------------------------------------------------------
 // Currency (West African CFA franc)
 // ---------------------------------------------------------------------------

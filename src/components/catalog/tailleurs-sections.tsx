@@ -24,17 +24,14 @@ import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
 
 // Les sections de /tailleurs qui s'adressent aux deux publics : pourquoi un client
-// passe par JALOFA, comment l'argent est gardé, pourquoi un tailleur nous rejoint.
-// Le délai de reversement doit rester celui de /conditions (articles 5 et B8).
-
-/** Le grain du fond charbon : un bruit SVG léger, sans fichier image à charger. */
-const CHARCOAL_GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.2 0 0 0 -0.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E")`;
+// passe par JALOFA, pourquoi un tailleur nous rejoint. Pour l'instant aucun argent
+// ne passe par JALOFA : le client paie le pro directement (cf. DIRECT_PAYMENT).
 
 const CLIENT_REASONS = [
   {
     icon: ShieldCheck,
-    title: "Votre argent est protégé",
-    text: "Le tailleur est payé seulement après la livraison.",
+    title: "Des pros sélectionnés",
+    text: "JALOFA choisit des tailleurs et des vendeurs sérieux, notés par leurs clients.",
   },
   {
     icon: Scale,
@@ -48,12 +45,12 @@ const CLIENT_REASONS = [
   },
   {
     icon: Undo2,
-    title: "Parole non tenue ? Remboursé",
-    text: "Grand retard, défaut, mauvais habit : ouvrez une réclamation.",
-    // Les règles d'annulation et de remboursement : partie « Clients » des conditions.
+    title: "Un souci ? JALOFA vous aide",
+    text: "Grand retard, défaut, mauvais habit : écrivez-nous sur WhatsApp au 77 500 85 83 ou à mactravail23@gmail.com, nous intervenons auprès du pro.",
+    // Les règles de commande et de réclamation : partie « Clients » des conditions.
     link: {
       href: "/conditions#clients",
-      label: "Lire la politique de remboursement et d'annulation",
+      label: "Lire les conditions pour les clients",
     },
   },
 ] as const satisfies {
@@ -63,23 +60,6 @@ const CLIENT_REASONS = [
   link?: { href: string; label: string };
 }[];
 
-const MONEY_STEPS = [
-  {
-    title: "Le client paie",
-    text: "Il paie sur JALOFA, avant que le tailleur commence.",
-  },
-  {
-    // JALOFA ne détient pas l'argent (il reste chez le prestataire de paiement,
-    // qu'on ne nomme pas) : on dit seulement qu'il attend en sécurité.
-    title: "L'argent attend en sécurité",
-    text: "Le tailleur coud sans crainte : le client a déjà payé. Le client est tranquille : son argent n'est pas encore parti.",
-  },
-  {
-    title: "Livré ? Le tailleur est payé",
-    text: "Il reçoit son argent 24 h après la livraison, si le client a bien reçu son colis.",
-  },
-];
-
 const TAILOR_REASONS = [
   {
     icon: Store,
@@ -88,8 +68,8 @@ const TAILOR_REASONS = [
   },
   {
     icon: ShieldCheck,
-    title: "Plus de client qui disparaît",
-    text: "Le client a déjà payé avant que vous coupiez le tissu.",
+    title: "Vous êtes payé directement",
+    text: "Le client vous paie sur votre Wave ou Orange Money. JALOFA ne prend rien.",
   },
   {
     icon: Smartphone,
@@ -183,36 +163,6 @@ export async function WhyJalofa() {
   );
 }
 
-export async function MoneyProtection() {
-  const t = await getT();
-  return (
-    <section className="relative mt-16 overflow-hidden bg-[#0e0e0e] md:mt-28">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-25 mix-blend-screen"
-        style={{ backgroundImage: CHARCOAL_GRAIN, backgroundSize: "220px 220px" }}
-      />
-      <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24">
-        <h2 className={COLLECTION_HEADING}>{t("L'argent attend la livraison")}</h2>
-        <p className="text-muted-foreground mt-4 max-w-2xl text-lg">
-          {t("Pour éviter les arnaques, des deux côtés.")}
-        </p>
-        <ol className="mt-10 grid gap-x-10 gap-y-8 md:mt-14 md:grid-cols-3">
-          {MONEY_STEPS.map((step, i) => (
-            <li key={step.title} className="border-t border-white/25 pt-4">
-              <span className={cn(display.className, "text-4xl tracking-[0.02em] md:text-5xl")}>
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 className="mt-3 text-xl leading-snug font-medium tracking-tight">{t(step.title)}</h3>
-              <p className="text-muted-foreground mt-1 text-base">{t(step.text)}</p>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
 export async function JoinTailors() {
   const t = await getT();
   return (
@@ -228,7 +178,7 @@ export async function JoinTailors() {
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl px-4 pb-8 md:px-8 md:pb-12">
           <h2 className={cn(COLLECTION_HEADING, "max-w-3xl")}>{t("Tailleur, rejoignez-nous")}</h2>
           <p className="mt-3 max-w-xl text-lg">
-            {t("Cousez. Nous nous occupons du paiement. L'inscription est gratuite.")}
+            {t("Cousez. Vos clients vous paient directement. L'inscription est gratuite.")}
           </p>
         </div>
       </div>

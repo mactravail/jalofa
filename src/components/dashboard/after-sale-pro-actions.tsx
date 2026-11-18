@@ -50,7 +50,7 @@ export function AfterSaleProActions({
           <Undo2 className="size-4 shrink-0" /> <T>Le client vous renvoie ce tissu</T>
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          <T>{"Touchez le bouton seulement quand vous l'avez reçu : JALOFA remboursera alors le client."}</T>
+          <T>{"Touchez le bouton seulement quand vous l'avez reçu, puis remboursez le client sur son Wave ou Orange Money."}</T>
         </p>
         <Button
           className="mt-3 h-11 w-full sm:w-auto"

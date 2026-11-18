@@ -5,11 +5,10 @@ import { useRouter } from "@/lib/i18n/navigation";
 import { useState, useTransition } from "react";
 import {
   CalendarClock,
+  Check,
   Loader2,
-  Lock,
   MapPin,
   MessageSquareQuote,
-  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,9 +20,10 @@ import { useT } from "@/components/i18n/locale-provider";
 
 /**
  * Réponse à un devis, côté client. Tant que le tailleur n'a pas chiffré, on
- * patiente ; une fois le prix reçu, le client voit où va son argent (tissu,
- * livraison, tailleur), puis accepte et paie le total en une fois — ce qui fait
- * de la demande une commande ferme, et donne ses coordonnées au tailleur.
+ * patiente ; une fois le prix reçu, le client voit le détail (tissu, livraison,
+ * tailleur), puis accepte — ce qui fait de la demande une commande ferme et
+ * donne ses coordonnées au tailleur. Paiement direct (`DIRECT_PAYMENT`) : rien
+ * n'est encaissé ici, le tailleur envoie lui-même son moyen de paiement.
  */
 export function QuotePayPanel({
   orderId,
@@ -85,7 +85,7 @@ export function QuotePayPanel({
 
   const pay = () => {
     if (!accepted) {
-      toast.error(t("Acceptez les conditions pour payer"));
+      toast.error(t("Acceptez les conditions pour continuer"));
       return;
     }
     startTransition(async () => {
@@ -96,7 +96,7 @@ export function QuotePayPanel({
         return;
       }
       if (res.ok) {
-        toast.success(t("Devis accepté et payé. Le tailleur est prévenu."));
+        toast.success(t("Devis accepté. Le tailleur va vous envoyer son moyen de paiement."));
         router.refresh();
         return;
       }
@@ -164,7 +164,7 @@ export function QuotePayPanel({
           <span>
             {t("Prête en")}{" "}
             <strong>{readyDays > 1 ? t("{n} jours", { n: readyDays }) : t("{n} jour", { n: readyDays })}</strong>{" "}
-            {t("après le paiement")}
+            {t("après votre paiement au tailleur")}
           </span>
         </p>
       ) : null}
@@ -183,12 +183,12 @@ export function QuotePayPanel({
         </p>
       ) : (
         <p className="text-destructive mt-3 text-sm">
-          {t("Ajoutez votre adresse avec « Modifier ma demande » avant de payer.")}
+          {t("Ajoutez votre adresse avec « Modifier ma demande » avant d'accepter.")}
         </p>
       )}
 
       <p className="text-muted-foreground mt-4 text-sm">
-        {t("Vous payez sur une page de paiement sécurisée : Wave, Orange Money ou carte bancaire.")}
+        {t("Après votre accord, le tailleur vous envoie son moyen de paiement (Wave, Orange Money…). Vous le payez directement : aucun argent ne passe par JALOFA.")}
       </p>
 
       <label className="mt-4 flex cursor-pointer items-start gap-2 text-xs">
@@ -214,23 +214,16 @@ export function QuotePayPanel({
         {isPending ? (
           <Loader2 className="size-4 shrink-0 animate-spin" />
         ) : (
-          <Lock className="size-4 shrink-0" />
+          <Check className="size-4 shrink-0" />
         )}
-        <span>{t("Accepter et payer")}</span>
+        <span>{t("Accepter le devis")}</span>
         <span className="whitespace-nowrap">{formatPrice(grandTotal)}</span>
       </Button>
-      <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-emerald-500">
-        <ShieldCheck className="size-3.5" />
-        {t("Paiement sécurisé · l'argent attend en sécurité")}
-      </p>
       <p className="text-muted-foreground mt-2 text-xs">
-        {t("Une fois payé, le tailleur reçoit votre nom, votre téléphone et votre e-mail pour vous livrer.")}
+        {t("Une fois le devis accepté, le tailleur reçoit votre nom, votre téléphone et votre e-mail pour vous envoyer son moyen de paiement et vous livrer.")}
       </p>
       <p className="text-muted-foreground mt-1 text-xs">
-        {t("Payez uniquement ici. En dehors du site, JALOFA ne peut ni vous protéger ni vous rembourser.")}
-      </p>
-      <p className="text-muted-foreground mt-1 text-xs">
-        {t("Annulation possible jusqu'au départ de votre tenue : JALOFA examine. Après la découpe du tissu, le tailleur garde 35 % du prix de la couture. Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher.")}
+        {t("Une tenue cousue ne se rend pas, mais votre tailleur peut la retoucher. Un souci ? Signalez-le depuis votre commande.")}
       </p>
     </div>
   );

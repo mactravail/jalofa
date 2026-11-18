@@ -25,8 +25,7 @@ const COPY: Record<ProRole, { subtitle: string; earned: string; chart: string }>
     chart: "Revenus de la confection",
   },
   vendor: {
-    subtitle:
-      "Vous recevez votre argent quand le tissu est reçu par le tailleur ou le client.",
+    subtitle: "Ce que vous rapportent vos tissus, commande par commande.",
     earned: "Encaissé sur les tissus",
     chart: "Revenus des tissus",
   },

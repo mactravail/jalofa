@@ -66,12 +66,12 @@ export async function SiteFooter() {
         </div>
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold">{t("Paiement")}</h3>
+          <h3 className="mb-3 text-sm font-semibold">{t("Paiement direct au pro")}</h3>
           <ul className="space-y-2 text-sm text-neutral-400">
             <li>Orange Money</li>
             <li>Wave</li>
             <li>Free Money</li>
-            <li>{t("Carte bancaire")}</li>
+            <li>{t("Aucun frais JALOFA")}</li>
           </ul>
         </div>
       </div>

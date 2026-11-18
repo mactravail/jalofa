@@ -68,8 +68,8 @@ const PROMISES = [
   },
   {
     icon: ShieldCheck,
-    title: "Paiement protégé",
-    text: "Payez comme vous le souhaitez : Wave, Orange Money ou carte bancaire.",
+    title: "Vous payez le pro directement",
+    text: "Il vous envoie son Wave ou Orange Money. Aucun frais JALOFA.",
   },
 ];
 

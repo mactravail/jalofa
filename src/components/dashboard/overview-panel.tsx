@@ -14,6 +14,7 @@ import { Price } from "@/components/cart/price";
 import { NewOrdersFeed } from "@/components/dashboard/new-orders-feed";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
 import { buttonVariants } from "@/components/ui/button";
+import { DIRECT_PAYMENT } from "@/lib/constants";
 import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
 import { moneyReleased, revenueOf } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,15 @@ export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?
             <Wallet className="size-5 shrink-0 text-emerald-400" />
             <span className="truncate"><T>Mon argent</T></span>
           </span>
+          {DIRECT_PAYMENT ? (
+            // Paiement direct : le client paie le pro, JALOFA ne détient rien.
+            <span className="min-w-0">
+              <span className="block text-xs font-medium text-emerald-400"><T>Mes ventes</T></span>
+              <span className="block truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                <Price amount={revenue} />
+              </span>
+            </span>
+          ) : (
           <span className="grid grid-cols-2 gap-3">
             <span className="min-w-0">
               <span className="block text-xs font-medium text-amber-400"><T>En attente</T></span>
@@ -87,6 +97,7 @@ export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?
               </span>
             </span>
           </span>
+          )}
         </Link>
       </div>
 

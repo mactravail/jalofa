@@ -8,7 +8,6 @@ import { DemoBanner } from "@/components/demo-banner";
 import { TailorCard } from "@/components/catalog/tailor-card";
 import {
   JoinTailors,
-  MoneyProtection,
   WhyJalofa,
 } from "@/components/catalog/tailleurs-sections";
 import { getTailors } from "@/lib/data";
@@ -107,7 +106,6 @@ export default async function TailorsPage({
       </section>
 
       <WhyJalofa />
-      <MoneyProtection />
       <JoinTailors />
     </>
   );

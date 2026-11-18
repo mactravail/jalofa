@@ -82,7 +82,7 @@ export function BodyPhotoPicker({
 
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
       <p className="text-muted-foreground mt-3 text-xs">
-        {t("Facultatif. Seul votre tailleur la voit, et seulement après votre paiement.")}
+        {t("Facultatif. Seul votre tailleur la voit, et seulement après votre accord.")}
       </p>
 
       <input

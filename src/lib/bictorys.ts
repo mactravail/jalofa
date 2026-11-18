@@ -6,6 +6,7 @@ import {
   verifyWebhookWith,
   type BictorysTransaction,
 } from "@/lib/bictorys-core";
+import { DIRECT_PAYMENT } from "@/lib/constants";
 
 export {
   FAILED_STATUSES,
@@ -42,6 +43,8 @@ export {
 const DEFAULT_TEST_URL = "https://api.test.bictorys.com";
 
 export function isBictorysConfigured(): boolean {
+  // Paiement direct au pro : on n'encaisse rien, même si les clés sont là.
+  if (DIRECT_PAYMENT) return false;
   return Boolean(process.env.BICTORYS_PUBLIC_KEY && process.env.BICTORYS_WEBHOOK_SECRET);
 }
 

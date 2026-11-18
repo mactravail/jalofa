@@ -75,7 +75,7 @@ async function FinalCall({ days }: { days: number | null }) {
         </a>
         <p className="text-muted-foreground mt-4 flex items-center gap-2 text-sm">
           <ShieldCheck className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
-          {t("Le tailleur est payé seulement après la livraison.")}
+          {t("Des tailleurs sélectionnés et notés par leurs clients.")}
         </p>
       </div>
     </section>

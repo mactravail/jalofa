@@ -136,7 +136,7 @@ export async function setProSalesApproval(
     title: approved ? "Votre boutique est validée !" : "Vos ventes sont en pause",
     body: approved
       ? "Les clients peuvent maintenant acheter vos articles et commander chez vous."
-      : "JALOFA a mis vos ventes en pause. Vos articles restent visibles. Contactez-nous.",
+      : "JALOFA a mis vos ventes en pause. Vos articles restent visibles. Contactez-nous sur WhatsApp au 77 500 85 83 ou à mactravail23@gmail.com.",
     link: "/tailleur/espace",
   });
 
