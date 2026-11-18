@@ -1,6 +1,7 @@
 import Link from "@/components/i18n/link";
 
 import { PaymentLogos } from "@/components/payment-logos";
+import { SupportContact } from "@/components/support-contact";
 import { Wordmark } from "@/components/wordmark";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { FOOTER_LEGAL_LINKS, FOOTER_LINKS } from "@/lib/nav";
@@ -11,8 +12,8 @@ export async function SiteFooter() {
   const t = await getT();
   return (
     <footer className="mt-auto border-t border-white/10 bg-neutral-950 text-neutral-100">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-4">
-        <div className="sm:col-span-2 md:col-span-1">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="sm:col-span-2 md:col-span-3 lg:col-span-1">
           <Link
             href="/"
             aria-label={t("JALOFA — accueil")}
@@ -73,6 +74,11 @@ export async function SiteFooter() {
             <li>Free Money</li>
             <li>{t("Aucun frais JALOFA")}</li>
           </ul>
+        </div>
+
+        <div>
+          <h3 className="mb-3 text-sm font-semibold">{t("Contact")}</h3>
+          <SupportContact className="gap-2 text-sm text-neutral-400 [&_a]:no-underline [&_a:hover]:text-white" />
         </div>
       </div>
       <div className="border-t border-white/10">
