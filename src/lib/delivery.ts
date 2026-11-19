@@ -16,6 +16,16 @@ export const FREE_DELIVERY_ZONES: { value: FreeDeliveryZone; label: string }[] =
 ];
 
 /**
+ * Les choix du formulaire de modèle (tailleur) : gratuite au Sénégal, partout,
+ * ou seulement à Dakar — pour tous les ateliers, même installés en Europe.
+ */
+export const MODEL_DELIVERY_ZONES: { value: FreeDeliveryZone; label: string }[] = [
+  { value: "senegal", label: "Gratuite dans tout le Sénégal (conseillé)" },
+  { value: "world", label: "Gratuite partout dans le monde" },
+  { value: "dakar", label: "Gratuite à Dakar seulement" },
+];
+
+/**
  * Les choix d'un pro installé en Europe (JALOFA EUROPE) : « toute l'Europe »
  * remplace Dakar et le Sénégal, qui n'ont pas de sens depuis Milan.
  */

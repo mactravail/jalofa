@@ -16,6 +16,7 @@ import {
   parseReadyColors,
 } from "@/lib/ready-to-wear";
 import {
+  careTipLines,
   MAX_CARE_TIPS_LENGTH,
   modelStyleProblem,
   parseModelStyleGroups,
@@ -196,6 +197,10 @@ export async function saveModel(
     return { ok: false, error: "Indiquez l'adresse ET le téléphone de votre atelier." };
   }
 
+  // Le style, la difficulté et le délai se règlent dans « Mes recommandations »
+  // (saveModelSettings) : le formulaire de modèle ne les envoie plus, et un
+  // enregistrement sans eux n'y touche pas.
+  const sendsStyle = formData.has("style_groups");
   const styleGroups = parseModelStyleGroups(formData.get("style_groups"), (url) =>
     isOwnModelPhoto(url, user.id),
   );
@@ -248,7 +253,7 @@ export async function saveModel(
   // brouillon reste libre. Contrôlé avant tout téléversement, pour ne pas laisser
   // de photo orpheline.
   if (formData.get("is_active") === "on") {
-    const styleProblem = modelStyleProblem(styleGroups);
+    const styleProblem = sendsStyle ? modelStyleProblem(styleGroups) : null;
     if (styleProblem) return { ok: false, error: styleProblem };
     let savedFits: ModelBodyFit[] = bodyFits;
     if (!sendsBodyFits && id) {
@@ -323,13 +328,18 @@ export async function saveModel(
     category_slug: categorySlug,
     description: text(formData.get("description")),
     delivery_zone: parseDeliveryZone(formData.get("delivery_zone")),
-    care_tips: text(formData.get("care_tips"))?.slice(0, MAX_CARE_TIPS_LENGTH) ?? null,
-    style_groups: styleGroups,
+    // Les recommandations vivent dans « Mes recommandations » (menu) : le
+    // formulaire de modèle ne les envoie plus. Un nouveau modèle reprend celles
+    // déjà écrites par le tailleur (cf. plus bas).
+    ...(formData.has("care_tips")
+      ? { care_tips: text(formData.get("care_tips"))?.slice(0, MAX_CARE_TIPS_LENGTH) ?? null }
+      : {}),
+    ...(sendsStyle ? { style_groups: styleGroups } : {}),
     ...(formData.has("style_base") || catalogModel ? { style_base: styleBase } : {}),
     ...(sendsCatalog ? { catalog_model_id: catalogModel?.id ?? null } : {}),
     ...(sendsBodyFits ? { body_fits: bodyFits } : {}),
-    difficulty: difficulty(formData.get("difficulty")),
-    avg_days: avgDays(formData.get("avg_days")),
+    ...(formData.has("difficulty") ? { difficulty: difficulty(formData.get("difficulty")) } : {}),
+    ...(formData.has("avg_days") ? { avg_days: avgDays(formData.get("avg_days")) } : {}),
     price: price(formData.get("price")),
     ...(sendsReady
       ? {
@@ -417,7 +427,9 @@ export async function saveModel(
 
     // Sans `ready_form`, les photos par couleur ne sont pas touchées : on les garde.
     const keptColorImages = sendsReady ? Object.values(readyColorImages) : previousColorImages;
-    const kept = new Set([...finalUrls, ...styleGroupPhotos(styleGroups), ...keptColorImages]);
+    // Style non envoyé : ses photos restent celles d'avant, on les garde.
+    const keptStyle = sendsStyle ? styleGroups : previous?.style_groups;
+    const kept = new Set([...finalUrls, ...styleGroupPhotos(keptStyle), ...keptColorImages]);
     const orphaned = [
       ...(previous?.image_url ? [previous.image_url] : []),
       ...(previous?.model_photos ?? []).map((p) => p.image_url),
@@ -426,10 +438,13 @@ export async function saveModel(
     ].filter((u) => typeof u === "string" && !kept.has(u));
     await Promise.all(orphaned.map((u) => removeImage(supabase, BUCKET, u)));
   } else {
+    // « Mes recommandations » : le nouveau modèle reprend celles du tailleur.
+    const careTips =
+      "care_tips" in payload ? payload.care_tips : await myCareTips(supabase, user.id);
     const { data: created, error } = await withoutMissingStyleBase(payload, (row) =>
       supabase
         .from("models")
-        .insert({ ...row, tailor_id: user.id })
+        .insert({ ...row, care_tips: careTips, tailor_id: user.id })
         .select("id")
         .single(),
     );
@@ -737,4 +752,119 @@ export async function deleteModel(id: string): Promise<ActionResult> {
 
 export async function setModelPublished(id: string, published: boolean): Promise<ActionResult> {
   return runAction(() => setModelPublishedImpl(id, published));
+}
+
+/**
+ * Les recommandations du tailleur. « Mes recommandations » les écrit sur tous
+ * ses modèles à la fois : on lit celles du plus récent qui en a.
+ */
+async function myCareTips(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tailorId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("models")
+    .select("care_tips")
+    .eq("tailor_id", tailorId)
+    .not("care_tips", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as { care_tips: string | null } | null)?.care_tips ?? null;
+}
+
+/**
+ * « Mes recommandations » : écrites une fois dans le menu, elles s'appliquent à
+ * tous les modèles du tailleur (lavage, ce qu'il faut éviter…).
+ */
+export async function saveMyCareTips(raw: string): Promise<ActionResult> {
+  return runAction(async () => {
+    if (!isSupabaseConfigured()) {
+      throw new Error("La base de données n'est pas encore connectée.");
+    }
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Vous devez être connecté.");
+
+    const tips = careTipLines(raw).join("\n").slice(0, MAX_CARE_TIPS_LENGTH) || null;
+    const { error } = await supabase
+      .from("models")
+      .update({ care_tips: tips })
+      .eq("tailor_id", user.id);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/tailleur/espace", "layout");
+    revalidatePath("/modeles", "layout");
+    revalidatePath("/commande/nouvelle", "layout");
+  });
+}
+
+/**
+ * « Mes recommandations » → un modèle : son délai de confection, son devis
+ * (manuel ou automatique), sa difficulté et son style. Rien d'autre n'est touché.
+ */
+export async function saveModelSettings(formData: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    if (!isSupabaseConfigured()) throw new Error(NOT_CONNECTED);
+    const id = text(formData.get("id"));
+    if (!id) throw new Error("Modèle introuvable.");
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Vous devez être connecté.");
+
+    const { data: prev } = await supabase
+      .from("models")
+      .select("is_active, image_url, style_groups, model_photos(image_url)")
+      .eq("id", id)
+      .eq("tailor_id", user.id)
+      .maybeSingle();
+    const previous = prev as {
+      is_active: boolean;
+      image_url: string | null;
+      style_groups: ModelStyleGroup[] | null;
+      model_photos: { image_url: string }[] | null;
+    } | null;
+    if (!previous) throw new Error("Modèle introuvable.");
+
+    const styleGroups = parseModelStyleGroups(formData.get("style_groups"), (url) =>
+      isOwnModelPhoto(url, user.id),
+    );
+    if (previous.is_active) {
+      const styleProblem = modelStyleProblem(styleGroups);
+      if (styleProblem) throw new Error(styleProblem);
+    }
+    const quote = parseModelQuoteSettings(formData);
+    if (!quote.ok) throw new Error(quote.error);
+
+    const { error } = await supabase
+      .from("models")
+      .update({
+        avg_days: avgDays(formData.get("avg_days")),
+        difficulty: difficulty(formData.get("difficulty")),
+        style_groups: styleGroups,
+        ...quote.settings,
+      })
+      .eq("id", id)
+      .eq("tailor_id", user.id);
+    if (error) throw new Error(error.message);
+
+    // Les photos de style retirées : effacées du stockage (sauf si la galerie
+    // du modèle s'en sert encore). Sans gravité si ça échoue.
+    const kept = new Set([
+      ...styleGroupPhotos(styleGroups),
+      ...(previous.image_url ? [previous.image_url] : []),
+      ...(previous.model_photos ?? []).map((p) => p.image_url),
+    ]);
+    const orphaned = styleGroupPhotos(previous.style_groups).filter((u) => !kept.has(u));
+    await Promise.all(orphaned.map((u) => removeImage(supabase, BUCKET, u)));
+
+    revalidatePath("/tailleur/espace", "layout");
+    revalidatePath("/modeles", "layout");
+    revalidatePath("/commande/nouvelle", "layout");
+  });
 }

@@ -15,6 +15,7 @@ import {
   Ruler,
   Scissors,
   Shirt,
+  Sparkles,
   Store,
   Truck,
   UserCog,
@@ -53,6 +54,7 @@ export type DashboardNavId =
   | "clients"
   | "models"
   | "metrage"
+  | "careTips"
   | "fabrics"
   | "sales";
 
@@ -198,6 +200,13 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 href: `${root}/metrages`,
                 label: "Mes métrages",
                 icon: Ruler,
+              },
+              {
+                // Lavage, ce qu'il faut éviter… écrit une fois pour tous les modèles.
+                id: "careTips" as const,
+                href: `${root}/recommandations`,
+                label: "Mes recommandations",
+                icon: Sparkles,
               },
               {
                 id: "fabrics" as const,

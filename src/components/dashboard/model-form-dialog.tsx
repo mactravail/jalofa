@@ -1,41 +1,26 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Hand, ImagePlus, Loader2, MapPin, Plus, Ruler, Star, X, Zap } from "lucide-react";
-import Link from "@/components/i18n/link";
+import { ImagePlus, Loader2, MapPin, Star, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AtelierFields } from "@/components/dashboard/atelier-form";
 import { ReadyToWearField } from "@/components/dashboard/ready-to-wear-field";
-import {
-  ModelStyleEditor,
-  toDraftStyleGroups,
-  type DraftStyleGroup,
-} from "@/components/dashboard/model-style-editor";
-import { saveModel, uploadModelStylePhoto } from "@/lib/actions/models";
+import { saveModel } from "@/lib/actions/models";
 import { formatPrice, modelPhotos } from "@/lib/constants";
-import {
-  EUROPE_TYPES,
-  eurToXof,
-  MAKING_TYPES,
-  xofToEur,
-} from "@/lib/europe";
+import { eurToXof, xofToEur } from "@/lib/europe";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import {
-  fitGroupFor,
-  fitGroupLabel,
   tailorBodyFitProblem,
   type TailorBodyFits,
 } from "@/lib/model-body-fit";
-import { careTipLines, MAX_CARE_TIPS_LENGTH, modelStyleProblem } from "@/lib/model-style";
-import { CARE_TIP_SUGGESTIONS } from "@/lib/style-presets";
 import { catalogModelOf } from "@/lib/catalog-link";
 import { garmentStyleKey, guessStyleBase } from "@/lib/style-options";
 import { DeliveryZoneField } from "@/components/dashboard/delivery-zone-field";
 import { DraftNotice } from "@/components/dashboard/draft-notice";
-import type { FreeDeliveryZone } from "@/lib/delivery";
+import { MODEL_DELIVERY_ZONES, type FreeDeliveryZone } from "@/lib/delivery";
 import { useFormDraft, useSavedDraft } from "@/lib/form-draft";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +42,6 @@ import { Textarea } from "@/components/ui/textarea";
 import type {
   GarmentModel,
   ModelCategory,
-  QuoteMode,
   TailorAtelier,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -69,12 +53,6 @@ const MAX_PHOTOS = 5;
 // margin for the multipart overhead of five parts.
 const TOTAL_BUDGET = 3.6 * 1024 * 1024;
 
-const DIFFICULTIES: { value: string; label: string }[] = [
-  { value: "facile", label: "Facile" },
-  { value: "moyen", label: "Intermédiaire" },
-  { value: "difficile", label: "Avancé" },
-];
-
 // A photo already saved on the model, or a freshly picked file carrying the
 // object URL used to preview it (revoked when the photo is replaced/removed).
 type Photo =
@@ -85,12 +63,8 @@ type Photo =
 type ModelDraftExtra = {
   modelName: string;
   category: string;
-  difficulty: string;
   catalogId: string;
   catalogTouched: boolean;
-  styleGroups: DraftStyleGroup[];
-  careTips: string;
-  europeType: string;
   priceEur: string;
 };
 
@@ -155,9 +129,6 @@ export function ModelFormDialog({
   const [category, setCategory] = useState<string>(
     kept?.category ?? source?.category_slug ?? NONE,
   );
-  const [difficulty, setDifficulty] = useState<string>(
-    kept?.difficulty ?? source?.difficulty ?? NONE,
-  );
   // Photos : seulement celles du tailleur. Une suggestion n'apporte jamais sa
   // photo — sinon tous les tailleurs garderaient la même couverture.
   const [photos, setPhotos] = useState<Photo[]>(() => initialPhotos(model));
@@ -168,16 +139,8 @@ export function ModelFormDialog({
   const [catalogId, setCatalogId] = useState<string>(
     () => kept?.catalogId ?? initialCatalogId(model, suggestion, catalog),
   );
-  const [catalogTouched, setCatalogTouched] = useState(
+  const [catalogTouched] = useState(
     kept?.catalogTouched ?? Boolean(model?.catalog_model_id),
-  );
-  // Le style est propre à chaque tailleur : une suggestion n'en apporte aucun.
-  const [styleGroups, setStyleGroups] = useState<DraftStyleGroup[]>(
-    () => kept?.styleGroups ?? toDraftStyleGroups(model?.style_groups),
-  );
-  const [careTips, setCareTips] = useState(kept?.careTips ?? model?.care_tips ?? "");
-  const [europeType, setEuropeType] = useState<string>(
-    kept?.europeType ?? model?.europe_type ?? "",
   );
   const [priceEur, setPriceEur] = useState<string>(
     kept?.priceEur ?? (source?.price != null ? String(xofToEur(source.price)) : ""),
@@ -187,22 +150,14 @@ export function ModelFormDialog({
   const { formRef, field, fieldAll, clear } = useFormDraft<ModelDraftExtra>(draftKey, saved, {
     modelName,
     category,
-    difficulty,
     catalogId,
     catalogTouched,
-    styleGroups: styleGroups.map((g) => ({
-      ...g,
-      options: g.options.map((o) => ({ slug: o.slug, name: o.name, extra: o.extra, photo: o.photo })),
-    })),
-    careTips,
-    europeType,
     priceEur,
   });
   function startOver() {
     clear();
     onReset?.();
   }
-  const [styleUpload, setStyleUpload] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -210,11 +165,6 @@ export function ModelFormDialog({
     [NONE]: t("Aucune catégorie"),
     ...Object.fromEntries(categories.map((c) => [c.slug, c.name])),
   };
-  const difficultyItems: Record<string, string> = {
-    [NONE]: t("Non précisée"),
-    ...Object.fromEntries(DIFFICULTIES.map((d) => [d.value, t(d.label)])),
-  };
-
   function addFiles(files: FileList | null) {
     if (!files?.length) return;
     setPhotos((prev) => {
@@ -254,56 +204,6 @@ export function ModelFormDialog({
     );
   }
 
-  /**
-   * Envoie les photos de style encore sur le téléphone, une à une. Chaque photo
-   * envoyée est retenue : après une coupure de réseau, on repart de là où on était.
-   * `null` : un envoi a échoué et l'erreur est affichée.
-   */
-  async function uploadStylePhotos(): Promise<DraftStyleGroup[] | null> {
-    const total = styleGroups.flatMap((g) => g.options).filter((o) => o.file).length;
-    let done = 0;
-    if (total > 0) setStyleUpload({ done, total });
-
-    try {
-      const uploaded: DraftStyleGroup[] = [];
-      for (const group of styleGroups) {
-        const options = [];
-        for (const option of group.options) {
-          if (!option.file) {
-            options.push(option);
-            continue;
-          }
-          const image = await resizeImage(option.file);
-          const body = new FormData();
-          body.set("photo", image);
-          const res = await uploadModelStylePhoto(body);
-          if (!res.ok) {
-            const message = `« ${option.name || group.name} » : ${res.error}`;
-            setError(message);
-            toast.error(message);
-            return null;
-          }
-          if (option.preview) URL.revokeObjectURL(option.preview);
-          const saved = { ...option, photo: res.url, file: undefined, preview: undefined };
-          options.push(saved);
-          setStyleGroups((prev) =>
-            prev.map((g) =>
-              g.slug === group.slug
-                ? { ...g, options: g.options.map((o) => (o.slug === option.slug ? saved : o)) }
-                : g,
-            ),
-          );
-          done += 1;
-          setStyleUpload({ done, total });
-        }
-        uploaded.push({ ...group, options });
-      }
-      return uploaded;
-    } finally {
-      setStyleUpload(null);
-    }
-  }
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -315,8 +215,9 @@ export function ModelFormDialog({
 
     const formData = new FormData(e.currentTarget);
     formData.set("category_slug", category === NONE ? "" : category);
-    formData.set("difficulty", difficulty === NONE ? "" : difficulty);
-    formData.set("catalog_model_id", catalogId);
+    // Le vêtement du catalogue n'est plus demandé : on le devine d'après le nom.
+    // Rien de deviné → on n'envoie rien, la publication n'est pas bloquée.
+    if (catalogId) formData.set("catalog_model_id", catalogId);
     // JALOFA EUROPE : le prix est saisi en euros, enregistré et payé en FCFA.
     if (europe) {
       const eur = Number(priceEur);
@@ -326,24 +227,12 @@ export function ModelFormDialog({
 
     // Avant d'envoyer quoi que ce soit : une photo de style manque-t-elle ?
     if (formData.get("is_active") === "on") {
-      const problem = modelStyleProblem(
-        styleGroups.map((g) => ({
-          slug: g.slug,
-          name: g.name,
-          options: g.options.map((o) => ({
-            slug: o.slug,
-            name: o.name,
-            photo: o.preview ?? o.photo,
-            extra: 0,
-          })),
-        })),
-      );
       const fitProblem = tailorBodyFitProblem(
         model?.body_fits,
         bodyFits,
         category === NONE ? null : category,
       );
-      const firstProblem = problem ?? fitProblem;
+      const firstProblem = fitProblem;
       if (firstProblem) {
         // Le formulaire est long : l'erreur en haut peut être hors de vue.
         setError(t(firstProblem));
@@ -354,24 +243,6 @@ export function ModelFormDialog({
 
 
     startTransition(async () => {
-      const uploadedStyle = await uploadStylePhotos();
-      if (!uploadedStyle) return;
-      formData.set(
-        "style_groups",
-        JSON.stringify(
-          uploadedStyle.map((g) => ({
-            slug: g.slug,
-            name: g.name,
-            options: g.options.map((o) => ({
-              slug: o.slug,
-              name: o.name,
-              photo: o.photo,
-              extra: Number(o.extra) || 0,
-            })),
-          })),
-        ),
-      );
-
       // Photos travel in gallery order under a single repeated field: existing
       // ones as their URL, new ones as the resized file. A raw phone shot
       // exceeds the Server Action body limit, so shrink before upload.
@@ -560,40 +431,7 @@ export function ModelFormDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="model-style-base">{t("Quel vêtement est-ce ?")}</Label>
-            <select
-              id="model-style-base"
-              value={catalogId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setCatalogId(id);
-                setCatalogTouched(true);
-                // La catégorie suit le modèle du catalogue choisi.
-                const picked = catalog.find((c) => c.id === id);
-                if (picked?.category_slug && !europe) setCategory(picked.category_slug);
-              }}
-              className="border-input bg-background h-10 w-full rounded-lg border px-3 text-base md:text-sm"
-            >
-              <option value="">{t("Choisissez…")}</option>
-              {catalogGroups(catalog, categories).map((g) => (
-                <optgroup key={g.label} label={t(g.label)}>
-                  {g.items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {t(item.name)}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <p className="text-muted-foreground text-xs">
-              {catalogId
-                ? t("Votre modèle s'affiche sur la page de ce vêtement, et vos clients le personnalisent avec nos dessins (col, manches, broderie…), en plus de vos photos de style.")
-                : t("Obligatoire pour publier : choisissez le vêtement de notre catalogue le plus proche. Il ne s'y trouve pas ? Écrivez-nous avec « Une idée ? ».")}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
             <div className="space-y-2">
               <Label>{t("Catégorie")}</Label>
               <Select
@@ -616,91 +454,7 @@ export function ModelFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="model-days">{t("Confection (jours)")}</Label>
-              <Input
-                id="model-days"
-                name="avg_days"
-                type="number"
-                min={1}
-                max={365}
-                step={1}
-                defaultValue={field("avg_days") ?? source?.avg_days ?? 7}
-                placeholder="7"
-              />
-            </div>
           </div>
-
-          {europe && (
-            <div className="space-y-4 rounded-xl border p-3">
-              <p className="text-xs font-semibold tracking-[0.14em] uppercase">JALOFA EUROPE</p>
-              <div className="space-y-2">
-                <Label htmlFor="model-europe-type">{t("Catégorie JALOFA EUROPE")}</Label>
-                <select
-                  id="model-europe-type"
-                  name="europe_type"
-                  value={europeType}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setEuropeType(value);
-                    // La catégorie européenne décide de la page Homme ou Femme.
-                    const info = EUROPE_TYPES.find((x) => x.value === value);
-                    if (info) {
-                      setCategory(info.category);
-                    }
-                  }}
-                  className="border-input bg-background h-10 w-full rounded-lg border px-3 text-base md:text-sm"
-                >
-                  <option value="">{t("Choisissez…")}</option>
-                  {EUROPE_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {t(type.label)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="model-material">{t("Matière et tissu")}</Label>
-                <Input
-                  id="model-material"
-                  name="material"
-                  maxLength={160}
-                  defaultValue={field("material") ?? source?.material ?? ""}
-                  placeholder={t("Ex. Laine Super 120s, Biella")}
-                />
-              </div>
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">{t("Confection")}</legend>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {MAKING_TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      className="has-[:checked]:border-primary has-[:checked]:ring-primary/30 flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm has-[:checked]:ring-2"
-                    >
-                      <input
-                        type="radio"
-                        name="making_type"
-                        value={type.value}
-                        defaultChecked={(field("making_type") ?? source?.making_type ?? "les_deux") === type.value}
-                        className="accent-primary size-4"
-                      />
-                      {t(type.label)}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              <div className="space-y-2">
-                <Label htmlFor="model-sizes">{t("Tailles disponibles (prêt-à-porter)")}</Label>
-                <Input
-                  id="model-sizes"
-                  name="sizes"
-                  maxLength={120}
-                  defaultValue={field("sizes") ?? source?.sizes ?? ""}
-                  placeholder={t("Ex. 46 à 56, ou S, M, L, XL")}
-                />
-              </div>
-            </div>
-          )}
 
           {europe ? (
             <div className="space-y-2">
@@ -740,32 +494,9 @@ export function ModelFormDialog({
           </div>
           )}
 
-          <QuoteModeField source={source} field={field} />
-
-          <div className="space-y-2">
-            <Label>{t("Difficulté")}</Label>
-            <Select
-              value={difficulty}
-              onValueChange={(v) => setDifficulty(v as string)}
-              items={difficultyItems}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t("Non précisée")}</SelectItem>
-                {DIFFICULTIES.map((d) => (
-                  <SelectItem key={d.value} value={d.value}>
-                    {t(d.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <DeliveryZoneField
             defaultValue={(field("delivery_zone") as FreeDeliveryZone | undefined) ?? model?.delivery_zone}
-            europe={europe}
+            options={MODEL_DELIVERY_ZONES}
           />
 
           <div className="space-y-2">
@@ -781,56 +512,6 @@ export function ModelFormDialog({
             <p className="text-muted-foreground text-xs">
               {t("Le client lit ce texte tel quel sur la fiche du modèle.")}
             </p>
-          </div>
-
-          <ModelStyleEditor
-            modelName={modelName}
-            groups={styleGroups}
-            onChange={setStyleGroups}
-          />
-
-          <BodyFitsNotice
-            ready={
-              !tailorBodyFitProblem(
-                model?.body_fits,
-                bodyFits,
-                category === NONE ? null : category,
-              )
-            }
-            group={fitGroupLabel(fitGroupFor(category === NONE ? null : category))}
-          />
-
-          <div className="space-y-2">
-            <Label htmlFor="model-care-tips">{t("Vos recommandations")}</Label>
-            <p className="text-muted-foreground text-xs">
-              {t("Comment le laver, ce qu'il faut éviter… Une recommandation par ligne.")}
-            </p>
-            <Textarea
-              id="model-care-tips"
-              name="care_tips"
-              rows={3}
-              maxLength={MAX_CARE_TIPS_LENGTH}
-              value={careTips}
-              onChange={(e) => setCareTips(e.target.value)}
-              placeholder={t("Ex. Ne pas mettre de parfum directement sur le tissu")}
-            />
-            <div className="flex flex-wrap gap-2">
-              {CARE_TIP_SUGGESTIONS.map((tip) => t(tip)).filter((tip) => !careTipLines(careTips).includes(tip)).map(
-                (tip) => (
-                  <button
-                    key={tip}
-                    type="button"
-                    onClick={() =>
-                      setCareTips((prev) => [...careTipLines(prev), tip].join("\n"))
-                    }
-                    className="hover:bg-muted flex items-center gap-1 rounded-full border px-3 py-1.5 text-left text-xs font-medium"
-                  >
-                    <Plus className="size-3 shrink-0" />
-                    {tip}
-                  </button>
-                ),
-              )}
-            </div>
           </div>
 
           <label className="flex items-start gap-2 text-sm">
@@ -857,129 +538,19 @@ export function ModelFormDialog({
             >
               {t("Annuler")}
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button
+              type="submit"
+              disabled={isPending}
+              className={cn(!isEdit && "bg-emerald-600 font-semibold text-white hover:bg-emerald-700")}
+            >
               {isPending && <Loader2 className="size-4 animate-spin" />}
-              {styleUpload
-                ? `${t("Photos")} ${styleUpload.done}/${styleUpload.total}…`
-                : isEdit
-                  ? t("Enregistrer")
-                  : t("Ajouter le modèle")}
+              {isEdit ? t("Enregistrer") : t("Publier")}
             </Button>
           </DialogFooter>
         </form>
 
       </DialogContent>
     </Dialog>
-  );
-}
-
-/**
- * Devis manuel ou automatique. En automatique, le tailleur fixe une fois son
- * prix, sa livraison et son délai : chaque demande de devis sur ce modèle reçoit
- * ce devis tout de suite (plus les suppléments des choix du client).
- */
-function QuoteModeField({
-  source,
-  field,
-}: {
-  source: GarmentModel | null;
-  /** Valeur reprise du brouillon, s'il y en a un. */
-  field: (name: string) => string | undefined;
-}) {
-  const t = useT();
-  const [mode, setMode] = useState<QuoteMode>(
-    (field("quote_mode") ?? source?.quote_mode) === "auto" ? "auto" : "manual",
-  );
-  const choices: { value: QuoteMode; title: string; hint: string; icon: typeof Hand }[] = [
-    {
-      value: "manual",
-      title: "Devis manuel",
-      hint: "Vous lisez chaque demande et vous fixez le prix et le délai.",
-      icon: Hand,
-    },
-    {
-      value: "auto",
-      title: "Devis automatique",
-      hint: "Prix fixe : le client reçoit tout de suite le prix, la livraison et le délai.",
-      icon: Zap,
-    },
-  ];
-
-  return (
-    <fieldset className="space-y-3 rounded-xl border p-3">
-      <legend className="px-1 text-sm font-medium">{t("Devis")}</legend>
-      <input type="hidden" name="quote_mode" value={mode} />
-      <div className="grid gap-2 sm:grid-cols-2">
-        {choices.map((c) => {
-          const Icon = c.icon;
-          const active = mode === c.value;
-          return (
-            <button
-              key={c.value}
-              type="button"
-              onClick={() => setMode(c.value)}
-              aria-pressed={active}
-              className={cn(
-                "flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition-colors",
-                active ? "border-primary ring-primary/30 ring-2" : "hover:bg-muted/50",
-              )}
-            >
-              <Icon className="mt-0.5 size-5 shrink-0" />
-              <span className="min-w-0">
-                <span className="block font-semibold">{t(c.title)}</span>
-                <span className="text-muted-foreground block text-xs">{t(c.hint)}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Toujours dans le formulaire : rebasculer en manuel garde les montants. */}
-      <div className={cn("grid gap-3 sm:grid-cols-3", mode !== "auto" && "hidden")}>
-        <div className="space-y-2">
-          <Label htmlFor="model-quote-price">{t("Prix fixe (FCFA)")}</Label>
-          <Input
-            id="model-quote-price"
-            name="quote_price"
-            type="number"
-            min={1}
-            step={1}
-            required={mode === "auto"}
-            defaultValue={field("quote_price") ?? source?.quote_price ?? source?.price ?? ""}
-            placeholder="35000"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="model-quote-delivery">{t("Livraison (FCFA)")}</Label>
-          <Input
-            id="model-quote-delivery"
-            name="quote_delivery_fee"
-            type="number"
-            min={0}
-            step={1}
-            defaultValue={field("quote_delivery_fee") ?? source?.quote_delivery_fee ?? 0}
-            placeholder="0"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="model-quote-days">{t("Prête en (jours)")}</Label>
-          <Input
-            id="model-quote-days"
-            name="quote_ready_days"
-            type="number"
-            min={1}
-            max={120}
-            step={1}
-            required={mode === "auto"}
-            defaultValue={field("quote_ready_days") ?? source?.quote_ready_days ?? source?.avg_days ?? 7}
-            placeholder="7"
-          />
-        </div>
-        <p className="text-muted-foreground text-xs sm:col-span-3">
-          {t("Les suppléments de vos choix de style s'ajoutent au prix fixe. Livraison à 0 = gratuite. Vous pouvez toujours modifier un devis tant que le client n'a pas payé.")}
-        </p>
-      </div>
-    </fieldset>
   );
 }
 
@@ -1018,49 +589,3 @@ function guessCatalogModel(
   return catalog.find((c) => garmentStyleKey(c) === key) ?? null;
 }
 
-/** Le catalogue rangé comme sur le site : Homme, Femme…, puis JALOFA EUROPE. */
-function catalogGroups(
-  catalog: GarmentModel[],
-  categories: ModelCategory[],
-): { label: string; items: GarmentModel[] }[] {
-  const groups = new Map<string, GarmentModel[]>();
-  for (const m of catalog) {
-    const label = m.europe_type
-      ? "JALOFA EUROPE"
-      : (categories.find((c) => c.slug === m.category_slug)?.name ?? "Autres");
-    groups.set(label, [...(groups.get(label) ?? []), m]);
-  }
-  return [...groups].map(([label, items]) => ({ label, items }));
-}
-
-/**
- * Les mètres de tissu ne se remplissent plus ici : ils viennent de « Mes
- * métrages », écrits une fois pour tous les modèles.
- */
-function BodyFitsNotice({ ready, group }: { ready: boolean; group: string }) {
-  const t = useT();
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-3 rounded-xl border p-3",
-        !ready && "border-amber-500/50 bg-amber-500/10",
-      )}
-    >
-      <Ruler className="text-muted-foreground size-5 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">{t("Mètres de tissu")}</p>
-        <p className="text-muted-foreground text-xs">
-          {ready
-            ? `${t("Repris de « Mes métrages »")} (${t(group)}).`
-            : `${t("Remplissez « Mes métrages »")} (${t(group)}) ${t("une seule fois : ils valent pour tous vos modèles.")}`}
-        </p>
-      </div>
-      <Link
-        href="/tailleur/espace/metrages"
-        className={buttonVariants({ variant: ready ? "ghost" : "default", size: "sm" })}
-      >
-        {ready ? t("Modifier") : t("Remplir")}
-      </Link>
-    </div>
-  );
-}

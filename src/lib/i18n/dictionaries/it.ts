@@ -2538,6 +2538,26 @@ export const it: Record<string, string> = {
     "Controlla prezzo e tempi, poi paga per avviare la confezione.",
   "Devis automatique envoyé": "Preventivo automatico inviato",
   "Mes métrages": "I miei metraggi",
+  "Mes recommandations": "I miei consigli",
+  "Les détails de vos modèles : délai, devis, style, et vos conseils de lavage.":
+    "I dettagli dei tuoi modelli: tempi, preventivo, stile e consigli di lavaggio.",
+  "Réglages de chaque modèle": "Impostazioni di ogni modello",
+  "Touchez un modèle : délai, devis, difficulté et style.":
+    "Tocca un modello: tempi, preventivo, difficoltà e stile.",
+  "Délai, devis, difficulté et style de ce modèle.":
+    "Tempi, preventivo, difficoltà e stile di questo modello.",
+  "Réglages enregistrés.": "Impostazioni salvate.",
+  "Lavage et entretien": "Lavaggio e cura",
+  "Écrites une fois, elles s'affichent sur tous vos modèles.":
+    "Scritti una volta, compaiono su tutti i tuoi modelli.",
+  "Comment laver vos habits, ce qu'il faut éviter… Écrites une fois, elles s'affichent sur tous vos modèles.":
+    "Come lavare i tuoi capi, cosa evitare… Scritti una volta, compaiono su tutti i tuoi modelli.",
+  "Touchez pour ajouter, ou écrivez les vôtres. Une recommandation par ligne.":
+    "Tocca per aggiungere, o scrivi i tuoi. Un consiglio per riga.",
+  "Recommandations enregistrées : elles s'affichent sur tous vos modèles.":
+    "Consigli salvati: compaiono su tutti i tuoi modelli.",
+  "Ajoutez d'abord un modèle : vos recommandations s'afficheront dessus.":
+    "Aggiungi prima un modello: i tuoi consigli compariranno lì.",
   "Les mètres de tissu qu'il vous faut. Écrits une fois, ils s'affichent sur tous vos modèles.":
     "I metri di tessuto che ti servono. Scritti una volta, valgono per tutti i tuoi modelli.",
   "Métrages enregistrés : ils s'affichent sur tous vos modèles.":

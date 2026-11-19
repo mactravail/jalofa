@@ -16,7 +16,6 @@ import { toast } from "sonner";
 
 import { ModelFormDialog } from "@/components/dashboard/model-form-dialog";
 import { isReadyToWear } from "@/lib/ready-to-wear";
-import { ModelSuggestionPicker } from "@/components/dashboard/model-suggestion-picker";
 import { NEW_MODEL_EVENT } from "@/components/tailor-bottom-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,11 +50,6 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   difficile: "Avancé",
 };
 
-/** Nom normalisé pour repérer une suggestion déjà reprise par le tailleur. */
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase();
-}
-
 export function TailorModelsPanel({
   models,
   suggestions,
@@ -75,7 +69,6 @@ export function TailorModelsPanel({
 }) {
   const needsSetup = !atelier;
 
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<GarmentModel | null>(null);
   const [suggestion, setSuggestion] = useState<GarmentModel | null>(null);
@@ -125,7 +118,7 @@ export function TailorModelsPanel({
     if (params.get("nouveau") === "1") {
       autoOpened.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPickerOpen(true);
+      setFormOpen(true);
     }
   }, []);
 
@@ -134,7 +127,7 @@ export function TailorModelsPanel({
     const onNew = () => {
       setEditing(null);
       setSuggestion(null);
-      setPickerOpen(true);
+      setFormOpen(true);
     };
     window.addEventListener(NEW_MODEL_EVENT, onNew);
     return () => window.removeEventListener(NEW_MODEL_EVENT, onNew);
@@ -143,34 +136,15 @@ export function TailorModelsPanel({
   const categoryName = (slug: string | null) =>
     categories.find((c) => c.slug === slug)?.name ?? null;
 
-  // Les suggestions déjà reprises (même nom) sortent de la liste : une fois
-  // ajoutées, elles vivent dans « Mes créations », plus dans les propositions.
-  const owned = new Set(models.map((m) => normalizeName(m.name)));
-  const availableSuggestions = suggestions.filter(
-    (s) => !owned.has(normalizeName(s.name)),
-  );
-
   function openForm() {
     setFormOpen(true);
   }
 
+  // « Ajouter un modèle » ouvre directement le formulaire vierge : la liste de
+  // suggestions du catalogue (Agbada, Costume…) embrouillait les tailleurs.
   function openNew() {
     setEditing(null);
     setSuggestion(null);
-    setPickerOpen(true);
-  }
-
-  function pickSuggestion(s: GarmentModel) {
-    setEditing(null);
-    setSuggestion(s);
-    setPickerOpen(false);
-    openForm();
-  }
-
-  function createFromScratch() {
-    setEditing(null);
-    setSuggestion(null);
-    setPickerOpen(false);
     openForm();
   }
 
@@ -345,15 +319,6 @@ export function TailorModelsPanel({
           ))}
         </div>
       )}
-
-      <ModelSuggestionPicker
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        suggestions={availableSuggestions}
-        categories={categories}
-        onPick={pickSuggestion}
-        onCreateNew={createFromScratch}
-      />
 
       <ModelFormDialog
         key={`${editing?.id ?? suggestion?.id ?? "new"}-${savedSeq}`}

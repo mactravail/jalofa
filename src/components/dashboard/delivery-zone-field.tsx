@@ -17,12 +17,15 @@ import { T } from "@/components/i18n/t";
 export function DeliveryZoneField({
   defaultValue,
   europe = false,
+  options,
 }: {
   defaultValue?: FreeDeliveryZone;
   europe?: boolean;
+  /** Liste imposée (formulaire de modèle) : remplace les choix par pays. */
+  options?: { value: FreeDeliveryZone; label: string }[];
 }) {
-  const zones = europe ? EUROPE_DELIVERY_ZONES : FREE_DELIVERY_ZONES;
-  const fallback = europe ? EUROPE_RECOMMENDED_ZONE : RECOMMENDED_DELIVERY_ZONE;
+  const zones = options ?? (europe ? EUROPE_DELIVERY_ZONES : FREE_DELIVERY_ZONES);
+  const fallback = options ? options[0].value : europe ? EUROPE_RECOMMENDED_ZONE : RECOMMENDED_DELIVERY_ZONE;
   // Un choix qui n'existe pas dans cette liste (pro qui a changé de pays) :
   // on repart du conseil.
   const checked =
@@ -48,7 +51,7 @@ export function DeliveryZoneField({
         ))}
       </div>
       <p className="text-muted-foreground text-xs">
-        <T>{europe ? EUROPE_DELIVERY_ADVICE : DELIVERY_ADVICE}</T>
+        <T>{europe && !options ? EUROPE_DELIVERY_ADVICE : DELIVERY_ADVICE}</T>
       </p>
     </fieldset>
   );

@@ -304,6 +304,27 @@ export async function getMyBodyFits(): Promise<TailorBodyFits> {
   return loadOneTailorBodyFits(supabase, user.id);
 }
 
+/**
+ * « Mes recommandations » du tailleur connecté : écrites sur tous ses modèles,
+ * on lit celles du plus récent qui en a.
+ */
+export async function getMyCareTips(): Promise<{ tips: string; modelCount: number }> {
+  if (!isSupabaseConfigured()) return { tips: "", modelCount: 0 };
+  const supabase = await createClient();
+  const user = await getAuthUser();
+  if (!user) return { tips: "", modelCount: 0 };
+  const { data } = await supabase
+    .from("models")
+    .select("care_tips")
+    .eq("tailor_id", user.id)
+    .order("created_at", { ascending: false });
+  const rows = (data ?? []) as { care_tips: string | null }[];
+  return {
+    tips: rows.find((r) => r.care_tips?.trim())?.care_tips ?? "",
+    modelCount: rows.length,
+  };
+}
+
 // --- Models ----------------------------------------------------------------
 
 // La galerie vit dans `model_photos` ; on l'aplatit en `photos` triée pour que
