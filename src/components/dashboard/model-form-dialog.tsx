@@ -372,6 +372,7 @@ export function ModelFormDialog({
           <ReadyToWearField
             defaultOn={saved ? field("ready_to_wear") === "on" : (source?.ready_to_wear ?? false)}
             defaultColors={fieldAll("ready_colors") ?? source?.ready_colors ?? []}
+            defaultSizes={fieldAll("ready_sizes") ?? source?.ready_sizes ?? []}
             defaultPrices={
               saved
                 ? parseJson<Record<string, number>>(field("ready_color_prices")) ?? {}

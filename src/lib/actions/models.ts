@@ -14,6 +14,7 @@ import {
   parseReadyColorImages,
   parseReadyColorPrices,
   parseReadyColors,
+  parseReadySizes,
 } from "@/lib/ready-to-wear";
 import {
   careTipLines,
@@ -183,8 +184,13 @@ export async function saveModel(
     readyColors,
     (url) => isOwnModelPhoto(url, user.id),
   );
+  // Les tailles en stock (XS, S, M…) : le client ne voit que celles-là.
+  const readySizes = readyToWear ? parseReadySizes(formData.getAll("ready_sizes")) : [];
   if (readyToWear && readyColors.length === 0) {
     return { ok: false, error: "Prêt-à-porter : choisissez au moins une couleur." };
+  }
+  if (readyToWear && readySizes.length === 0) {
+    return { ok: false, error: "Prêt-à-porter : choisissez au moins une taille." };
   }
   if (readyToWear && price(formData.get("price")) === null) {
     return { ok: false, error: "Prêt-à-porter : indiquez le prix du modèle, c'est le prix payé « tel quel »." };
@@ -345,6 +351,7 @@ export async function saveModel(
       ? {
           ready_to_wear: readyToWear,
           ready_colors: readyColors,
+          ready_sizes: readySizes,
           ready_color_prices: readyColorPrices,
           ready_color_images: readyColorImages,
         }
@@ -509,10 +516,10 @@ async function withoutMissingStyleBase<P extends Record<string, unknown>, R exte
 ): Promise<R> {
   let row: Record<string, unknown> = payload;
   let res = await run(payload);
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const err = res.error;
     if (!err || (err.code !== "42703" && err.code !== "PGRST204")) return res;
-    const missing = ["style_base", "catalog_model_id", "ready_color_images", ...QUOTE_COLUMNS].filter(
+    const missing = ["style_base", "catalog_model_id", "ready_color_images", "ready_sizes", ...QUOTE_COLUMNS].filter(
       (col) => col in row && err.message.includes(col),
     );
     if (missing.length === 0) return res;

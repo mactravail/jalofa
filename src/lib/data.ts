@@ -394,6 +394,7 @@ function toModel(row: ModelRow): GarmentModel {
     sizes: row.sizes ?? null,
     ready_to_wear: row.ready_to_wear === true,
     ready_colors: Array.isArray(row.ready_colors) ? row.ready_colors : [],
+    ready_sizes: Array.isArray(row.ready_sizes) ? row.ready_sizes : [],
     ready_color_prices:
       row.ready_color_prices && typeof row.ready_color_prices === "object" && !Array.isArray(row.ready_color_prices)
         ? (row.ready_color_prices as Record<string, number>)

@@ -3,6 +3,7 @@
 // quelles couleurs il l'a. Le catalogue JALOFA (sans tailleur) n'est jamais
 // vendu « tel quel » : il ne se commande que sur mesure.
 
+import { STANDARD_SIZES } from "@/lib/constants";
 import type { GarmentModel } from "@/lib/types";
 
 export const MAX_READY_COLORS = 12;
@@ -41,6 +42,18 @@ export function parseReadyColors(values: unknown[]): string[] {
     if (out.length >= MAX_READY_COLORS) break;
   }
   return out;
+}
+
+/** Tailles cochées par le tailleur : seulement les tailles standard, dans l'ordre XS → XXXL. */
+export function parseReadySizes(values: unknown[]): string[] {
+  const picked = new Set(values.map((v) => String(v ?? "").trim().toUpperCase()));
+  return STANDARD_SIZES.filter((s) => picked.has(s));
+}
+
+/** Tailles proposées au client : celles du tailleur ; aucune cochée (ancien modèle) = toutes. */
+export function readySizesFor(model: Pick<GarmentModel, "ready_sizes"> | null | undefined): string[] {
+  const sizes = model?.ready_sizes ?? [];
+  return sizes.length > 0 ? sizes : [...STANDARD_SIZES];
 }
 
 /** Ce modèle se vend-il « tel quel » ? Seulement s'il a un auteur, « Oui » et au moins une couleur. */

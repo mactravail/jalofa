@@ -9,6 +9,7 @@ import { uploadModelStylePhoto } from "@/lib/actions/models";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import { useT } from "@/components/i18n/locale-provider";
 import { MAX_READY_COLORS, READY_COLOR_SWATCHES, readyColorHex } from "@/lib/ready-to-wear";
+import { STANDARD_SIZES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,7 +18,8 @@ import { cn } from "@/lib/utils";
  * le client ne voit que « Sur mesure ».
  *
  * Champs envoyés : `ready_form` (repère), `ready_to_wear` (« on »), et un
- * `ready_colors` par couleur cochée, `ready_color_prices` (JSON) : le prix
+ * `ready_colors` par couleur cochée, un `ready_sizes` par taille cochée,
+ * `ready_color_prices` (JSON) : le prix
  * propre à une couleur, quand elle coûte plus ou moins que le modèle, et
  * `ready_color_images` (JSON) : la photo du modèle dans cette couleur, envoyée
  * dès qu'elle est choisie (une à une, sous la limite d'une Server Action).
@@ -25,17 +27,28 @@ import { cn } from "@/lib/utils";
 export function ReadyToWearField({
   defaultOn,
   defaultColors,
+  defaultSizes = [],
   defaultPrices = {},
   defaultImages = {},
 }: {
   defaultOn: boolean;
   defaultColors: string[];
+  defaultSizes?: string[];
   defaultPrices?: Record<string, number>;
   defaultImages?: Record<string, string>;
 }) {
   const t = useT();
   const [on, setOn] = useState(defaultOn);
   const [colors, setColors] = useState<string[]>(defaultColors);
+  // Un ancien modèle prêt-à-porter sans tailles enregistrées était vendu dans
+  // toutes les tailles : on les montre cochées, le tailleur décoche.
+  const [sizes, setSizes] = useState<string[]>(
+    defaultSizes.length > 0 ? defaultSizes : defaultOn ? [...STANDARD_SIZES] : [],
+  );
+  const toggleSize = (s: string) =>
+    setSizes((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : STANDARD_SIZES.filter((x) => x === s || prev.includes(x)),
+    );
   const [custom, setCustom] = useState("");
   // Prix par couleur, en texte tant qu'on tape ; vide = prix du modèle.
   const [prices, setPrices] = useState<Record<string, string>>(() =>
@@ -104,6 +117,7 @@ export function ReadyToWearField({
       <input type="hidden" name="ready_form" value="1" />
       {on && <input type="hidden" name="ready_to_wear" value="on" />}
       {on && colors.map((c) => <input key={c} type="hidden" name="ready_colors" value={c} />)}
+      {on && sizes.map((s) => <input key={s} type="hidden" name="ready_sizes" value={s} />)}
       {on && <input type="hidden" name="ready_color_prices" value={pricesJson} />}
       {on && <input type="hidden" name="ready_color_images" value={imagesJson} />}
 
@@ -286,6 +300,33 @@ export function ReadyToWearField({
               </ul>
             </div>
           )}
+          <div className="space-y-2 pt-2">
+            <p className="text-sm font-medium">{t("Quelles tailles avez-vous ?")}</p>
+            <div className="flex flex-wrap gap-2">
+              {STANDARD_SIZES.map((s) => {
+                const active = sizes.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggleSize(s)}
+                    className={cn(
+                      "h-11 min-w-12 rounded-lg border-2 px-2 text-sm font-semibold transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border hover:border-primary/50",
+                    )}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+            {sizes.length === 0 && (
+              <p className="text-destructive text-xs">{t("Choisissez au moins une taille.")}</p>
+            )}
+          </div>
           <p className="text-muted-foreground text-xs">
             {t("Sans prix par couleur, le prix payé « tel quel » est le prix « à partir de » de ce modèle.")}
           </p>

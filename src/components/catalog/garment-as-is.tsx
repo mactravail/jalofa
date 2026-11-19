@@ -97,10 +97,13 @@ export function SizePicker({
   value,
   onChange,
   note,
+  sizes = STANDARD_SIZES,
 }: {
   value: string | null;
   onChange: (size: string) => void;
   note?: string;
+  /** Prêt-à-porter : seulement les tailles que le tailleur a en stock. */
+  sizes?: readonly string[];
 }) {
   const t = useT();
   // Client connecté avec une taille standard enregistrée : on la propose d'un
@@ -117,7 +120,7 @@ export function SizePicker({
         {note ??
           t("Même tissu et mêmes finitions que le modèle présenté — le tailleur l'ajuste à votre taille.")}
       </p>
-      {savedSize && value !== savedSize && (
+      {savedSize && value !== savedSize && sizes.includes(savedSize) && (
         <button
           type="button"
           onClick={() => onChange(savedSize)}
@@ -130,7 +133,7 @@ export function SizePicker({
         </button>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        {STANDARD_SIZES.map((s) => (
+        {sizes.map((s) => (
           <button
             key={s}
             type="button"

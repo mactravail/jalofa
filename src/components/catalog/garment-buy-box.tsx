@@ -18,6 +18,7 @@ import {
   readyImageFor,
   readyPriceFor,
   readyPriceRange,
+  readySizesFor,
 } from "@/lib/ready-to-wear";
 import type { Fabric, GarmentModel, Tailor } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,7 @@ export function GarmentBuyBox({
     [offer],
   );
   const readyColors = readyPreset ? (offer?.model.ready_colors ?? []) : [];
+  const readySizes = readySizesFor(offer?.model);
   const canAsIs = Boolean(readyPreset);
   const [color, setColor] = useState<string | null>(
     readyColors.length === 1 ? readyColors[0] : null,
@@ -96,7 +98,8 @@ export function GarmentBuyBox({
   const [mode, setMode] = useState<Mode>(
     initialMode === "custom" || carriedFabricId || !canAsIs ? "custom" : "as_is",
   );
-  const [size, setSize] = useState<string | null>(null);
+  // Une seule taille en stock : déjà choisie.
+  const [size, setSize] = useState<string | null>(readySizes.length === 1 ? readySizes[0] : null);
   // « J'envoie mon tissu » : le client apporte son tissu (commande `own_fabric`),
   // il ne paie que la couture et l'envoie à l'atelier une fois le devis payé.
   const [ownFabric, setOwnFabric] = useState(false);
@@ -300,6 +303,7 @@ export function GarmentBuyBox({
             <SizePicker
               value={size}
               onChange={setSize}
+              sizes={readySizes}
               note={t("Déjà cousu par {name}, prêt à partir à votre taille.", {
                 name: offer?.tailor.shop_name ?? t("l'atelier"),
               })}

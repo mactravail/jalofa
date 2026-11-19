@@ -391,6 +391,8 @@ export interface GarmentModel {
   ready_to_wear?: boolean;
   /** Les couleurs dans lesquelles le prêt-à-porter existe (« Blanc », « Bleu »…). */
   ready_colors?: string[];
+  /** Les tailles en stock (« S », « M »…) ; vide = toutes les tailles standard. */
+  ready_sizes?: string[];
   /** Prix « tel quel » propre à une couleur (FCFA) ; absente = `price` du modèle. */
   ready_color_prices?: Record<string, number>;
   /** Photo « tel quel » propre à une couleur ; absente = photos du modèle. */
