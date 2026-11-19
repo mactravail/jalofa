@@ -698,7 +698,7 @@ export function FabricFormDialog({
             <span>
               {t("Mettre en ligne dans la boutique")}
               <span className="text-muted-foreground block text-xs">
-                {t("Le tissu apparaît aussitôt dans le catalogue et peut être commandé. Décochez pour le garder en brouillon.")}
+                {t("Décochez pour le garder en brouillon.")}
               </span>
             </span>
           </label>

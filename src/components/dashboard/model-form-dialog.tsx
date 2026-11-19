@@ -8,7 +8,7 @@ import { AtelierFields } from "@/components/dashboard/atelier-form";
 import { ReadyToWearField } from "@/components/dashboard/ready-to-wear-field";
 import { saveModel } from "@/lib/actions/models";
 import { formatPrice, modelPhotos } from "@/lib/constants";
-import { eurToXof, xofToEur } from "@/lib/europe";
+import { xofToEur } from "@/lib/europe";
 import { MAX_UPLOAD_BYTES, resizeImage } from "@/lib/image";
 import {
   tailorBodyFitProblem,
@@ -65,7 +65,7 @@ type ModelDraftExtra = {
   category: string;
   catalogId: string;
   catalogTouched: boolean;
-  priceEur: string;
+  priceXof: string;
 };
 
 function initialPhotos(model: GarmentModel | null): Photo[] {
@@ -142,8 +142,8 @@ export function ModelFormDialog({
   const [catalogTouched] = useState(
     kept?.catalogTouched ?? Boolean(model?.catalog_model_id),
   );
-  const [priceEur, setPriceEur] = useState<string>(
-    kept?.priceEur ?? (source?.price != null ? String(xofToEur(source.price)) : ""),
+  const [priceXof, setPriceXof] = useState<string>(
+    kept?.priceXof ?? (source?.price != null ? String(source.price) : ""),
   );
   // Les photos choisies sur le téléphone ne se gardent pas : seules les photos
   // déjà en ligne restent dans le brouillon.
@@ -152,7 +152,7 @@ export function ModelFormDialog({
     category,
     catalogId,
     catalogTouched,
-    priceEur,
+    priceXof,
   });
   function startOver() {
     clear();
@@ -218,11 +218,6 @@ export function ModelFormDialog({
     // Le vêtement du catalogue n'est plus demandé : on le devine d'après le nom.
     // Rien de deviné → on n'envoie rien, la publication n'est pas bloquée.
     if (catalogId) formData.set("catalog_model_id", catalogId);
-    // JALOFA EUROPE : le prix est saisi en euros, enregistré et payé en FCFA.
-    if (europe) {
-      const eur = Number(priceEur);
-      formData.set("price", priceEur.trim() && Number.isFinite(eur) ? String(eurToXof(eur)) : "");
-    }
     const items = photos;
 
     // Avant d'envoyer quoi que ce soit : une photo de style manque-t-elle ?
@@ -458,22 +453,23 @@ export function ModelFormDialog({
 
           {europe ? (
             <div className="space-y-2">
-              <Label htmlFor="model-price-eur">{t("Prix « à partir de » (€)")}</Label>
+              <Label htmlFor="model-price">{t("Prix « à partir de » (FCFA)")}</Label>
               <Input
-                id="model-price-eur"
+                id="model-price"
+                name="price"
                 type="number"
                 min={0}
                 step={1}
-                value={priceEur}
-                onChange={(e) => setPriceEur(e.target.value)}
-                placeholder="450"
+                value={priceXof}
+                onChange={(e) => setPriceXof(e.target.value)}
+                placeholder="295000"
               />
               <p className="text-muted-foreground text-xs">
-                {priceEur.trim() && Number.isFinite(Number(priceEur))
-                  ? t("Soit {price} : les clients voient les deux prix et paient en FCFA.", {
-                      price: formatPrice(eurToXof(Number(priceEur))),
+                {priceXof.trim() && Number.isFinite(Number(priceXof))
+                  ? t("Soit environ {price} € : les clients voient les deux prix et paient en FCFA.", {
+                      price: xofToEur(Number(priceXof)),
                     })
-                  : t("Les clients voient le prix en euros et en FCFA, et paient en FCFA.")}
+                  : t("Les clients voient le prix en FCFA et en euros, et paient en FCFA.")}
               </p>
             </div>
           ) : (
@@ -524,7 +520,7 @@ export function ModelFormDialog({
             <span>
               {t("Publier dans le catalogue")}
               <span className="text-muted-foreground block text-xs">
-                {t("Le modèle apparaît dans /modeles et vous êtes automatiquement le tailleur des commandes passées dessus. Décochez pour le garder en brouillon.")}
+                {t("Décochez pour le garder en brouillon.")}
               </span>
             </span>
           </label>
