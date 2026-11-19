@@ -59,6 +59,20 @@ const SPEC_COLUMNS = [
   "color_variants",
 ] as const;
 
+/** Ce que le vendeur règle dans « Mes recommandations ». */
+const RECOMMENDATION_COLUMNS = [
+  "width_cm",
+  "min_order_qty",
+  "weight",
+  "grammage_gsm",
+  "opacity",
+  "drape",
+  "stretch",
+  "care_instructions",
+  "recommended_usages",
+  "description",
+] as const;
+
 /** Repli intermédiaire : seule la migration 20260902000001 manque. */
 function withoutVariants<T extends Record<string, unknown>>(payload: T): Partial<T> {
   const copy: Record<string, unknown> = { ...payload };
@@ -185,13 +199,18 @@ export async function saveFabric(
   const salesUnit = parseSalesUnit(formData.get("sales_unit"));
   const unitPrice = toNumber(formData.get("price_per_unit") ?? formData.get("price_per_meter"));
   if (unitPrice <= 0) return { ok: false, error: "Indiquez le prix." };
-  const widthCm = optionalInt(formData.get("width_cm"));
-  if (widthCm === null || widthCm < 30 || widthCm > 400) {
-    return { ok: false, error: "La laize doit être entre 30 et 400 cm." };
+  // Vendeur : laize, minimum, toucher et entretien se règlent dans « Mes
+  // recommandations » — le formulaire ne les envoie pas, on n'y touche pas.
+  const specsElsewhere = formData.get("specs_elsewhere") === "1";
+  const widthCm = specsElsewhere ? null : optionalInt(formData.get("width_cm"));
+  const minQty = specsElsewhere ? 1 : toNumber(formData.get("min_order_qty"));
+  if (!specsElsewhere) {
+    if (widthCm === null || widthCm < 30 || widthCm > 400) {
+      return { ok: false, error: "La laize doit être entre 30 et 400 cm." };
+    }
+    if (minQty <= 0) return { ok: false, error: "Indiquez la quantité minimum." };
+    if (minQty > 30) return { ok: false, error: "La quantité minimum ne peut pas dépasser 30." };
   }
-  const minQty = toNumber(formData.get("min_order_qty"));
-  if (minQty <= 0) return { ok: false, error: "Indiquez la quantité minimum." };
-  if (minQty > 30) return { ok: false, error: "La quantité minimum ne peut pas dépasser 30." };
 
   // Tous les champs de la fiche sont obligatoires : l'acheteur doit tout savoir.
   if (text(formData.get("stock_quantity")) === null) {
@@ -253,7 +272,7 @@ export async function saveFabric(
     for (const url of colorUploads) await removeImage(supabase, BUCKET, url);
   };
 
-  const payload = {
+  const fullPayload = {
     name,
     category_slug: text(formData.get("category_slug")),
     color: text(formData.get("color")),
@@ -287,6 +306,12 @@ export async function saveFabric(
     detail_image_url: detailUrl,
     color_variants: colorVariants,
   };
+  // Modification depuis le formulaire allégé : garder ce qui a été réglé dans
+  // « Mes recommandations ».
+  const payload: Partial<typeof fullPayload> & typeof fullPayload = { ...fullPayload };
+  if (specsElsewhere && id) {
+    for (const col of RECOMMENDATION_COLUMNS) delete (payload as Record<string, unknown>)[col];
+  }
 
   let savedId = id;
   if (id) {
@@ -546,6 +571,41 @@ async function addFabricColorsImpl(id: string, colors: string[], photos?: FormDa
   revalidateFabric(id);
 }
 
+/**
+ * « Mes recommandations » du vendeur : laize, minimum, toucher & tombé,
+ * entretien & usages d'un tissu.
+ */
+async function saveFabricRecommendationsImpl(id: string, formData: FormData): Promise<void> {
+  const widthCm = optionalInt(formData.get("width_cm"));
+  if (widthCm !== null && (widthCm < 30 || widthCm > 400)) {
+    throw new Error("La laize doit être entre 30 et 400 cm.");
+  }
+  const rawMin = text(formData.get("min_order_qty"));
+  const minQty = rawMin === null ? 1 : toNumber(rawMin);
+  if (minQty <= 0) throw new Error("Indiquez la quantité minimum.");
+  if (minQty > 30) throw new Error("La quantité minimum ne peut pas dépasser 30.");
+
+  const { supabase, userId } = await ownedFabric(id);
+  const { error } = await supabase
+    .from("fabrics")
+    .update({
+      width_cm: widthCm,
+      min_order_qty: minQty,
+      weight: pickKey(WEIGHTS, formData.get("weight")),
+      grammage_gsm: optionalInt(formData.get("grammage_gsm")),
+      opacity: pickKey(OPACITIES, formData.get("opacity")),
+      drape: pickKey(DRAPES, formData.get("drape")),
+      stretch: pickKey(STRETCHES, formData.get("stretch")),
+      care_instructions: checked(formData, "care_instructions", CARE_INSTRUCTIONS),
+      recommended_usages: checked(formData, "recommended_usages", USAGES),
+      description: text(formData.get("description")),
+    })
+    .eq("id", id)
+    .eq("vendor_id", userId);
+  if (error) throw new Error(error.message);
+  revalidateFabric(id);
+}
+
 // Wrappers exportés : le message d'erreur doit revenir en valeur, pas en exception
 // (masquée en production) — cf. `src/lib/action-result.ts`.
 export async function deleteFabric(id: string): Promise<ActionResult> {
@@ -570,4 +630,11 @@ export async function addFabricColors(
   photos?: FormData,
 ): Promise<ActionResult> {
   return runAction(() => addFabricColorsImpl(id, colors, photos));
+}
+
+export async function saveFabricRecommendations(
+  id: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  return runAction(() => saveFabricRecommendationsImpl(id, formData));
 }

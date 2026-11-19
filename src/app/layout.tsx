@@ -7,7 +7,13 @@ import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_NAME, APP_TAGLINE, THEME_COLOR } from "@/lib/constants";
-import { getDictionary, getLocale, languageAlternates, translate } from "@/lib/i18n/server";
+import {
+  canonicalPath,
+  getDictionary,
+  getLocale,
+  languageAlternates,
+  translate,
+} from "@/lib/i18n/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -64,7 +70,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return {
   metadataBase: new URL(SITE_URL),
-  alternates: { languages: await languageAlternates() },
+  alternates: { canonical: await canonicalPath(), languages: await languageAlternates() },
   openGraph: { siteName: APP_NAME, type: "website", locale: "fr_SN" },
   title: {
     default: `${APP_NAME} — ${translate(locale, APP_TAGLINE)}`,

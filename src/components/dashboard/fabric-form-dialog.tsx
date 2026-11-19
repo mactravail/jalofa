@@ -77,6 +77,7 @@ export function FabricFormDialog({
   onSaved,
   onReset,
   europe = false,
+  compact = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -88,6 +89,11 @@ export function FabricFormDialog({
   onReset?: () => void;
   /** Boutique en Europe (JALOFA EUROPE) : prix saisi en €, livraison « Europe ». */
   europe?: boolean;
+  /**
+   * Vendeur : laize, minimum, « Toucher & tombé » et « Entretien & usages »
+   * se règlent dans « Mes recommandations », pas dans ce formulaire.
+   */
+  compact?: boolean;
 }) {
   const draftKey = `fabric:${fabric?.id ?? "new"}`;
   const saved = useSavedDraft<FabricDraftExtra>(draftKey);
@@ -298,6 +304,7 @@ export function FabricFormDialog({
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" key={k}>
           {fabric && <input type="hidden" name="id" value={fabric.id} />}
+          {compact && <input type="hidden" name="specs_elsewhere" value="1" />}
           {/* Falls back to the current swatches when the vendor doesn't re-pick them. */}
           <input type="hidden" name="image_url" value={fabric?.image_url ?? ""} />
           <input type="hidden" name="detail_image_url" value={fabric?.detail_image_url ?? ""} />
@@ -378,7 +385,9 @@ export function FabricFormDialog({
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className={cn("grid gap-3", compact ? "grid-cols-1" : "grid-cols-3")}>
+              {!compact && (
+              <>
               <div className="space-y-2">
                 <Label htmlFor="fabric-width">{t("Laize (cm)")}</Label>
                 <Input
@@ -406,6 +415,8 @@ export function FabricFormDialog({
                   defaultValue={field("min_order_qty") ?? fabric?.min_order_qty ?? 1}
                 />
               </div>
+              </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="fabric-stock">{t("Stock")}</Label>
                 <Input
@@ -421,8 +432,14 @@ export function FabricFormDialog({
               </div>
             </div>
             <p className="text-muted-foreground text-xs">
-              {t("Laize = largeur du tissu. Standard Wax : 115 cm, Lin/Coton/Bazin : 140-150 cm.")}{" "}
-              {t("Minimum et stock en {unit}.", { unit: t(SALES_UNITS[unit].many) })}
+              {compact ? (
+                t("Stock en {unit}.", { unit: t(SALES_UNITS[unit].many) })
+              ) : (
+                <>
+                  {t("Laize = largeur du tissu. Standard Wax : 115 cm, Lin/Coton/Bazin : 140-150 cm.")}{" "}
+                  {t("Minimum et stock en {unit}.", { unit: t(SALES_UNITS[unit].many) })}
+                </>
+              )}
             </p>
           </Section>
 
@@ -487,6 +504,7 @@ export function FabricFormDialog({
           </Section>
 
           {/* 3. Propriétés physiques */}
+          {!compact && (
           <Section n={3} title={t("Toucher & tombé")} hint={t("facultatif")}>
             <ChipField
               label={t("Épaisseur")}
@@ -536,9 +554,10 @@ export function FabricFormDialog({
               options={Object.entries(STRETCHES).map(([value, s]) => ({ value, label: t(s.label) }))}
             />
           </Section>
+          )}
 
           {/* 4. Visuel & couleurs */}
-          <Section n={4} title={t("Photos & couleurs")}>
+          <Section n={compact ? 3 : 4} title={t("Photos & couleurs")}>
             <div className="grid gap-3 sm:grid-cols-2">
               <PhotoField
                 id="fabric-image"
@@ -650,6 +669,7 @@ export function FabricFormDialog({
           </Section>
 
           {/* 5. Entretien & usages */}
+          {!compact && (
           <Section n={5} title={t("Entretien & usages")} hint={t("facultatif")}>
             <ChipField
               multiple
@@ -682,6 +702,7 @@ export function FabricFormDialog({
               />
             </div>
           </Section>
+          )}
 
           <DeliveryZoneField
             defaultValue={(field("delivery_zone") as FreeDeliveryZone | undefined) ?? fabric?.delivery_zone}
@@ -731,7 +752,7 @@ function initialColorPrices(fabric: Fabric | null, europe: boolean): Record<stri
   );
 }
 
-function Section({
+export function Section({
   n,
   title,
   hint,
@@ -793,7 +814,7 @@ function Chips({
  * Un choix à gros boutons — un seul (radio, re-touchable pour décocher) ou
  * plusieurs (cases). La valeur part dans le formulaire par les inputs natifs.
  */
-function ChipField({
+export function ChipField({
   label,
   name,
   options,

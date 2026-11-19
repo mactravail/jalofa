@@ -15,6 +15,8 @@ export const LOCALE_COOKIE = "jalofa_lang";
 export const LOCALE_HEADER = "x-jalofa-locale";
 /** Chemin de la page sans préfixe de langue (pour les balises hreflang). */
 export const PATH_HEADER = "x-jalofa-path";
+/** Query string de la requête (pour l'URL canonique). */
+export const SEARCH_HEADER = "x-jalofa-search";
 
 /** Langues préfixées dans l'URL (toutes sauf la langue de base). */
 const PREFIXED: readonly Locale[] = LOCALES.filter((l) => l !== DEFAULT_LOCALE);

@@ -223,6 +223,13 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 icon: Layers,
               },
               {
+                // Laize, minimum, toucher et entretien de chaque tissu.
+                id: "careTips" as const,
+                href: `${root}/recommandations`,
+                label: "Mes recommandations",
+                icon: Sparkles,
+              },
+              {
                 id: "sales" as const,
                 href: `${root}/ventes`,
                 label: "Ventes de tissus",

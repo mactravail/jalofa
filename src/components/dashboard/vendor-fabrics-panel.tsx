@@ -328,6 +328,7 @@ export function VendorFabricsPanel({
         fabric={editing}
         categories={categories}
         europe={europe}
+        compact={role === "vendor"}
       />
 
       <RestockDialog fabric={restockTarget} onClose={() => setRestockTarget(null)} />

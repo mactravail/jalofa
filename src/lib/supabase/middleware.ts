@@ -7,6 +7,7 @@ import {
   LOCALE_HEADER,
   localizeHref,
   PATH_HEADER,
+  SEARCH_HEADER,
   type Locale,
 } from "@/lib/i18n/config";
 
@@ -27,6 +28,7 @@ export async function updateSession(
     const headers = new Headers(request.headers);
     headers.set(LOCALE_HEADER, isLocale(locale) ? locale : DEFAULT_LOCALE);
     headers.set(PATH_HEADER, rewritePath ?? request.nextUrl.pathname);
+    headers.set(SEARCH_HEADER, request.nextUrl.search);
     if (rewritePath === undefined) return NextResponse.next({ request: { headers } });
     const url = request.nextUrl.clone();
     url.pathname = rewritePath;

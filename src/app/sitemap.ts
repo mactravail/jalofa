@@ -9,8 +9,9 @@ const STATIC_PAGES: { path: string; priority: number }[] = [
   { path: "", priority: 1 },
   { path: "/afrique", priority: 0.9 },
   { path: "/europe", priority: 0.9 },
-  { path: "/homme", priority: 0.9 },
-  { path: "/femme", priority: 0.9 },
+  // /homme et /femme n'existent pas (404) : les collections vivent sur /modeles.
+  { path: "/modeles?category=homme", priority: 0.9 },
+  { path: "/modeles?category=femme", priority: 0.9 },
   { path: "/modeles", priority: 0.9 },
   { path: "/tissus", priority: 0.8 },
   { path: "/tailleurs", priority: 0.8 },
@@ -40,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const entries: MetadataRoute.Sitemap = STATIC_PAGES.map(({ path, priority }) => ({
-    url: `${SITE_URL}${path}`,
+    url: `${SITE_URL}${path}`.replace(/&/g, "&amp;"),
     lastModified: now,
     changeFrequency: "weekly",
     priority,

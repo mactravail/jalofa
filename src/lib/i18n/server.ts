@@ -10,6 +10,7 @@ import {
   LOCALES,
   localizeHref,
   PATH_HEADER,
+  SEARCH_HEADER,
   type Locale,
 } from "@/lib/i18n/config";
 import { it } from "@/lib/i18n/dictionaries/it";
@@ -55,7 +56,37 @@ export async function localizedPath(href: string): Promise<string> {
 
 /** Les versions de la page courante dans chaque langue (balises hreflang). */
 export async function languageAlternates(): Promise<Record<string, string>> {
-  const path = (await headers()).get(PATH_HEADER) ?? "/";
+  const path = await significantPath();
   const entries = LOCALES.map((l) => [l, localizeHref(path, l)] as const);
   return { ...Object.fromEntries(entries), "x-default": path };
+}
+
+/**
+ * Paramètres d'URL qui changent VRAIMENT le contenu de la page (le vêtement d'une
+ * page dédiée, la collection Homme/Femme). Tous les autres (filtres, tri,
+ * contexte de commande…) donnent la même page : Google doit les ignorer.
+ */
+const CANONICAL_PARAMS = ["type", "category"];
+
+/**
+ * URL canonique de la page courante : chemin dans la langue courante + seulement
+ * les paramètres significatifs. Sans elle, Google voit chaque variante
+ * `?fabric=…`, `?sort=…` comme un doublon (« Pagina duplicata senza URL canonico »).
+ */
+export async function canonicalPath(): Promise<string> {
+  return localizeHref(await significantPath(), await getLocale());
+}
+
+/** Chemin sans préfixe de langue + paramètres significatifs uniquement. */
+async function significantPath(): Promise<string> {
+  const h = await headers();
+  const path = h.get(PATH_HEADER) ?? "/";
+  const search = new URLSearchParams(h.get(SEARCH_HEADER) ?? "");
+  const kept = new URLSearchParams();
+  for (const key of CANONICAL_PARAMS) {
+    const value = search.get(key);
+    if (value) kept.set(key, value);
+  }
+  const query = kept.toString();
+  return query ? `${path}?${query}` : path;
 }

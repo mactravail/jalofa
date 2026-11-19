@@ -3088,5 +3088,19 @@ export const it: Record<string, string> = {
   "Pages": "Pagine",
   "Page précédente": "Pagina precedente",
   "Page suivante": "Pagina successiva",
+  // Vendeur — « Mes recommandations »
+  "Ajoutez d'abord un tissu : vos recommandations s'afficheront dessus.":
+    "Aggiungi prima un tessuto: i tuoi consigli appariranno lì.",
+  "Touchez un tissu : laize, minimum, toucher et entretien.":
+    "Tocca un tessuto: altezza, minimo, mano e cura.",
+  "Laize {w} cm": "Altezza {w} cm",
+  "À compléter": "Da completare",
+  "Recommandations enregistrées.": "Consigli salvati.",
+  "Tout est facultatif.": "Tutto è facoltativo.",
+  "Laize & minimum": "Altezza e minimo",
+  "Minimum en {unit}.": "Minimo in {unit}.",
+  "Stock en {unit}.": "Scorta in {unit}.",
+  "Les détails de vos tissus : laize, minimum, toucher et entretien.":
+    "I dettagli dei tuoi tessuti: altezza, minimo, mano e cura.",
   // @@END
 };
