@@ -127,7 +127,8 @@ function BannerCaption({
  */
 async function VideoHero() {
   const t = await getT();
-  const title = t("Créer ma tenue");
+  const title = t("Il mérite plus de clients");
+  const subtitle = t("Faites rayonner votre talent au-delà des frontières");
   const cta = t("Créer un compte pro");
   return (
     <section className="relative h-[calc(100svh-2.25rem-var(--spacing-bottom-nav))] min-h-[28rem] w-full overflow-hidden bg-neutral-900 md:h-[calc(100svh-2.25rem)]">
@@ -142,7 +143,7 @@ async function VideoHero() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
       <BannerCaption
         as="h1"
-        eyebrow={t("Sur mesure · Sénégal")}
+        eyebrow={subtitle}
         title={title}
         href="/inscription?role=pro"
         cta={cta}

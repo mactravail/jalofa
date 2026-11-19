@@ -402,14 +402,16 @@ export function FabricBuyPanel({
         <SalesPendingNotice className="mt-6" />
       ) : available ? (
         <div className="mt-6 grid gap-2.5">
-          <Button type="button" size="lg" className="h-12 w-full text-base" onClick={addToCart}>
+          <Button type="button" size="lg" className="h-12 w-full bg-orange-500 text-base text-white hover:bg-orange-600"
+            onClick={addToCart}
+          >
             <Package className="size-4" /> {t("Ajouter au panier")}
           </Button>
           <Link
             href={`/modeles?fabric=${fabric.id}`}
             className={cn(
-              buttonVariants({ size: "lg", variant: "outline" }),
-              "h-12 w-full text-base",
+              buttonVariants({ size: "lg" }),
+              "h-12 w-full bg-emerald-600 text-base text-white hover:bg-emerald-700",
             )}
           >
             <Scissors className="size-4" /> {t("Faire coudre une tenue")}

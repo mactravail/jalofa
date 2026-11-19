@@ -59,6 +59,8 @@ export const it: Record<string, string> = {
   "Tous droits réservés.": "Tutti i diritti riservati.",
   "Découvrir": "Scopri",
   "Créer ma tenue": "Crea il mio abito",
+  "Il mérite plus de clients": "Merita più clienti",
+  "Faites rayonner votre talent au-delà des frontières":"Fai brillare il tuo talento oltre i confini",
   "Deux mannequins en tenue, pendant une séance photo en studio": "Due modelli in abito, durante un servizio fotografico in studio",
   "Sur mesure · Sénégal": "Su misura · Senegal",
   "Sur mesure": "Su misura",
