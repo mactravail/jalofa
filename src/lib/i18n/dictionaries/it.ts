@@ -52,6 +52,7 @@ export const it: Record<string, string> = {
   "Fabriqué en Afrique.": "Fatto in Africa.",
   "Explorer": "Esplora",
   "Contact": "Contatti",
+  "Suivez-nous sur TikTok": "Seguici su TikTok",
   "Devenir tailleur": "Diventa sarto",
   "Vendre des tissus": "Vendi tessuti",
   "Paiement": "Pagamento",
