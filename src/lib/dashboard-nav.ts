@@ -8,6 +8,7 @@ import {
   CreditCard,
   Crown,
   Eye,
+  HandHeart,
   Layers,
   LayoutDashboard,
   Link2,
@@ -27,9 +28,14 @@ import type { OrderBucket } from "@/lib/pipeline";
 
 /**
  * Le menu de l'espace pro — volontairement distinct de `NAV_LINKS` (le menu du
- * site public) : une fois connecté, un tailleur ou un vendeur travaille, il ne
- * fait pas ses courses. Chaque entrée est une page à part entière : le tableau
- * de bord ne défile plus.
+ * site public) : une fois connecté, un tailleur travaille, il ne fait pas ses
+ * courses. Chaque entrée est une page à part entière : le tableau de bord ne
+ * défile plus.
+ *
+ * Depuis le 2026-11-20 la plateforme est 100 % tailleurs : JALOFA est le seul
+ * vendeur de tissus. Le rôle « vendor » ne désigne plus que la boutique JALOFA,
+ * dont les pages vivent dans l'administration (`/admin/boutique`) et réutilisent
+ * les composants du pipeline avec `role="vendor"`.
  */
 
 export type ProRole = "tailor" | "vendor";
@@ -53,6 +59,7 @@ export type DashboardNavId =
   | "offer"
   | "clients"
   | "models"
+  | "skills"
   | "metrage"
   | "careTips"
   | "fabrics"
@@ -73,18 +80,18 @@ export type DashboardNavGroup = {
 
 export const DASHBOARD_ROOT: Record<ProRole, string> = {
   tailor: "/tailleur/espace",
-  vendor: "/vendeur/espace",
+  vendor: "/admin/boutique",
 };
 
 export const DASHBOARD_TITLE: Record<ProRole, string> = {
   tailor: "Espace tailleur",
-  vendor: "Espace vendeur",
+  vendor: "Boutique JALOFA",
 };
 
 /** Libellé court pour le sélecteur d'espace des pros aux deux métiers (Gratuit/Premium). */
 export const DASHBOARD_TITLE_SHORT: Record<ProRole, string> = {
   tailor: "Tailleur",
-  vendor: "Vendeur",
+  vendor: "Boutique",
 };
 
 /**
@@ -181,8 +188,8 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
       ],
     },
     {
-      // Le tailleur vend ses modèles et les tissus qu'il a en atelier ; le
-      // vendeur vend ses tissus.
+      // Le tailleur vend ses modèles — jamais de tissu : les tissus sont ceux
+      // de JALOFA.
       label: "Ma boutique",
       items: [
         ...(role === "tailor"
@@ -192,6 +199,14 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 href: `${root}/creations`,
                 label: "Mes modèles",
                 icon: Shirt,
+              },
+              {
+                // Homme, femme ou les deux, et les habits qu'il sait coudre : un
+                // débutant sans modèle publié montre déjà ce qu'il sait faire.
+                id: "skills" as const,
+                href: `${root}/specialisation`,
+                label: "Spécialisation",
+                icon: HandHeart,
               },
               {
                 // Les mètres de tissu par corps et par taille, écrits une fois
@@ -207,12 +222,6 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 href: `${root}/recommandations`,
                 label: "Mes recommandations",
                 icon: Sparkles,
-              },
-              {
-                id: "fabrics" as const,
-                href: `${root}/tissus`,
-                label: "Mes tissus",
-                icon: Layers,
               },
             ]
           : [
@@ -252,12 +261,11 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
           label: "Mon lien TikTok",
           icon: Link2,
         },
-        // Un seul compte pro = une boutique tailleur + une boutique de tissus :
-        // le pro choisit l'annuaire public où il se montre (l'un, l'autre, les deux).
+        // Le pro choisit s'il apparaît dans l'annuaire des tailleurs ou non.
         {
           id: "visibility",
           href: `${root}/visibilite`,
-          label: "Je suis",
+          label: "Ma visibilité",
           icon: Eye,
         },
         {

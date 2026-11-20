@@ -458,7 +458,7 @@ export default function ReviewStep() {
 
       <div className="space-y-2">
         <Label htmlFor="notes">
-          {isFabricOnly ? t("Note pour le vendeur (facultatif)") : t("Note pour le tailleur (facultatif)")}
+          {isFabricOnly ? t("Note pour JALOFA (facultatif)") : t("Note pour le tailleur (facultatif)")}
         </Label>
         <Textarea
           id="notes"

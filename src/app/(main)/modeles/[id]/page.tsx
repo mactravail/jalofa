@@ -34,7 +34,6 @@ import {
   getUnapprovedSellerIds,
   sellableFabrics,
 } from "@/lib/data";
-import { isFabricAvailable } from "@/lib/fabric-metrage";
 import { buildGenericAsIsPreset, GENERIC_AS_IS_FABRIC_ID } from "@/lib/garment-preset";
 import { DEDICATED_HREF } from "@/lib/garment-routes";
 import { catalogModelOf } from "@/lib/catalog-link";
@@ -123,9 +122,8 @@ export default async function ModelDetailPage({
   // sa création ne s'achète pas encore.
   const authorPending = Boolean(author && unapproved.has(author.id));
 
-  // Modèle d'un tailleur : ses tissus à lui, première rangée du « Sur mesure ».
-  // « Tel quel » (prêt-à-porter) se lit sur le modèle lui-même : ready_*.
-  const tailorFabrics = author ? fabrics.filter((f) => f.vendor_id === author.id) : [];
+  // « Tel quel » (prêt-à-porter) se lit sur le modèle lui-même : ready_*. Le
+  // « Sur mesure » propose les tissus JALOFA (seul vendeur de tissus).
 
   // This is where the garment gets locked in: the configurator has no model
   // step, so it only ever starts from here. `type` / `tailor` come back from an
@@ -139,7 +137,6 @@ export default async function ModelDetailPage({
   // --- Prix « à partir de » du sur mesure (estimation affichée). Rien n'est
   // vendu « tel quel » ici : le prêt-à-porter est lu sur le modèle (ready_*).
   const asIsFabric =
-    (author ? tailorFabrics.find(isFabricAvailable) : undefined) ??
     fabrics.find((f) => f.id === GENERIC_AS_IS_FABRIC_ID) ??
     fabrics[0] ??
     null;
@@ -273,7 +270,6 @@ export default async function ModelDetailPage({
                         free_delivery: author.free_delivery,
                         free_delivery_zone: author.free_delivery_zone,
                       },
-                      tailorFabrics,
                     }
                   : undefined
               }

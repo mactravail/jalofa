@@ -18,13 +18,13 @@ export function FabricPicker({
   onChange,
 }: {
   fabrics: Fabric[];
-  /** Plusieurs rangées titrées (« Tissus de l'atelier », « Autres vendeurs »).
+  /** Plusieurs rangées titrées (ex. « Tissus JALOFA »).
    *  Absent : une seule rangée avec tous les `fabrics`. */
   groups?: { label: string; fabrics: Fabric[] }[];
   value: string | null;
   onChange: (fabricId: string) => void;
 }) {
-  // Ce que le vendeur a écrit sur son tissu se lit ICI, sans quitter la fiche
+  // Ce que JALOFA a écrit sur son tissu se lit ICI, sans quitter la fiche
   // du vêtement : partir vers /tissus, c'est perdre le modèle en cours de
   // choix. Le dépliant reste ouvert quand on change de pastille — on compare.
   const [details, setDetails] = useState(false);
@@ -100,7 +100,7 @@ export function FabricPicker({
           {details && (
             <div id={detailsId} className="bg-muted/40 mt-2 rounded-xl border p-3.5">
               <p className="text-muted-foreground text-sm leading-relaxed">
-                {selected.description ?? t("Le vendeur n'a pas encore détaillé cette matière.")}
+                {selected.description ?? t("Cette matière n'est pas encore détaillée.")}
               </p>
               <dl className="mt-3 space-y-1.5 text-sm">
                 <div className="flex gap-3">

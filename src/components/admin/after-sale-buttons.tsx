@@ -53,7 +53,7 @@ export function ReceiptAnswerButtons({ orderId, disputed }: { orderId: string; d
     <div className="flex flex-wrap gap-2 sm:justify-end">
       <ActionButton
         label="Oui, reçue"
-        done="Commande marquée reçue : le tailleur et le vendeur peuvent être payés."
+        done="Commande marquée reçue : le tailleur peut être payé."
         run={() => adminMarkOrderReceived(orderId)}
       />
       {!disputed && (
@@ -83,13 +83,13 @@ export function VendorShipmentButtons({ orderId, denied }: { orderId: string; de
     <div className="flex flex-wrap gap-2">
       <ActionButton
         label="Oui, il l'a envoyé"
-        done="Envoi confirmé : l'argent du vendeur est libéré."
+        done="Envoi confirmé : la commande continue."
         run={() => adminVerifyVendorShipment(orderId, true)}
       />
       {!denied && (
         <ActionButton
           label="Non, pas envoyé"
-          done="Envoi démenti : le vendeur ne sera pas payé pour ce tissu."
+          done="Envoi démenti : le tissu est à renvoyer."
           run={() => adminVerifyVendorShipment(orderId, false)}
         />
       )}

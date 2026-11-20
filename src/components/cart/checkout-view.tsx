@@ -399,7 +399,7 @@ export function CheckoutView({
             </div>
             <p className="text-muted-foreground mt-2 text-xs">
               {deliveryOption === "economy"
-                ? t("Le vendeur attend 24 h avant d'envoyer le tissu, puis le tailleur attend 24 h avant de le couper : vous pouvez demander l'annulation sans perte.")
+                ? t("JALOFA attend 24 h avant d'envoyer le tissu, puis le tailleur attend 24 h avant de le couper : vous pouvez demander l'annulation sans perte.")
                 : t("Tout part tout de suite, dès que vous avez payé le pro.")}
             </p>
           </section>
@@ -508,7 +508,7 @@ export function CheckoutView({
               <Smartphone className="size-5 text-emerald-500" /> {t("Paiement")}
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              {t("Après votre commande, le tailleur ou le vendeur vous envoie son moyen de paiement (Wave, Orange Money…). Vous le payez directement : aucun argent ne passe par JALOFA.")}
+              {t("Après votre commande, vous payez le tissu à JALOFA (Wave 77 500 85 83) et la couture directement au tailleur, qui vous envoie son moyen de paiement (Wave, Orange Money…).")}
             </p>
           </section>
         </div>

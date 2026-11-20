@@ -19,7 +19,8 @@ const DB_NOT_READY =
 const ROLE_LANDING: Record<string, string> = {
   client: "/compte",
   tailor: "/tailleur/espace",
-  vendor: "/vendeur/espace",
+  // Plus d'espace vendeur : un ancien compte « vendor » rejoint l'atelier.
+  vendor: "/tailleur/espace",
   admin: "/admin",
 };
 
@@ -124,10 +125,10 @@ export async function signUp(
     return { error: "Vous devez accepter les conditions générales pour continuer." };
   }
 
-  // Deux comptes : Client ou Pro. Un compte Pro ouvre les DEUX métiers (atelier
-  // + boutique de tissus — cf. `handle_new_user`) ; il est enregistré en base
-  // avec le rôle `tailor`, l'espace vendeur s'ouvre via le sélecteur d'espace.
-  // Tout pro reçoit ensuite l'accès PRO offert de la Sélection JALOFA.
+  // Deux comptes : Client ou Pro. Un compte Pro est un TAILLEUR (rôle `tailor`,
+  // atelier créé par `handle_new_user`). Il n'y a plus de vendeurs de tissus :
+  // JALOFA vend seule les tissus. Tout pro reçoit l'accès PRO offert de la
+  // Sélection JALOFA.
   const rawRole = String(formData.get("role") ?? "client");
   const isPro = rawRole === "pro" || rawRole === "tailor" || rawRole === "vendor";
   const role = isPro ? "tailor" : "client";
@@ -187,19 +188,17 @@ export async function signUp(
 
   // If email confirmation is disabled the user is signed in immediately.
   if (data.session) {
-    // Le pays et la ville rejoignent l'atelier et la boutique créés par
-    // `handle_new_user` (déclencheur laissé intact). Le pro est connecté : ce
-    // sont ses propres lignes (RLS « update own »). Un échec ne bloque pas
-    // l'inscription — le profil permet de corriger.
-    if (isPro && data.user && country) {
-      const place = { country, city };
-      const [tailorRes, vendorRes] = await Promise.all([
-        supabase.from("tailors").update(place).eq("id", data.user.id),
-        supabase.from("vendors").update(place).eq("id", data.user.id),
-      ]);
-      if (tailorRes.error || vendorRes.error) {
-        console.error("[signup place]", tailorRes.error ?? vendorRes.error);
-      }
+    // Le pays et la ville rejoignent l'atelier créé par `handle_new_user`. Le
+    // pro est connecté : c'est sa propre ligne (RLS « update own »). Un échec ne
+    // bloque pas l'inscription — le profil permet de corriger.
+    // Le tailleur est visible dans la liste publique dès son inscription, même
+    // sans modèle (`is_active`) — il peut se cacher depuis « Ma visibilité ».
+    if (isPro && data.user) {
+      const { error: placeError } = await supabase
+        .from("tailors")
+        .update(country ? { country, city, is_active: true } : { is_active: true })
+        .eq("id", data.user.id);
+      if (placeError) console.error("[signup place]", placeError);
     }
     revalidatePath("/", "layout");
     // Le pro arrive dans son espace, sur « Mon offre », avec le message de

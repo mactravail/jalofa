@@ -108,6 +108,17 @@ const nextConfig: NextConfig = {
       { source: "/commande/nouvelle/tissu", destination: "/modeles", permanent: false },
       // « Comment ça marche » vit désormais dans la FAQ : une seule page.
       { source: "/comment-ca-marche", destination: "/faq#comment-ca-marche", permanent: true },
+      // JALOFA est le seul vendeur de tissus (2026-11-20) : plus d'annuaire de
+      // vendeurs ni d'espace vendeur. Les anciens liens tombent sur le catalogue
+      // de tissus, l'espace vendeur sur l'atelier, et l'admin sur la boutique.
+      { source: "/vendeurs", destination: "/tissus", permanent: true },
+      { source: "/vendeurs/:id", destination: "/tissus", permanent: true },
+      { source: "/it/vendeurs", destination: "/it/tissus", permanent: true },
+      { source: "/it/vendeurs/:id", destination: "/it/tissus", permanent: true },
+      { source: "/vendeur/espace/:path*", destination: "/tailleur/espace", permanent: false },
+      { source: "/it/vendeur/espace/:path*", destination: "/it/tailleur/espace", permanent: false },
+      { source: "/admin/tissus", destination: "/admin/boutique/tissus", permanent: false },
+      { source: "/admin/vendeurs", destination: "/admin/boutique/tissus", permanent: false },
     ];
   },
 };

@@ -4,7 +4,7 @@ import Link from "@/components/i18n/link";
 import {
   ChevronRight,
   ClipboardList,
-  Layers,
+  HandHeart,
   Plus,
   Scissors,
   Wallet,
@@ -14,9 +14,10 @@ import { Price } from "@/components/cart/price";
 import { NewOrdersFeed } from "@/components/dashboard/new-orders-feed";
 import { useBucket, usePipeline } from "@/components/dashboard/pipeline-store";
 import { buttonVariants } from "@/components/ui/button";
-import { DIRECT_PAYMENT } from "@/lib/constants";
+import { DIRECT_PAYMENT, TAILOR_SPECIALTY_LABELS } from "@/lib/constants";
 import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
 import { moneyReleased, revenueOf } from "@/lib/pipeline";
+import type { TailorSpecialty } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { T } from "@/components/i18n/t";
 
@@ -28,7 +29,19 @@ const FEED_MAX = 4;
  * vendre plus ? (un seul gros bouton). Tout lit le même pipeline partagé, donc les
  * chiffres suivent les commandes qu'on vient d'accepter.
  */
-export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?: number }) {
+export function OverviewPanel({
+  role,
+  received = 0,
+  specialty = null,
+  skillCount = 0,
+}: {
+  role: ProRole;
+  received?: number;
+  /** Tailleur : sa « Spécialisation » (homme / femme / les deux), null = pas encore dite. */
+  specialty?: TailorSpecialty | null;
+  /** Tailleur : le nombre d'habits qu'il sait faire. */
+  skillCount?: number;
+}) {
   const { orders } = usePipeline();
   const todo = useBucket("todo");
   const ongoing = useBucket("ongoing");
@@ -43,7 +56,9 @@ export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?
 
   return (
     <div className="space-y-8">
-      <h1 className="sr-only"><T>Accueil</T></h1>
+      <h1 className="sr-only">
+        <T>Accueil</T>
+      </h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Tile
@@ -63,53 +78,106 @@ export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?
         >
           {ongoing.length}
         </Tile>
-        {/* L'argent en deux temps : « En attente » dès que le client a payé
+        {role === "tailor" ? (
+          // Le tailleur : sa spécialisation, à remplir tant qu'il ne l'a pas dite.
+          <Link
+            href={`${root}/specialisation`}
+            className={cn(
+              "col-span-2 flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-colors sm:col-span-1 sm:p-5",
+              specialty
+                ? "bg-card hover:bg-muted/50"
+                : "border-rose-500 bg-rose-500/10 hover:bg-rose-500/20",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium whitespace-nowrap sm:gap-2 sm:text-base">
+              <HandHeart className="size-5 shrink-0 text-rose-400" />
+              <span className="truncate">
+                <T>Spécialisation</T>
+              </span>
+            </span>
+            {specialty ? (
+              <span className="min-w-0">
+                <span className="block truncate text-xl font-bold tracking-tight sm:text-2xl">
+                  <T>{TAILOR_SPECIALTY_LABELS[specialty]}</T>
+                </span>
+                {skillCount > 0 && (
+                  <span className="text-muted-foreground block text-sm">
+                    {skillCount > 1 ? (
+                      <T vars={{ n: skillCount }}>{"{n} habits"}</T>
+                    ) : (
+                      <T vars={{ n: skillCount }}>{"{n} habit"}</T>
+                    )}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xl font-bold tracking-tight sm:text-2xl">
+                <T>À remplir</T> <ChevronRight className="size-5" />
+              </span>
+            )}
+          </Link>
+        ) : (
+          <>
+            {/* L'argent en deux temps : « En attente » dès que le client a payé
             (la part du pro, pas encore versée), puis « Reçu » quand JALOFA
             lui a versé (lignes `payout` du registre). */}
-        <Link
-          href={`${root}/revenus`}
-          className="bg-card hover:bg-muted/50 col-span-2 flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-colors sm:col-span-1 sm:p-5"
-        >
-          <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium whitespace-nowrap sm:gap-2 sm:text-base">
-            <Wallet className="size-5 shrink-0 text-emerald-400" />
-            <span className="truncate"><T>Mon argent</T></span>
-          </span>
-          {DIRECT_PAYMENT ? (
-            // Paiement direct : le client paie le pro, JALOFA ne détient rien.
-            <span className="min-w-0">
-              <span className="block text-xs font-medium text-emerald-400"><T>Mes ventes</T></span>
-              <span className="block truncate text-2xl font-bold tracking-tight sm:text-3xl">
-                <Price amount={revenue} />
+            <Link
+              href={`${root}/revenus`}
+              className="bg-card hover:bg-muted/50 col-span-2 flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-colors sm:col-span-1 sm:p-5"
+            >
+              <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium whitespace-nowrap sm:gap-2 sm:text-base">
+                <Wallet className="size-5 shrink-0 text-emerald-400" />
+                <span className="truncate">
+                  <T>Mon argent</T>
+                </span>
               </span>
-            </span>
-          ) : (
-          <span className="grid grid-cols-2 gap-3">
-            <span className="min-w-0">
-              <span className="block text-xs font-medium text-amber-400"><T>En attente</T></span>
-              <span className="text-muted-foreground block truncate text-lg font-normal tracking-tight sm:text-xl">
-                <Price amount={due} className="[&_span]:font-normal" />
-              </span>
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs font-medium text-emerald-400"><T>Reçu</T></span>
-              <span className="block truncate text-2xl font-bold tracking-tight sm:text-3xl">
-                <Price amount={received} />
-              </span>
-            </span>
-          </span>
-          )}
-        </Link>
+              {DIRECT_PAYMENT ? (
+                // Paiement direct : le client paie le pro, JALOFA ne détient rien.
+                <span className="min-w-0">
+                  <span className="block text-xs font-medium text-emerald-400">
+                    <T>Mes ventes</T>
+                  </span>
+                  <span className="block truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                    <Price amount={revenue} />
+                  </span>
+                </span>
+              ) : (
+                <span className="grid grid-cols-2 gap-3">
+                  <span className="min-w-0">
+                    <span className="block text-xs font-medium text-amber-400">
+                      <T>En attente</T>
+                    </span>
+                    <span className="text-muted-foreground block truncate text-lg font-normal tracking-tight sm:text-xl">
+                      <Price amount={due} className="[&_span]:font-normal" />
+                    </span>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-medium text-emerald-400">
+                      <T>Reçu</T>
+                    </span>
+                    <span className="block truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                      <Price amount={received} />
+                    </span>
+                  </span>
+                </span>
+              )}
+            </Link>
+          </>
+        )}
       </div>
 
       <section>
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold"><T>Nouvelles commandes</T></h2>
+          <h2 className="text-xl font-bold">
+            <T>Nouvelles commandes</T>
+          </h2>
           {todo.length > FEED_MAX && (
             <Link
               href={`${root}/a-traiter`}
               className="flex shrink-0 items-center gap-1 text-base font-medium hover:underline"
             >
-              <T vars={{ n: todo.length }}>{"Voir les {n}"}</T> <ChevronRight className="size-4" />
+              <T vars={{ n: todo.length }}>{"Voir les {n}"}</T>{" "}
+              <ChevronRight className="size-4" />
             </Link>
           )}
         </div>
@@ -131,21 +199,6 @@ export function OverviewPanel({ role, received = 0 }: { role: ProRole; received?
           <Plus className="size-5" />
           <T>{role === "tailor" ? "Ajouter un modèle" : "Ajouter un tissu"}</T>
         </Link>
-
-        {/* Le tailleur vend aussi ses tissus : le formulaire s'ouvre directement.
-            « Recevoir mon argent » est dans le menu (Mon argent). */}
-        {role === "tailor" && (
-          <Link
-            href={`${root}/tissus?nouveau=1`}
-            className="bg-card hover:bg-muted/50 flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3 text-base font-medium transition-colors"
-          >
-            <Layers className="size-5 shrink-0 text-amber-500" />
-            <span className="min-w-0 flex-1">
-              <T>Vendre un tissu</T>
-            </span>
-            <ChevronRight className="text-muted-foreground size-5 shrink-0" />
-          </Link>
-        )}
       </div>
     </div>
   );
@@ -182,7 +235,9 @@ function Tile({
     >
       <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium whitespace-nowrap sm:gap-2 sm:text-base">
         <Icon className={cn("size-5 shrink-0", !urgent && iconClass)} />
-        <span className="truncate"><T>{label}</T></span>
+        <span className="truncate">
+          <T>{label}</T>
+        </span>
       </span>
       <span className="block truncate text-3xl font-bold tracking-tight sm:text-4xl">
         {children}

@@ -130,7 +130,7 @@ export async function ProOfferView({ params }: { params: OfferSearchParams }) {
   return (
     <DashboardPage
       title="Mon offre"
-      subtitle="Votre compte pro couvre l'atelier (tailleur) et la boutique de tissus."
+      subtitle="Votre compte pro couvre votre atelier de tailleur."
     >
       <div className="max-w-xl space-y-4">
         {notice && (

@@ -5,7 +5,6 @@ import {
   Scissors,
   ShoppingBag,
   Shirt,
-  Store,
   TrendingUp,
   Users,
   Wallet,
@@ -71,10 +70,9 @@ export default async function AdminOverviewPage() {
         />
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:mt-4 lg:grid-cols-4 sm:gap-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:mt-4 lg:grid-cols-3 sm:gap-4">
         <MiniStat icon={Scissors} label="Tailleurs" value={stats.catalog.tailors} href="/admin/tailleurs" tone="sky" />
-        <MiniStat icon={Store} label="Vendeurs" value={stats.catalog.vendors} href="/admin/vendeurs" tone="fuchsia" />
-        <MiniStat icon={Layers} label="Tissus" value={stats.catalog.fabrics} href="/admin/tissus" tone="amber" />
+        <MiniStat icon={Layers} label="Tissus JALOFA" value={stats.catalog.fabrics} href="/admin/boutique/tissus" tone="amber" />
         <MiniStat icon={Shirt} label="Modèles" value={stats.catalog.models} href="/admin/modeles" tone="rose" />
       </div>
 

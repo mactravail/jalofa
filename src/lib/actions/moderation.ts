@@ -96,6 +96,35 @@ export async function setProSuspension(
   return { ok: true };
 }
 
+/**
+ * Affiche ou masque un tailleur sur le site, sans le suspendre : masqué, il
+ * quitte la liste publique, sa fiche et le catalogue (`is_active` à false),
+ * mais garde son espace. `hidden_by_admin` l'empêche de se rouvrir lui-même.
+ */
+export async function setTailorHidden(
+  id: string,
+  hidden: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+  if (!(await requireAdmin())) return { ok: false, error: FORBIDDEN };
+
+  const supabase = await createClient();
+  let { error } = await supabase
+    .from("tailors")
+    .update({ hidden_by_admin: hidden, is_active: !hidden })
+    .eq("id", id);
+  // Colonne pas encore en base (SQL 20260911000001) : on règle au moins la
+  // visibilité, que le tailleur pourra toutefois rouvrir lui-même.
+  if (error && (error.code === "42703" || error.code === "PGRST204")) {
+    ({ error } = await supabase.from("tailors").update({ is_active: !hidden }).eq("id", id));
+  }
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePro("tailor", id);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 /** Attribue ou retire la certification d'un prestataire. */
 export async function setProCertification(
   kind: ProKind,

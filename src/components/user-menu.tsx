@@ -34,7 +34,8 @@ type Props = {
 };
 
 const isPro = (role: UserRole): role is ProRole =>
-  role === "tailor" || role === "vendor";
+  // Plus d'espace vendeur : seul le tailleur a un espace pro.
+  role === "tailor";
 
 export function UserMenu({ fullName, role }: Props) {
   const t = useT();

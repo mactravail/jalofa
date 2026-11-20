@@ -293,7 +293,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   // Reusable CTA used by both the desktop card and the mobile bottom bar.
   // Dernière étape : un tissu s'ajoute au panier (achat direct), une tenue part
   // en demande de devis. Avant : « Continuer ».
-  // Tissu de démonstration (catalogue JALOFA, sans vrai vendeur) : on peut
+  // Tissu de démonstration (sans boutique, mode démo) : on peut
   // configurer la tenue pour essayer, mais pas l'acheter ni demander un devis.
   const usesDemoFabric =
     state.type !== "own_fabric" &&
@@ -319,7 +319,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
           {t(DEMO_FABRIC_TITLE)}
         </Button>
         <p className="text-muted-foreground mt-1.5 text-center text-xs">
-          {t("Pas en vente : choisissez un tissu d'un vendeur pour commander.")}
+          {t("Pas en vente : choisissez un autre tissu JALOFA pour commander.")}
         </p>
       </div>
     ) : isFabricOnly ? (

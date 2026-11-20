@@ -33,7 +33,7 @@ function scores(rows: SatisfactionRow[]): Score[] {
     const key = `${role}:${id}`;
     const s = map.get(key) ?? {
       id,
-      name: name ?? (role === "tailor" ? "Tailleur" : "Vendeur"),
+      name: name ?? (role === "tailor" ? "Tailleur" : "JALOFA"),
       role,
       perfect: 0,
       problems: 0,
@@ -66,7 +66,7 @@ export default async function AdminSatisfactionPage() {
   return (
     <AdminPage
       title="Satisfaction"
-      subtitle="Ce que disent les clients une fois leur tenue reçue : « Parfaite » ou « Un problème ». Pour évaluer chaque tailleur et chaque vendeur."
+      subtitle="Ce que disent les clients une fois leur tenue reçue : « Parfaite » ou « Un problème ». Pour évaluer chaque tailleur et les tissus JALOFA."
     >
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">

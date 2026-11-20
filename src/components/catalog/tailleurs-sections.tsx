@@ -31,7 +31,7 @@ const CLIENT_REASONS = [
   {
     icon: ShieldCheck,
     title: "Des pros sélectionnés",
-    text: "JALOFA choisit des tailleurs et des vendeurs sérieux, notés par leurs clients.",
+    text: "JALOFA choisit des tailleurs sérieux, notés par leurs clients.",
   },
   {
     icon: Scale,

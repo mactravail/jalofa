@@ -78,7 +78,7 @@ export async function generateMetadata(): Promise<Metadata> {
   },
   description: translate(
     locale,
-    "JALOFA met en relation clients, tailleurs et vendeurs de tissus. Créez un vêtement sur mesure depuis votre téléphone, en Afrique.",
+    "JALOFA met en relation clients et tailleurs, avec les tissus JALOFA. Créez un vêtement sur mesure depuis votre téléphone, en Afrique.",
   ),
   applicationName: APP_NAME,
   appleWebApp: {

@@ -30,7 +30,7 @@ const KIND_LABELS: Record<LedgerKind, string> = {
 
 const PARTY_LABELS: Record<LedgerParty, string> = {
   client: "Client",
-  vendor: "Vendeur",
+  vendor: "JALOFA",
   tailor: "Tailleur",
   carrier: "Transporteur",
   jalofa: "JALOFA",

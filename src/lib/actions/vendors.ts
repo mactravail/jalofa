@@ -49,7 +49,7 @@ export async function saveVendorAddress(
   });
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   return { ok: true };
 }
 
@@ -133,7 +133,7 @@ export async function saveVendorProfile(
     await removeImage(supabase, BUCKET, previousUrl);
   }
 
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath(`/vendeurs/${user.id}`);
   revalidatePath("/vendeurs");
   return { ok: true };

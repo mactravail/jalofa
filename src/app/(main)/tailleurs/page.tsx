@@ -10,7 +10,34 @@ import {
   JoinTailors,
   WhyJalofa,
 } from "@/components/catalog/tailleurs-sections";
-import { getTailors } from "@/lib/data";
+import { skillModels } from "@/lib/catalog-link";
+import { getModels, getModelSuggestions, getTailors } from "@/lib/data";
+import type { GarmentModel, Tailor } from "@/lib/types";
+
+type Audience = "homme" | "femme";
+
+const AUDIENCES = [
+  { slug: "homme", name: "Homme" },
+  { slug: "femme", name: "Femme" },
+];
+
+/**
+ * Le tailleur coud-il pour cette clientèle ? Sa « Spécialisation » le dit ;
+ * sans spécialisation, ce qu'il sait faire et ses modèles publiés (habits homme
+ * ou femme) en tiennent lieu.
+ */
+function sewsFor(
+  tailor: Tailor,
+  audience: Audience,
+  catalog: GarmentModel[],
+  published: GarmentModel[],
+): boolean {
+  if (tailor.specialty) return tailor.specialty === "both" || tailor.specialty === audience;
+  return (
+    skillModels(tailor.skills, catalog).some((m) => m.category_slug === audience) ||
+    published.some((m) => m.tailor_id === tailor.id && m.category_slug === audience)
+  );
+}
 import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,10 +51,16 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TailorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ city?: string; q?: string }>;
+  searchParams: Promise<{ city?: string; q?: string; pour?: string }>;
 }) {
-  const { city, q } = await searchParams;
-  const all = await getTailors();
+  const { city, q, pour } = await searchParams;
+  const audience: Audience | null = pour === "homme" || pour === "femme" ? pour : null;
+  const [all, catalog, published] = await Promise.all([
+    getTailors(),
+    getModelSuggestions(),
+    // Les modèles publiés ne servent qu'au filtre Homme / Femme.
+    pour ? getModels() : Promise.resolve([] as GarmentModel[]),
+  ]);
   const tr = await getT();
 
   const cities = Array.from(
@@ -36,6 +69,7 @@ export default async function TailorsPage({
 
   const tailors = all.filter((t) => {
     if (city && t.city !== city) return false;
+    if (audience && !sewsFor(t, audience, catalog, published)) return false;
     if (q && !(t.shop_name ?? "").toLowerCase().includes(q.toLowerCase()))
       return false;
     return true;
@@ -82,7 +116,9 @@ export default async function TailorsPage({
           <SearchInput placeholder={tr("Rechercher un tailleur...")} />
         </div>
 
-        <div className="mt-6 md:mt-8">
+        <div className="mt-6 space-y-3 md:mt-8">
+          {/* Homme / Femme : un tailleur « les deux » apparaît dans les deux. */}
+          <CategoryChips options={AUDIENCES} paramName="pour" />
           <CategoryChips options={cities} paramName="city" />
         </div>
 
@@ -99,7 +135,14 @@ export default async function TailorsPage({
         ) : (
           <div className="mt-8 grid gap-x-4 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {tailors.map((tailor) => (
-              <TailorCard key={tailor.id} tailor={tailor} />
+              <TailorCard
+                key={tailor.id}
+                tailor={tailor}
+                skills={[
+                  ...skillModels(tailor.skills, catalog).map((m) => m.name),
+                  ...(tailor.custom_skills ?? []),
+                ]}
+              />
             ))}
           </div>
         )}

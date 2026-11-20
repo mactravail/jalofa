@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 const ROLE_LANDING: Record<string, string> = {
   client: "/compte",
   tailor: "/tailleur/espace",
-  vendor: "/vendeur/espace",
+  vendor: "/tailleur/espace",
   admin: "/admin",
 };
 
@@ -50,11 +50,8 @@ export async function GET(request: NextRequest) {
       const meta = user.user_metadata ?? {};
       const name = String(meta.full_name ?? meta.name ?? "").trim() || null;
       await admin.from("profiles").update({ role: "tailor", full_name: name }).eq("id", user.id);
-      const shop = { id: user.id, shop_name: name ?? "", plan: "free", is_activated: true };
-      await Promise.all([
-        admin.from("tailors").upsert(shop, { onConflict: "id", ignoreDuplicates: true }),
-        admin.from("vendors").upsert(shop, { onConflict: "id", ignoreDuplicates: true }),
-      ]);
+      const shop = { id: user.id, shop_name: name ?? "", plan: "free", is_activated: true, is_active: true };
+      await admin.from("tailors").upsert(shop, { onConflict: "id", ignoreDuplicates: true });
       const granted = await grantSelectionAccess(user.id);
       return NextResponse.redirect(
         new URL(granted ? `${OFFER_PAGE}?selection=1` : ROLE_LANDING.tailor, origin),

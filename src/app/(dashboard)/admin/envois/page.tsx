@@ -15,7 +15,7 @@ export default async function AdminVendorShipmentChecksPage() {
   return (
     <AdminPage
       title="Envois à vérifier"
-      subtitle="Le tailleur a dit « J'ai reçu le tissu », mais le vendeur n'avait pas dit « Tissu envoyé ». Appelez le vendeur : s'il confirme, son argent est libéré."
+      subtitle="Le tailleur a dit « J'ai reçu le tissu », mais la boutique JALOFA n'avait pas dit « Tissu envoyé ». Vérifiez l'envoi : s'il est confirmé, la commande continue."
     >
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">
@@ -52,7 +52,7 @@ export default async function AdminVendorShipmentChecksPage() {
                   )}
                   {denied && (
                     <p className="mt-1 text-sm font-semibold text-red-500">
-                      Le vendeur a dit ne pas l&apos;avoir envoyé : paiement bloqué.
+                      Envoi démenti : le tissu n&apos;est pas parti de la boutique JALOFA.
                     </p>
                   )}
                 </div>

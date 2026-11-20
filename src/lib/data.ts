@@ -671,7 +671,11 @@ export async function getTailors(filters: TailorFilters = {}): Promise<Tailor[]>
   if (filters.city) query = query.ilike("city", filters.city);
   if (filters.q) query = query.ilike("shop_name", `%${filters.q}%`);
   const { data } = await query.order("rating", { ascending: false });
-  return fillFromSibling((data as Tailor[]) ?? [], "vendors");
+  // Masqué par l'administration (déjà `is_active` false) : double sécurité.
+  return fillFromSibling(
+    ((data as Tailor[]) ?? []).filter((t) => !t.hidden_by_admin),
+    "vendors",
+  );
 }
 
 export async function getTailorById(id: string): Promise<Tailor | null> {

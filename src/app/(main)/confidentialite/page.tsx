@@ -46,13 +46,13 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "2. Champ d'application",
-    body: `Cette politique s'applique à toute personne qui utilise ${APP_NAME} : clients, tailleurs, vendeurs de tissus et visiteurs. Elle complète nos conditions générales d'utilisation. En utilisant la plateforme, vous en prenez connaissance.`,
+    body: `Cette politique s'applique à toute personne qui utilise ${APP_NAME} : clients, tailleurs et visiteurs. Elle complète nos conditions générales d'utilisation. En utilisant la plateforme, vous en prenez connaissance.`,
   },
   {
     title: "3. Données que nous collectons",
     body: "Selon votre profil et votre usage, nous collectons :",
     list: [
-      "Identité et compte : nom, mot de passe (stocké chiffré), rôle (client, tailleur, vendeur).",
+      "Identité et compte : nom, mot de passe (stocké chiffré), rôle (client, tailleur).",
       "Coordonnées : numéro de téléphone, adresse e-mail, adresses de livraison.",
       "Mesures corporelles : les mesures que vous renseignez (au centimètre) ou la taille standard choisie.",
       "Commandes et paiements : historique de commandes, montants, moyen de paiement utilisé, statut des livraisons.",
@@ -67,7 +67,7 @@ const SECTIONS: LegalClause[] = [
     list: [
       "créer et gérer votre compte, et vous authentifier ;",
       "traiter, confectionner, suivre et livrer vos commandes ;",
-      "assurer la mise en relation entre clients, tailleurs et vendeurs ;",
+      "assurer la mise en relation entre clients et tailleurs, et la vente des tissus JALOFA ;",
       "permettre au professionnel de vous contacter, après votre confirmation, pour vous envoyer son moyen de paiement et vous livrer ;",
       "vous envoyer les notifications liées à vos commandes et à votre compte ;",
       "prévenir la fraude, gérer les réclamations et appliquer nos conditions ;",
@@ -84,7 +84,7 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "7. Paiements",
-    body: `Pour l'instant, aucun paiement ne passe par ${APP_NAME} : vous payez directement le tailleur ou le vendeur, sur le moyen de paiement qu'il vous envoie (Wave, Orange Money, Free Money…). ${APP_NAME} ne reçoit ni ne stocke vos coordonnées bancaires ou de paiement. Nous ne conservons que les informations nécessaires au suivi de la commande (montant, statut).`,
+    body: `Vous payez le tissu à ${APP_NAME} sur son numéro Wave / Orange Money, et la couture directement au tailleur, sur le moyen de paiement qu'il vous envoie (Wave, Orange Money, Free Money…). ${APP_NAME} ne reçoit ni ne stocke vos coordonnées bancaires ou de paiement. Nous ne conservons que les informations nécessaires au suivi de la commande (montant, statut).`,
   },
   {
     title: "8. Lutte contre la fraude",
@@ -94,7 +94,7 @@ const SECTIONS: LegalClause[] = [
     title: "9. Partage de vos données",
     body: `${APP_NAME} ne vend pas vos données. Elles ne sont partagées qu'avec :`,
     list: [
-      `le tailleur ou le vendeur concerné par votre commande. Pendant une demande de devis, il reçoit un code, vos mesures et votre adresse de livraison : votre nom, votre téléphone et votre e-mail ne sont connus que de ${APP_NAME}. Il les reçoit une fois la commande confirmée ou le devis accepté, pour vous envoyer son moyen de paiement et vous livrer ;`,
+      `le tailleur concerné par votre commande. Pendant une demande de devis, il reçoit un code, vos mesures et votre adresse de livraison : votre nom, votre téléphone et votre e-mail ne sont connus que de ${APP_NAME}. Il les reçoit une fois la commande confirmée ou le devis accepté, pour vous envoyer son moyen de paiement et vous livrer ;`,
       "nos prestataires techniques strictement nécessaires : hébergement, base de données, livraison ;",
       "les autorités compétentes, uniquement lorsque la loi l'exige.",
     ],

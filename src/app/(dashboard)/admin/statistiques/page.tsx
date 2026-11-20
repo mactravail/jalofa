@@ -25,7 +25,7 @@ const PAGE_NAMES: [RegExp, string][] = [
   [/^\/tissus\//, "Page d'un tissu"],
   [/^\/tailleurs$/, "Tailleurs"],
   [/^\/tailleurs\//, "Boutique d'un tailleur"],
-  [/^\/vendeurs\//, "Boutique d'un vendeur"],
+  [/^\/vendeurs\//, "Ancienne page vendeur"],
   [/^\/commande\/nouvelle/, "Configurateur"],
   [/^\/panier/, "Panier"],
   [/^\/caisse/, "Paiement (caisse)"],

@@ -421,7 +421,7 @@ export async function quoteOrder(
         ok: false,
         error: fabricComesToAtelier
           ? "Le client doit savoir où envoyer son tissu : indiquez l'adresse de votre atelier dans « Ma page publique »."
-          : "Le vendeur doit savoir où envoyer le tissu : indiquez l'adresse de votre atelier dans « Ma page publique ».",
+          : "JALOFA doit savoir où envoyer le tissu : indiquez l'adresse de votre atelier dans « Ma page publique ».",
       };
     }
   }
@@ -706,7 +706,7 @@ export async function acceptQuote(
   ]);
   const fees = lineQuote[option];
   if (!fees) {
-    return { ok: false, error: "Le vendeur de ce tissu ne propose pas l'express. Choisissez l'économique." };
+    return { ok: false, error: "JALOFA ne propose pas l'express pour ce tissu. Choisissez l'économique." };
   }
   const fabricFee = fees.fabric;
   // Recalculé depuis ses parts (jamais « total + frais ») : un nouvel essai ne
@@ -909,7 +909,7 @@ async function updateOrderStatusImpl(orderId: string, status: OrderStatus) {
     .eq("status", order.status);
   if (error) throw new Error(readableWorkflowError(error.message));
   revalidatePath(`/tailleur/espace`, "layout");
-  revalidatePath(`/vendeur/espace`, "layout");
+  revalidatePath(`/admin/boutique`, "layout");
   revalidatePath(`/compte/commandes/${orderId}`);
 }
 
@@ -1069,7 +1069,7 @@ export async function confirmFabricReceived(
 
   revalidatePath(`/compte/commandes/${orderId}`);
   revalidatePath("/compte/commandes");
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   return { ok: true };
 }
 
@@ -1096,7 +1096,7 @@ async function rejectOrderImpl(orderId: string, reason: RejectionReason) {
     .eq("status", order.status);
   if (error) throw new Error(error.message);
   revalidatePath(`/tailleur/espace`, "layout");
-  revalidatePath(`/vendeur/espace`, "layout");
+  revalidatePath(`/admin/boutique`, "layout");
   revalidatePath(`/admin/refus`);
   revalidatePath(`/compte/commandes/${orderId}`);
 }

@@ -15,10 +15,17 @@ import { SalesPendingNotice } from "@/components/catalog/sales-pending-notice";
 import { ShopModelCard } from "@/components/catalog/shop-model-card";
 import { canSell } from "@/lib/sales-approval";
 import { TailorReviewForm } from "@/components/catalog/tailor-review-form";
+import { TailorSkills } from "@/components/catalog/tailor-skills";
+import { skillModels } from "@/lib/catalog-link";
 import { TrustScorePanel } from "@/components/catalog/trust-score";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatPrice } from "@/lib/constants";
-import { getModelsByTailor, getTailorById, getTailorReviews } from "@/lib/data";
+import { formatPrice, TAILOR_SPECIALTY_LABELS } from "@/lib/constants";
+import {
+  getModelSuggestions,
+  getModelsByTailor,
+  getTailorById,
+  getTailorReviews,
+} from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
 
 // L'aperçu du lien partagé (TikTok, WhatsApp) : le nom de l'atelier et sa photo.
@@ -30,7 +37,7 @@ export async function generateMetadata({
   const { id } = await params;
   const t = await getT();
   const tailor = await getTailorById(id);
-  if (!tailor || tailor.is_suspended) return { title: t("Tailleur") };
+  if (!tailor || tailor.is_suspended || tailor.hidden_by_admin) return { title: t("Tailleur") };
   const title = tailor.shop_name ?? t("Tailleur");
   const description =
     tailor.bio ?? t("Les modèles de {name}, à commander sur mesure sur JALOFA.", { name: title });
@@ -55,14 +62,17 @@ export default async function TailorProfilePage({
 }) {
   const { id } = await params;
   const tailor = await getTailorById(id);
-  // Un tailleur suspendu par la plateforme n'a plus de fiche publique.
-  if (!tailor || tailor.is_suspended) notFound();
+  // Un tailleur suspendu ou masqué par la plateforme n'a plus de fiche publique.
+  if (!tailor || tailor.is_suspended || tailor.hidden_by_admin) notFound();
   const t = await getT();
 
-  const [reviews, models] = await Promise.all([
+  const [reviews, models, catalog] = await Promise.all([
     getTailorReviews(id),
     getModelsByTailor(id),
+    getModelSuggestions(),
   ]);
+  // « Je sais faire » : les habits qu'il sait coudre, même sans modèle publié.
+  const skills = skillModels(tailor.skills, catalog);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -114,6 +124,12 @@ export default async function TailorProfilePage({
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" /> {tailor.city}
               </span>
+              {tailor.specialty && (
+                <span className="flex items-center gap-1">
+                  <Scissors className="size-4" />{" "}
+                  {t(TAILOR_SPECIALTY_LABELS[tailor.specialty])}
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Shirt className="size-4" />{" "}
                 {models.length > 1
@@ -127,6 +143,9 @@ export default async function TailorProfilePage({
 
       {/* Anti-arnaque : pas encore validé par JALOFA → visible, pas en vente. */}
       {!canSell(tailor) && <SalesPendingNotice className="mt-6" />}
+
+      {/* Un débutant sans modèle : ce qu'il sait faire passe en premier. */}
+      {models.length === 0 && <TailorSkills models={skills} custom={tailor.custom_skills} className="mt-8" />}
 
       {/* Les modèles d'abord : c'est pour eux que le client est venu. */}
       <section id="creations" className="mt-8">
@@ -151,6 +170,8 @@ export default async function TailorProfilePage({
           </div>
         )}
       </section>
+
+      {models.length > 0 && <TailorSkills models={skills} custom={tailor.custom_skills} className="mt-10" />}
 
       {tailor.bio && (
         <p className="text-muted-foreground mt-10 text-center sm:text-left">

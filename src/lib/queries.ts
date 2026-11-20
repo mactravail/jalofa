@@ -87,10 +87,11 @@ export async function getProAccess(): Promise<ProAccess> {
   return { tailor: pick(tailor.data), vendor: pick(vendor.data) };
 }
 
-/** Les espaces activés du pro — au-delà d'un, le châssis affiche le sélecteur d'espace. */
+/**
+ * Les espaces activés du pro. Il n'y a plus d'espace vendeur (JALOFA vend seule
+ * les tissus, depuis l'admin) : un pro n'a que son atelier, donc jamais de
+ * sélecteur d'espace.
+ */
 export function activatedCapabilities(access: ProAccess): ProRole[] {
-  const caps: ProRole[] = [];
-  if (access.tailor?.is_activated) caps.push("tailor");
-  if (access.vendor?.is_activated) caps.push("vendor");
-  return caps;
+  return access.tailor?.is_activated ? ["tailor"] : [];
 }

@@ -317,7 +317,7 @@ export default function MetersStep() {
           <PackageCheck className="mt-0.5 size-3.5 shrink-0" />
           <span>
             {isFabricOnly
-              ? t("Métré et contrôlé par le vendeur avant expédition.")
+              ? t("Métré et contrôlé par JALOFA avant expédition.")
               : t("Les chutes vous sont rendues avec la tenue.")}
           </span>
         </li>

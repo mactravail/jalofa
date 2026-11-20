@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
 
 const isPro = (role: string): role is ProRole =>
-  role === "tailor" || role === "vendor";
+  // Plus d'espace vendeur : seul le tailleur a un espace pro.
+  role === "tailor";
 
 /**
  * L'accueil de l'espace client = ses commandes. C'est là qu'on atterrit après

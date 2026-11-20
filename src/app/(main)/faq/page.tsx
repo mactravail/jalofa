@@ -41,7 +41,7 @@ const STEPS = [
   {
     icon: CreditCard,
     title: "4. Payez le professionnel",
-    desc: "Le tailleur ou le vendeur vous envoie son moyen de paiement (Wave, Orange Money…). Vous le payez directement.",
+    desc: "Vous payez le tissu à JALOFA (Wave 77 500 85 83) et la couture directement au tailleur, qui vous envoie son moyen de paiement.",
   },
   {
     icon: Truck,
@@ -89,7 +89,7 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "Quels moyens de paiement sont acceptés ?",
-        a: "Pour l'instant, vous payez directement le tailleur ou le vendeur de tissu. Après votre commande (ou votre devis accepté), il vous envoie son moyen de paiement : Wave, Orange Money, Free Money… Aucun argent ne passe par JALOFA.",
+        a: "Le tissu se paie à JALOFA, seul vendeur de tissus du site (Wave 77 500 85 83). La couture se paie directement au tailleur : après votre commande (ou votre devis accepté), il vous envoie son moyen de paiement — Wave, Orange Money, Free Money…",
       },
       {
         q: "JALOFA prend-il une commission ?",
@@ -115,11 +115,11 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    title: "Tailleurs & vendeurs",
+    title: "Tailleurs",
     items: [
       {
-        q: "Comment devenir tailleur ou vendeur de tissus ?",
-        a: "Candidatez à la Sélection JALOFA en créant un compte pro : un seul compte pour être tailleur et vendeur de tissus. Vous accédez aussitôt à votre espace pour publier votre catalogue et recevoir des commandes. JALOFA garde les professionnels sérieux et qualifiés : qualité des créations, finitions soignées, prix justes, service client sérieux, délais respectés.",
+        q: "Comment devenir tailleur sur JALOFA ?",
+        a: "Candidatez à la Sélection JALOFA en créant un compte pro tailleur. Les tissus sont vendus par JALOFA et envoyés à votre atelier : vous vous concentrez sur la couture. Vous accédez aussitôt à votre espace pour publier votre catalogue et recevoir des commandes. JALOFA garde les professionnels sérieux et qualifiés : qualité des créations, finitions soignées, prix justes, service client sérieux, délais respectés.",
       },
       {
         q: "Combien ça coûte de vendre sur JALOFA ?",

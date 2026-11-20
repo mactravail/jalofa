@@ -20,7 +20,7 @@ export const SELECTION_TITLE =
   "Rejoignez gratuitement les professionnels sélectionnés par JALOFA !";
 
 export const SELECTION_SUBTITLE =
-  "Bénéficiez gratuitement de l'accès PRO et rejoignez une marketplace qui valorise les meilleurs tailleurs et vendeurs de tissus, sélectionnés pour leur savoir-faire, leur sérieux et leur excellent rapport qualité-prix.";
+  "Bénéficiez gratuitement de l'accès PRO et rejoignez une marketplace qui valorise les meilleurs tailleurs, sélectionnés pour leur savoir-faire, leur sérieux et leur excellent rapport qualité-prix.";
 
 export const SELECTION_CTA = "CANDIDATER À LA SÉLECTION";
 

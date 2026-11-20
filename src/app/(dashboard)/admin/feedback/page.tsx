@@ -41,7 +41,7 @@ export default async function AdminFeedbackPage() {
   return (
     <AdminPage
       title="Retours"
-      subtitle="Les idées et les problèmes remontés par les clients, tailleurs et vendeurs depuis leur espace. Marquez « traité » ce qui est réglé."
+      subtitle="Les idées et les problèmes remontés par les clients et tailleurs depuis leur espace. Marquez « traité » ce qui est réglé."
     >
       {feedback.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">

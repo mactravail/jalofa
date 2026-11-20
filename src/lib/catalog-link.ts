@@ -29,3 +29,19 @@ export function catalogModelOf(
 }
 
 export const isCatalogModel = (m: GarmentModel) => m.tailor_id === null;
+
+/**
+ * La clé d'un habit du catalogue dans « Je sais faire » (`tailors.skills`) :
+ * son slug, stable, ou son id s'il n'en a pas. `/modeles/<clé>` l'ouvre.
+ */
+export const skillKey = (m: GarmentModel): string => m.slug ?? m.id;
+
+/** Les habits du catalogue qu'un tailleur sait faire, dans l'ordre du catalogue. */
+export function skillModels(
+  skills: string[] | undefined,
+  catalog: GarmentModel[],
+): GarmentModel[] {
+  if (!skills || skills.length === 0) return [];
+  const set = new Set(skills);
+  return catalog.filter((m) => isCatalogModel(m) && set.has(skillKey(m)));
+}

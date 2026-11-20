@@ -25,7 +25,7 @@ export default async function AdminReviewsPage() {
   return (
     <AdminPage
       title="Avis"
-      subtitle="Les évaluations laissées par les clients sur les tailleurs et les vendeurs de tissu."
+      subtitle="Les évaluations laissées par les clients sur les tailleurs et les tissus JALOFA."
     >
       {reviews.length > 0 && (
         <div className="text-muted-foreground mb-6 flex items-center gap-2 text-sm">
@@ -88,7 +88,7 @@ function KindBadge({ kind }: { kind: AdminReviewRow["kind"] }) {
   return (
     <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium">
       <Icon className="size-3" />
-      {isTailor ? "Tailleur" : "Vendeur"}
+      {isTailor ? "Tailleur" : "Tissu JALOFA"}
     </span>
   );
 }

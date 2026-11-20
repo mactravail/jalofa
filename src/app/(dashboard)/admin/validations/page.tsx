@@ -7,7 +7,6 @@ import {
   getAllFabrics,
   getAllModels,
   getAllTailors,
-  getAllVendors,
   getContactDirectory,
 } from "@/lib/admin-data";
 import { isSupabaseConfigured } from "@/lib/queries";
@@ -19,9 +18,10 @@ import { canSell } from "@/lib/sales-approval";
  * n'est pas validé ici. Un compte aux deux métiers tient sur une seule ligne.
  */
 export default async function AdminValidationsPage() {
-  const [tailors, vendors, models, fabrics, directory] = await Promise.all([
+  // Plus de vendeurs de tissus (JALOFA vend seule) : seuls les tailleurs sont
+  // à valider.
+  const [tailors, models, fabrics, directory] = await Promise.all([
     getAllTailors(),
-    getAllVendors(),
     getAllModels(),
     getAllFabrics(),
     getContactDirectory(),
@@ -65,7 +65,6 @@ export default async function AdminValidationsPage() {
     accounts.set(shop.id, existing);
   };
   for (const t of tailors) touch(t, "tailor");
-  for (const v of vendors) touch(v, "vendor");
 
   const all = [...accounts.values()].sort((a, b) => a.name.localeCompare(b.name));
   const pending = all.filter((a) => !a.approved);

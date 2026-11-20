@@ -17,7 +17,7 @@ const STAGE_LABELS: Record<string, string> = {
   after_unauthorized_cut: "Après une découpe NON autorisée",
 };
 
-const OWNER_LABELS = { vendor: "du vendeur", tailor: "du tailleur", client: "du client" } as const;
+const OWNER_LABELS = { vendor: "de JALOFA", tailor: "du tailleur", client: "du client" } as const;
 
 function when(iso: string | null): string {
   if (!iso) return "—";
@@ -46,7 +46,7 @@ export default async function AdminCancellationsPage() {
   return (
     <AdminPage
       title="Annulations"
-      subtitle="Chaque demande bloque la commande tout de suite. Décidez vite : le tailleur et le vendeur attendent."
+      subtitle="Chaque demande bloque la commande tout de suite. Décidez vite : le tailleur et la boutique attendent."
     >
       {pending.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">

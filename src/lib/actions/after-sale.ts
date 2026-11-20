@@ -93,7 +93,7 @@ function revalidateOrder(orderId: string) {
   revalidatePath(`/compte/commandes/${orderId}`);
   revalidatePath("/compte/commandes");
   revalidatePath("/tailleur/espace", "layout");
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/admin", "layout");
 }
 
@@ -151,7 +151,7 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<Aft
         body,
         link:
           id === order.vendor_id && id !== order.tailor_id
-            ? "/vendeur/espace/annulees"
+            ? "/admin/boutique/annulees"
             : "/tailleur/espace/annulees",
         order_id: orderId,
       })),
@@ -200,7 +200,7 @@ export async function requestFabricReturn(orderId: string): Promise<AfterSaleRes
       type: "fabric_return",
       title: "Un client vous renvoie un tissu",
       body: `Commande ${order.order_number}. À l'arrivée, touchez « J'ai reçu le tissu retourné ».`,
-      link: "/vendeur/espace/a-traiter",
+      link: "/admin/boutique/a-traiter",
       order_id: orderId,
     },
   ]);
@@ -236,7 +236,7 @@ export async function confirmFabricReturnReceived(orderId: string): Promise<Afte
     {
       user_id: loaded.order.client_id,
       type: "fabric_return_received",
-      title: "Le vendeur a reçu votre tissu",
+      title: "JALOFA a reçu votre tissu",
       body: "JALOFA va vous rembourser.",
       link: `/compte/commandes/${orderId}`,
       order_id: orderId,
@@ -404,7 +404,7 @@ export async function submitSatisfaction(
         type: "satisfaction_problem",
         title: "Un client signale un problème de tissu",
         body: body(vendorIssues),
-        link: "/vendeur/espace/terminees",
+        link: "/admin/boutique/terminees",
         order_id: orderId,
       },
     ]);

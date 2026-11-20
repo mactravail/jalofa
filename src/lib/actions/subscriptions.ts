@@ -143,7 +143,7 @@ export async function setProSalesApproval(
   revalidatePros();
   revalidatePath("/admin/validations");
   revalidatePath("/tailleur/espace", "layout");
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/tissus");
   return { ok: true };
 }

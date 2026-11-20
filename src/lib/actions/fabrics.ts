@@ -133,28 +133,36 @@ function text(value: FormDataEntryValue | null): string | null {
   return s.length > 0 ? s : null;
 }
 
+const ADMIN_ONLY = "Seul JALOFA vend des tissus sur la plateforme.";
+
 /**
- * Make sure the seller has the `vendors` row that `fabrics.vendor_id` points at.
- *
- * Signup only creates one for role='vendor', so a tailor listing cloth has none.
- * The shop row is what carries the fabric, not the role — their profile stays
- * 'tailor'. A no-op once the row exists.
+ * JALOFA est le seul vendeur de tissus : seul l'administrateur écrit le
+ * catalogue (la policy RLS `fabrics_write_own` l'exige aussi).
+ */
+async function isFabricSeller(
+  supabase: SupabaseServerClient,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  return (data as { role: string } | null)?.role === "admin";
+}
+
+/**
+ * La ligne `vendors` de JALOFA (id = compte admin) porte `fabrics.vendor_id`.
+ * Créée par la migration 20260909000001 ; ici un simple filet si elle manque.
  */
 async function ensureVendorShop(
   supabase: SupabaseServerClient,
   userId: string,
 ): Promise<{ error: string } | null> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", userId)
-    .single();
-  const profile = data as { full_name: string | null } | null;
-
   const { error } = await supabase
     .from("vendors")
     .upsert(
-      { id: userId, shop_name: profile?.full_name ?? null },
+      { id: userId, shop_name: "JALOFA" },
       { onConflict: "id", ignoreDuplicates: true },
     );
   return error ? { error: error.message } : null;
@@ -187,6 +195,7 @@ export async function saveFabric(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Vous devez être connecté." };
+  if (!(await isFabricSeller(supabase, user.id))) return { ok: false, error: ADMIN_ONLY };
 
   // 2e photo : gros plan sur le tissage. Exigée à la création (fiche produit),
   // pas imposée aux tissus déjà en ligne.
@@ -358,8 +367,7 @@ export async function saveFabric(
     savedId = (created as { id: string }).id;
   }
 
-  revalidatePath("/vendeur/espace", "layout");
-  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/tissus");
   revalidatePath("/europe");
   return { ok: true, id: savedId };
@@ -374,6 +382,7 @@ async function setFabricInStockImpl(id: string, inStock: boolean): Promise<void>
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Vous devez être connecté.");
+  if (!(await isFabricSeller(supabase, user.id))) throw new Error(ADMIN_ONLY);
 
   const { data, error } = await supabase
     .from("fabrics")
@@ -384,8 +393,7 @@ async function setFabricInStockImpl(id: string, inStock: boolean): Promise<void>
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error("Tissu introuvable.");
 
-  revalidatePath("/vendeur/espace", "layout");
-  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/tissus");
   revalidatePath("/europe");
   revalidatePath(`/tissus/${id}`);
@@ -401,6 +409,7 @@ async function setFabricActiveImpl(id: string, active: boolean): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Vous devez être connecté.");
+  if (!(await isFabricSeller(supabase, user.id))) throw new Error(ADMIN_ONLY);
 
   const { data, error } = await supabase
     .from("fabrics")
@@ -411,8 +420,7 @@ async function setFabricActiveImpl(id: string, active: boolean): Promise<void> {
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error("Tissu introuvable.");
 
-  revalidatePath("/vendeur/espace", "layout");
-  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/tissus");
   revalidatePath("/europe");
   revalidatePath(`/tissus/${id}`);
@@ -428,6 +436,7 @@ async function deleteFabricImpl(id: string): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Vous devez être connecté.");
+  if (!(await isFabricSeller(supabase, user.id))) throw new Error(ADMIN_ONLY);
 
   const { data } = await supabase
     .from("fabrics")
@@ -454,15 +463,13 @@ async function deleteFabricImpl(id: string): Promise<void> {
   await removeImage(supabase, BUCKET, fabric?.image_url ?? null);
   await removeImage(supabase, BUCKET, fabric?.detail_image_url ?? null);
 
-  revalidatePath("/vendeur/espace", "layout");
-  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/tissus");
   revalidatePath("/europe");
 }
 
 function revalidateFabric(id: string) {
-  revalidatePath("/vendeur/espace", "layout");
-  revalidatePath("/tailleur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/tissus");
   revalidatePath("/europe");
   revalidatePath(`/tissus/${id}`);
@@ -476,6 +483,7 @@ async function ownedFabric(id: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Vous devez être connecté.");
+  if (!(await isFabricSeller(supabase, user.id))) throw new Error(ADMIN_ONLY);
   const { data } = await supabase
     .from("fabrics")
     .select("id, stock_meters, color")

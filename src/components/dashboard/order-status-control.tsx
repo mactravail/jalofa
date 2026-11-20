@@ -374,7 +374,7 @@ export function OrderStatusControl({
         <div className="flex w-full flex-col items-stretch gap-1.5 sm:w-auto sm:items-end">
           {notDeclared ? (
             <span className="text-muted-foreground text-sm">
-              <T>{"Vous avez le tissu ? Dites-le. JALOFA vérifie avec le vendeur."}</T>
+              <T>{"Vous avez le tissu ? Dites-le. JALOFA vérifie de son côté."}</T>
             </span>
           ) : waiting ? (
             <span className="text-muted-foreground text-sm">

@@ -178,7 +178,7 @@ export async function submitCertificationRequest(
     // Clé de service absente : la demande reste visible dans /admin/certifications.
   }
 
-  revalidatePath(kind === "tailor" ? "/tailleur/espace/certification" : "/vendeur/espace/certification");
+  revalidatePath(kind === "tailor" ? "/tailleur/espace/certification" : "/admin/boutique/certification");
   revalidatePath("/admin/certifications");
   return { ok: true };
 }
@@ -245,7 +245,7 @@ export async function reviewCertificationRequest(
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
-  const root = req.kind === "tailor" ? "/tailleur/espace" : "/vendeur/espace";
+  const root = req.kind === "tailor" ? "/tailleur/espace" : "/admin/boutique";
   await db.from("notifications").insert({
     user_id: req.pro_id,
     type: decision === "approved" ? "certification_approved" : "certification_rejected",

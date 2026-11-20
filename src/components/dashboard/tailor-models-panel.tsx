@@ -185,7 +185,7 @@ export function TailorModelsPanel({
 
       {models.length > 0 && needsSetup && (
         <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          <T>{"Indiquez l'adresse de votre atelier : les vendeurs y envoient les tissus de vos clients. Touchez « Modifier » sur un modèle."}</T>
+          <T>{"Indiquez l'adresse de votre atelier : JALOFA y envoie les tissus de vos clients. Touchez « Modifier » sur un modèle."}</T>
         </p>
       )}
 

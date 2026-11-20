@@ -67,7 +67,7 @@ const COPY: Record<"tailor" | "vendor", { empty: string }> = {
   },
   vendor: {
     empty:
-      "Vous n'avez pas encore de tissu en boutique. Ajoutez votre premier tissu pour commencer à vendre.",
+      "Aucun tissu dans la boutique JALOFA. Ajoutez le premier : il rejoint le catalogue et devient commandable.",
   },
 };
 

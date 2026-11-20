@@ -10,9 +10,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # JALOFA — Guide du projet
 
-Plateforme de couture sur mesure pour le Sénégal. Met en relation **clients**,
-**tailleurs** et **vendeurs de tissus** (designers plus tard). Toute la création
-d'un vêtement se fait dans l'application.
+Plateforme de couture sur mesure pour le Sénégal. Met en relation **clients** et
+**tailleurs** (designers plus tard). **JALOFA est le seul vendeur de tissus** : ni
+vendeurs tiers ni tailleurs ne vendent de tissu. Toute la création d'un vêtement
+se fait dans l'application.
 
 ## Stack
 
@@ -31,9 +32,12 @@ d'un vêtement se fait dans l'application.
 ## Structure
 
 - `src/app/(main)/` — pages publiques + espace client (header/footer partagés)
-- `src/app/(dashboard)/` — espace pro (`/tailleur/espace`, `/vendeur/espace`) : menu
+- `src/app/(dashboard)/` — espace pro (`/tailleur/espace`) et admin (`/admin`) : menu
   latéral propre, sans le chrome du site. **Une entrée de menu = une page** (jamais
-  un tableau de bord à dérouler) ; menu dans `src/lib/dashboard-nav.ts`
+  un tableau de bord à dérouler) ; menus dans `src/lib/dashboard-nav.ts` et
+  `src/lib/admin-nav.ts`. La boutique de tissus JALOFA (ex-espace vendeur) vit dans
+  `/admin/boutique` : le compte admin principal possède la ligne `vendors`
+  (`is_platform`) qui porte `fabrics.vendor_id` / `orders.vendor_id`.
 - `src/app/(auth)/` — connexion / inscription (layout minimal)
 - `src/lib/supabase/` — clients browser / server / middleware (guard « non configuré »)
 - `src/lib/actions/` — server actions · `src/proxy.ts` — session + gardes de routes
@@ -47,7 +51,7 @@ partout). Tables clés : `profiles`, `tailors`, `vendors`, `fabrics`, `models`,
 `notifications`, favoris.
 
 Storage : bucket public `fabric-images` (photos de tissus). Les écritures sont
-préfixées par l'uid du vendeur — c'est ce préfixe que la policy vérifie, donc
+préfixées par l'uid du vendeur (= l'admin JALOFA) — c'est ce préfixe que la policy vérifie, donc
 tout upload doit viser `<uid>/<fichier>`.
 
 ### État du provisioning

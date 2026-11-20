@@ -73,6 +73,6 @@ export async function savePayoutMethod(
   }
 
   revalidatePath("/tailleur/espace", "layout");
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   return { ok: true };
 }

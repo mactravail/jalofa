@@ -230,7 +230,11 @@ export function OrderDetailSheet({
             {DIRECT_PAYMENT ? (
               order.payment_status === "paid" && (
                 <p className="mt-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
-                  {t("Commande confirmée par le client. Envoyez-lui votre moyen de paiement (Wave, Orange Money…) par appel ou WhatsApp : il vous paie directement. Commencez quand vous avez reçu l'argent.")}
+                  {role === "vendor"
+                    ? t("Commande confirmée par le client. Il paie le tissu sur le Wave de JALOFA (77 500 85 83) : vérifiez le paiement avant d'envoyer le tissu.")
+                    : fabricTravels && order.fabric_price > 0
+                      ? t("Commande confirmée par le client. Le tissu est payé à JALOFA, qui l'envoie à votre atelier : demandez au client uniquement la couture. Envoyez-lui votre moyen de paiement (Wave, Orange Money…) par appel ou WhatsApp.")
+                      : t("Commande confirmée par le client. Envoyez-lui votre moyen de paiement (Wave, Orange Money…) par appel ou WhatsApp : il vous paie directement. Commencez quand vous avez reçu l'argent.")}
                 </p>
               )
             ) : (

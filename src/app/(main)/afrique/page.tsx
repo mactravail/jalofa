@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "JALOFA AFRIQUE",
     description: t(
-      "Habits homme, habits femme et tissus : tout ce que publient les tailleurs et les vendeurs d'Afrique sur JALOFA.",
+      "Habits homme, habits femme et tissus : les créations des tailleurs d'Afrique et les tissus JALOFA.",
     ),
   };
 }
@@ -121,9 +121,8 @@ function createdAt(row: object): string {
 
 /**
  * Ce que montre JALOFA AFRIQUE : d'abord ce que publient les pros africains
- * (créations des tailleurs, tissus des vendeurs), puis — tant qu'ils sont peu
- * nombreux — le catalogue JALOFA (`tailor_id` null) et les tissus de démo
- * (`vendor_id` null). Un pro est africain dès qu'il n'a pas déclaré un pays
+ * (créations des tailleurs), puis le catalogue JALOFA (`tailor_id` null) et
+ * les tissus, tous vendus par JALOFA. Un pro est africain dès qu'il n'a pas déclaré un pays
  * d'Europe ; le catalogue « europe-* » reste sur /europe.
  */
 function africanProducts(
@@ -156,7 +155,8 @@ function africanProducts(
   const cloths: ProductItem[] = fabrics
     .filter((f) => !f.origin?.europe)
     .map((f) => {
-      const fromPro = !!f.vendor_id;
+      // Tous les tissus sont ceux de JALOFA (seul vendeur) : ils se rangent
+      // avec le catalogue JALOFA, jamais parmi les créations des pros.
       return {
         kind: "fabric",
         id: f.id,
@@ -164,14 +164,14 @@ function africanProducts(
         image: f.image_url,
         hoverImage: f.detail_image_url ?? null,
         name: f.name,
-        brand: (fromPro && f.origin?.shop_name) || "JALOFA",
+        brand: "JALOFA",
         kicker: "Tissu",
         category: null,
-        place: fromPro ? f.origin?.city || f.origin?.country || null : null,
+        place: null,
         price: fabricUnitPrice(f),
         per: fabricUnit(f).per,
         soldOut: f.in_stock === false,
-        fromPro,
+        fromPro: false,
         createdAt: createdAt(f),
       };
     });
@@ -785,7 +785,7 @@ export default async function AfriquePage({
           </div>
           <div>
             <p className="text-muted-foreground text-sm tracking-[0.2em] uppercase">
-              {t("Tailleur ou vendeur de tissus")}
+              {t("Tailleurs")}
             </p>
             <h2 className={cn(COLLECTION_HEADING, "mt-3")}>
               {t("Vous êtes un pro de la couture ?")}

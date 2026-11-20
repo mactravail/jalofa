@@ -144,7 +144,7 @@ export function OrderRow({ order }: { order: OrderListItem }) {
           {vendorStage && (
             <LegBlock
               icon={Store}
-              role="Vendeur de tissu"
+              role="Tissu (JALOFA)"
               name={order.vendor?.shop_name ?? "Boutique"}
               detail={order.fabric?.name ? `Tissu : ${order.fabric.name}` : null}
               stage={vendorStage}

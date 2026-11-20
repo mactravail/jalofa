@@ -107,7 +107,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
                   "justify-start gap-2",
                 )}
               >
-                <Scissors className="size-4 shrink-0" /> {t("Je suis pro (tailleur ou vendeur de tissu)")}
+                <Scissors className="size-4 shrink-0" /> {t("Je suis tailleur")}
               </Link>
             </div>
           </div>

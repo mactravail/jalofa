@@ -1,22 +1,18 @@
 import Link from "@/components/i18n/link";
-import { EyeOff, Layers, Shirt } from "lucide-react";
+import { EyeOff, Shirt } from "lucide-react";
 
 import { ShopLinkCopy } from "@/components/dashboard/shop-link-copy";
 import { DASHBOARD_ROOT, type ProRole } from "@/lib/dashboard-nav";
-import { getCurrentTailor, getCurrentVendor } from "@/lib/data";
+import { getCurrentTailor } from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
 import { siteOrigin } from "@/lib/pro-subscription";
 
 // « Mon lien TikTok » : le lien de la boutique à mettre en bio TikTok ou à
-// donner pendant un live. Le client y voit les modèles du tailleur (ou les
-// tissus du vendeur) et seulement ceux-là, et achète tout de suite.
+// donner pendant un live. Le client y voit les modèles du tailleur et seulement
+// ceux-là, et achète tout de suite.
 export async function ShopLinkView({ role }: { role: ProRole }) {
   const t = await getT();
-  const [tailor, vendor, origin] = await Promise.all([
-    getCurrentTailor(),
-    getCurrentVendor(),
-    siteOrigin(),
-  ]);
+  const [tailor, origin] = await Promise.all([getCurrentTailor(), siteOrigin()]);
 
   const shops = [
     tailor && {
@@ -27,15 +23,6 @@ export async function ShopLinkView({ role }: { role: ProRole }) {
       url: `${origin}/tailleurs/${tailor.id}`,
       name: tailor.shop_name ?? t("Ma boutique"),
       visible: Boolean(tailor.is_active && tailor.is_activated),
-    },
-    vendor && {
-      key: "vendor" as const,
-      icon: Layers,
-      label: t("Mes tissus"),
-      hint: t("Les clients voient vos tissus et peuvent les acheter tout de suite."),
-      url: `${origin}/vendeurs/${vendor.id}`,
-      name: vendor.shop_name ?? t("Ma boutique"),
-      visible: Boolean(vendor.is_active && vendor.is_activated),
     },
   ]
     .filter((s): s is NonNullable<typeof s> => Boolean(s))

@@ -12,7 +12,6 @@ export const NAV_LINKS: NavLink[] = [
   // { href: "/homme/chaussures-sur-mesure/personnaliser", label: "Chaussures" },
   { href: "/tissus", label: "Tissus" },
   { href: "/tailleurs", label: "Tailleurs" },
-  { href: "/vendeurs", label: "Vendeurs" },
   { href: "/inspiration", label: "Inspiration" },
 ];
 
@@ -20,13 +19,12 @@ export const NAV_LINKS: NavLink[] = [
 // otherwise have no entry point.
 //
 // Les « Abonnements pros » ne figurent plus ici : JALOFA est gratuit pour les
-// tailleurs et les vendeurs (aucun abonnement, aucune commission). La page
-// `/abonnements` reste en place, non liée, pour un retour éventuel des forfaits.
+// tailleurs (aucun abonnement, aucune commission). La page `/abonnements` reste
+// en place, non liée, pour un retour éventuel des forfaits.
+//
+// Plus de « Vendeurs » (2026-11-20) : JALOFA est le seul vendeur de tissus.
 export const FOOTER_LINKS: NavLink[] = [
-  // Dans le pied de page, on précise : « Vendeurs de tissu », pas seulement « Vendeurs ».
-  ...NAV_LINKS.map((l) =>
-    l.href === "/vendeurs" ? { ...l, label: "Vendeurs de tissu" } : l,
-  ),
+  ...NAV_LINKS,
   { href: "/modeles", label: "Tous les modèles" },
   // La FAQ n'est plus affichée sur l'accueil : on y accède depuis le footer.
   { href: "/faq", label: "Questions fréquentes (FAQ)" },

@@ -392,7 +392,7 @@ export function ModelFormDialog({
                 {t("Où recevez-vous les tissus de vos clients ?")}
               </p>
               <p className="text-muted-foreground text-xs">
-                {t("Les vendeurs y envoient les tissus achetés ailleurs. Cette adresse reste privée.")}
+                {t("JALOFA y envoie les tissus de vos clients. Cette adresse reste privée.")}
               </p>
               <AtelierFields
                 atelier={

@@ -13,8 +13,8 @@ export const THEME_COLOR = "#000000";
 /**
  * Paiement direct (tant que le compte Bictorys n'est pas activé) : aucun argent
  * ne passe par JALOFA. Le client confirme sa commande ou accepte le devis, puis
- * le tailleur ou le vendeur lui envoie lui-même son moyen de paiement (Wave,
- * Orange Money…) et le client le paie directement. Remettre à `false` quand
+ * le tailleur lui envoie lui-même son moyen de paiement pour la couture (Wave,
+ * Orange Money…) ; le tissu se paie à JALOFA (Wave 77 500 85 83). Remettre à `false` quand
  * l'encaissement par Bictorys sera ouvert — et remettre alors les textes
  * « l'argent attend en sécurité ».
  */
@@ -156,7 +156,7 @@ export type UserRole = "client" | "tailor" | "vendor" | "admin";
 export const ROLE_LABELS: Record<UserRole, string> = {
   client: "Client",
   tailor: "Tailleur",
-  vendor: "Vendeur de tissus",
+  vendor: "Boutique JALOFA",
   admin: "Administrateur",
 };
 
@@ -417,4 +417,11 @@ export type DeliveryMethod = "home" | "pickup";
 export const DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
   home: "Livraison à domicile",
   pickup: "Retrait en boutique",
+};
+
+/** « Spécialisation » d'un tailleur, affichée sur sa carte et sa fiche publique. */
+export const TAILOR_SPECIALTY_LABELS: Record<import("@/lib/types").TailorSpecialty, string> = {
+  homme: "Couture homme",
+  femme: "Couture femme",
+  both: "Couture homme et femme",
 };

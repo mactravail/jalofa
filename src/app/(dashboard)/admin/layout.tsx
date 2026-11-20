@@ -9,10 +9,11 @@ import {
   getAllModels,
   getAllOrders,
   getAllTailors,
-  getAllVendors,
   hiddenOrderedModels,
 } from "@/lib/admin-data";
+import { getProFabricSales, getProOrders } from "@/lib/dashboard-data";
 import { getMyUnreadNotificationCount } from "@/lib/notifications-data";
+import { bucketOrders } from "@/lib/pipeline";
 import { getCurrentProfile, isSupabaseConfigured } from "@/lib/queries";
 import { canSell } from "@/lib/sales-approval";
 
@@ -36,15 +37,18 @@ export default async function AdminLayout({
 
   // Pastilles du menu : commandes à accepter, pros en attente de validation, et
   // retours des utilisateurs pas encore traités.
-  const [orders, tailors, vendors, feedback, models, unread, certifications] = await Promise.all([
-    getAllOrders(),
-    getAllTailors(),
-    getAllVendors(),
-    getAllFeedback(),
-    getAllModels(),
-    getMyUnreadNotificationCount(),
-    getPendingCertificationCount(),
-  ]);
+  const [orders, tailors, feedback, models, unread, certifications, shopOrders, sales] =
+    await Promise.all([
+      getAllOrders(),
+      getAllTailors(),
+      getAllFeedback(),
+      getAllModels(),
+      getMyUnreadNotificationCount(),
+      getPendingCertificationCount(),
+      // La boutique JALOFA : ses commandes de tissu (le compte admin est la boutique).
+      getProOrders("vendor"),
+      getProFabricSales(),
+    ]);
   // Modèles masqués par leur tailleur alors que des commandes sont en cours :
   // risque d'arnaque, à vérifier (cf. la page « Modèles »).
   const hiddenWithOngoing = hiddenOrderedModels(models, orders, tailors).filter(
@@ -55,14 +59,13 @@ export default async function AdminLayout({
   // Les commandes refusées en attente : autant de clients à rappeler pour les
   // orienter vers un autre tailleur. La pastille retombe dès qu'un client relance.
   const rejected = orders.filter((o) => o.status === "rejected").length;
-  // Tissus reçus par le tailleur sans envoi déclaré : vendeurs à appeler.
+  // Tissus reçus par le tailleur sans envoi déclaré par JALOFA : à vérifier.
   const shipmentChecks = orders.filter((o) => o.fabric_vendor_check === "pending").length;
   const pendingPros = new Set<string>();
   for (const t of tailors) if (!t.is_activated) pendingPros.add(t.id);
-  for (const v of vendors) if (!v.is_activated) pendingPros.add(v.id);
   // Nouveaux pros dont les ventes attendent la validation (anti-arnaque).
   const salesPending = new Set<string>();
-  for (const s of [...tailors, ...vendors]) if (!canSell(s)) salesPending.add(s.id);
+  for (const s of tailors) if (!canSell(s)) salesPending.add(s.id);
 
   return (
     <AdminShell
@@ -77,6 +80,8 @@ export default async function AdminLayout({
         validations: salesPending.size,
         models: hiddenWithOngoing,
         notifications: unread,
+        shopTodo: bucketOrders("vendor", shopOrders, "todo").length,
+        sales: sales.filter((s) => !s.is_read).length,
       }}
     >
       <ModerationProvider demo={!isSupabaseConfigured()}>

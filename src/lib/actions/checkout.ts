@@ -301,7 +301,7 @@ export async function placeOrders(
     }
 
     recordDemoFabricSales(sales);
-    revalidatePath("/vendeur/espace", "layout");
+    revalidatePath("/admin/boutique", "layout");
     return { ok: true, demo: true, orderNumbers };
   }
 

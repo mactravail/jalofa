@@ -34,8 +34,6 @@ export type TailorOffer = {
     Tailor,
     "id" | "shop_name" | "base_price" | "free_delivery" | "free_delivery_zone"
   >;
-  /** Tous les tissus en ligne de ce tailleur — première rangée du « Sur mesure ». */
-  tailorFabrics: Fabric[];
 };
 
 // Le bloc d'achat d'une fiche vêtement. UN SEUL bouton : le client choisit
@@ -45,7 +43,7 @@ export type TailorOffer = {
 // - Tel quel  : le prêt-à-porter du tailleur (déjà cousu) — couleur + taille →
 //   « Ajouter au panier ». Seulement si le tailleur auteur l'a déclaré
 //   disponible ; le catalogue JALOFA ne se vend que sur mesure.
-// - Sur mesure : un tissu du tailleur ou d'un autre vendeur → « Personnaliser »
+// - Sur mesure : un tissu JALOFA (seul vendeur de tissus) → « Personnaliser »
 //   (configurateur, puis demande de devis : le prix final est fixé par le tailleur).
 //
 // Pas d'inscription avant : le compte client est créé à la caisse (ou au
@@ -77,7 +75,6 @@ export function GarmentBuyBox({
   const t = useT();
   // Un tissu épuisé n'est jamais proposé.
   const fabrics = allFabrics.filter(isFabricAvailable);
-  const tailorFabrics = offer?.tailorFabrics.filter(isFabricAvailable) ?? [];
   const carriedFabricId = fabrics.some((f) => f.id === initialFabricId)
     ? initialFabricId
     : null;
@@ -104,16 +101,11 @@ export function GarmentBuyBox({
   // il ne paie que la couture et l'envoie à l'atelier une fois le devis payé.
   const [ownFabric, setOwnFabric] = useState(false);
   const sendsOwnFabric = mode === "custom" && ownFabric;
-  // Un tissu sans vendeur ne peut être envoyé par personne : il n'est pas proposé
-  // sur le modèle d'un tailleur.
-  const otherFabrics = offer
-    ? fabrics.filter((f) => f.vendor_id && f.vendor_id !== offer.tailor.id)
-    : [];
+  // Les tissus JALOFA : un tissu sans boutique (mode démo) ne peut être envoyé
+  // par personne, il n'est pas proposé sur le modèle d'un tailleur.
+  const shopFabrics = offer ? fabrics.filter((f) => f.vendor_id) : [];
   const [fabricId, setFabricId] = useState<string | null>(
-    carriedFabricId ??
-      (offer
-        ? (tailorFabrics[0]?.id ?? otherFabrics[0]?.id ?? null)
-        : (fabrics[0]?.id ?? null)),
+    carriedFabricId ?? (offer ? (shopFabrics[0]?.id ?? null) : (fabrics[0]?.id ?? null)),
   );
 
   // Sur mesure : le prix « à partir de » suit le tissu choisi.
@@ -187,10 +179,7 @@ export function GarmentBuyBox({
   ];
 
   const customGroups = offer
-    ? [
-        { label: t("Tissus de {name}", { name: offer.tailor.shop_name ?? t("l'atelier") }), fabrics: tailorFabrics },
-        { label: t("Autres vendeurs"), fabrics: otherFabrics },
-      ]
+    ? [{ label: t("Tissus JALOFA"), fabrics: shopFabrics }]
     : undefined;
 
   return (

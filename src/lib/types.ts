@@ -43,6 +43,8 @@ export interface Address {
   is_default: boolean;
 }
 
+export type TailorSpecialty = "homme" | "femme" | "both";
+
 export interface Tailor {
   /** Où le prix du tailleur inclut la livraison. */
   free_delivery_zone?: FreeDeliveryZone;
@@ -94,6 +96,21 @@ export interface Tailor {
    * Absent (colonne pas encore en base) = validé. Lire avec `canSell()`.
    */
   sales_approved?: boolean;
+  /**
+   * « Spécialisation » : les habits du catalogue JALOFA que le tailleur sait
+   * coudre (slug du modèle, ou son id s'il n'en a pas). Absent = colonne pas
+   * encore en base, lu comme une liste vide.
+   */
+  skills?: string[];
+  /**
+   * Masqué par l'administration : hors du site (liste, fiche, catalogue) sans
+   * être suspendu. Seul l'admin le change. Absent = colonne pas encore en base.
+   */
+  hidden_by_admin?: boolean;
+  /** Les habits absents du catalogue, dont le tailleur a écrit le nom lui-même. */
+  custom_skills?: string[];
+  /** « Spécialisation » : couture homme, femme, ou les deux. Absent/null = pas encore dit. */
+  specialty?: TailorSpecialty | null;
 
   // --- Comment le pro est réglé de ses ventes (page « Paiement » de l'espace).
   //     JALOFA est gratuit : il encaisse 100%, versés sur ce moyen. Colonnes

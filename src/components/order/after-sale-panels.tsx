@@ -179,8 +179,8 @@ export function FabricReturnPanel({
   if (status === "received") {
     return (
       <div className="rounded-xl border p-4">
-        <p className="font-semibold">{t("Le vendeur a reçu votre tissu")}</p>
-        <p className="text-muted-foreground mt-0.5 text-sm">{t("Le vendeur va vous rembourser.")}</p>
+        <p className="font-semibold">{t("JALOFA a reçu votre tissu")}</p>
+        <p className="text-muted-foreground mt-0.5 text-sm">{t("JALOFA va vous rembourser.")}</p>
       </div>
     );
   }
@@ -188,9 +188,9 @@ export function FabricReturnPanel({
   if (status === "requested") {
     return (
       <div className="rounded-xl border p-4">
-        <p className="font-semibold">{t("Renvoyez le tissu au vendeur")}</p>
+        <p className="font-semibold">{t("Renvoyez le tissu à JALOFA")}</p>
         <p className="text-muted-foreground mt-0.5 text-sm">
-          {t("L'envoi est à votre charge. Le vendeur vous rembourse quand il l'a reçu.")}
+          {t("L'envoi est à votre charge. JALOFA vous rembourse dès réception.")}
         </p>
         {returnAddress ? (
           <div className="bg-muted/50 mt-3 rounded-lg p-3 text-sm">
@@ -215,7 +215,7 @@ export function FabricReturnPanel({
         {deadlineLabel
           ? t("Vous pouvez le rendre jusqu'au {date}.", { date: deadlineLabel })
           : t("Vous pouvez le rendre.")}{" "}
-        {t("L'envoi est à votre charge, et le vendeur vous rembourse quand il l'a reçu.")}
+        {t("L'envoi est à votre charge, et JALOFA vous rembourse dès réception.")}
       </p>
       <Button
         variant="outline"

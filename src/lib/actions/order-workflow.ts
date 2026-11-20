@@ -49,7 +49,7 @@ function revalidateOrder(orderId: string) {
   revalidatePath(`/compte/commandes/${orderId}`);
   revalidatePath("/compte/commandes");
   revalidatePath("/tailleur/espace", "layout");
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
   revalidatePath("/admin", "layout");
 }
 

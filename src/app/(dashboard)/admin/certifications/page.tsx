@@ -54,7 +54,7 @@ export default async function AdminCertificationsPage() {
   return (
     <AdminPage
       title="Certifications"
-      subtitle="Les tailleurs et vendeurs qui demandent le badge « Certifié ». Vérifiez la carte d'identité et l'entreprise, puis certifiez ou refusez avec un motif."
+      subtitle="Les tailleurs qui demandent le badge « Certifié ». Vérifiez la carte d'identité et l'entreprise, puis certifiez ou refusez avec un motif."
     >
       {requests.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">

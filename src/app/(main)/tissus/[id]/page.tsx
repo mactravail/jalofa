@@ -12,7 +12,6 @@ import {
   Ruler,
   Shapes,
   Sparkles,
-  Store,
   Sun,
   Weight,
   Wind,
@@ -80,10 +79,9 @@ export default async function FabricDetailPage({
   if (!fabric || fabric.is_active === false) notFound();
   const t = await getT();
 
-  // Boutique d'origine — on ne lie que vers une fiche publique visible (une
-  // boutique suspendue n'a pas de page).
+  // La boutique : JALOFA, seul vendeur de tissus. Sa ligne sert encore aux
+  // contrôles de vente (anti-arnaque) ; il n'y a plus de fiche vendeur publique.
   const vendor = fabric.vendor_id ? await getVendorById(fabric.vendor_id) : null;
-  const shop = vendor && !vendor.is_suspended ? vendor : null;
 
   const family = await getFabrics({ category: fabric.category_slug ?? undefined });
 
@@ -94,11 +92,7 @@ export default async function FabricDetailPage({
   const categories = await getFabricCategories();
   const categoryName = categories.find((c) => c.slug === fabric.category_slug)?.name ?? null;
 
-  // Coloris : le même tissu décliné CHEZ LE MÊME VENDEUR (même matière). Sans
-  // ce filtre, « Coton » rassemblait les tissus de toutes les boutiques et le
-  // client passait chez un autre vendeur en touchant une pastille. Un tissu
-  // seul dans sa boutique n'affiche pas de nuancier (les tissus du catalogue
-  // JALOFA, sans vendeur, restent groupés entre eux).
+  // Coloris : le même tissu (même matière) décliné dans la boutique JALOFA.
   const variants = family.filter(
     (f) =>
       (f.vendor_id ?? null) === (fabric.vendor_id ?? null) &&
@@ -219,8 +213,8 @@ export default async function FabricDetailPage({
             image_url: v.image_url,
           }))}
           uses={uses.map(({ use, meters }) => ({ label: t(use.label), meters }))}
-          vendorName={shop?.shop_name ?? vendor?.shop_name ?? null}
-          vendorHref={shop ? `/vendeurs/${shop.id}` : null}
+          vendorName="JALOFA"
+          vendorHref={null}
           deliveryZone={fabric.delivery_zone ?? "none"}
           rating={rating}
           reviewCount={reviewCount}
@@ -245,7 +239,7 @@ export default async function FabricDetailPage({
         </section>
       )}
 
-      {/* Caractéristiques techniques — ce que le vendeur a renseigné */}
+      {/* Caractéristiques techniques — ce que JALOFA a renseigné */}
       <section className="mt-16">
         <h2 className="font-serif text-2xl tracking-tight">{t("Caractéristiques")}</h2>
         {sheer && (
@@ -315,30 +309,6 @@ export default async function FabricDetailPage({
         </p>
       </section>
 
-      {/* La boutique */}
-      {shop && (
-        <section className="mt-14">
-          <h2 className="font-serif text-2xl tracking-tight">{t("La boutique")}</h2>
-          <Link
-            href={`/vendeurs/${shop.id}`}
-            className="hover:bg-muted/40 mt-5 flex items-center gap-4 rounded-2xl border p-5 transition-colors"
-          >
-            <span className="bg-muted flex size-14 shrink-0 items-center justify-center rounded-full">
-              <Store className="size-6" />
-            </span>
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 font-medium">
-                {shop.shop_name}
-                {shop.is_certified && <BadgeCheck className="text-muted-foreground size-4" />}
-              </p>
-              <p className="text-muted-foreground text-sm">
-                {shop.city ?? t("Sénégal")}
-              </p>
-            </div>
-            <ChevronRight className="text-muted-foreground ml-auto size-5 shrink-0" />
-          </Link>
-        </section>
-      )}
 
       {/* Tissus similaires */}
       {related.length > 0 && (

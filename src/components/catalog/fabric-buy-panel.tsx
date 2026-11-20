@@ -439,11 +439,9 @@ export function FabricBuyPanel({
         <div className="flex items-start gap-2.5">
           <Store className="mt-0.5 size-4 shrink-0" />
           <div>
-            <dt className="font-medium">{t("Retrait en boutique — gratuit")}</dt>
+            <dt className="font-medium">{t("Vendu et expédié par JALOFA")}</dt>
             <dd className="text-muted-foreground text-xs">
-              {vendorName
-                ? t("Chez {name}, aux horaires du vendeur.", { name: vendorName })
-                : t("Aux horaires du vendeur.")}
+              {t("Pour un habit, JALOFA envoie le tissu directement à l'atelier de votre tailleur.")}
             </dd>
           </div>
         </div>
@@ -462,7 +460,7 @@ export function FabricBuyPanel({
           <dd className="text-foreground">{fabric.material ?? "—"}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-24 shrink-0">{t("Boutique")}</dt>
+          <dt className="w-24 shrink-0">{t("Vendu par")}</dt>
           <dd>
             {vendorHref && vendorName ? (
               <Link href={vendorHref} className="text-foreground hover:underline">

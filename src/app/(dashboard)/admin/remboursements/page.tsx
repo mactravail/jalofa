@@ -16,7 +16,7 @@ export default async function AdminRefundsPage() {
   return (
     <AdminPage
       title="Remboursements"
-      subtitle="Les clients à rembourser : commandes annulées et tissus retournés reçus par le vendeur."
+      subtitle="Les clients à rembourser : commandes annulées et tissus retournés reçus par JALOFA."
     >
       {refunds.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center">

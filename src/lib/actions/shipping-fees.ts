@@ -50,6 +50,6 @@ export async function saveShippingFees(
     .eq("id", user.id);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath(role === "tailor" ? "/tailleur/espace" : "/vendeur/espace", "layout");
+  revalidatePath(role === "tailor" ? "/tailleur/espace" : "/admin/boutique", "layout");
   return { ok: true };
 }

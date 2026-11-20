@@ -22,8 +22,6 @@ import { useT } from "@/components/i18n/locale-provider";
 export function ReviseQuotePanel({
   orderId,
   fabrics,
-  tailorId,
-  tailorName,
   fabricId: initialFabricId,
   fabricMeters,
   address: initialAddress,
@@ -73,16 +71,8 @@ export function ReviseQuotePanel({
     );
   }
 
-  const groups = [
-    {
-      label: t("Tissus de {name}", { name: tailorName ?? t("l'atelier") }),
-      fabrics: fabrics.filter((f) => f.vendor_id === tailorId),
-    },
-    {
-      label: t("Autres vendeurs"),
-      fabrics: fabrics.filter((f) => f.vendor_id !== tailorId),
-    },
-  ];
+  // Tous les tissus sont ceux de JALOFA, seul vendeur de tissus.
+  const groups = [{ label: t("Tissus JALOFA"), fabrics }];
 
   const send = () => {
     startTransition(async () => {

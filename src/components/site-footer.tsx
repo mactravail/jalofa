@@ -68,11 +68,6 @@ export async function SiteFooter() {
                 {t("Devenir tailleur")}
               </Link>
             </li>
-            <li>
-              <Link href="/inscription?role=pro" className="hover:text-white">
-                {t("Vendre des tissus")}
-              </Link>
-            </li>
           </ul>
         </div>
 

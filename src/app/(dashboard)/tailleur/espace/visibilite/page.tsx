@@ -6,14 +6,14 @@ import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
-  return { title: t("Je suis") };
+  return { title: t("Ma visibilité") };
 }
 
 export default function TailorVisibilityPage() {
   return (
     <DashboardPage
-      title="Je suis"
-      subtitle=""
+      title="Ma visibilité"
+      subtitle="Choisissez si les clients vous trouvent dans la liste des tailleurs."
     >
       <VisibilityView />
     </DashboardPage>

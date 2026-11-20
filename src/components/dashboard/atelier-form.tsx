@@ -127,7 +127,7 @@ export function AtelierForm({ atelier }: { atelier: TailorAtelier | null }) {
           <MapPin className="size-4" /> <T>Mon atelier</T>
         </h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          <T>{"Les vendeurs y envoient les tissus de vos clients. Cette adresse reste privée : elle n'apparaît pas sur votre page."}</T>
+          <T>{"JALOFA y envoie les tissus de vos clients. Cette adresse reste privée : elle n'apparaît pas sur votre page."}</T>
         </p>
       </div>
       <AtelierFields atelier={atelier} required />

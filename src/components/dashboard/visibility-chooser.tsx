@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Layers, Loader2, Scissors } from "lucide-react";
+import { Check, EyeOff, Loader2, Scissors } from "lucide-react";
 import { toast } from "sonner";
 
 import { T } from "@/components/i18n/t";
@@ -10,34 +10,29 @@ import { translateNow } from "@/lib/i18n/translate";
 import { cn } from "@/lib/utils";
 
 const CHOICES: {
-  id: Exclude<ProVisibility, "none">;
+  id: ProVisibility;
   title: string;
-  icons: React.ComponentType<{ className?: string }>[];
+  icon: React.ComponentType<{ className?: string }>;
   tone: string;
 }[] = [
   {
     id: "tailor",
-    title: "Tailleur",
-    icons: [Scissors],
+    title: "Visible : les clients me trouvent",
+    icon: Scissors,
     tone: "bg-rose-500",
   },
   {
-    id: "vendor",
-    title: "Vendeur de tissus",
-    icons: [Layers],
-    tone: "bg-fuchsia-500",
-  },
-  {
-    id: "both",
-    title: "Les deux",
-    icons: [Scissors, Layers],
-    tone: "bg-violet-500",
+    id: "none",
+    title: "Caché pour l'instant",
+    icon: EyeOff,
+    tone: "bg-zinc-500",
   },
 ];
 
 /**
- * « Je suis » : Tailleur, Vendeur de tissus ou Les deux — rien d'autre. Un
- * toucher suffit, le choix est enregistré tout de suite.
+ * « Ma visibilité » : le tailleur apparaît dans l'annuaire /tailleurs, ou reste
+ * caché le temps de compléter sa fiche. Un toucher suffit, le choix est
+ * enregistré tout de suite.
  */
 export function VisibilityChooser({ initial }: { initial: ProVisibility }) {
   const [current, setCurrent] = useState<ProVisibility>(initial);
@@ -77,18 +72,13 @@ export function VisibilityChooser({ initial }: { initial: ProVisibility }) {
               selected ? "border-primary" : "border-border hover:border-muted-foreground/40",
             )}
           >
-            <span className="flex shrink-0 -space-x-1.5">
-              {c.icons.map((Icon, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "border-card flex size-8 items-center justify-center rounded-full border-2 text-white",
-                    c.tone,
-                  )}
-                >
-                  <Icon className="size-4" />
-                </span>
-              ))}
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-full text-white",
+                c.tone,
+              )}
+            >
+              <c.icon className="size-4" />
             </span>
             <span className="min-w-0 flex-1 truncate whitespace-nowrap text-sm font-semibold">
               <T>{c.title}</T>

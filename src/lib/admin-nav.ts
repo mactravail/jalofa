@@ -1,5 +1,11 @@
 import {
+  AlarmClock,
   BadgeCheck,
+  CheckCircle2,
+  ClipboardList,
+  CreditCard,
+  Receipt,
+  Truck,
   BarChart3,
   Ban,
   Bell,
@@ -16,7 +22,6 @@ import {
   Sparkles,
   Star,
   ThumbsUp,
-  Store,
   Undo2,
   UserCog,
   Users,
@@ -31,6 +36,8 @@ import {
 
 export const ADMIN_ROOT = "/admin";
 export const ADMIN_TITLE = "Administration";
+/** La boutique de tissus JALOFA (= `DASHBOARD_ROOT.vendor`). */
+export const SHOP_ROOT = `${ADMIN_ROOT}/boutique`;
 
 export type AdminNavId =
   | "overview"
@@ -46,10 +53,17 @@ export type AdminNavId =
   | "users"
   | "subscriptions"
   | "tailors"
-  | "vendors"
   | "certifications"
   | "validations"
+  | "shopTodo"
+  | "shopOngoing"
+  | "shopShipping"
+  | "shopDone"
+  | "shopCancelled"
   | "fabrics"
+  | "fabricTips"
+  | "sales"
+  | "shopPayment"
   | "models"
   | "reviews"
   | "inspiration"
@@ -128,7 +142,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: "Colis à confirmer",
         icon: MessageCircle,
       },
-      // Le tailleur a reçu un tissu que le vendeur n'a pas déclaré envoyé.
+      // Le tailleur a reçu un tissu que JALOFA n'a pas déclaré envoyé.
       {
         id: "shipmentChecks",
         href: `${ADMIN_ROOT}/envois`,
@@ -182,12 +196,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: Scissors,
       },
       {
-        id: "vendors",
-        href: `${ADMIN_ROOT}/vendeurs`,
-        label: "Vendeurs",
-        icon: Store,
-      },
-      {
         id: "certifications",
         href: `${ADMIN_ROOT}/certifications`,
         label: "Certifications",
@@ -196,14 +204,72 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
-    label: "Catalogue",
+    // JALOFA est le SEUL vendeur de tissus : l'ancien espace vendeur vit ici.
+    // Le compte admin principal est la boutique (`vendors.is_platform`).
+    label: "Boutique JALOFA",
     items: [
       {
         id: "fabrics",
-        href: `${ADMIN_ROOT}/tissus`,
+        href: `${SHOP_ROOT}/tissus`,
         label: "Tissus",
         icon: Layers,
       },
+      {
+        // Laize, minimum, toucher et entretien de chaque tissu.
+        id: "fabricTips",
+        href: `${SHOP_ROOT}/recommandations`,
+        label: "Recommandations",
+        icon: Sparkles,
+      },
+      {
+        id: "shopTodo",
+        href: `${SHOP_ROOT}/a-traiter`,
+        label: "Tissus à préparer",
+        icon: ClipboardList,
+      },
+      {
+        id: "shopOngoing",
+        href: `${SHOP_ROOT}/en-cours`,
+        label: "En cours",
+        icon: AlarmClock,
+      },
+      {
+        // Les colis de tissu regroupés par ville (client ou atelier).
+        id: "shopShipping",
+        href: `${SHOP_ROOT}/livraisons`,
+        label: "À envoyer",
+        icon: Truck,
+      },
+      {
+        id: "shopDone",
+        href: `${SHOP_ROOT}/terminees`,
+        label: "Livrés",
+        icon: CheckCircle2,
+      },
+      {
+        id: "shopCancelled",
+        href: `${SHOP_ROOT}/annulees`,
+        label: "Annulés",
+        icon: Ban,
+      },
+      {
+        id: "sales",
+        href: `${SHOP_ROOT}/ventes`,
+        label: "Ventes de tissus",
+        icon: Receipt,
+      },
+      {
+        // Le numéro Wave/OM où les clients paient leur tissu + frais d'envoi.
+        id: "shopPayment",
+        href: `${SHOP_ROOT}/paiement`,
+        label: "Paiement et livraison",
+        icon: CreditCard,
+      },
+    ],
+  },
+  {
+    label: "Catalogue",
+    items: [
       {
         id: "models",
         href: `${ADMIN_ROOT}/modeles`,

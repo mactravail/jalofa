@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function markFabricSalesRead() {
   if (!isSupabaseConfigured()) {
     markDemoFabricSalesRead();
-    revalidatePath("/vendeur/espace", "layout");
+    revalidatePath("/admin/boutique", "layout");
     return;
   }
 
@@ -28,7 +28,7 @@ export async function markFabricSalesRead() {
     .eq("is_read", false);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/vendeur/espace", "layout");
+  revalidatePath("/admin/boutique", "layout");
 }
 
 /**

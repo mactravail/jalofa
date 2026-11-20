@@ -3103,5 +3103,103 @@ export const it: Record<string, string> = {
   "Stock en {unit}.": "Scorta in {unit}.",
   "Les détails de vos tissus : laize, minimum, toucher et entretien.":
     "I dettagli dei tuoi tessuti: altezza, minimo, mano e cura.",
+  // JALOFA seul vendeur de tissus (2026-11-20)
+  "JALOFA met en relation clients et tailleurs, avec les tissus JALOFA. Créez un vêtement sur mesure depuis votre téléphone, en Afrique.":
+    "JALOFA mette in contatto clienti e sarti, con i tessuti JALOFA. Crea un abito su misura dal tuo telefono, in Africa.",
+  "Ma visibilité":
+    "La mia visibilità",
+  "Choisissez si les clients vous trouvent dans la liste des tailleurs.":
+    "Scegli se i clienti ti trovano nell'elenco dei sarti.",
+  "Visible : les clients me trouvent":
+    "Visibile: i clienti mi trovano",
+  "Caché pour l'instant":
+    "Nascosto per ora",
+  "Pas en vente : choisissez un autre tissu JALOFA pour commander.":
+    "Non in vendita: scegli un altro tessuto JALOFA per ordinare.",
+  "Vendu et expédié par JALOFA":
+    "Venduto e spedito da JALOFA",
+  "Pour un habit, JALOFA envoie le tissu directement à l'atelier de votre tailleur.":
+    "Per un abito, JALOFA spedisce il tessuto direttamente al laboratorio del tuo sarto.",
+  "Vendu par":
+    "Venduto da",
+  "Tissus JALOFA":
+    "Tessuti JALOFA",
+  "Cette matière n'est pas encore détaillée.":
+    "Questo materiale non è ancora descritto.",
+  "Laine, soie, coton, lin : au mètre, sélectionnés par JALOFA.":
+    "Lana, seta, cotone, lino: al metro, selezionati da JALOFA.",
+  "Tailleurs et créateurs":
+    "Sarti e creatori",
+  "Habits homme, habits femme et tissus : les créations des tailleurs d'Afrique et les tissus JALOFA.":
+    "Abiti uomo, abiti donna e tessuti: le creazioni dei sarti d'Africa e i tessuti JALOFA.",
+  "JALOFA attend 24 h avant d'envoyer le tissu, puis le tailleur attend 24 h avant de le couper : vous pouvez demander l'annulation sans perte.":
+    "JALOFA aspetta 24 h prima di spedire il tessuto, poi il sarto aspetta 24 h prima di tagliarlo: puoi chiedere l'annullamento senza perdite.",
+  "Après votre commande, vous payez le tissu à JALOFA (Wave 77 500 85 83) et la couture directement au tailleur, qui vous envoie son moyen de paiement (Wave, Orange Money…).":
+    "Dopo l'ordine, paghi il tessuto a JALOFA (Wave 77 500 85 83) e la sartoria direttamente al sarto, che ti invia il suo metodo di pagamento (Wave, Orange Money…).",
+  "JALOFA a reçu votre tissu":
+    "JALOFA ha ricevuto il tuo tessuto",
+  "Renvoyez le tissu à JALOFA":
+    "Rispedisci il tessuto a JALOFA",
+  "L'envoi est à votre charge. JALOFA vous rembourse dès réception.":
+    "La spedizione è a tuo carico. JALOFA ti rimborsa appena lo riceve.",
+  "L'envoi est à votre charge, et JALOFA vous rembourse dès réception.":
+    "La spedizione è a tuo carico, e JALOFA ti rimborsa appena lo riceve.",
+  "Métré et contrôlé par JALOFA avant expédition.":
+    "Misurato e controllato da JALOFA prima della spedizione.",
+  "Note pour JALOFA (facultatif)":
+    "Nota per JALOFA (facoltativa)",
+  "JALOFA y envoie les tissus de vos clients. Cette adresse reste privée : elle n'apparaît pas sur votre page.":
+    "JALOFA vi spedisce i tessuti dei tuoi clienti. Questo indirizzo resta privato: non appare sulla tua pagina.",
+  "JALOFA y envoie les tissus de vos clients. Cette adresse reste privée.":
+    "JALOFA vi spedisce i tessuti dei tuoi clienti. Questo indirizzo resta privato.",
+  "Indiquez l'adresse de votre atelier : JALOFA y envoie les tissus de vos clients. Touchez « Modifier » sur un modèle.":
+    "Indica l'indirizzo del tuo laboratorio: JALOFA vi spedisce i tessuti dei tuoi clienti. Tocca « Modifica » su un modello.",
+  "Vous avez le tissu ? Dites-le. JALOFA vérifie de son côté.":
+    "Hai il tessuto? Dillo. JALOFA verifica dalla sua parte.",
+  "Commande confirmée par le client. Le tissu est payé à JALOFA, qui l'envoie à votre atelier : demandez au client uniquement la couture. Envoyez-lui votre moyen de paiement (Wave, Orange Money…) par appel ou WhatsApp.":
+    "Ordine confermato dal cliente. Il tessuto è pagato a JALOFA, che lo spedisce al tuo laboratorio: chiedi al cliente solo la sartoria. Inviagli il tuo metodo di pagamento (Wave, Orange Money…) con una chiamata o su WhatsApp.",
+  "JALOFA choisit des tailleurs sérieux, notés par leurs clients.":
+    "JALOFA sceglie sarti seri, valutati dai loro clienti.",
+  "Vous payez le tissu à JALOFA (Wave 77 500 85 83) et la couture directement au tailleur, qui vous envoie son moyen de paiement.":
+    "Paghi il tessuto a JALOFA (Wave 77 500 85 83) e la sartoria direttamente al sarto, che ti invia il suo metodo di pagamento.",
+  "Le tissu se paie à JALOFA, seul vendeur de tissus du site (Wave 77 500 85 83). La couture se paie directement au tailleur : après votre commande (ou votre devis accepté), il vous envoie son moyen de paiement — Wave, Orange Money, Free Money…":
+    "Il tessuto si paga a JALOFA, unico venditore di tessuti del sito (Wave 77 500 85 83). La sartoria si paga direttamente al sarto: dopo l'ordine (o il preventivo accettato), ti invia il suo metodo di pagamento — Wave, Orange Money, Free Money…",
+  "Comment devenir tailleur sur JALOFA ?":
+    "Come diventare sarto su JALOFA?",
+  "JALOFA doit savoir où envoyer le tissu : indiquez l'adresse de votre atelier dans « Ma page publique ».":
+    "JALOFA deve sapere dove spedire il tessuto: indica l'indirizzo del tuo laboratorio in « La mia pagina pubblica ».",
+  "JALOFA ne propose pas l'express pour ce tissu. Choisissez l'économique.":
+    "JALOFA non offre l'express per questo tessuto. Scegli l'economica.",
+  "Seul JALOFA vend des tissus sur la plateforme.":
+    "Solo JALOFA vende tessuti sulla piattaforma.",
+  "Votre compte pro couvre votre atelier de tailleur.":
+    "Il tuo account pro copre il tuo laboratorio di sartoria.",
+  "Votre atelier de tailleur en ligne": "Il tuo laboratorio di sartoria online",
+  "Une seule boutique pour toutes vos créations": "Un solo negozio per tutte le tue creazioni",
+  "décrire vos modèles avec exactitude ;": "descrivere i tuoi modelli con esattezza;",
+  "Je sais faire": "So fare",
+  "Touchez les habits que vous savez coudre. Les clients les voient sur votre page.": "Tocca i capi che sai cucire. I clienti li vedono sulla tua pagina.",
+  "Enregistré : les clients le voient sur votre page.": "Salvato: i clienti lo vedono sulla tua pagina.",
+  "Enregistrer ({n})": "Salva ({n})",
+  "Il sait faire": "Sa fare",
+  "Sait faire :": "Sa fare:",
+  "Cette fonction arrive bientôt. Réessayez plus tard.": "Questa funzione arriva presto. Riprova più tardi.",
+  "Impossible d'enregistrer. Réessayez.": "Impossibile salvare. Riprova.",
+  "Spécialisation": "Specializzazione",
+  "Homme, femme ou les deux : dites ce que vous savez coudre. Les clients le voient sur votre page.": "Uomo, donna o entrambi: di' cosa sai cucire. I clienti lo vedono sulla tua pagina.",
+  "Vous cousez pour :": "Cuci per:",
+  "Touchez les habits que vous savez coudre.": "Tocca i capi che sai cucire.",
+  "Choisissez homme, femme ou les deux.": "Scegli uomo, donna o entrambi.",
+  "Couture homme": "Sartoria uomo",
+  "Couture femme": "Sartoria donna",
+  "Couture homme et femme": "Sartoria uomo e donna",
+  "Pas dans la liste ?": "Non è nella lista?",
+  "Écrivez le nom de l'habit, puis touchez « Ajouter ».": "Scrivi il nome del capo, poi tocca « Aggiungi ».",
+  "Ex. Taille basse": "Es. Taille basse",
+  "Nom de l'habit": "Nome del capo",
+  "{n} habits au maximum.": "Massimo {n} capi.",
+  "À remplir": "Da compilare",
+  "{n} habits": "{n} capi",
+  "{n} habit": "{n} capo",
   // @@END
 };

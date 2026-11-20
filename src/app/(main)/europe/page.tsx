@@ -7,9 +7,8 @@ import { CollectionHero } from "@/components/catalog/collection-hero";
 import { COLLECTION_CTA, COLLECTION_HEADING } from "@/components/catalog/collection-sections";
 import { FabricCard } from "@/components/catalog/fabric-card";
 import { TailorCard } from "@/components/catalog/tailor-card";
-import { VendorCard } from "@/components/catalog/vendor-card";
 import { DemoBanner } from "@/components/demo-banner";
-import { getFabrics, getModels, getTailors, getVendors } from "@/lib/data";
+import { getFabrics, getModels, getTailors } from "@/lib/data";
 import { display } from "@/lib/display-font";
 import {
   EUROPE_LABEL,
@@ -67,10 +66,9 @@ const PROMISES = [
 export default async function EuropePage() {
   const t = await getT();
 
-  const [allFabrics, allTailors, allVendors, models] = await Promise.all([
+  const [allFabrics, allTailors, models] = await Promise.all([
     getFabrics(),
     getTailors(),
-    getVendors(),
     getModels(),
   ]);
   // Chaque tuile ouvre sa fiche vêtement (tel quel ou sur mesure) :
@@ -83,7 +81,6 @@ export default async function EuropePage() {
       : `/modeles?category=${type.category}`;
   const fabrics = allFabrics.filter((f) => f.origin?.europe);
   const tailors = allTailors.filter((p) => isEuropeCountry(p.country));
-  const vendors = allVendors.filter((p) => isEuropeCountry(p.country));
 
   return (
     <>
@@ -230,7 +227,7 @@ export default async function EuropePage() {
           <section className="pt-16 md:pt-28">
             <h2 className={COLLECTION_HEADING}>{t("Tissus d'Europe")}</h2>
             <p className="text-muted-foreground mt-3 mb-6 max-w-xl">
-              {t("Laine, soie, coton, lin : au mètre, chez nos vendeurs européens.")}
+              {t("Laine, soie, coton, lin : au mètre, sélectionnés par JALOFA.")}
             </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {fabrics.slice(0, 8).map((fabric) => (
@@ -246,17 +243,6 @@ export default async function EuropePage() {
             <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {tailors.slice(0, 8).map((tailor) => (
                 <TailorCard key={tailor.id} tailor={tailor} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {vendors.length > 0 && (
-          <section className="pt-16 md:pt-28">
-            <h2 className={COLLECTION_HEADING}>{t("Les vendeurs de tissus")}</h2>
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {vendors.slice(0, 6).map((vendor) => (
-                <VendorCard key={vendor.id} vendor={vendor} />
               ))}
             </div>
           </section>
@@ -278,7 +264,7 @@ export default async function EuropePage() {
           </div>
           <div>
           <p className="text-muted-foreground text-sm tracking-[0.2em] uppercase">
-            {t("Tailleurs, créateurs, vendeurs de tissus")}
+            {t("Tailleurs et créateurs")}
           </p>
           <h2 className={cn(COLLECTION_HEADING, "mt-3")}>
             {t("Votre atelier est en Europe ?")}

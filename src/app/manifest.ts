@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${APP_NAME} — ${APP_TAGLINE}`,
     short_name: APP_NAME,
     description:
-      "JALOFA met en relation clients, tailleurs et vendeurs de tissus. Créez un vêtement sur mesure depuis votre téléphone.",
+      "JALOFA met en relation clients et tailleurs, avec les tissus JALOFA. Créez un vêtement sur mesure depuis votre téléphone.",
     lang: "fr",
     dir: "ltr",
     start_url: "/",

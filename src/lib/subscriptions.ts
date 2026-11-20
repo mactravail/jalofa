@@ -67,7 +67,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     featured: false,
     badge: "Sans abonnement",
     features: [
-      "Tailleur et vendeur de tissus dans le même compte",
+      "Votre atelier de tailleur en ligne",
       "0 FCFA par mois — 5% de commission par vente",
       "Boutique en ligne et fiche publique",
       "Commandes, messagerie et suivi de commande illimités",
@@ -106,10 +106,10 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     featured: true,
     badge: "Recommandé",
     features: [
-      "Tailleur et vendeur de tissus dans le même compte",
+      "Votre atelier de tailleur en ligne",
       "0% de commission — vous gardez 100% de vos ventes",
       "Prix sur demande : masquez vos tarifs, donnez vos devis en privé",
-      "Une seule boutique pour vos tissus et vos créations",
+      "Une seule boutique pour toutes vos créations",
       "Mise en avant dans le catalogue et la recherche",
       "Statistiques avancées",
       "Support prioritaire",

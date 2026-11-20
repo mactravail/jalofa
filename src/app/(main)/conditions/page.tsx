@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/i18n/link";
 
-import { FABRIC_SHIP_HOURS, PRO_RESPONSE_HOURS } from "@/lib/after-sale";
+import { PRO_RESPONSE_HOURS } from "@/lib/after-sale";
 import { APP_NAME } from "@/lib/constants";
 import { getLocale } from "@/lib/i18n/server";
 import { CONDITIONS_CHROME_IT, CONDITIONS_PARTS_IT } from "@/lib/legal/conditions-it";
@@ -13,9 +13,9 @@ import type { LegalChrome, LegalClause, LegalPart } from "@/lib/legal/types";
 
 const CHROME_FR: LegalChrome = {
   metaTitle: "Conditions générales d'utilisation",
-  metaDescription: `Conditions générales d'utilisation de ${APP_NAME} : règles communes, conditions pour les clients et conditions pour les tailleurs et vendeurs.`,
+  metaDescription: `Conditions générales d'utilisation de ${APP_NAME} : règles communes, conditions pour les clients et conditions pour les tailleurs.`,
   heading: "Conditions générales d'utilisation",
-  intro: `Les règles de ${APP_NAME}, en deux temps : d'abord les dispositions communes à tous, puis les conditions propres aux clients et celles propres aux tailleurs et vendeurs.`,
+  intro: `Les règles de ${APP_NAME}, en deux temps : d'abord les dispositions communes à tous, puis les conditions propres aux clients et celles propres aux tailleurs.`,
   updatedLabel: "Dernière mise à jour :",
   updated: "18 novembre 2026",
   toc: "Sommaire",
@@ -51,7 +51,7 @@ const PARTS: LegalPart[] = [
     sections: [
       {
         title: "1. Objet et acceptation",
-        body: `${APP_NAME} est une place de marché en ligne qui met en relation des clients, des tailleurs et des vendeurs de tissus — et, à l'avenir, des créateurs — pour la confection et l'achat de vêtements sur mesure au Sénégal. La confection est réalisée par des tailleurs indépendants ; les tissus sont vendus par des vendeurs indépendants. ${APP_NAME} fournit l'outil de commande et de devis, la messagerie et le suivi, et intervient comme tiers de confiance entre les parties. Pour l'instant, ${APP_NAME} n'encaisse aucun paiement : le client paie directement le professionnel (article 4). En créant un compte ou en utilisant le site, vous reconnaissez avoir lu et accepté les présentes conditions. Elles se lisent en deux temps : cette partie commune, puis la partie qui correspond à votre profil — « Clients » ou « Tailleurs et vendeurs ». Si vous n'acceptez pas ces conditions, n'utilisez pas la plateforme.`,
+        body: `${APP_NAME} est une place de marché en ligne qui met en relation des clients et des tailleurs — et, à l'avenir, des créateurs — pour la confection et l'achat de vêtements sur mesure au Sénégal. La confection est réalisée par des tailleurs indépendants ; les tissus sont vendus exclusivement par ${APP_NAME}, seul vendeur de tissus de la plateforme. ${APP_NAME} fournit l'outil de commande et de devis, la messagerie et le suivi, et intervient comme tiers de confiance entre les parties. Le client paie le tissu à ${APP_NAME} et la couture directement au tailleur (article 4). En créant un compte ou en utilisant le site, vous reconnaissez avoir lu et accepté les présentes conditions. Elles se lisent en deux temps : cette partie commune, puis la partie qui correspond à votre profil — « Clients » ou « Tailleurs ». Si vous n'acceptez pas ces conditions, n'utilisez pas la plateforme.`,
       },
       {
         title: "2. Définitions",
@@ -59,7 +59,7 @@ const PARTS: LegalPart[] = [
         list: [
           `« Plateforme » ou « ${APP_NAME} » : le site et l'application, ainsi que les services associés.`,
           "« Client » : toute personne qui commande un vêtement, une prestation de couture ou du tissu.",
-          "« Professionnel » ou « Pro » : un tailleur ou un vendeur de tissus inscrit sur la plateforme.",
+          "« Professionnel » ou « Pro » : un tailleur inscrit sur la plateforme.",
           "« Commande » : un achat confirmé sur la plateforme — commande passée ou devis accepté — (vêtement complet, tissu seul, ou couture sur tissu fourni).",
           `« Manquement avéré » : un manquement d'un professionnel constaté par ${APP_NAME} après vérification, preuves à l'appui et les deux parties entendues.`,
         ],
@@ -68,7 +68,7 @@ const PARTS: LegalPart[] = [
         title: "3. Transparence des prix — le prix affiché est le prix payé",
         body: `La transparence totale est la règle de ${APP_NAME}. Le client doit toujours savoir à l'avance, et exactement, combien il va payer.`,
         list: [
-          "Chaque tailleur fixe et publie ses prix ; chaque vendeur affiche le prix de ses tissus.",
+          `Chaque tailleur fixe et publie ses prix ; ${APP_NAME} affiche le prix de ses tissus.`,
           "Avant de confirmer, le client voit le montant total et son détail (tissu, confection, livraison et, le cas échéant, frais de service).",
           "Aucun frais caché. Le client paie le prix confirmé sur la plateforme, et plus rien ne lui est réclamé ensuite pour cette commande, sauf le transport lorsque le pro a indiqué qu'il est à la charge du client (voir l'article A5).",
           `Le professionnel ne réclame jamais plus que le prix confirmé sur ${APP_NAME}. Toute demande de supplément, d'acompte caché ou de « complément » est strictement interdite et constitue une faute grave.`,
@@ -76,7 +76,7 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "4. Paiement direct au professionnel",
-        body: `Pour l'instant, aucun argent ne passe par ${APP_NAME}. Une fois la commande confirmée ou le devis accepté, le tailleur ou le vendeur de tissu envoie lui-même au client son moyen de paiement (Wave, Orange Money, Free Money…), et le client le paie directement, en FCFA. ${APP_NAME} n'encaisse, ne conserve et ne reverse aucune somme, et ne prend aucune commission. Les remboursements éventuels sont dus par le professionnel qui a reçu l'argent. Si ${APP_NAME} ouvre un jour le paiement en ligne sur la plateforme, ces conditions seront mises à jour et vous en serez informé à l'avance.`,
+        body: `Le tissu se paie à ${APP_NAME}, seul vendeur de tissus de la plateforme, sur son numéro Wave / Orange Money indiqué à la commande. La couture se paie directement au tailleur : une fois la commande confirmée ou le devis accepté, il envoie lui-même au client son moyen de paiement (Wave, Orange Money, Free Money…), et le client le paie directement, en FCFA. ${APP_NAME} n'encaisse, ne conserve et ne reverse aucune somme pour la couture, et ne prend aucune commission aux tailleurs. Les remboursements éventuels sont dus par celui qui a reçu l'argent : ${APP_NAME} pour le tissu, le tailleur pour la couture. Si ${APP_NAME} ouvre un jour le paiement en ligne sur la plateforme, ces conditions seront mises à jour et vous en serez informé à l'avance.`,
       },
       {
         title: "5. Réception du colis",
@@ -92,7 +92,7 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "8. Sanctions",
-        body: `Le non-respect de ces conditions expose son auteur à des mesures proportionnées : avertissement, retrait d'un contenu, suspension temporaire, puis exclusion définitive de la plateforme. Le barème applicable aux tailleurs et vendeurs figure à la Partie 2. Les clients qui abusent de la plateforme (fausses réclamations, avis mensongers, fraude) s'exposent également à la suspension ou à la fermeture de leur compte.`,
+        body: `Le non-respect de ces conditions expose son auteur à des mesures proportionnées : avertissement, retrait d'un contenu, suspension temporaire, puis exclusion définitive de la plateforme. Le barème applicable aux tailleurs figure à la Partie 2. Les clients qui abusent de la plateforme (fausses réclamations, avis mensongers, fraude) s'exposent également à la suspension ou à la fermeture de leur compte.`,
       },
       {
         title: "9. Contenus et propriété intellectuelle",
@@ -100,7 +100,7 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "10. Rôle d'intermédiaire et responsabilité",
-        body: `${APP_NAME} met en relation et sécurise les échanges, mais ne vend rien, ne livre rien, ne confectionne pas les vêtements et ne fabrique pas les tissus. Chaque professionnel fixe ses prix et assure sa livraison : pour chaque tissu et chaque modèle, il indique si elle est gratuite, et où. La qualité de la confection relève du tailleur choisi ; la conformité du tissu relève du vendeur. ${APP_NAME} s'efforce d'assurer l'exactitude des informations publiées et le bon fonctionnement du site, sans pouvoir en garantir l'absence totale d'erreurs ou d'interruptions. En cas de litige, ${APP_NAME} intervient selon les présentes conditions.`,
+        body: `${APP_NAME} met en relation et sécurise les échanges, et vend les tissus, mais ne confectionne pas les vêtements et ne fabrique pas les tissus. Chaque tailleur fixe ses prix et assure sa livraison : pour chaque modèle, il indique si elle est gratuite, et où. ${APP_NAME} envoie le tissu au tailleur (ou au client). La qualité de la confection relève du tailleur choisi ; la conformité du tissu relève de ${APP_NAME}. ${APP_NAME} s'efforce d'assurer l'exactitude des informations publiées et le bon fonctionnement du site, sans pouvoir en garantir l'absence totale d'erreurs ou d'interruptions. En cas de litige, ${APP_NAME} intervient selon les présentes conditions.`,
       },
       {
         title: "11. Données personnelles",
@@ -128,11 +128,11 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "A2. Passer une commande",
-        body: "Vous choisissez un modèle (ou du tissu), un tailleur ou un vendeur, puis renseignez vos mesures (au centimètre ou en taille standard). Avant de confirmer, la plateforme vous affiche le récapitulatif complet : ce que vous commandez, chez qui, le délai annoncé et le prix total détaillé. La confirmation (ou l'acceptation du devis) vaut commande ferme. Le professionnel vous envoie alors son moyen de paiement et vous le payez directement.",
+        body: "Vous choisissez un modèle (ou du tissu) et un tailleur, puis renseignez vos mesures (au centimètre ou en taille standard). Avant de confirmer, la plateforme vous affiche le récapitulatif complet : ce que vous commandez, chez qui, le délai annoncé et le prix total détaillé. La confirmation (ou l'acceptation du devis) vaut commande ferme. Vous payez le tissu à JALOFA ; le tailleur vous envoie son moyen de paiement pour la couture et vous le payez directement.",
       },
       {
         title: "A3. Un prix tout compris, payé une seule fois",
-        body: `Le montant affiché avant confirmation est le montant définitif pour cette commande. Vous ne paierez rien de plus au tailleur ou au vendeur : ni supplément, ni frais caché, ni « complément ». Seul le transport peut rester à votre charge, si c'est indiqué sur le produit (article A5). Si un professionnel vous demande plus que ce prix, refusez et signalez-le à ${APP_NAME} : c'est interdit.`,
+        body: `Le montant affiché avant confirmation est le montant définitif pour cette commande. Vous ne paierez rien de plus au tailleur ni à ${APP_NAME} : ni supplément, ni frais caché, ni « complément ». Seul le transport peut rester à votre charge, si c'est indiqué sur le produit (article A5). Si un professionnel vous demande plus que ce prix, refusez et signalez-le à ${APP_NAME} : c'est interdit.`,
       },
       {
         title: "A3 bis. Devis gratuits",
@@ -141,12 +141,12 @@ const PARTS: LegalPart[] = [
           "Demander un devis est toujours gratuit et sans engagement, autant de fois que vous le souhaitez.",
           "Le devis apparaît dans votre espace, avec le détail : le tissu, la livraison et le travail du tailleur.",
           "Vous pouvez modifier le tissu ou des détails de votre demande, et demander un nouveau devis. Il remplace le précédent.",
-          "Si vous acceptez, vous payez le total en une seule fois. Le tailleur et le vendeur de tissu sont alors prévenus et commencent leur travail.",
+          "Si vous acceptez, vous payez le total en une seule fois. Le tailleur et JALOFA (pour le tissu) sont alors prévenus et commencent leur travail.",
         ],
       },
       {
         title: "A3 ter. Payez seulement une commande passée sur le site",
-        body: `Ne payez un tailleur ou un vendeur que pour une commande confirmée ou un devis accepté sur ${APP_NAME}, et seulement le prix affiché. Gardez la preuve de votre paiement (capture Wave, Orange Money…) : elle vous sera demandée en cas de réclamation. ${APP_NAME} ne détient pas votre argent : en cas de problème, ${APP_NAME} examine, intervient auprès du professionnel et peut le sanctionner, mais ne rembourse pas à sa place. Pour un échange conclu en dehors du site, ${APP_NAME} ne peut pas intervenir.`,
+        body: `Ne payez un tailleur ou ${APP_NAME} que pour une commande confirmée ou un devis accepté sur ${APP_NAME}, et seulement le prix affiché. Gardez la preuve de votre paiement (capture Wave, Orange Money…) : elle vous sera demandée en cas de réclamation. Pour la couture, ${APP_NAME} ne détient pas votre argent : en cas de problème, ${APP_NAME} examine, intervient auprès du tailleur et peut le sanctionner, mais ne rembourse pas à sa place. Pour un échange conclu en dehors du site, ${APP_NAME} ne peut pas intervenir.`,
       },
       {
         title: "A3 quater. Vos informations restent privées",
@@ -158,7 +158,7 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "A4 bis. Livraison économique ou express, et annulation",
-        body: `Avant de confirmer, vous choisissez entre deux options. Économique : le vendeur attend 24 h après votre paiement avant d'envoyer le tissu, puis le tailleur attend 24 h après l'avoir reçu avant de le couper. Express : le vendeur envoie le tissu le jour même et l'envoi du tissu et la livraison du vêtement se paient d'avance ; le tailleur peut couper 24 h après votre paiement, une fois le tissu reçu. Si vous apportez votre propre tissu, vous l'envoyez au tailleur à vos frais et le délai de 24 h commence quand il confirme l'avoir reçu. Les frais de livraison sont ceux de chaque professionnel et vous sont montrés avant la confirmation. Vous pouvez demander l'annulation depuis votre espace jusqu'au départ de votre vêtement. Dès votre demande, la commande est bloquée : plus rien n'est coupé ni envoyé, et ${APP_NAME} examine. Avant l'envoi du tissu, le professionnel vous rembourse en totalité, et un trajet qui n'a pas eu lieu ne vous est jamais facturé. Tissu déjà envoyé : le vendeur garde à sa charge l'envoi en économique ; le retour du tissu est à votre charge, et en express l'envoi déjà effectué n'est pas remboursé. Tissu déjà coupé par un tailleur qui y était autorisé : il reçoit une indemnité de 35 % du prix de la couture (jamais du tissu ni de la livraison), et le prix du tissu reste dû à son propriétaire. Si le tailleur a coupé trop tôt ou pendant votre demande, vous ne payez aucune indemnité.`,
+        body: `Avant de confirmer, vous choisissez entre deux options. Économique : ${APP_NAME} attend 24 h après votre paiement avant d'envoyer le tissu, puis le tailleur attend 24 h après l'avoir reçu avant de le couper. Express : ${APP_NAME} envoie le tissu le jour même et l'envoi du tissu et la livraison du vêtement se paient d'avance ; le tailleur peut couper 24 h après votre paiement, une fois le tissu reçu. Si vous apportez votre propre tissu, vous l'envoyez au tailleur à vos frais et le délai de 24 h commence quand il confirme l'avoir reçu. Les frais de livraison sont ceux du tailleur et de ${APP_NAME} et vous sont montrés avant la confirmation. Vous pouvez demander l'annulation depuis votre espace jusqu'au départ de votre vêtement. Dès votre demande, la commande est bloquée : plus rien n'est coupé ni envoyé, et ${APP_NAME} examine. Avant l'envoi du tissu, vous êtes remboursé en totalité, et un trajet qui n'a pas eu lieu ne vous est jamais facturé. Tissu déjà envoyé : ${APP_NAME} garde à sa charge l'envoi en économique ; le retour du tissu est à votre charge, et en express l'envoi déjà effectué n'est pas remboursé. Tissu déjà coupé par un tailleur qui y était autorisé : il reçoit une indemnité de 35 % du prix de la couture (jamais du tissu ni de la livraison), et le prix du tissu reste dû à ${APP_NAME}. Si le tailleur a coupé trop tôt ou pendant votre demande, vous ne payez aucune indemnité.`,
       },
       {
         title: "A5. Livraison et vérification à réception",
@@ -176,7 +176,7 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "A7. Retour d'un tissu mal décrit",
-        body: `Si un vendeur a décrit un tissu avec des informations fausses — matière, composition, couleur, motif, largeur, métrage/longueur ou qualité qui ne correspondent pas à ce que vous recevez — vous pouvez retourner le tissu et le vendeur vous rembourse. La description mensongère d'un tissu est à la charge du vendeur et constitue un manquement de sa part.`,
+        body: `Si un tissu ne correspond pas à sa description — matière, composition, couleur, motif, largeur, métrage/longueur ou qualité — vous pouvez le retourner et ${APP_NAME} vous rembourse.`,
       },
       {
         title: "A8. Comment faire une réclamation",
@@ -191,7 +191,7 @@ const PARTS: LegalPart[] = [
         body: "Pour que tout se passe bien, vous vous engagez à :",
         list: [
           "fournir des mesures et une adresse de livraison exactes ;",
-          "communiquer avec courtoisie avec le tailleur ou le vendeur ;",
+          "communiquer avec courtoisie avec le tailleur et avec JALOFA ;",
           "ne pas déposer de fausse réclamation ni d'avis mensonger ;",
           "ne payer que des commandes confirmées sur la plateforme, au prix affiché, et garder la preuve de paiement.",
         ],
@@ -204,17 +204,17 @@ const PARTS: LegalPart[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // Partie 2 — Tailleurs & vendeurs
+  // Partie 2 — Tailleurs
   // ---------------------------------------------------------------------------
   {
     id: "pros",
     eyebrow: "Partie 2",
-    title: "Conditions pour les tailleurs et vendeurs",
+    title: "Conditions pour les tailleurs",
     intro: `En tant que professionnel, vous exercez sur ${APP_NAME} en vous engageant à la sincérité et au respect des délais. Ces règles — et le barème de sanctions qui les accompagne — protègent les clients et l'ensemble des professionnels sérieux. Le principe est simple : faites et dites seulement ce que vous pouvez faire.`,
     sections: [
       {
         title: "B1. S'inscrire comme professionnel",
-        body: `Pour vendre sur ${APP_NAME}, vous créez un compte professionnel (tailleur, vendeur de tissus, ou les deux) : c'est votre candidature à la Sélection ${APP_NAME}. ${APP_NAME} retient les professionnels sérieux et qualifiés (qualité des créations, finitions, prix cohérents, service client, respect des délais) et peut à tout moment fermer la boutique d'un professionnel qui ne répond plus à ces critères. Vous garantissez l'exactitude des informations de votre activité (nom de boutique, ville, catalogue, prix).`,
+        body: `Pour vendre sur ${APP_NAME}, vous créez un compte professionnel de tailleur : c'est votre candidature à la Sélection ${APP_NAME}. ${APP_NAME} retient les professionnels sérieux et qualifiés (qualité des créations, finitions, prix cohérents, service client, respect des délais) et peut à tout moment fermer la boutique d'un professionnel qui ne répond plus à ces critères. Vous garantissez l'exactitude des informations de votre activité (nom de boutique, ville, catalogue, prix).`,
       },
       {
         title: "B2. Accès PRO offert et futures offres",
@@ -227,10 +227,9 @@ const PARTS: LegalPart[] = [
           "ne proposer et n'accepter que ce que vous savez réellement réaliser ou fournir ;",
           "afficher des prix clairs et complets, sans frais caché ;",
           `répondre à chaque nouvelle commande ou demande de devis sous ${PRO_RESPONSE_HOURS} h (accepter ou refuser) ;`,
-          `vendeurs : en économique, attendre 24 h après le paiement puis expédier le tissu sous ${FABRIC_SHIP_HOURS} h ; en express, l'expédier le jour même ; avancer les frais d'envoi si besoin et garder la preuve d'envoi ;`,
           "tailleurs : ne jamais couper un tissu avant que l'application l'autorise (24 h selon l'option, tissu reçu), ni pendant une demande d'annulation ; photographier le tissu coupé. Une découpe trop tôt reste à votre charge ;",
           "respecter le délai que vous annoncez, dans la limite de 12 jours pour la confection : au-delà d'une semaine de retard, le client peut annuler et vous le remboursez ;",
-          "décrire vos tissus et vos modèles avec exactitude ;",
+          "décrire vos modèles avec exactitude ;",
           "communiquer avec vos clients et honorer les commandes acceptées ;",
           `ne réclamer que le prix confirmé sur ${APP_NAME}, envoyer au client votre moyen de paiement après sa confirmation, et le rembourser quand ${APP_NAME} le décide ;`,
           "ne pas chercher à contacter un client avant qu'il ait confirmé : pendant le devis, vous travaillez à partir du récapitulatif, de son code et de son adresse de livraison.",
@@ -238,7 +237,7 @@ const PARTS: LegalPart[] = [
       },
       {
         title: "B4. Publier des prix clairs (obligation)",
-        body: "Chaque tailleur doit écrire ses prix ; chaque vendeur doit afficher le prix de ses tissus. Le client doit savoir à l'avance combien il va payer. Il est interdit d'annoncer un prix puis d'en réclamer un autre, ou d'ajouter un supplément après commande. Aucun prix caché : le prix affiché engage le professionnel.",
+        body: "Chaque tailleur doit écrire ses prix. Le client doit savoir à l'avance combien il va payer. Il est interdit d'annoncer un prix puis d'en réclamer un autre, ou d'ajouter un supplément après commande. Aucun prix caché : le prix affiché engage le professionnel.",
       },
       {
         title: "B5. Respecter le délai (12 jours maximum)",
@@ -249,12 +248,12 @@ const PARTS: LegalPart[] = [
         body: "Ne prétendez jamais savoir réaliser un modèle que vous ne maîtrisez pas. Un tailleur qui affirme pouvoir faire un modèle, l'accepte, puis livre un travail raté ou ne le livre pas, commet un manquement. Si un modèle dépasse votre savoir-faire, refusez la commande : c'est votre droit, et c'est mieux qu'un client déçu.",
       },
       {
-        title: "B7. Vendeurs : décrire les tissus avec exactitude",
-        body: "La fiche d'un tissu doit être exacte : matière et composition, couleur, motif, largeur, métrage/longueur, qualité et prix. Un tissu décrit avec des informations fausses peut être retourné par le client, à vos frais, et constitue un manquement. Photographiez et décrivez vos tissus tels qu'ils sont réellement.",
+        title: "B7. Tissus : vendus uniquement par JALOFA",
+        body: "Vous ne vendez pas de tissu sur la plateforme : tous les tissus sont vendus par JALOFA, qui les envoie à votre atelier. Ne demandez jamais au client de vous payer le tissu d'une commande passée avec un tissu JALOFA. Si le client envoie son propre tissu, indiquez-lui le métrage nécessaire dans votre devis.",
       },
       {
         title: "B8. Encaissement : le client vous paie directement",
-        body: `Pour l'instant, ${APP_NAME} n'encaisse rien. Quand un client confirme une commande ou accepte votre devis, vous recevez ses coordonnées : envoyez-lui votre moyen de paiement (Wave, Orange Money, Free Money…) et il vous paie directement, sans commission. Commencez le travail quand vous avez reçu l'argent. Si une réclamation fondée aboutit, c'est à vous de rembourser le client, selon la décision de ${APP_NAME}.`,
+        body: `Pour l'instant, ${APP_NAME} n'encaisse rien. Quand un client confirme une commande ou accepte votre devis, vous recevez ses coordonnées : envoyez-lui votre moyen de paiement (Wave, Orange Money, Free Money…) et il vous paie directement la couture, sans commission. Le tissu, lui, est payé à JALOFA. Commencez le travail quand vous avez reçu l'argent. Si une réclamation fondée aboutit, c'est à vous de rembourser le client, selon la décision de ${APP_NAME}.`,
       },
       {
         title: "B9. Barème des sanctions",

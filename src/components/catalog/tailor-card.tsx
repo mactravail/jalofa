@@ -4,6 +4,7 @@ import { ArrowRight, BadgeCheck, Clock, MapPin, Scissors, Star } from "lucide-re
 
 import { Price } from "@/components/cart/price";
 import { TrustScoreBadge } from "@/components/catalog/trust-score";
+import { TAILOR_SPECIALTY_LABELS } from "@/lib/constants";
 import type { Tailor } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 
@@ -11,7 +12,14 @@ import { getT } from "@/lib/i18n/server";
 // Un tailleur sans avis, sans ville ou sans prix n'affiche pas « 0.0 » ni
 // « Dès 0 FCFA » : la ligne disparaît, et le badge « Nouveau » suffit.
 
-export async function TailorCard({ tailor }: { tailor: Tailor }) {
+export async function TailorCard({
+  tailor,
+  skills = [],
+}: {
+  tailor: Tailor;
+  /** « Je sais faire » : les noms des habits qu'il sait coudre. */
+  skills?: string[];
+}) {
   const t = await getT();
   const name = tailor.shop_name ?? t("Tailleur");
 
@@ -54,6 +62,20 @@ export async function TailorCard({ tailor }: { tailor: Tailor }) {
           </span>
         )}
       </div>
+
+      {tailor.specialty && (
+        <p className="mt-2 text-base font-medium">
+          {t(TAILOR_SPECIALTY_LABELS[tailor.specialty])}
+        </p>
+      )}
+
+      {skills.length > 0 && (
+        <p className="text-muted-foreground mt-1 line-clamp-2 text-base">
+          <span className="text-foreground font-medium">{t("Sait faire :")}</span>{" "}
+          {skills.slice(0, 3).map((s) => t(s)).join(", ")}
+          {skills.length > 3 && ` +${skills.length - 3}`}
+        </p>
+      )}
 
       <TrustScoreBadge pro={tailor} className="mt-3 self-start" />
 

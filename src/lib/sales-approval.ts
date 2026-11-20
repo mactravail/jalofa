@@ -63,10 +63,10 @@ export async function findUnapprovedSeller(
 // --- Tissus de démonstration ------------------------------------------------
 
 /**
- * Tissu de démonstration : un tissu du catalogue JALOFA, sans vendeur réel
- * (`vendor_id` vide). Il sert d'aperçu — on peut l'ouvrir et l'essayer dans le
- * configurateur — mais il ne s'achète pas. Seuls les tissus publiés par un
- * vrai vendeur (Moka, Tidiane…) sont en vente.
+ * Tissu de démonstration : un tissu sans boutique (`vendor_id` vide). Depuis que
+ * JALOFA est le seul vendeur (migration 20260909000001), tous les tissus du
+ * catalogue sont rattachés à la boutique JALOFA et sont en vente ; il ne reste
+ * des tissus de démo qu'en mode démonstration (Supabase non branché).
  */
 export function isDemoFabric(fabric: { vendor_id?: string | null } | null | undefined): boolean {
   return Boolean(fabric) && !fabric?.vendor_id;
@@ -79,5 +79,5 @@ export const DEMO_FABRIC_TEXT =
 /** Le message renvoyé par les actions quand un tissu de démo est commandé. */
 export function demoFabricError(name: string | null | undefined): string {
   const what = name?.trim() ? `Le tissu « ${name.trim()} »` : "Ce tissu";
-  return `${what} est un tissu de démonstration : il n'est pas en vente. Choisissez un tissu d'un vendeur.`;
+  return `${what} est un tissu de démonstration : il n'est pas en vente. Choisissez un autre tissu JALOFA.`;
 }

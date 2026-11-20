@@ -1,5 +1,5 @@
 import Link from "@/components/i18n/link";
-import { ArrowRight, Scissors, Shirt, Store } from "lucide-react";
+import { ArrowRight, Scissors, Shirt } from "lucide-react";
 
 import { Stitching, TapeMeasure } from "@/components/auth/couture-decor";
 import { getT } from "@/lib/i18n/server";
@@ -46,9 +46,6 @@ export async function RegisterChoice({ redirect }: { redirect?: string }) {
             <div className="flex flex-col items-start gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
                 <Scissors aria-hidden className="size-4" /> {t("Tailleur")}
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap sm:px-3 sm:text-sm">
-                <Store aria-hidden className="size-4" /> {t("Vendeur de tissu")}
               </span>
             </div>
             <Scissors

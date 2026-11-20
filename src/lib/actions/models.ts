@@ -44,20 +44,15 @@ const DIFFICULTIES = ["facile", "moyen", "difficile"] as const;
 const FOREIGN_KEY_VIOLATION = "23503";
 
 /**
- * Publier une création, c'est vouloir être vu : on ouvre la boutique du
- * tailleur (`tailors.is_active`, fermée par défaut à l'inscription). Sinon le
- * catalogue, qui ne sert que les boutiques ouvertes, cache la création sans
- * prévenir. Best-effort : un échec ne bloque pas la publication.
+ * Une création publiée rafraîchit la fiche publique du tailleur. Depuis le
+ * 2026-11-20, le tailleur est visible dès l'inscription (`tailors.is_active`
+ * vaut `true` par défaut) : publier ne rouvre plus une boutique que le
+ * tailleur a lui-même cachée depuis « Ma visibilité ».
  */
 async function openShop(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  _supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
 ): Promise<void> {
-  await supabase
-    .from("tailors")
-    .update({ is_active: true })
-    .eq("id", userId)
-    .eq("is_active", false);
   revalidatePath("/tailleurs");
   revalidatePath(`/tailleurs/${userId}`);
 }

@@ -6,6 +6,7 @@ import { removeImage, toFile, uploadImage } from "@/lib/actions/storage";
 import { parseCountry } from "@/lib/europe";
 import { isSupabaseConfigured } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { TailorSpecialty } from "@/lib/types";
 
 export type TailorProfileState =
   | { ok: true }
@@ -152,5 +153,81 @@ export async function saveTailorProfile(
   revalidatePath("/tailleur/espace", "layout");
   revalidatePath(`/tailleurs/${user.id}`);
   revalidatePath("/tailleurs");
+  return { ok: true };
+}
+
+/** Au plus autant d'habits que le catalogue en compte — garde-fou anti-abus. */
+const MAX_SKILLS = 60;
+
+/** Les habits écrits à la main : au plus 10, de 40 caractères chacun. */
+const MAX_CUSTOM_SKILLS = 10;
+const MAX_CUSTOM_SKILL_LENGTH = 40;
+
+function cleanCustomSkills(names: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of names) {
+    const name = String(raw ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_CUSTOM_SKILL_LENGTH);
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length >= MAX_CUSTOM_SKILLS) break;
+  }
+  return out;
+}
+
+const SPECIALTIES: readonly TailorSpecialty[] = ["homme", "femme", "both"];
+
+/**
+ * « Spécialisation » : le tailleur connecté dit s'il coud pour homme, femme ou
+ * les deux, puis coche les habits du catalogue JALOFA qu'il sait coudre. Seuls
+ * les habits réels du catalogue, et de sa spécialisation, sont gardés.
+ */
+export async function saveMySkills(
+  specialty: TailorSpecialty,
+  keys: string[],
+  customNames: string[] = [],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: NOT_CONNECTED };
+  if (!SPECIALTIES.includes(specialty)) {
+    return { ok: false, error: "Choisissez homme, femme ou les deux." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Vous devez être connecté." };
+
+  const { data: catalog } = await supabase
+    .from("models")
+    .select("id, slug, category_slug")
+    .is("tailor_id", null)
+    .eq("is_active", true);
+  const categories = specialty === "both" ? ["homme", "femme"] : [specialty];
+  const valid = new Set(
+    ((catalog as { id: string; slug: string | null; category_slug: string | null }[] | null) ?? [])
+      .filter((m) => categories.includes(m.category_slug ?? ""))
+      .map((m) => m.slug ?? m.id),
+  );
+  const skills = Array.from(new Set(keys.filter((k) => valid.has(k)))).slice(0, MAX_SKILLS);
+  const custom_skills = cleanCustomSkills(customNames);
+
+  const { error } = await supabase.from("tailors").update({ specialty, skills, custom_skills }).eq("id", user.id);
+  if (error) {
+    console.error("[saveMySkills]", error);
+    return {
+      ok: false,
+      error:
+        error.code === "42703" || error.code === "PGRST204"
+          ? "Cette fonction arrive bientôt. Réessayez plus tard."
+          : "Impossible d'enregistrer. Réessayez.",
+    };
+  }
+
+  revalidatePath("/tailleurs");
+  revalidatePath(`/tailleurs/${user.id}`);
+  revalidatePath("/tailleur/espace/specialisation");
   return { ok: true };
 }

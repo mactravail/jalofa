@@ -49,11 +49,11 @@ const SECTIONS: LegalClause[] = [
   },
   {
     title: "Activité",
-    body: `${APP_NAME} met en relation des clients avec des tailleurs et des vendeurs de tissus pour la confection de vêtements sur mesure. La plateforme facilite la commande, le devis et le suivi ; pour l'instant, le client paie directement le professionnel, sans passer par ${APP_NAME} ; la confection est réalisée par des tailleurs indépendants.`,
+    body: `${APP_NAME} met en relation des clients avec des tailleurs pour la confection de vêtements sur mesure, et vend les tissus. La plateforme facilite la commande, le devis et le suivi ; le client paie le tissu à ${APP_NAME} et la couture directement au tailleur ; la confection est réalisée par des tailleurs indépendants.`,
   },
   {
     title: "Propriété intellectuelle",
-    body: `L'ensemble des contenus du site (marque, logo, textes, interface) est la propriété de ${APP_NAME} ou de ses partenaires. Les photos de modèles et de tissus restent la propriété des tailleurs et vendeurs qui les publient. Toute reproduction sans autorisation est interdite.`,
+    body: `L'ensemble des contenus du site (marque, logo, textes, interface) est la propriété de ${APP_NAME} ou de ses partenaires. Les photos de modèles et de tissus restent la propriété des tailleurs qui les publient ou de ${APP_NAME}. Toute reproduction sans autorisation est interdite.`,
   },
   {
     title: "Responsabilité",
