@@ -31,7 +31,7 @@ function Header({
   overVideo: boolean;
 }) {
   const [heroInView, setHeroInView] = useState(true);
-  const { count, hydrated } = useCart();
+  const { count, hydrated, setDrawerOpen } = useCart();
   const t = useT();
 
   useEffect(() => {
@@ -101,9 +101,13 @@ function Header({
                   {t("Connexion")}
                 </Link>
               ))}
-            <Link href="/panier" className={cn(TEXT_LINK, "hidden md:inline")}>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className={cn(TEXT_LINK, "hidden md:inline")}
+            >
               {t("Panier")} [{hydrated ? count : 0}]
-            </Link>
+            </button>
             <LanguageSwitcher className="hidden md:flex" />
             <CartButton className={cn("md:hidden", iconClass)} />
           </div>

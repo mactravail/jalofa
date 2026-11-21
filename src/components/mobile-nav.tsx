@@ -29,7 +29,7 @@ export function MobileNav({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { count } = useCart();
+  const { count, setDrawerOpen } = useCart();
   const t = useT();
 
   return (
@@ -86,10 +86,14 @@ export function MobileNav({
             </Link>
           ))}
           <div className="my-2 h-px bg-border" />
-          <Link
-            href="/panier"
-            onClick={() => setOpen(false)}
-            className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent"
+          <button
+            type="button"
+            onClick={() => {
+              // Ferme le menu puis ouvre le tiroir « Mon panier ».
+              setOpen(false);
+              setDrawerOpen(true);
+            }}
+            className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent"
           >
             <span className="flex items-center gap-2">
               <ShoppingBag className="size-4" /> {t("Panier")}
@@ -99,7 +103,7 @@ export function MobileNav({
                 {count}
               </span>
             )}
-          </Link>
+          </button>
           <div className="my-2 h-px bg-border" />
           <LanguageSwitcher className="px-3 py-2 text-sm" />
         </nav>

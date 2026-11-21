@@ -231,7 +231,7 @@ function CartLine({
 }
 
 /** Compact sur mobile (98 px) : c'est ce qui libère la place du prix à côté. */
-function QtyStepper({ qty, onChange }: { qty: number; onChange: (q: number) => void }) {
+export function QtyStepper({ qty, onChange }: { qty: number; onChange: (q: number) => void }) {
   const t = useT();
   return (
     <div className="flex shrink-0 items-center rounded-lg border">

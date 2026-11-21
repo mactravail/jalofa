@@ -5,7 +5,7 @@ import { BookmarkCheck, Ruler } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCart } from "@/components/cart/cart-context";
-import { STANDARD_SIZES, formatPrice } from "@/lib/constants";
+import { STANDARD_SIZES } from "@/lib/constants";
 import type { FreeDeliveryZone } from "@/lib/delivery";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n/locale-provider";
@@ -84,11 +84,10 @@ export function useAddAsIs(preset: AsIsPreset) {
       unitFabricPrice: preset.fabricPrice,
       unitTailoringPrice: preset.tailoringPrice,
       unitPrice: preset.total,
-    });
-    toast.success(t("Ajouté au panier : {name}", { name: preset.modelName }), {
-      description: `${color ? `${color} · ` : ""}${t("Taille {size}", { size })} · ${formatPrice(preset.total)}`,
-    });
-    router.push(then);
+    }, { openDrawer: then !== "/caisse" });
+    // « Acheter maintenant » file à la caisse ; « Ajouter au panier » ouvre le
+    // tiroir « Mon panier » et le client reste sur la page.
+    if (then === "/caisse") router.push(then);
   };
 }
 

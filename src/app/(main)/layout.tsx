@@ -1,4 +1,5 @@
 import { CartProvider } from "@/components/cart/cart-context";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 import { MainChrome } from "@/components/main-chrome";
 import { SiteBottomNav } from "@/components/site-bottom-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -18,6 +19,7 @@ export default function MainLayout({
       >
         {children}
       </MainChrome>
+      <CartDrawer />
     </CartProvider>
   );
 }

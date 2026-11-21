@@ -40,7 +40,7 @@ import {
 } from "@/lib/constants";
 import { RETURN_WINDOW_DAYS } from "@/lib/after-sale";
 import { deliveryPolicy } from "@/lib/delivery";
-import { basketHasFreeDelivery } from "@/lib/pricing";
+import { basketHasFreeDelivery, fabricSubtotal } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import { useStateDraft } from "@/lib/form-draft";
 import { useT } from "@/components/i18n/locale-provider";
@@ -152,12 +152,13 @@ export function CheckoutView({
   const quoteLinesKey = JSON.stringify(
     items.map((it) => [it.type, it.fabricId, it.tailorId, it.qty]),
   );
+  const fabricTotal = fabricSubtotal(items);
   useEffect(() => {
     let alive = true;
     const lines = (JSON.parse(quoteLinesKey) as [string, string | null, string | null, number][]).map(
       ([type, fabric_id, tailor_id, qty]) => ({ type: type as OrderType, fabric_id, tailor_id, qty }),
     );
-    quoteBasketDelivery(lines)
+    quoteBasketDelivery(lines, fabricTotal)
       .then((q) => {
         if (!alive) return;
         setDeliveryQuote(q);
@@ -167,7 +168,7 @@ export function CheckoutView({
     return () => {
       alive = false;
     };
-  }, [quoteLinesKey]);
+  }, [quoteLinesKey, fabricTotal]);
   const chosenFees = deliveryQuote?.[deliveryOption] ?? null;
   const deliveryTotal = chosenFees?.total ?? 0;
 

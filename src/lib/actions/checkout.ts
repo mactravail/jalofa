@@ -19,6 +19,7 @@ import {
 import { recordDemoFabricSales, type DemoFabricSale } from "@/lib/notifications-demo";
 import { saveOrderContact } from "@/lib/order-contact";
 import { resolveTailoringPrice } from "@/lib/order-pricing";
+import { FABRIC_FREE_DELIVERY_MIN } from "@/lib/pricing";
 import { stripContactInfo } from "@/lib/privacy";
 import { renewProFromSale, siteOrigin } from "@/lib/pro-subscription";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -128,6 +129,9 @@ export type BasketDeliveryQuote = Record<
  */
 export async function quoteBasketDelivery(
   lines: (DeliveryLine & { qty: number })[],
+  /** Total des tissus seuls, pour l'ESTIMATION de la livraison offerte ; le
+   *  montant facturé, lui, est recalculé depuis la base dans `placeOrders`. */
+  fabricTotal = 0,
 ): Promise<BasketDeliveryQuote> {
   const none: BasketDeliveryQuote = { economy: { total: 0, unknown: true }, express: null };
   if (!isSupabaseConfigured() || !Array.isArray(lines) || lines.length === 0) return none;
@@ -139,10 +143,13 @@ export async function quoteBasketDelivery(
   }));
   const supabase = await createClient();
   const quotes = await quoteLines(supabase, safe);
+  const fabricFree = Number(fabricTotal) >= FABRIC_FREE_DELIVERY_MIN;
   const sum = (option: DeliveryOption) => {
     let total = 0;
     let unknown = false;
     for (const [i, q] of quotes.entries()) {
+      const freeFabricLine = fabricFree && safe[i].type === "fabric_only";
+      if (freeFabricLine) continue;
       const fees = q[option];
       if (!fees) return null;
       total += (fees.fabric + fees.garment) * safe[i].qty;
@@ -473,6 +480,16 @@ ${item.notes}` : line;
       fabricFee: fees.fabric,
       garmentFee: fees.garment,
     });
+  }
+
+  // Tissus JALOFA : livraison offerte dès 100 000 FCFA de tissus achetés seuls,
+  // calculé sur les prix relus en base (jamais sur ceux du navigateur).
+  const fabricOnlyTotal = priced.reduce(
+    (sum, p) => (p.item.type === "fabric_only" ? sum + p.fabricPrice * Math.max(1, p.item.qty) : sum),
+    0,
+  );
+  if (fabricOnlyTotal >= FABRIC_FREE_DELIVERY_MIN) {
+    for (const p of priced) if (p.item.type === "fabric_only") p.fabricFee = 0;
   }
 
   // Anti-arnaque : un pro dont JALOFA n'a pas encore validé les ventes ne peut

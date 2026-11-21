@@ -35,17 +35,45 @@ export function basketHasFreeDelivery(
     type: OrderType;
     freeDelivery: boolean;
     freeDeliveryZone?: FreeDeliveryZone;
+    unitPrice?: number;
+    qty?: number;
   }[],
   destination: DeliveryDestination | null = null,
 ): boolean {
+  const fabricFree = fabricDeliveryIsFree(items);
   return (
     items.length > 0 &&
     items.every((it) =>
-      it.freeDeliveryZone
-        ? tailorDeliversFree(it.freeDeliveryZone, destination)
-        : it.freeDelivery,
+      it.type === "fabric_only" && fabricFree
+        ? true
+        : it.freeDeliveryZone
+          ? tailorDeliversFree(it.freeDeliveryZone, destination)
+          : it.freeDelivery,
     )
   );
+}
+
+/**
+ * Tissus JALOFA : la livraison des tissus achetés seuls est offerte dès
+ * 100 000 FCFA de tissus dans le panier. Appliqué côté serveur dans
+ * `placeOrders` (montant facturé) ; ces helpers servent l'affichage.
+ */
+export const FABRIC_FREE_DELIVERY_MIN = 100_000;
+
+/** Total des lignes « tissu seul » du panier. */
+export function fabricSubtotal(
+  items: { type: OrderType; unitPrice?: number; qty?: number }[],
+): number {
+  return items.reduce(
+    (sum, it) => (it.type === "fabric_only" ? sum + (it.unitPrice ?? 0) * (it.qty ?? 1) : sum),
+    0,
+  );
+}
+
+export function fabricDeliveryIsFree(
+  items: { type: OrderType; unitPrice?: number; qty?: number }[],
+): boolean {
+  return fabricSubtotal(items) >= FABRIC_FREE_DELIVERY_MIN;
 }
 
 export type PriceBreakdown = {

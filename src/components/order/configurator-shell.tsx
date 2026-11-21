@@ -98,9 +98,8 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         price,
         fabrics: cfg.data.fabrics,
       }),);
-    toast.success(t("Ajouté au panier"));
+    // Le tiroir « Mon panier » s'ouvre : valider ou continuer ses achats.
     clearPendingOutfit();
-    router.push("/panier");
   };
 
   // Envoie la tenue configurée en demande de devis. La personnalisation choisie

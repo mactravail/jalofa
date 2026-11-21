@@ -2,7 +2,6 @@
 
 import Link from "@/components/i18n/link";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
   Check,
   CircleCheck,
@@ -190,7 +189,6 @@ export function FabricBuyPanel({
       unitTailoringPrice: 0,
       unitPrice: total,
     });
-    toast.success(t("{m} de {name} ajoutés au panier", { m: showUnits(qty), name: fabric.name }));
     // Tissu acheté : le rappel « votre tenue vous attend » sur ce tissu s'arrête.
     if (readPendingOutfit()?.fabricId === fabric.id) clearPendingOutfit();
   };

@@ -107,10 +107,21 @@ type CartContextValue = {
   subtotal: number;
   /** True once the client has read localStorage — avoids an SSR/CSR flash. */
   hydrated: boolean;
-  addItem: (item: NewCartItem) => void;
+  /**
+   * Ajoute une ligne. Par défaut le tiroir « Mon panier » s'ouvre aussitôt :
+   * le client voit ce qu'il vient d'ajouter et choisit « Valider mon panier »
+   * ou « Continuer mes achats ». `openDrawer: false` pour « Acheter maintenant »,
+   * qui part directement à la caisse.
+   */
+  addItem: (item: NewCartItem, opts?: { openDrawer?: boolean }) => void;
   removeItem: (lineId: string) => void;
   setQty: (lineId: string, qty: number) => void;
   clear: () => void;
+  /** Tiroir latéral « Mon panier ». */
+  drawerOpen: boolean;
+  setDrawerOpen: (open: boolean) => void;
+  /** Dernière ligne ajoutée — mise en avant dans le tiroir. */
+  lastAddedId: string | null;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -147,8 +158,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, hydrated]);
 
-  const addItem = useCallback((item: NewCartItem) => {
-    setItems((prev) => [...prev, { ...item, lineId: makeLineId(), qty: 1 }]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+
+  const addItem = useCallback((item: NewCartItem, opts?: { openDrawer?: boolean }) => {
+    const lineId = makeLineId();
+    setItems((prev) => [...prev, { ...item, lineId, qty: 1 }]);
+    setLastAddedId(lineId);
+    if (opts?.openDrawer !== false) setDrawerOpen(true);
   }, []);
 
   const removeItem = useCallback((lineId: string) => {
@@ -171,8 +188,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<CartContextValue>(
-    () => ({ items, count, subtotal, hydrated, addItem, removeItem, setQty, clear }),
-    [items, count, subtotal, hydrated, addItem, removeItem, setQty, clear],
+    () => ({
+      items,
+      count,
+      subtotal,
+      hydrated,
+      addItem,
+      removeItem,
+      setQty,
+      clear,
+      drawerOpen,
+      setDrawerOpen,
+      lastAddedId,
+    }),
+    [items, count, subtotal, hydrated, addItem, removeItem, setQty, clear, drawerOpen, lastAddedId],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
