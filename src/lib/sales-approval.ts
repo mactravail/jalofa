@@ -60,24 +60,31 @@ export async function findUnapprovedSeller(
   return blocked ? salesPendingError(blocked.shop_name) : null;
 }
 
-// --- Tissus de démonstration ------------------------------------------------
+// --- Tissus pas encore en vente ---------------------------------------------
 
 /**
- * Tissu de démonstration : un tissu sans boutique (`vendor_id` vide). Depuis que
- * JALOFA est le seul vendeur (migration 20260909000001), tous les tissus du
- * catalogue sont rattachés à la boutique JALOFA et sont en vente ; il ne reste
- * des tissus de démo qu'en mode démonstration (Supabase non branché).
+ * La vente des tissus JALOFA est-elle ouverte ? Tant que c'est `false`, tous les
+ * tissus restent visibles et s'essaient sur une tenue, mais AUCUN ne s'achète
+ * (ni seul, ni dans une tenue sur mesure). Le site n'affiche pas « démo » :
+ * le client lit « Bientôt en vente ». Passer à `true` pour ouvrir la vente.
+ */
+export const FABRIC_SALES_OPEN = false;
+
+/**
+ * Tissu qui ne s'achète pas : vente des tissus fermée (ci-dessus), ou tissu
+ * sans boutique (`vendor_id` vide, mode démonstration sans Supabase).
  */
 export function isDemoFabric(fabric: { vendor_id?: string | null } | null | undefined): boolean {
-  return Boolean(fabric) && !fabric?.vendor_id;
+  if (!fabric) return false;
+  return !FABRIC_SALES_OPEN || !fabric.vendor_id;
 }
 
-export const DEMO_FABRIC_TITLE = "Tissu de démonstration";
+export const DEMO_FABRIC_TITLE = "Bientôt en vente";
 export const DEMO_FABRIC_TEXT =
-  "Ce tissu est un exemple pour découvrir JALOFA. Vous pouvez l'essayer, mais il n'est pas en vente.";
+  "Ce tissu n'est pas encore en vente. Vous pouvez déjà l'essayer sur une tenue : la vente ouvre très bientôt.";
 
 /** Le message renvoyé par les actions quand un tissu de démo est commandé. */
 export function demoFabricError(name: string | null | undefined): string {
   const what = name?.trim() ? `Le tissu « ${name.trim()} »` : "Ce tissu";
-  return `${what} est un tissu de démonstration : il n'est pas en vente. Choisissez un autre tissu JALOFA.`;
+  return `${what} n'est pas encore en vente : la vente des tissus JALOFA ouvre très bientôt.`;
 }

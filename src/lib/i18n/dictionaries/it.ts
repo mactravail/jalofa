@@ -2983,9 +2983,9 @@ export const it: Record<string, string> = {
   "Votre boutique est en cours de validation": "Il tuo negozio è in fase di convalida",
   "Publiez vos articles dès maintenant : ils sont déjà visibles. Les clients pourront les acheter dès que JALOFA aura validé votre boutique.":
     "Pubblica subito i tuoi articoli: sono già visibili. I clienti potranno acquistarli non appena JALOFA avrà convalidato il tuo negozio.",
-  "Tissu de démonstration": "Tessuto dimostrativo",
-  "Ce tissu est un exemple pour découvrir JALOFA. Vous pouvez l'essayer, mais il n'est pas en vente.":
-    "Questo tessuto è un esempio per scoprire JALOFA. Puoi provarlo, ma non è in vendita.",
+  "Bientôt en vente": "Presto in vendita",
+  "Ce tissu n'est pas encore en vente. Vous pouvez déjà l'essayer sur une tenue : la vente ouvre très bientôt.":
+    "Questo tessuto non è ancora in vendita. Puoi già provarlo su un capo: la vendita apre molto presto.",
   "Essayer sur une tenue": "Provalo su un capo",
   "Pas en vente : choisissez un tissu d'un vendeur pour commander.":
     "Non in vendita: scegli il tessuto di un venditore per ordinare.",

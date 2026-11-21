@@ -9,7 +9,6 @@ import { fabricDiscount, fabricUnit, fabricUnitPrice } from "@/lib/fabric-specs"
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
-import { isDemoFabric } from "@/lib/sales-approval";
 
 export async function FabricCard({
   fabric,
@@ -65,10 +64,10 @@ export async function FabricCard({
             className="absolute right-2 bottom-2 max-w-[calc(100%-1rem)]"
           />
         )}
-        {isDemoFabric(fabric) && (
-          <Badge variant="secondary" className="absolute right-2 top-2">
-            {t("Démo")}
-          </Badge>
+        {discount > 0 && (
+          <span className="absolute top-2 right-2 rounded-md bg-orange-500 px-1.5 py-0.5 text-xs font-bold text-white">
+            −{discount} %
+          </span>
         )}
         {fabric.in_stock === false && (
           <span className="absolute inset-0 grid place-items-center bg-black/60 font-semibold text-white">
@@ -87,11 +86,10 @@ export async function FabricCard({
           <span className="text-muted-foreground text-xs font-normal"> / {t("mètre")}</span>
         </p>
         {discount > 0 && (
-          <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+          <p className="text-muted-foreground text-xs">
             <s>
               <ProductPrice amount={fabric.price_per_meter} europe={fabric.origin?.europe} />
             </s>
-            <span className="rounded bg-orange-500 px-1 py-px font-bold text-white">−{discount} %</span>
           </p>
         )}
       </div>
