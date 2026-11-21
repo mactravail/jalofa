@@ -48,7 +48,13 @@ import { unwrap } from "@/lib/action-result";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import { resizeImage } from "@/lib/image";
 import { isFabricAvailable } from "@/lib/fabric-metrage";
-import { fabricStock, fabricUnit, fabricUnitPrice, formatUnits } from "@/lib/fabric-specs";
+import {
+  fabricDiscount,
+  fabricStock,
+  fabricUnit,
+  fabricUnitPrice,
+  formatUnits,
+} from "@/lib/fabric-specs";
 import type { Fabric, FabricCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { T } from "@/components/i18n/t";
@@ -252,6 +258,9 @@ export function VendorFabricsPanel({
                   <p className="text-sm font-medium">
                     {formatPrice(fabricUnitPrice(fabric))}
                   </p>
+                  {fabricDiscount(fabric) > 0 && (
+                    <p className="text-xs font-semibold text-red-400">−{fabricDiscount(fabric)} %</p>
+                  )}
                   <p className="text-muted-foreground text-xs">/ <T>{fabricUnit(fabric).per}</T></p>
                 </div>
 

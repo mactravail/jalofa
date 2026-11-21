@@ -84,6 +84,37 @@ export function SelectionChip({ label, swatch }: { label: string; swatch?: strin
   );
 }
 
+/** Une ligne du panier en cours : « Tissu · Tweed gris chiné », ou « à choisir ». */
+export function BasketLine({
+  label,
+  value,
+  swatch,
+  pending,
+}: {
+  label: string;
+  value: string | null;
+  swatch?: string | null;
+  pending: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5">
+      {value ? (
+        <Check className="size-3 shrink-0 text-emerald-500" strokeWidth={3} />
+      ) : (
+        <span className="border-muted-foreground/50 size-3 shrink-0 rounded-full border" />
+      )}
+      <dt className="text-muted-foreground shrink-0">{label} :</dt>
+      <dd className={cn("flex min-w-0 items-center gap-1.5", value ? "font-medium" : "text-muted-foreground italic")}>
+        {value && swatch && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={swatch} alt="" className="size-4 shrink-0 rounded-full object-cover" />
+        )}
+        <span className="truncate">{value ?? pending}</span>
+      </dd>
+    </div>
+  );
+}
+
 export function FilterChip({
   active,
   onClick,

@@ -7,6 +7,7 @@ import {
   Receipt,
   Truck,
   BarChart3,
+  Eye,
   Ban,
   Bell,
   LayoutDashboard,
@@ -42,6 +43,7 @@ export const SHOP_ROOT = `${ADMIN_ROOT}/boutique`;
 export type AdminNavId =
   | "overview"
   | "stats"
+  | "tailorViews"
   | "account"
   | "notifications"
   | "orders"
@@ -104,6 +106,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: `${ADMIN_ROOT}/statistiques`,
         label: "Statistiques",
         icon: BarChart3,
+      },
+      // Les vues de chaque tailleur : sa page ouverte, les clics sur ses modèles.
+      {
+        id: "tailorViews",
+        href: `${ADMIN_ROOT}/vues`,
+        label: "Vues des tailleurs",
+        icon: Eye,
       },
       // La cloche : alertes de la place de marché (ex. modèle masqué après commande).
       {

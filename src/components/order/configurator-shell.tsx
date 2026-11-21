@@ -48,11 +48,12 @@ import {
   useConfigurator,
   type StepKey,
 } from "@/components/order/configurator-context";
-import { PriceRow, SelectionChip } from "@/components/order/configurator-ui";
+import { BasketLine, PriceRow, SelectionChip } from "@/components/order/configurator-ui";
 import { DressMannequin, dressesOnMannequin } from "@/components/order/dress-mannequin";
 import { GarmentAvatar, hasGarmentAvatar } from "@/components/order/garment-avatar";
 import { useT } from "@/components/i18n/locale-provider";
 import { DEMO_FABRIC_TITLE, isDemoFabric } from "@/lib/sales-approval";
+import { clearPendingOutfit, savePendingOutfit } from "@/lib/pending-outfit";
 
 export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -98,6 +99,7 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         fabrics: cfg.data.fabrics,
       }),);
     toast.success(t("Ajouté au panier"));
+    clearPendingOutfit();
     router.push("/panier");
   };
 
@@ -197,6 +199,8 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
         } catch {
           // Stockage indisponible — sans effet.
         }
+        // La tenue est commandée : plus rien à rappeler.
+        clearPendingOutfit();
         toast.success(res.autoQuoted ? t("Votre devis est prêt") : t("Demande de devis envoyée"), {
           description: res.autoQuoted
             ? t("Vérifiez le prix et le délai, puis confirmez : le tailleur vous envoie son moyen de paiement.")
@@ -214,6 +218,33 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
       toast.error(t(res.error));
     });
   };
+
+  // Sur-mesure avec un tissu JALOFA : on retient où l'on en est, pour pouvoir
+  // le rappeler (et tout reprendre) si le client quitte le parcours.
+  useEffect(() => {
+    if (state.type !== "full" || !fabric || !model) return;
+    const id = setTimeout(() => {
+      savePendingOutfit({
+        fabricId: fabric.id,
+        fabricName: fabric.name,
+        fabricImage: fabric.image_url,
+        modelId: model.id,
+        modelName: model.name,
+        modelImage: model.photos[0] ?? model.image_url,
+        stepUrl: stepUrl(step),
+        // Ni photos (trop lourdes) ni mot de passe dans le rappel.
+        draft: {
+          ...state,
+          styleRefs: [],
+          embroideryPhoto: null,
+          contactPassword: "",
+          contactPasswordConfirm: "",
+          contactAcceptTerms: false,
+        },
+      });
+    }, 500);
+    return () => clearTimeout(id);
+  }, [state, step, fabric, model]);
 
   const goNext = () => {
     if (isLast || !canProceed) return;
@@ -482,20 +513,28 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
                 <Scissors className="text-muted-foreground absolute inset-0 m-auto size-5" />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{panelTitle}</p>
-              <p className="text-muted-foreground truncate text-xs">{summaryLine}</p>
-              <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[11px]">
-                <Clock className="size-3" /> {t("~{n} jours de confection", { n: deliveryDays })}
-              </p>
-            </div>
-            {wearsGarment && fabric?.image_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={fabric.image_url}
-                alt={fabric.name}
-                className="size-9 shrink-0 rounded-full object-cover"
-              />
+            {wearsGarment ? (
+              // Le panier en cours : tissu, tenue, tailleur — on n'oublie rien.
+              <dl className="min-w-0 flex-1 space-y-0.5 text-xs">
+                <BasketLine label={t("Tenue")} value={model?.name ?? null} pending={t("à choisir")} />
+                {state.type !== "own_fabric" && (
+                  <BasketLine
+                    label={t("Tissu")}
+                    value={fabric?.name ?? null}
+                    swatch={fabric?.image_url}
+                    pending={t("à choisir")}
+                  />
+                )}
+                <BasketLine label={t("Tailleur")} value={tailor?.shop_name ?? null} pending={t("à choisir")} />
+              </dl>
+            ) : (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{panelTitle}</p>
+                <p className="text-muted-foreground truncate text-xs">{summaryLine}</p>
+                <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[11px]">
+                  <Clock className="size-3" /> {t("~{n} jours de confection", { n: deliveryDays })}
+                </p>
+              </div>
             )}
           </div>
 
@@ -567,6 +606,20 @@ export function ConfiguratorShell({ children }: { children: React.ReactNode }) {
               {panelTitle}
             </h1>
             <p className="text-muted-foreground text-sm">{panelSubtitle}</p>
+
+            {wearsGarment && (
+              <dl className="bg-muted/50 mt-4 space-y-1 rounded-lg p-3 text-xs">
+                {state.type !== "own_fabric" && (
+                  <BasketLine
+                    label={t("Tissu")}
+                    value={fabric?.name ?? null}
+                    swatch={fabric?.image_url}
+                    pending={t("à choisir")}
+                  />
+                )}
+                <BasketLine label={t("Tailleur")} value={tailor?.shop_name ?? null} pending={t("à choisir")} />
+              </dl>
+            )}
 
             {!isFabricOnly && (
               <p className="text-muted-foreground mt-4 text-xs font-medium">

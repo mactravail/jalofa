@@ -264,6 +264,8 @@ export interface Fabric {
    * tissu (migration 20260902000001).
    */
   color_variants?: Record<string, FabricColorVariant> | null;
+  /** Réduction en % fixée par l'admin ; le prix plein s'affiche barré. */
+  discount_percent?: number | null;
 }
 
 export interface FabricColorVariant {

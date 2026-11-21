@@ -168,24 +168,33 @@ export default async function FabricDetailPage({
     },
   ];
 
+  // Points forts affichés sous le prix (liste cochée) : uniquement ce qui est
+  // renseigné sur la fiche, jamais une promesse inventée.
+  const topUse = [...uses].sort((a, b) => b.meters - a.meters)[0];
+  const facts = [
+    composition && `${t("Matière")} : ${composition}`,
+    fabric.width_cm && t("Laize de {w} cm", { w: fabric.width_cm }),
+    topUse && t("Idéal pour : {use}", { use: t(topUse.use.label).toLowerCase() }),
+    `${t("Entretien")} : ${
+      care.length ? care.map((c) => t(CARE_INSTRUCTIONS[c].label)).join(" · ") : t(profile.care)
+    }`,
+  ].filter((f): f is string => Boolean(f));
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <DemoBanner />
 
-      {/* Fil d'Ariane */}
-      <nav aria-label={t("Fil d'Ariane")} className="text-muted-foreground mb-6 flex items-center gap-1 text-sm">
+      {/* Fil d'Ariane — discret, « Accueil / Tissus / Nom » */}
+      <nav aria-label={t("Fil d'Ariane")} className="text-muted-foreground mb-6 flex min-w-0 items-center gap-1.5 text-sm">
+        <Link href="/" className="hover:text-foreground">
+          {t("Accueil")}
+        </Link>
+        <span>/</span>
         <Link href="/tissus" className="hover:text-foreground">
           {t("Tissus")}
         </Link>
-        <ChevronRight className="size-3.5" />
-        <Link
-          href={`/tissus?category=${fabric.category_slug ?? ""}`}
-          className="hover:text-foreground capitalize"
-        >
-          {fabric.category_slug ? t(fabric.category_slug) : t("Catalogue")}
-        </Link>
-        <ChevronRight className="size-3.5" />
-        <span className="text-foreground truncate font-medium">{fabric.name}</span>
+        <span>/</span>
+        <span className="text-foreground truncate">{fabric.name}</span>
       </nav>
 
       {/* Galerie + achat */}
@@ -213,8 +222,8 @@ export default async function FabricDetailPage({
             image_url: v.image_url,
           }))}
           uses={uses.map(({ use, meters }) => ({ label: t(use.label), meters }))}
-          vendorName="JALOFA"
-          vendorHref={null}
+          facts={facts}
+          reviewPhotos={fabricReviews.flatMap((r) => r.photos)}
           deliveryZone={fabric.delivery_zone ?? "none"}
           rating={rating}
           reviewCount={reviewCount}
@@ -280,8 +289,8 @@ export default async function FabricDetailPage({
           {uses.map(({ use, meters, fabricPrice }) => (
             <li key={use.slug}>
               <Link
-                href={`/modeles?fabric=${fabric.id}${
-                  use.audience === "mixte" ? "" : `&category=${use.audience}`
+                href={`/tissus/${fabric.id}/tenue${
+                  use.audience === "mixte" ? "" : `?pour=${use.audience}`
                 }`}
                 className="hover:border-border hover:bg-muted/40 group flex h-full items-center gap-3 rounded-xl border p-4 transition-colors"
               >

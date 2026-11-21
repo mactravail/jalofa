@@ -28,6 +28,11 @@ import { isSupabaseConfigured } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  Rpc as ViewRpc,
+  TailorViewRank,
+  TailorViewStats,
+} from "@/lib/view-stats";
+import type {
   Fabric,
   Feedback,
   GarmentModel,
@@ -791,4 +796,36 @@ export async function getSiteStats(since: Date): Promise<SiteStats | null> {
   });
   if (error || !data) return null;
   return data as SiteStats;
+}
+
+// ---------------------------------------------------------------------------
+// Vues des tailleurs (cf. migration 20260913000001)
+// ---------------------------------------------------------------------------
+
+/** Tous les tailleurs, du plus vu au moins vu. `null` = migration absente. */
+export async function getTailorsViewRanking(since: Date): Promise<TailorViewRank[] | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await adminDb();
+  if (!supabase) return null;
+  const { data, error } = await (supabase as unknown as ViewRpc).rpc("tailors_view_ranking", {
+    since: since.toISOString(),
+  });
+  if (error || !data) return null;
+  return data as TailorViewRank[];
+}
+
+/** Le détail d'un tailleur (page + chaque modèle), vu par l'admin. */
+export async function getTailorViewStatsAdmin(
+  tailorId: string,
+  since: Date,
+): Promise<TailorViewStats | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await adminDb();
+  if (!supabase) return null;
+  const { data, error } = await (supabase as unknown as ViewRpc).rpc("tailor_view_stats", {
+    p_tailor: tailorId,
+    since: since.toISOString(),
+  });
+  if (error || !data) return null;
+  return data as TailorViewStats;
 }

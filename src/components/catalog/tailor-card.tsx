@@ -25,7 +25,7 @@ export async function TailorCard({
 
   return (
     <Link href={`/tailleurs/${tailor.id}`} className="group flex min-w-0 flex-col">
-      <div className="bg-muted relative aspect-4/5 overflow-hidden rounded-xl">
+      <div className="bg-muted relative aspect-4/3 overflow-hidden rounded-xl">
         {tailor.cover_url ? (
           <Image
             src={tailor.cover_url}
@@ -42,13 +42,13 @@ export async function TailorCard({
       </div>
 
       <div className="mt-4 flex items-center gap-1.5">
-        <h3 className="line-clamp-1 text-xl font-medium tracking-tight">{name}</h3>
+        <h3 className="line-clamp-1 text-base font-medium tracking-tight">{name}</h3>
         {tailor.is_certified && (
-          <BadgeCheck className="size-5 shrink-0 fill-blue-600 text-white" aria-label={t("Certifié")} />
+          <BadgeCheck className="size-4 shrink-0 fill-blue-600 text-white" aria-label={t("Certifié")} />
         )}
       </div>
 
-      <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-base">
+      <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         {tailor.city && (
           <span className="flex items-center gap-1.5">
             <MapPin className="size-4" aria-hidden /> {tailor.city}
@@ -64,13 +64,13 @@ export async function TailorCard({
       </div>
 
       {tailor.specialty && (
-        <p className="mt-2 text-base font-medium">
+        <p className="mt-2 text-sm font-medium">
           {t(TAILOR_SPECIALTY_LABELS[tailor.specialty])}
         </p>
       )}
 
       {skills.length > 0 && (
-        <p className="text-muted-foreground mt-1 line-clamp-2 text-base">
+        <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
           <span className="text-foreground font-medium">{t("Sait faire :")}</span>{" "}
           {skills.slice(0, 3).map((s) => t(s)).join(", ")}
           {skills.length > 3 && ` +${skills.length - 3}`}
@@ -80,10 +80,10 @@ export async function TailorCard({
       <TrustScoreBadge pro={tailor} className="mt-3 self-start" />
 
       <div className="mt-auto pt-4">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-white/15 pt-4 text-base">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-white/15 pt-4 text-sm">
           {tailor.base_price > 0 && (
             <span className="text-muted-foreground">
-              {t("Dès")} <Price amount={tailor.base_price} className="text-foreground text-lg font-semibold" />
+              {t("Dès")} <Price amount={tailor.base_price} className="text-foreground text-sm font-medium" />
             </span>
           )}
           <span className="text-muted-foreground flex items-center gap-1.5">
@@ -91,7 +91,7 @@ export async function TailorCard({
           </span>
         </div>
 
-        <span className="mt-4 flex h-12 items-center justify-center gap-2 rounded-lg border border-white/40 text-base font-semibold transition-colors group-hover:bg-white group-hover:text-black">
+        <span className="mt-4 flex h-11 items-center justify-center gap-2 rounded-lg border border-white/40 text-sm font-semibold transition-colors group-hover:bg-white group-hover:text-black">
           {t("Voir ce tailleur")}
           <ArrowRight className="size-4" aria-hidden />
         </span>

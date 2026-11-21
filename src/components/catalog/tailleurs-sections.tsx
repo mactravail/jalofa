@@ -92,24 +92,24 @@ async function SelectionCard() {
       </span>
       <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-start">
         <div>
-          <p className={cn(display.className, "text-lg tracking-[0.15em] uppercase")}>
+          <p className={cn(display.className, "text-base tracking-[0.15em] uppercase")}>
             {t("Accès PRO offert")}
           </p>
-          <h3 className="mt-3 max-w-2xl text-3xl leading-tight font-bold tracking-tight md:text-4xl">
+          <h3 className="mt-3 max-w-2xl text-xl leading-tight font-bold tracking-tight md:text-2xl">
             {t(SELECTION_TITLE)}
           </h3>
-          <p className="mt-4 max-w-2xl text-lg text-black/75">{t(SELECTION_SUBTITLE)}</p>
+          <p className="mt-4 max-w-2xl text-base text-black/75">{t(SELECTION_SUBTITLE)}</p>
         </div>
-        <p className={cn(display.className, "text-7xl leading-none whitespace-nowrap md:text-8xl")}>
-          0 <span className="text-3xl md:text-4xl">FCFA</span>
+        <p className={cn(display.className, "text-6xl leading-none whitespace-nowrap md:text-7xl")}>
+          0 <span className="text-2xl md:text-3xl">FCFA</span>
         </p>
       </div>
-      <p className="mt-8 text-lg font-semibold">{t("Ce que nous recherchons :")}</p>
+      <p className="mt-8 text-base font-semibold">{t("Ce que nous recherchons :")}</p>
       <ul className="mt-2 mb-8 grid gap-x-10 md:grid-cols-2">
         {SELECTION_CRITERIA.map((line) => (
           <li key={line} className="flex items-start gap-3 border-t border-black/30 py-4">
             <Check className="mt-1 size-5 shrink-0" aria-hidden />
-            <span className="text-lg leading-snug font-semibold">{t(line)}</span>
+            <span className="text-base leading-snug font-semibold">{t(line)}</span>
           </li>
         ))}
       </ul>
@@ -128,7 +128,7 @@ export async function WhyJalofa() {
   const t = await getT();
   return (
     <section className="mx-auto max-w-7xl px-4 pt-16 md:px-8 md:pt-28">
-      <h2 className={COLLECTION_HEADING}>{t("Pourquoi passer par JALOFA")}</h2>
+      <h2 className={cn(COLLECTION_HEADING, "text-2xl md:text-4xl")}>{t("Pourquoi passer par JALOFA")}</h2>
       <ul className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 md:mt-14 lg:grid-cols-4">
         {CLIENT_REASONS.map((reason) => {
           const { icon: Icon, title, text } = reason;
@@ -136,8 +136,8 @@ export async function WhyJalofa() {
           return (
           <li key={title} className="border-t border-white/25 pt-5">
             <Icon className="size-7" strokeWidth={1.5} aria-hidden />
-            <h3 className="mt-4 text-xl leading-snug font-medium tracking-tight">{t(title)}</h3>
-            <p className="text-muted-foreground mt-1 text-base">{t(text)}</p>
+            <h3 className="mt-4 text-base leading-snug font-medium tracking-tight">{t(title)}</h3>
+            <p className="text-muted-foreground mt-1 text-sm">{t(text)}</p>
             {link && (
               <Link
                 href={link.href}
@@ -176,8 +176,8 @@ export async function JoinTailors() {
           className="object-cover object-[30%_center] brightness-[0.8] md:object-center"
         />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl px-4 pb-8 md:px-8 md:pb-12">
-          <h2 className={cn(COLLECTION_HEADING, "max-w-3xl")}>{t("Tailleur, rejoignez-nous")}</h2>
-          <p className="mt-3 max-w-xl text-lg">
+          <h2 className={cn(COLLECTION_HEADING, "max-w-3xl text-2xl md:text-4xl")}>{t("Tailleur, rejoignez-nous")}</h2>
+          <p className="mt-3 max-w-xl text-base">
             {t("Cousez. Vos clients vous paient directement. L'inscription est gratuite.")}
           </p>
         </div>
@@ -188,8 +188,8 @@ export async function JoinTailors() {
           {TAILOR_REASONS.map(({ icon: Icon, title, text }) => (
             <li key={title} className="border-t border-white/25 pt-5">
               <Icon className="size-7" strokeWidth={1.5} aria-hidden />
-              <h3 className="mt-4 text-xl leading-snug font-medium tracking-tight">{t(title)}</h3>
-              <p className="text-muted-foreground mt-1 text-base">{t(text)}</p>
+              <h3 className="mt-4 text-base leading-snug font-medium tracking-tight">{t(title)}</h3>
+              <p className="text-muted-foreground mt-1 text-sm">{t(text)}</p>
             </li>
           ))}
         </ul>

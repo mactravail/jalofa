@@ -5,8 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   Check,
+  CircleCheck,
+  Lock,
   Minus,
-  Package,
   Plus,
   Scissors,
   Store,
@@ -16,14 +17,16 @@ import {
 import { useCart } from "@/components/cart/cart-context";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
 import { ReviewStars } from "@/components/catalog/review-stars";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { EuropeBadge } from "@/components/europe/europe-badge";
 import { ProductPrice } from "@/components/europe/europe-price";
+import { PaymentLogos } from "@/components/payment-logos";
 import { formatMeters, isFabricAvailable, MAX_METERS } from "@/lib/fabric-metrage";
-import { formatPrice } from "@/lib/constants";
 import {
   colorImage,
-  colorUnitPrice,
+  fabricDiscount,
+  fabricFullLinePrice,
+  fabricFullUnitPrice,
   fabricLinePrice,
   fabricMinQty,
   fabricStock,
@@ -40,26 +43,48 @@ import { useT } from "@/components/i18n/locale-provider";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { intlLocale } from "@/lib/i18n/config";
 import { SalesPendingNotice } from "@/components/catalog/sales-pending-notice";
+import { clearPendingOutfit, readPendingOutfit } from "@/lib/pending-outfit";
 
 /** Quantités d'appel par unité — les trois intentions d'achat. */
 const QUICK_QTY: Record<string, number[]> = {
-  METER: [3, 6, 12],
-  YARD: [2, 4, 6],
-  PAGNE_2_YARDS: [1, 2, 3],
-  COMPLET_6_YARDS: [1, 2, 3],
+  METER: [3, 6],
+  YARD: [2, 4],
+  PAGNE_2_YARDS: [1, 2],
+  COMPLET_6_YARDS: [1, 2],
 };
 
 export type BuyPanelUse = { label: string; meters: number };
+
+/** Ligne de la liste « points forts » (pastille cochée + texte). */
+function Perk({ children, alert = false }: { children: React.ReactNode; alert?: boolean }) {
+  return (
+    <li className={cn("flex items-center gap-2", alert && "text-red-400")}>
+      <CircleCheck className="size-3.5 shrink-0" strokeWidth={1.6} />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+/** Titre centré entre deux traits — « ——— QUANTITÉ ——— ». */
+function RuleHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="bg-foreground h-0.5 flex-1" />
+      <span className="text-sm font-bold tracking-wide uppercase">{children}</span>
+      <span className="bg-foreground h-0.5 flex-1" />
+    </div>
+  );
+}
 
 export function FabricBuyPanel({
   fabric,
   variants,
   uses,
-  vendorName,
-  vendorHref,
   deliveryZone,
   rating,
   reviewCount,
+  reviewPhotos = [],
+  facts = [],
   salesPending = false,
   demo = false,
 }: {
@@ -67,14 +92,15 @@ export function FabricBuyPanel({
   /** Le même tissu dans ses autres coloris (fiches voisines). */
   variants: { id: string; color: string | null; image_url: string | null }[];
   uses: BuyPanelUse[];
-  vendorName: string | null;
-  vendorHref: string | null;
-  /** Le vendeur prend la livraison à sa charge : elle n'est pas facturée. */
-  /** Où le pro offre la livraison de ce tissu. */
+  /** Où JALOFA offre la livraison de ce tissu. */
   deliveryZone: FreeDeliveryZone;
   /** Note moyenne des avis vérifiés — rien n'est affiché sans avis réel. */
   rating: number;
   reviewCount: number;
+  /** Photos jointes aux avis vérifiés (vraies clientes, vrais habits). */
+  reviewPhotos?: string[];
+  /** Points forts réels du tissu (matière, laize, entretien…), déjà traduits. */
+  facts?: string[];
   /** Vendeur pas encore validé par JALOFA : visible, pas encore en vente. */
   salesPending?: boolean;
   /** Tissu de démonstration : on peut l'essayer sur une tenue, pas l'acheter. */
@@ -84,11 +110,11 @@ export function FabricBuyPanel({
   const t = useT();
   const locale = intlLocale(useLocale());
 
-  // Quantité dans l'unité du vendeur (mètre, yard, pagne, complet) ; le métrage
+  // Quantité dans l'unité du tissu (mètre, yard, pagne, complet) ; le métrage
   // réel (ce que l'atelier coupe) en découle.
   const unit = fabricUnit(fabric);
   const minQty = fabricMinQty(fabric);
-  // Le stock du vendeur plafonne la quantité : on ne vend pas ce qu'il n'a pas.
+  // Le stock plafonne la quantité : on ne vend pas ce qu'on n'a pas.
   const stock = fabricStock(fabric);
   const stockMax = stock == null ? Infinity : Math.floor(stock / unit.step) * unit.step;
   const maxQty = Math.max(
@@ -97,13 +123,17 @@ export function FabricBuyPanel({
   );
   const quick = (QUICK_QTY[unit.key] ?? []).filter((q) => q >= minQty && q <= maxQty);
   const [qty, setQty] = useState(() => Math.min(maxQty, Math.max(minQty, quick[0] ?? minQty)));
+  // « Autre quantité » : la carte avec le compteur +/−.
+  const [custom, setCustom] = useState(quick.length === 0);
+  // « Faire coudre » activé : le bouton mène au choix de la tenue.
+  const [sew, setSew] = useState(false);
   const meters = unitsToMeters(fabric, qty);
-  // Le client choisit sa couleur parmi celles du vendeur ; une couleur peut
-  // avoir son prix et sa photo, sinon elle reprend ceux du tissu.
   const colors = parseFabricColors(fabric.color);
   const [color, setColor] = useState<string | null>(colors[0] ?? null);
   const unitPrice = fabricUnitPrice(fabric, color);
   const showUnits = (q: number) => t(formatUnits(fabric, q, locale));
+  const europe = fabric.origin?.europe;
+  const discount = fabricDiscount(fabric);
 
   // Il en reste moins que le minimum de vente : épuisé aussi.
   const available = isFabricAvailable(fabric) && stockMax >= minQty;
@@ -111,9 +141,22 @@ export function FabricBuyPanel({
     setQty(Math.min(maxQty, Math.max(minQty, Math.round(v / unit.step) * unit.step)));
   const total = fabricLinePrice(fabric, meters, color);
 
-  // Ce que le métrage choisi permet de tailler — la pièce la plus ambitieuse
-  // qui tient dedans. C'est la traduction concrète d'un nombre de mètres.
-  const covered = [...uses].sort((a, b) => b.meters - a.meters).find((u) => u.meters <= meters);
+  // Ce qu'un métrage permet de tailler — la pièce la plus ambitieuse qui tient
+  // dedans. C'est la traduction concrète d'un nombre de mètres.
+  const coveredBy = (m: number) =>
+    [...uses].sort((a, b) => b.meters - a.meters).find((u) => u.meters <= m);
+  const covered = coveredBy(meters);
+  const smallest = uses.length ? Math.min(...uses.map((u) => u.meters)) : 2;
+  const coverText = (m: number) => {
+    const c = coveredBy(m);
+    return c
+      ? t("De quoi tailler : {use}", { use: c.label.toLowerCase() })
+      : t("Petite pièce (foulard, ceinture)");
+  };
+
+  const lowStock = stock != null && available && stock <= 10;
+  const freeDelivery = deliveryZone !== "none";
+  const image = colorImage(fabric, color) ?? fabric.image_url;
 
   const addToCart = () => {
     addItem({
@@ -130,11 +173,10 @@ export function FabricBuyPanel({
       notes: null,
       title: fabric.name,
       subtitle: color ? `${t(color)} · ${t(unit.label)}` : t(unit.label),
-      image: colorImage(fabric, color) ?? fabric.image_url,
+      image,
       styleName: null,
       tailorName: null,
-      // Le vendeur le décide pour chacun de ses tissus (cf. basketHasFreeDelivery).
-      freeDelivery: deliveryZone !== "none",
+      freeDelivery,
       freeDeliveryZone: deliveryZone,
       personalisation: [
         ...(color ? [{ group: t("Couleur"), option: t(color) }] : []),
@@ -149,61 +191,86 @@ export function FabricBuyPanel({
       unitPrice: total,
     });
     toast.success(t("{m} de {name} ajoutés au panier", { m: showUnits(qty), name: fabric.name }));
+    // Tissu acheté : le rappel « votre tenue vous attend » sur ce tissu s'arrête.
+    if (readPendingOutfit()?.fabricId === fabric.id) clearPendingOutfit();
   };
+
+  const ctaClass =
+    "bg-foreground text-background hover:bg-foreground/90 flex h-14 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold tracking-[0.2em] uppercase transition-colors";
 
   return (
     <div>
-      <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.2em]">
-        {fabric.material ?? t("Tissu")}
-      </p>
-      <h1 className="mt-2 font-serif text-4xl leading-tight tracking-tight">{fabric.name}</h1>
+      {/* Titre — capitales, large, comme une étiquette de rouleau */}
+      <h1 className="text-3xl leading-tight font-semibold tracking-wide uppercase sm:text-4xl">
+        {fabric.name}
+      </h1>
 
-      {/* Avis vérifiés, tout de suite sous le titre — seulement s'il en existe */}
-      {reviewCount > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
-          <span className="flex items-center gap-1.5">
-            <ReviewStars value={rating} size="size-3.5" />
-            <span className="font-medium">{rating.toLocaleString(locale)}</span>
-          </span>
-          <a href="#avis" className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
-            {t("{n} avis", { n: reviewCount })}
-          </a>
-        </div>
-      )}
-
-      {fabric.origin?.europe && (
-        <p className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          <EuropeBadge country={fabric.origin.country} />
-          {fabric.origin.city && (
+      {europe && (
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <EuropeBadge country={fabric.origin?.country} />
+          {fabric.origin?.city && (
             <span className="text-muted-foreground">
-              {t("Boutique à {place}", { place: [fabric.origin.city, fabric.origin.country].filter(Boolean).join(", ") })}
+              {t("Boutique à {place}", {
+                place: [fabric.origin.city, fabric.origin.country].filter(Boolean).join(", "),
+              })}
             </span>
           )}
         </p>
       )}
 
-      <p className="mt-5 text-3xl font-semibold">
-        <ProductPrice amount={unitPrice} europe={fabric.origin?.europe} />
-        <span className="text-muted-foreground text-base font-normal"> / {t(unit.per)}</span>
+      {/* Prix réduit, prix plein barré et pastille « −20 % » s'il y a une promo */}
+      <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-xl font-semibold whitespace-nowrap">
+          <ProductPrice amount={unitPrice} europe={europe} />
+          <span className="text-muted-foreground text-sm font-normal"> / {t(unit.per)}</span>
+        </span>
+        {discount > 0 && (
+          <>
+            <s className="text-muted-foreground text-sm whitespace-nowrap">
+              <ProductPrice amount={fabricFullUnitPrice(fabric, color)} europe={europe} />
+            </s>
+            <span className="rounded bg-orange-500 px-1.5 py-0.5 text-xs font-bold text-white uppercase">
+              −{discount} %
+            </span>
+          </>
+        )}
       </p>
 
-      {fabric.description && (
-        <p className="text-muted-foreground mt-4 leading-relaxed">{fabric.description}</p>
+      <div className="mt-5 border-t" />
+
+      {/* Avis vérifiés — seulement s'il en existe */}
+      {reviewCount > 0 && (
+        <a href="#avis" className="mt-5 flex items-center gap-2 text-base hover:underline">
+          <ReviewStars value={rating} size="size-5" />
+          <span>{t("{n} avis", { n: reviewCount })}</span>
+        </a>
       )}
 
-      {/* Les couleurs du tissu : le client choisit la sienne. Une couleur sans
-          photo propre montre sa pastille ; avec photo, sa vignette. */}
-      {colors.length > 0 && (
-        <section className="mt-5">
-          <p className="text-sm font-medium">
-            {t("Couleur")}
-            {color && <span className="text-muted-foreground font-normal"> · {t(color)}</span>}
+      {/* Points forts — de vrais faits sur le tissu, rien d'inventé */}
+      <ul className="mt-4 space-y-1.5 text-xs leading-snug">
+        {facts.map((f) => (
+          <Perk key={f}>{f}</Perk>
+        ))}
+        <Perk>{t("Vendu et expédié par JALOFA")}</Perk>
+        <Perk>{t("Pour un habit, envoyé directement à l'atelier de votre tailleur")}</Perk>
+        {lowStock && <Perk alert>{t("Plus que {q} en stock", { q: showUnits(stock!) })}</Perk>}
+      </ul>
+
+      {fabric.description && (
+        <p className="text-muted-foreground mt-3 text-xs leading-relaxed">{fabric.description}</p>
+      )}
+
+      {/* Couleur : pastilles rondes, le nom de la couleur choisie à côté du titre */}
+      {/* Une seule couleur + des coloris voisins : la ligne « Coloris » suffit. */}
+      {colors.length > 0 && (colors.length > 1 || variants.length <= 1) && (
+        <section className="mt-6">
+          <p className="text-sm">
+            {t("Couleur")} : <span className="font-medium">{color ? t(color) : "—"}</span>
           </p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {colors.map((c) => {
               const hex = fabricColorHex(c);
               const img = colorImage(fabric, c);
-              const own = colorUnitPrice(fabric, c);
               const active = color === c;
               return (
                 <button
@@ -211,50 +278,36 @@ export function FabricBuyPanel({
                   key={c}
                   onClick={() => setColor(c)}
                   aria-pressed={active}
+                  aria-label={t(c)}
+                  title={t(c)}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm transition-colors",
-                    active ? "border-primary ring-primary/30 ring-2" : "hover:bg-muted",
+                    "rounded-full p-0.5 transition-shadow",
+                    active ? "ring-foreground ring-2" : "hover:ring-muted-foreground/50 hover:ring-1",
                   )}
                 >
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt="" className="size-7 rounded-full object-cover" />
+                    <img src={img} alt="" className="size-8 rounded-full object-cover" />
                   ) : (
                     <span
-                      className="size-7 rounded-full border border-black/20"
+                      className="block size-8 rounded-full border border-white/15"
                       style={{ backgroundColor: hex ?? undefined }}
                     />
-                  )}
-                  <span className="font-medium">{t(c)}</span>
-                  {own != null && own !== fabricUnitPrice(fabric) && (
-                    <span className="text-muted-foreground text-xs">{formatPrice(own)}</span>
                   )}
                 </button>
               );
             })}
           </div>
-          {colorImage(fabric, color) && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={colorImage(fabric, color)!}
-              alt={color ?? ""}
-              className="mt-3 aspect-[4/3] w-full max-w-xs rounded-xl border object-cover"
-            />
-          )}
         </section>
       )}
 
-      {/* Coloris — fiches voisines de la même matière, seulement s'il y en a. */}
+      {/* Coloris — fiches voisines de la même matière, seulement s'il y en a */}
       {variants.length > 1 && (
         <section className="mt-6">
-          <p className="text-sm font-medium">
-            {t("Coloris")}{" "}
-            <span className="text-muted-foreground font-normal">
-              · {fabric.color ?? t("unique")}
-              {variants.length > 1 && ` — ${t("{n} coloris disponibles", { n: variants.length })}`}
-            </span>
+          <p className="text-sm">
+            {t("Coloris")} : <span className="font-medium">{fabric.color ?? t("unique")}</span>
           </p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {variants.map((v) => {
               const active = v.id === fabric.id;
               return (
@@ -265,19 +318,16 @@ export function FabricBuyPanel({
                   title={v.color ?? undefined}
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "relative size-11 overflow-hidden rounded-full border transition-colors",
-                    active ? "border-primary ring-primary/30 ring-2" : "hover:border-border",
+                    "rounded-full p-0.5 transition-shadow",
+                    active ? "ring-foreground ring-2" : "hover:ring-muted-foreground/50 hover:ring-1",
                   )}
                 >
-                  {v.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.image_url} alt="" className="size-full object-cover" />
-                  )}
-                  {active && (
-                    <span className="bg-background/80 absolute inset-0 flex items-center justify-center">
-                      <Check className="size-4" strokeWidth={3} />
-                    </span>
-                  )}
+                  <span className="bg-muted block size-8 overflow-hidden rounded-full">
+                    {v.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={v.image_url} alt="" className="size-full object-cover" />
+                    )}
+                  </span>
                 </Link>
               );
             })}
@@ -285,193 +335,300 @@ export function FabricBuyPanel({
         </section>
       )}
 
-      {/* Métrage */}
-      <section className="mt-6">
-        <div className="flex items-baseline justify-between">
-          <p className="text-sm font-medium">{t("Quantité")}</p>
-          <p className="text-muted-foreground text-xs">
-            {minQty > unit.step
-              ? t("Minimum {q}", { q: showUnits(minQty) })
-              : unit.key === "METER"
-                ? t("Coupe au demi-mètre")
-                : unit.step < 1
-                  ? t("Coupe au demi-yard")
-                  : t("Vendu à la pièce")}
-          </p>
-        </div>
-        {stock != null && available && stock <= 10 && (
-          <p className="mt-1 text-xs font-medium text-amber-500">
-            {t("Plus que {q} en stock", { q: showUnits(stock) })}
-          </p>
-        )}
-
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {quick.map((q) => (
-            <button
-              type="button"
-              key={q}
-              onClick={() => setSafe(q)}
-              aria-pressed={qty === q}
-              className={cn(
-                "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
-                qty === q
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:bg-muted",
-              )}
-            >
-              {showUnits(q)}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border p-1">
-            <button
-              type="button"
-              onClick={() => setSafe(qty - unit.step)}
-              disabled={qty <= minQty}
-              aria-label={t("Retirer")}
-              className="hover:bg-muted flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40"
-            >
-              <Minus className="size-4" />
-            </button>
-            <span className="min-w-16 px-1 text-center font-semibold tabular-nums">
-              {showUnits(qty)}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSafe(qty + unit.step)}
-              disabled={qty >= maxQty}
-              aria-label={t("Ajouter")}
-              className="hover:bg-muted flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40"
-            >
-              <Plus className="size-4" />
-            </button>
-          </div>
-          <p className="text-xl font-semibold">
-            <ProductPrice amount={total} europe={fabric.origin?.europe} stacked />
-          </p>
-        </div>
-
-        <p className="text-muted-foreground mt-2 text-xs">
-          {unit.key !== "METER" && `${t("Soit {m}.", { m: formatMeters(meters) })} `}
-          {covered
-            ? t("De quoi tailler : {use} ({m}).", { use: covered.label.toLowerCase(), m: formatMeters(covered.meters) })
-            : t("Sous {m}, prévoyez une petite pièce (foulard, ceinture).", { m: formatMeters(uses.length ? Math.min(...uses.map((u) => u.meters)) : 2) })}
-        </p>
-      </section>
-
-      {/* Guide de métrage — juste au-dessus du bouton d'achat */}
-      <details className="group mt-5 rounded-xl border px-4 py-3 text-sm">
-        <summary className="cursor-pointer list-none font-medium marker:hidden">
-          <span className="flex items-center justify-between gap-2">
-            {t("Combien de mètres commander ?")}
-            <Plus className="size-4 transition-transform group-open:rotate-45" />
-          </span>
-        </summary>
-        <ul className="mt-3 space-y-1.5">
-          {METRAGE_GUIDE.map((g) => (
-            <li key={g.label} className="flex justify-between gap-3">
-              <span className="text-muted-foreground">{t(g.label)}</span>
-              <span className="shrink-0 text-right font-medium">{t(g.meters)}</span>
-            </li>
-          ))}
-        </ul>
-        {fabric.width_cm ? (
-          <p className="text-muted-foreground mt-3 text-xs">
-            {t("Pour une laize de {w} cm. Une laize plus étroite demande un peu plus de tissu.", { w: fabric.width_cm })}
-          </p>
-        ) : null}
-      </details>
-
-      {/* Achat */}
       {demo ? (
-        <div className="mt-6 grid gap-2.5">
+        <div className="mt-8 grid gap-3">
           <SalesPendingNotice demo />
-          <Link
-            href={`/modeles?fabric=${fabric.id}`}
-            className={cn(
-              buttonVariants({ size: "lg", variant: "outline" }),
-              "h-12 w-full text-base",
-            )}
-          >
+          <Link href={`/tissus/${fabric.id}/tenue`} className={ctaClass}>
             <Scissors className="size-4" /> {t("Essayer sur une tenue")}
           </Link>
         </div>
       ) : salesPending ? (
-        <SalesPendingNotice className="mt-6" />
-      ) : available ? (
-        <div className="mt-6 grid gap-2.5">
-          <Button type="button" size="lg" className="h-12 w-full bg-orange-500 text-base text-white hover:bg-orange-600"
-            onClick={addToCart}
-          >
-            <Package className="size-4" /> {t("Ajouter au panier")}
-          </Button>
-          <Link
-            href={`/modeles?fabric=${fabric.id}`}
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "h-12 w-full bg-emerald-600 text-base text-white hover:bg-emerald-700",
-            )}
-          >
-            <Scissors className="size-4" /> {t("Faire coudre une tenue")}
-          </Link>
-        </div>
-      ) : (
-        <p className="bg-muted mt-6 rounded-xl p-4 text-center font-semibold">
+        <SalesPendingNotice className="mt-8" />
+      ) : !available ? (
+        <p className="bg-muted mt-8 rounded-xl p-4 text-center font-semibold">
           {t("Ce tissu est épuisé")}
         </p>
-      )}
-
-      {/* Livraison — dite clairement, sans promesse que la caisse ne tiendrait pas */}
-      <dl className="mt-6 grid gap-2.5 rounded-xl border p-4 text-sm">
-        <div className="flex items-start gap-2.5">
-          <Truck className="mt-0.5 size-4 shrink-0" />
-          <div>
-            <dt className="font-medium">
-              {t("Livraison")}
-            </dt>
-            <dd className="text-muted-foreground text-xs">
-              {t(deliveryPolicy(deliveryZone))}
-            </dd>
+      ) : (
+        <>
+          {/* Quantité — cartes à choisir, comme des offres */}
+          <div className="mt-8">
+            <RuleHeading>{t("Quantité")}</RuleHeading>
+            <p className="text-muted-foreground mt-3 text-center text-sm">
+              {minQty > unit.step
+                ? t("Minimum {q}", { q: showUnits(minQty) })
+                : unit.key === "METER"
+                  ? t("Coupe au demi-mètre")
+                  : unit.step < 1
+                    ? t("Coupe au demi-yard")
+                    : t("Vendu à la pièce")}
+            </p>
           </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <Store className="mt-0.5 size-4 shrink-0" />
-          <div>
-            <dt className="font-medium">{t("Vendu et expédié par JALOFA")}</dt>
-            <dd className="text-muted-foreground text-xs">
-              {t("Pour un habit, JALOFA envoie le tissu directement à l'atelier de votre tailleur.")}
-            </dd>
-          </div>
-        </div>
-      </dl>
 
-      {/* Fiche technique — la ligne « SKU / catégorie / partage » du commerce */}
-      <dl className="text-muted-foreground mt-5 space-y-1.5 border-t pt-5 text-sm">
-        <div className="flex gap-3">
-          <dt className="w-24 shrink-0">{t("Référence")}</dt>
-          <dd className="text-foreground font-mono text-xs uppercase">
-            {fabric.id.slice(-8)}
-          </dd>
-        </div>
-        <div className="flex gap-3">
-          <dt className="w-24 shrink-0">{t("Matière")}</dt>
-          <dd className="text-foreground">{fabric.material ?? "—"}</dd>
-        </div>
-        <div className="flex gap-3">
-          <dt className="w-24 shrink-0">{t("Vendu par")}</dt>
-          <dd>
-            {vendorHref && vendorName ? (
-              <Link href={vendorHref} className="text-foreground hover:underline">
-                {vendorName}
+          <div role="radiogroup" aria-label={t("Quantité")} className="mt-4 grid gap-3">
+            {quick.map((q) => {
+              const active = !custom && qty === q;
+              const m = unitsToMeters(fabric, q);
+              return (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  key={q}
+                  onClick={() => {
+                    setCustom(false);
+                    setSafe(q);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors",
+                    active ? "border-foreground" : "bg-muted/40 hover:bg-muted border-transparent",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
+                      active ? "border-foreground bg-foreground text-background" : "border-foreground/60",
+                    )}
+                  >
+                    {active && <Check className="size-3.5" strokeWidth={3} />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-lg font-bold">{showUnits(q)}</span>
+                    <span className="text-muted-foreground block text-sm italic">
+                      {coverText(m)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right whitespace-nowrap">
+                    <span className="block text-lg font-bold">
+                      <ProductPrice amount={fabricLinePrice(fabric, m, color)} europe={europe} />
+                    </span>
+                    {discount > 0 && (
+                      <s className="text-muted-foreground block text-xs">
+                        <ProductPrice amount={fabricFullLinePrice(fabric, m, color)} europe={europe} />
+                      </s>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Autre quantité : compteur libre */}
+            <div
+              className={cn(
+                "rounded-xl border-2 p-4 transition-colors",
+                custom ? "border-foreground" : "bg-muted/40 hover:bg-muted border-transparent",
+              )}
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={custom}
+                onClick={() => setCustom(true)}
+                className="flex w-full items-center gap-4 text-left"
+              >
+                <span
+                  className={cn(
+                    "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
+                    custom ? "border-foreground bg-foreground text-background" : "border-foreground/60",
+                  )}
+                >
+                  {custom && <Check className="size-3.5" strokeWidth={3} />}
+                </span>
+                <span className="flex-1 text-lg font-bold">{t("Autre quantité")}</span>
+                {custom && (
+                  <span className="shrink-0 text-right whitespace-nowrap">
+                    <span className="block text-lg font-bold">
+                      <ProductPrice amount={total} europe={europe} />
+                    </span>
+                    {discount > 0 && (
+                      <s className="text-muted-foreground block text-xs">
+                        <ProductPrice amount={fabricFullLinePrice(fabric, meters, color)} europe={europe} />
+                      </s>
+                    )}
+                  </span>
+                )}
+              </button>
+              {custom && (
+                <div className="mt-3 flex flex-wrap items-center gap-3 pl-10">
+                  <div className="bg-background flex items-center gap-1 rounded-lg border p-1">
+                    <button
+                      type="button"
+                      onClick={() => setSafe(qty - unit.step)}
+                      disabled={qty <= minQty}
+                      aria-label={t("Retirer")}
+                      className="hover:bg-muted flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40"
+                    >
+                      <Minus className="size-4" />
+                    </button>
+                    <span className="min-w-16 px-1 text-center font-semibold tabular-nums">
+                      {showUnits(qty)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSafe(qty + unit.step)}
+                      disabled={qty >= maxQty}
+                      aria-label={t("Ajouter")}
+                      className="hover:bg-muted flex size-9 items-center justify-center rounded-md transition-colors disabled:opacity-40"
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                  </div>
+                  <span className="text-muted-foreground text-sm italic">
+                    {covered ? coverText(meters) : t("Sous {m}, prévoyez une petite pièce (foulard, ceinture).", { m: formatMeters(smallest) })}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {unit.key !== "METER" && (
+            <p className="text-muted-foreground mt-2 text-center text-xs">
+              {t("Soit {m}.", { m: formatMeters(meters) })}
+            </p>
+          )}
+
+          {/* Guide de métrage */}
+          <details className="group mt-4 rounded-xl border px-4 py-3 text-sm">
+            <summary className="cursor-pointer list-none font-medium marker:hidden">
+              <span className="flex items-center justify-between gap-2">
+                {t("Combien de mètres commander ?")}
+                <Plus className="size-4 transition-transform group-open:rotate-45" />
+              </span>
+            </summary>
+            <ul className="mt-3 space-y-1.5">
+              {METRAGE_GUIDE.map((g) => (
+                <li key={g.label} className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">{t(g.label)}</span>
+                  <span className="shrink-0 text-right font-medium">{t(g.meters)}</span>
+                </li>
+              ))}
+            </ul>
+            {fabric.width_cm ? (
+              <p className="text-muted-foreground mt-3 text-xs">
+                {t("Pour une laize de {w} cm. Une laize plus étroite demande un peu plus de tissu.", { w: fabric.width_cm })}
+              </p>
+            ) : null}
+          </details>
+
+          {/* Ajout : faire coudre — l'interrupteur change la suite de l'achat */}
+          <p className="mt-8 text-sm font-bold tracking-wide uppercase">{t("Et pour la tenue :")}</p>
+          <div className="bg-muted/60 mt-3 flex items-center gap-3 rounded-xl p-3 sm:gap-4 sm:p-4">
+            <div className="bg-background size-11 shrink-0 overflow-hidden rounded-lg sm:size-16">
+              {image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt="" className="size-full object-cover" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold whitespace-nowrap uppercase sm:text-base">{t("Faire coudre")}</p>
+              <p className="text-muted-foreground mt-0.5 text-xs leading-snug sm:text-sm">
+                {t("Choisissez un modèle et un tailleur : le tissu part à son atelier.")}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={sew}
+              aria-label={t("Faire coudre")}
+              onClick={() => setSew((s) => !s)}
+              className={cn(
+                "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+                sew ? "bg-emerald-600" : "bg-muted-foreground/40",
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform",
+                  sew && "translate-x-5",
+                )}
+              />
+            </button>
+          </div>
+          {sew && (
+            <p className="text-muted-foreground mt-3 text-center text-sm">
+              {t("Le métrage sera calculé pour la tenue que vous choisirez.")}
+            </p>
+          )}
+
+          {/* Inclus avec la commande — des services réels, pas des cadeaux inventés */}
+          <div className="mt-8 text-center">
+            <span className="bg-muted inline-block rounded-lg px-4 py-1.5 text-sm font-bold">
+              {t("INCLUS avec votre commande")}
+            </span>
+            <ul className="mx-auto mt-4 grid max-w-sm grid-cols-2 gap-3">
+              {[
+                {
+                  icon: Truck,
+                  label:
+                    deliveryZone === "dakar"
+                      ? t("Livraison offerte à Dakar")
+                      : deliveryZone === "senegal"
+                        ? t("Livraison offerte au Sénégal")
+                        : freeDelivery
+                          ? t("Livraison offerte")
+                          : t("Livraison à domicile"),
+                },
+                { icon: Store, label: t("Envoi à l'atelier du tailleur") },
+              ].map(({ icon: Icon, label }) => (
+                <li key={label} className="flex flex-col items-center gap-2">
+                  <span className="bg-muted flex size-16 items-center justify-center rounded-xl">
+                    <Icon className="size-6" strokeWidth={1.5} />
+                  </span>
+                  <span className="text-xs leading-snug sm:text-sm">{label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* L'achat */}
+          <div className="mt-6">
+            {sew ? (
+              <Link href={`/tissus/${fabric.id}/tenue`} className={ctaClass}>
+                {t("Choisir ma tenue")}
               </Link>
             ) : (
-              <span className="text-foreground">{vendorName ?? "—"}</span>
+              <button type="button" onClick={addToCart} className={ctaClass}>
+                {t("Ajouter au panier")}
+              </button>
             )}
-          </dd>
-        </div>
-      </dl>
+            <PaymentLogos className="mt-4" extra={["Mastercard", "PayPal"]} />
+            <p className="text-muted-foreground mt-2 flex items-center justify-center gap-1 text-[11px]">
+              <Lock className="size-3" /> {t("Paiement sécurisé")}
+            </p>
+            <p className="text-muted-foreground mt-3 text-center text-xs">
+              {t(deliveryPolicy(deliveryZone))}
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* Preuve sociale : les vraies photos jointes aux avis, s'il y en a */}
+      {reviewPhotos.length > 0 && (
+        <section className="mt-10 text-center">
+          <h2 className="text-lg font-semibold tracking-[0.15em] uppercase">
+            {t("Ils l'ont porté")}
+          </h2>
+          <ul className="mt-4 flex flex-wrap justify-center gap-3">
+            {reviewPhotos.slice(0, 3).map((url) => (
+              <li key={url}>
+                <a href="#avis" className="block size-24 overflow-hidden rounded-full border sm:size-28">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={t("Photo de l'avis")} className="size-full object-cover" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Lien secondaire vers les tenues, même en mode simple achat */}
+      {!demo && !salesPending && available && !sew && (
+        <Link
+          href={`/tissus/${fabric.id}/tenue`}
+          className={cn(buttonVariants({ variant: "link" }), "mt-4 w-full")}
+        >
+          <Scissors className="size-4" /> {t("Voir les tenues possibles avec ce tissu")}
+        </Link>
+      )}
     </div>
   );
 }

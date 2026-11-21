@@ -5,7 +5,7 @@ import { EuropeBadge } from "@/components/europe/europe-badge";
 import { ProductPrice } from "@/components/europe/europe-price";
 import { Badge } from "@/components/ui/badge";
 import { fabricColorHex, parseFabricColors } from "@/lib/fabric-colors";
-import { fabricUnit, fabricUnitPrice } from "@/lib/fabric-specs";
+import { fabricDiscount, fabricUnit, fabricUnitPrice } from "@/lib/fabric-specs";
 import type { Fabric } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getT } from "@/lib/i18n/server";
@@ -21,6 +21,7 @@ export async function FabricCard({
 }) {
   const colors = parseFabricColors(fabric.color);
   const t = await getT();
+  const discount = fabricDiscount(fabric);
   return (
     <Link
       href={`/tissus/${fabric.id}`}
@@ -79,9 +80,20 @@ export async function FabricCard({
         <h3 className="line-clamp-1 font-medium">{fabric.name}</h3>
         <p className="text-muted-foreground text-xs">{fabric.material}</p>
         <p className="text-primary mt-1.5 font-semibold">
-          <ProductPrice amount={fabric.price_per_meter} europe={fabric.origin?.europe} />
+          <ProductPrice
+            amount={discount ? Math.round((fabric.price_per_meter * (100 - discount)) / 100) : fabric.price_per_meter}
+            europe={fabric.origin?.europe}
+          />
           <span className="text-muted-foreground text-xs font-normal"> / {t("mètre")}</span>
         </p>
+        {discount > 0 && (
+          <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+            <s>
+              <ProductPrice amount={fabric.price_per_meter} europe={fabric.origin?.europe} />
+            </s>
+            <span className="rounded bg-orange-500 px-1 py-px font-bold text-white">−{discount} %</span>
+          </p>
+        )}
       </div>
     </Link>
   );

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/i18n/link";
 
-import { CategoryChips, SearchInput } from "@/components/catalog/catalog-filters";
+import { SearchInput } from "@/components/catalog/catalog-filters";
 import { CollectionHero } from "@/components/catalog/collection-hero";
 import { COLLECTION_HEADING } from "@/components/catalog/collection-sections";
 import { DemoBanner } from "@/components/demo-banner";
@@ -11,34 +11,10 @@ import {
   WhyJalofa,
 } from "@/components/catalog/tailleurs-sections";
 import { skillModels } from "@/lib/catalog-link";
-import { getModels, getModelSuggestions, getTailors } from "@/lib/data";
-import type { GarmentModel, Tailor } from "@/lib/types";
+import { getModelSuggestions, getTailors } from "@/lib/data";
 
-type Audience = "homme" | "femme";
-
-const AUDIENCES = [
-  { slug: "homme", name: "Homme" },
-  { slug: "femme", name: "Femme" },
-];
-
-/**
- * Le tailleur coud-il pour cette clientèle ? Sa « Spécialisation » le dit ;
- * sans spécialisation, ce qu'il sait faire et ses modèles publiés (habits homme
- * ou femme) en tiennent lieu.
- */
-function sewsFor(
-  tailor: Tailor,
-  audience: Audience,
-  catalog: GarmentModel[],
-  published: GarmentModel[],
-): boolean {
-  if (tailor.specialty) return tailor.specialty === "both" || tailor.specialty === audience;
-  return (
-    skillModels(tailor.skills, catalog).some((m) => m.category_slug === audience) ||
-    published.some((m) => m.tailor_id === tailor.id && m.category_slug === audience)
-  );
-}
 import { getT } from "@/lib/i18n/server";
+import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -51,29 +27,16 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TailorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ city?: string; q?: string; pour?: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const { city, q, pour } = await searchParams;
-  const audience: Audience | null = pour === "homme" || pour === "femme" ? pour : null;
-  const [all, catalog, published] = await Promise.all([
-    getTailors(),
-    getModelSuggestions(),
-    // Les modèles publiés ne servent qu'au filtre Homme / Femme.
-    pour ? getModels() : Promise.resolve([] as GarmentModel[]),
-  ]);
+  const { q } = await searchParams;
+  const [all, catalog] = await Promise.all([getTailors(), getModelSuggestions()]);
   const tr = await getT();
 
-  const cities = Array.from(
-    new Set(all.map((t) => t.city).filter((c): c is string => Boolean(c))),
-  ).map((c) => ({ slug: c, name: c }));
-
-  const tailors = all.filter((t) => {
-    if (city && t.city !== city) return false;
-    if (audience && !sewsFor(t, audience, catalog, published)) return false;
-    if (q && !(t.shop_name ?? "").toLowerCase().includes(q.toLowerCase()))
-      return false;
-    return true;
-  });
+  // Peu de tailleurs pour l'instant : pas de filtres, seulement la recherche.
+  const tailors = q
+    ? all.filter((t) => (t.shop_name ?? "").toLowerCase().includes(q.toLowerCase()))
+    : all;
 
   // Une recherche : on va droit aux résultats, sans le hero.
   const showHero = !q;
@@ -86,7 +49,7 @@ export default async function TailorsPage({
           number="04"
           eyebrow="Choisissez votre artisan"
           title="Tailleurs"
-          titleClassName="text-[16vw] md:text-[11vw]"
+          titleClassName="text-[12vw] md:text-[8vw]"
           image={{
             src: "/avis/wandi.jpg",
             alt: "Mains d'un tailleur guidant un tissu sous l'aiguille d'une machine à coudre",
@@ -108,18 +71,12 @@ export default async function TailorsPage({
 
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-10">
           <div>
-            <Heading className={COLLECTION_HEADING}>{tr("Trouvez votre tailleur")}</Heading>
-            <p className="mt-3 max-w-xl text-lg">
+            <Heading className={cn(COLLECTION_HEADING, "text-2xl md:text-4xl")}>{tr("Trouvez votre tailleur")}</Heading>
+            <p className="mt-3 max-w-xl text-base">
               {tr("Des artisans qui cousent votre habit à vos mesures.")}
             </p>
           </div>
           <SearchInput placeholder={tr("Rechercher un tailleur...")} />
-        </div>
-
-        <div className="mt-6 space-y-3 md:mt-8">
-          {/* Homme / Femme : un tailleur « les deux » apparaît dans les deux. */}
-          <CategoryChips options={AUDIENCES} paramName="pour" />
-          <CategoryChips options={cities} paramName="city" />
         </div>
 
         {tailors.length === 0 ? (

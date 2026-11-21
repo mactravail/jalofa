@@ -107,9 +107,30 @@ const LOGOS: Logo[] = [
       </svg>
     ),
   },
+  {
+    name: "PayPal",
+    svg: (
+      <svg viewBox="0 0 48 30" aria-hidden="true" className="h-full w-full">
+        <rect width="48" height="30" rx="4" fill="#fff" />
+        <text
+          x="24"
+          y="19"
+          textAnchor="middle"
+          fontFamily={FONT}
+          fontSize="10.5"
+          fontWeight="900"
+          fontStyle="italic"
+        >
+          <tspan fill="#003087">Pay</tspan>
+          <tspan fill="#009CDE">Pal</tspan>
+        </text>
+      </svg>
+    ),
+  },
 ];
 
-const CARD_LOGOS = new Set(["Visa", "Mastercard"]);
+/** Hors liste par défaut : affichés seulement quand on les demande (`extra`). */
+const CARD_LOGOS = new Set(["Visa", "Mastercard", "PayPal"]);
 
 const BY_NAME = Object.fromEntries(LOGOS.map((l) => [l.name, l.svg]));
 
@@ -142,14 +163,25 @@ export function PaymentMethodLogo({
   );
 }
 
-export function PaymentLogos({ className }: { className?: string }) {
+export function PaymentLogos({
+  className,
+  extra = [],
+}: {
+  className?: string;
+  /** Logos à montrer en plus du mobile money (« Mastercard », « PayPal »…). */
+  extra?: string[];
+}) {
   return (
     <ul
       aria-label="Moyens de paiement acceptés"
       className={cn("flex flex-wrap items-center justify-center gap-2", className)}
     >
       {/* Paiement direct au pro : mobile money seulement, pas de carte. */}
-      {LOGOS.filter((l) => !DIRECT_PAYMENT || !CARD_LOGOS.has(l.name)).map((logo) => (
+      {LOGOS.filter(
+        (l) =>
+          extra.includes(l.name) ||
+          (l.name !== "PayPal" && (!DIRECT_PAYMENT || !CARD_LOGOS.has(l.name))),
+      ).map((logo) => (
         <li
           key={logo.name}
           title={logo.name}

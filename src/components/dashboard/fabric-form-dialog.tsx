@@ -43,7 +43,7 @@ import {
   STRETCHES,
   USAGES,
   WEIGHTS,
-  fabricUnitPrice,
+  fabricFullUnitPrice,
   parseSalesUnit,
   type SalesUnit,
 } from "@/lib/fabric-specs";
@@ -97,7 +97,8 @@ export function FabricFormDialog({
 }) {
   const draftKey = `fabric:${fabric?.id ?? "new"}`;
   const saved = useSavedDraft<FabricDraftExtra>(draftKey);
-  const initialUnitPrice = fabric ? fabricUnitPrice(fabric) : null;
+  // Le prix saisi est le prix plein : la réduction se règle à part.
+  const initialUnitPrice = fabric ? fabricFullUnitPrice(fabric) : null;
   const [priceEur, setPriceEur] = useState<string>(
     saved?.extra.priceEur ??
       (initialUnitPrice != null ? String(xofToEur(initialUnitPrice)) : ""),
@@ -383,6 +384,24 @@ export function FabricFormDialog({
                   />
                 </>
               )}
+            </div>
+
+            {/* Promo : le prix plein s'affiche barré, le client paie le prix réduit. */}
+            <div className="space-y-2">
+              <Label htmlFor="fabric-discount">{t("Réduction (%)")}</Label>
+              <Input
+                id="fabric-discount"
+                name="discount_percent"
+                type="number"
+                min={0}
+                max={90}
+                step={1}
+                defaultValue={field("discount_percent") ?? fabric?.discount_percent ?? 0}
+                placeholder="0"
+              />
+              <p className="text-muted-foreground text-xs">
+                {t("0 = pas de promo. Sinon le prix plein s'affiche barré sur la fiche.")}
+              </p>
             </div>
 
             <div className={cn("grid gap-3", compact ? "grid-cols-1" : "grid-cols-3")}>

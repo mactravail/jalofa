@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingOutfitReminder } from "@/components/order/pending-outfit-reminder";
 import { usePathname } from "@/lib/i18n/navigation";
 
 // Wraps the shared site chrome (header + footer + bottom nav mobile) but hides
@@ -19,7 +20,10 @@ export function MainChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const immersive = pathname?.startsWith("/commande/nouvelle") ?? false;
+  // Aussi « Que coudre avec ce tissu ? » : choisir la tenue sans se disperser.
+  const immersive =
+    (pathname?.startsWith("/commande/nouvelle") || /^\/tissus\/[^/]+\/tenue/.test(pathname ?? "")) ??
+    false;
 
   // Dans son compte, on est là pour agir : pas de footer du site.
   const inAccount = pathname === "/compte" || pathname?.startsWith("/compte/");
@@ -31,6 +35,8 @@ export function MainChrome({
       {header}
       <main className="flex-1">{children}</main>
       {!inAccount && footer}
+      {/* « Votre tenue vous attend » : le tissu choisi pour un sur-mesure laissé en route. */}
+      <PendingOutfitReminder />
       {/* La barre est fixe : ce cale évite qu'elle recouvre le bas de la page. */}
       <div aria-hidden className="h-bottom-nav md:hidden" />
       {bottomNav}

@@ -8,6 +8,7 @@ import {
   CreditCard,
   Crown,
   Eye,
+  ChartColumn,
   HandHeart,
   Layers,
   LayoutDashboard,
@@ -43,6 +44,7 @@ export type ProRole = "tailor" | "vendor";
 export type DashboardNavId =
   | "overview"
   | "notifications"
+  | "views"
   | "profile"
   | "shopLink"
   | "visibility"
@@ -133,6 +135,13 @@ export function dashboardNav(role: ProRole): DashboardNavGroup[] {
                 href: `${root}/notifications`,
                 label: "Notifications",
                 icon: Bell,
+              },
+              {
+                // Combien de personnes ont ouvert sa page et cliqué sur ses modèles.
+                id: "views" as const,
+                href: `${root}/vues`,
+                label: "Mes vues",
+                icon: ChartColumn,
               },
             ]
           : []),

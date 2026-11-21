@@ -11,7 +11,8 @@ import { useEffect } from "react";
  * allumé seulement. La dernière page d'une visite = celle où il s'est arrêté.
  *
  * Rien de personnel : un identifiant aléatoire dans le navigateur, pas de
- * cookie, pas de nom. L'admin et les espaces pros ne sont pas comptés.
+ * cookie, pas de nom. L'admin et les pros (dès qu'ils ouvrent leur espace) ne sont
+ * pas comptés.
  */
 
 const VISITOR_KEY = "jalofa-vid";
@@ -58,7 +59,9 @@ export function PageTracker() {
     try {
       // L'administrateur ne fausse pas ses propres chiffres : une visite de
       // l'admin suffit pour que ce navigateur ne soit plus jamais compté.
-      if (pathname.replace(/^\/it(?=\/|$)/, "").startsWith("/admin")) {
+      // Pareil pour un pro : ouvrir son espace suffit pour que ses propres
+      // visites de sa page ou de ses modèles ne gonflent pas « Mes vues ».
+      if (isPrivateArea(pathname)) {
         localStorage.setItem(OPT_OUT_KEY, "1");
       }
       if (localStorage.getItem(OPT_OUT_KEY)) return;
@@ -69,7 +72,6 @@ export function PageTracker() {
     } catch {
       return; // stockage bloqué (navigation privée stricte) : on ne compte pas
     }
-    if (isPrivateArea(pathname)) return;
 
     // Seul `category` change vraiment la page (Homme / Femme…).
     const query = category ? `category=${encodeURIComponent(category)}` : "";

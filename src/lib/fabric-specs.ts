@@ -77,7 +77,21 @@ type Priced = {
   price_per_meter: number;
   min_order_qty?: number | null;
   color_variants?: Record<string, { price?: number | null; image_url?: string | null }> | null;
+  /** Réduction en % fixée par l'admin (0 = pas de promo). */
+  discount_percent?: number | null;
 };
+
+/** La réduction en cours sur ce tissu, en % (0 à 90). */
+export function fabricDiscount(fabric: { discount_percent?: number | null }): number {
+  const d = Math.round(Number(fabric.discount_percent ?? 0));
+  return Number.isFinite(d) ? Math.min(90, Math.max(0, d)) : 0;
+}
+
+/** Applique la réduction du tissu à un prix plein. */
+function discounted(fabric: Priced, full: number): number {
+  const d = fabricDiscount(fabric);
+  return d ? Math.round((full * (100 - d)) / 100) : full;
+}
 
 /** Le prix propre d'une couleur, s'il a été fixé par le vendeur. */
 export function colorUnitPrice(fabric: Priced, color: string | null | undefined): number | null {
@@ -99,8 +113,13 @@ export function fabricUnit(fabric: { sales_unit?: string | null }): UnitDef & { 
   return { key, ...SALES_UNITS[key] };
 }
 
-/** Le prix affiché : celui de l'unité du vendeur (ou de la couleur choisie). */
+/** Le prix payé : prix plein de l'unité, réduction déduite. */
 export function fabricUnitPrice(fabric: Priced, color?: string | null): number {
+  return discounted(fabric, fabricFullUnitPrice(fabric, color));
+}
+
+/** Le prix plein (barré quand il y a une réduction) — celui que l'admin saisit. */
+export function fabricFullUnitPrice(fabric: Priced, color?: string | null): number {
   const own = colorUnitPrice(fabric, color);
   if (own != null) return own;
   const unit = fabricUnit(fabric);
@@ -140,10 +159,15 @@ export function metersToUnits(fabric: { sales_unit?: string | null }, meters: nu
  * total soit exactement N × prix de l'unité (pas d'arrondi de conversion).
  */
 export function fabricLinePrice(fabric: Priced, meters: number, color?: string | null): number {
+  return discounted(fabric, fabricFullLinePrice(fabric, meters, color));
+}
+
+/** Prix plein d'une ligne, avant réduction (le prix barré). */
+export function fabricFullLinePrice(fabric: Priced, meters: number, color?: string | null): number {
   const unit = fabricUnit(fabric);
   const own = colorUnitPrice(fabric, color);
   if (unit.key === "METER") return Math.round((own ?? Number(fabric.price_per_meter)) * meters);
-  return Math.round(fabricUnitPrice(fabric, color) * metersToUnits(fabric, meters));
+  return Math.round(fabricFullUnitPrice(fabric, color) * metersToUnits(fabric, meters));
 }
 
 /**

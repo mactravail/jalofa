@@ -73,10 +73,18 @@ const RECOMMENDATION_COLUMNS = [
   "description",
 ] as const;
 
+/** Premier repli : seule la migration 20260912000001 (réduction) manque. */
+function withoutDiscount<T extends Record<string, unknown>>(payload: T): Partial<T> {
+  const copy: Record<string, unknown> = { ...payload };
+  delete copy.discount_percent;
+  return copy as Partial<T>;
+}
+
 /** Repli intermédiaire : seule la migration 20260902000001 manque. */
 function withoutVariants<T extends Record<string, unknown>>(payload: T): Partial<T> {
   const copy: Record<string, unknown> = { ...payload };
   delete copy.color_variants;
+  delete copy.discount_percent;
   return copy as Partial<T>;
 }
 
@@ -314,6 +322,16 @@ export async function saveFabric(
     recommended_usages: checked(formData, "recommended_usages", USAGES),
     detail_image_url: detailUrl,
     color_variants: colorVariants,
+    // Réduction affichée en prix barré (0 = pas de promo), plafonnée à 90 %.
+    // Champ absent du formulaire : on ne touche pas à la réduction en place.
+    ...(formData.has("discount_percent")
+      ? {
+          discount_percent: Math.min(
+            90,
+            Math.max(0, Math.round(toNumber(formData.get("discount_percent")))),
+          ),
+        }
+      : {}),
   };
   // Modification depuis le formulaire allégé : garder ce qui a été réglé dans
   // « Mes recommandations ».
@@ -328,6 +346,7 @@ export async function saveFabric(
     const update = (p: Partial<typeof payload>) =>
       supabase.from("fabrics").update(p).eq("id", id).eq("vendor_id", user.id);
     let { error } = await update(payload);
+    if (error && UNKNOWN_COLUMN.has(error.code)) ({ error } = await update(withoutDiscount(payload)));
     // Migrations pas encore appliquées : on garde l'essentiel.
     if (error && UNKNOWN_COLUMN.has(error.code)) ({ error } = await update(withoutVariants(payload)));
     if (error && UNKNOWN_COLUMN.has(error.code)) ({ error } = await update(withoutSpecs(payload)));
@@ -354,6 +373,9 @@ export async function saveFabric(
         .select("id")
         .single();
     let { data: created, error } = await insert(payload);
+    if (error && UNKNOWN_COLUMN.has(error.code)) {
+      ({ data: created, error } = await insert(withoutDiscount(payload)));
+    }
     if (error && UNKNOWN_COLUMN.has(error.code)) {
       ({ data: created, error } = await insert(withoutVariants(payload)));
     }
